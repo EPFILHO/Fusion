@@ -1,0 +1,16 @@
+# MetaTrader / MetaEditor
+*.ex5
+*.log
+*.tmp
+*.bak
+*.mqproj
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local state
+.idea/
+.vscode/
+
