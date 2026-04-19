@@ -67,7 +67,7 @@ public:
             CUIPanel(void)
      {
       m_chartId = 0;
-      m_prefix  = "ModularEA_";
+      m_prefix  = "Fusion_";
       m_created = false;
      }
 
@@ -85,7 +85,7 @@ public:
       ObjectSetInteger(m_chartId, Name("bg"), OBJPROP_BGCOLOR, clrDimGray);
       ObjectSetInteger(m_chartId, Name("bg"), OBJPROP_COLOR, clrGainsboro);
 
-      CreateLabel("title", 20, 28, "ModularEA Control", clrWhite);
+      CreateLabel("title", 20, 28, "Fusion Control", clrWhite);
       CreateLabel("status", 20, 50, "", clrWhite);
       CreateLabel("counts", 20, 70, "", clrWhite);
       CreateLabel("profile_label", 20, 95, "Profile", clrWhite);
@@ -189,4 +189,3 @@ public:
   };
 
 #endif
-

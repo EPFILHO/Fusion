@@ -31,9 +31,9 @@ private:
 
    void              EnsureFolders(void) const
      {
-      FolderCreate("ModularEA");
-      FolderCreate("ModularEA\\Profiles");
-      FolderCreate("ModularEA\\ChartState");
+      FolderCreate("Fusion");
+      FolderCreate("Fusion\\Profiles");
+      FolderCreate("Fusion\\ChartState");
      }
 
    bool              WriteLine(const int handle,const string key,const string value) const
@@ -223,7 +223,7 @@ public:
      {
       EnsureFolders();
 
-      string fileName = "ModularEA\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
       int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -238,7 +238,7 @@ public:
       EnsureFolders();
       SetDefaultSettings(settings);
 
-      string fileName = "ModularEA\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -260,7 +260,7 @@ public:
      {
       EnsureFolders();
 
-      string fileName = "ModularEA\\ChartState\\" + SanitizeName(chartKey) + ".state";
+      string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -269,7 +269,7 @@ public:
       WriteLine(handle, "activeProfileName", activeProfileName);
       WriteLine(handle, "started", IntegerToString((int)started));
       WriteLine(handle, "state.hasPosition", IntegerToString((int)state.hasPosition));
-      WriteLine(handle, "state.positionId", LongToString((long)state.positionId));
+      WriteLine(handle, "state.positionId", StringFormat("%I64u", state.positionId));
       WriteLine(handle, "state.ownerStrategyId", state.ownerStrategyId);
       WriteLine(handle, "state.ownerStrategyName", state.ownerStrategyName);
       WriteLine(handle, "state.tp1Executed", IntegerToString((int)state.tp1Executed));
@@ -295,7 +295,7 @@ public:
       activeProfileName = "";
       started = false;
 
-      string fileName = "ModularEA\\ChartState\\" + SanitizeName(chartKey) + ".state";
+      string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;

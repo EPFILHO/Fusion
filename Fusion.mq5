@@ -1,18 +1,18 @@
 //+------------------------------------------------------------------+
-//|                                                     ModularEA.mq5 |
-//|                         Clean modular multi-strategy EA scaffold  |
+//|                                                        Fusion.mq5 |
+//|                          Clean modular multi-strategy EA scaffold |
 //+------------------------------------------------------------------+
 #property copyright "OpenAI / Codex"
-#property version   "0.1.0"
+#property version   "1.000"
 #property strict
 
 #include "Core/EAApplication.mqh"
 
-CModularEAApplication *g_app = NULL;
+CFusionApplication *g_app = NULL;
 
 int OnInit()
   {
-   g_app = new CModularEAApplication();
+   g_app = new CFusionApplication();
    if(g_app == NULL)
       return INIT_FAILED;
 
@@ -59,4 +59,3 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &
    if(g_app != NULL)
       g_app.OnTradeTransaction(trans, request, result);
   }
-

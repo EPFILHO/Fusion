@@ -221,7 +221,8 @@ public:
          return false;
 
       ENUM_ORDER_TYPE closeType = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
-      OrderCalcProfit(closeType, m_symbol, lotToClose, state.entryPrice, request.price, estimatedProfit);
+      if(!OrderCalcProfit(closeType, m_symbol, lotToClose, state.entryPrice, request.price, estimatedProfit))
+         estimatedProfit = 0.0;
       m_needsSync = true;
       return true;
      }
@@ -298,4 +299,3 @@ public:
   };
 
 #endif
-

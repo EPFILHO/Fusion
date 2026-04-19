@@ -1,4 +1,4 @@
-# ModularEA
+# Fusion
 
 This project is a clean-room MT5 EA scaffold inspired by the strengths of the `Matrix` repository without copying its structure blindly.
 
@@ -29,4 +29,3 @@ This project is a clean-room MT5 EA scaffold inspired by the strengths of the `M
 - The panel included in this first revision is intentionally lean. It is the seed for hot reload, not the final UX.
 - Persistence is separated into named profiles and per-chart autosave so the user can maintain multiple setups per market and strategy family.
 - `OnTradeTransaction` is part of the design from the beginning, even in this first scaffold.
-

@@ -18,7 +18,7 @@
 #include "../Persistence/SettingsStore.mqh"
 #include "../UI/UIPanel.mqh"
 
-class CModularEAApplication
+class CFusionApplication
   {
 private:
    SEASettings             m_settings;
@@ -285,7 +285,7 @@ private:
      }
 
 public:
-                     CModularEAApplication(void)
+                     CFusionApplication(void)
      {
       SetDefaultSettings(m_settings);
       ResetPositionRuntimeState(m_positionState);
