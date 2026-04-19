@@ -109,6 +109,12 @@ private:
       if(!m_signalManager.ReloadAll(m_settings, scope))
          return false;
 
+      if(m_settings.panelEnabled && !m_settings.isTester)
+        {
+         m_panel.LoadSettings(m_settings);
+         m_panel.Update(BuildPanelSnapshot());
+        }
+
       PersistChartState();
       return true;
      }
@@ -246,6 +252,7 @@ private:
       if(command.type == UI_COMMAND_TOGGLE_RUNNING)
         {
          m_started = !m_started;
+         m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
         }
@@ -268,6 +275,7 @@ private:
          if(m_settingsStore.SaveProfile(profileName, m_settings))
             m_activeProfileName = profileName;
          m_panel.SetProfileName(m_activeProfileName);
+         m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
         }
@@ -284,6 +292,8 @@ private:
             ApplySettings(loadedSettings, RELOAD_COLD);
             m_activeProfileName = profileName;
             m_panel.SetProfileName(m_activeProfileName);
+            m_panel.LoadSettings(m_settings);
+            m_panel.Update(BuildPanelSnapshot());
             PersistChartState();
            }
          return;
@@ -296,6 +306,8 @@ private:
          updated.magicNumber = m_panel.EditedMagicNumber();
          updated.conflictMode = m_panel.EditedConflictMode();
          ApplySettings(updated, command.reloadScope);
+         m_panel.LoadSettings(m_settings);
+         m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
         }
@@ -351,7 +363,33 @@ public:
       m_executionService.SyncPosition(m_positionState);
 
       if(m_settings.panelEnabled && !m_settings.isTester)
-         m_panel.Create(ChartID(), BuildPanelSnapshot());
+        {
+         int chartWidth = (int)ChartGetInteger(ChartID(), CHART_WIDTH_IN_PIXELS);
+         int x1 = chartWidth - FUSION_PANEL_WIDTH - 10;
+         if(x1 < 10)
+            x1 = 10;
+
+         if(!m_panel.CreatePanel(ChartID(),
+                                 "Fusion",
+                                 0,
+                                 x1,
+                                 FUSION_PANEL_TOP,
+                                 x1 + FUSION_PANEL_WIDTH,
+                                 FUSION_PANEL_TOP + FUSION_PANEL_HEIGHT,
+                                 BuildPanelSnapshot()))
+           {
+            m_logger.Error("UI", "Failed to create Fusion panel");
+            return false;
+           }
+
+         m_panel.LoadSettings(m_settings);
+         if(!m_panel.Run())
+           {
+            m_logger.Error("UI", "Failed to run Fusion panel");
+            m_panel.Destroy(REASON_REMOVE);
+            return false;
+           }
+        }
 
       EventSetTimer(1);
       return true;
@@ -361,7 +399,7 @@ public:
      {
       EventKillTimer();
       PersistChartState();
-      m_panel.Destroy();
+      m_panel.Destroy(reason);
       m_signalManager.Shutdown();
      }
 
@@ -413,8 +451,13 @@ public:
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
+      if(!m_settings.panelEnabled || m_settings.isTester)
+         return;
+
+      m_panel.ChartEvent(id, lparam, dparam, sparam);
+
       SUICommand command;
-      if(m_panel.HandleChartEvent(id, sparam, command))
+      while(m_panel.ConsumeCommand(command))
          HandleUICommand(command);
      }
 
