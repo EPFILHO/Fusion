@@ -24,7 +24,7 @@ public:
    string            GetTitle(void) const { return m_title; }
    string            GetButtonName(void) const { return m_buttonName; }
 
-   bool              Create(CFusionPanel *parent,const long chartId,const int subwin,const int x1,const int y1,const int x2,const int y2)
+   bool              Create(CAppDialog *parent,const long chartId,const int subwin,const int x1,const int y1,const int x2,const int y2)
      {
       string prefix = "Fusion_Strategy_" + m_buttonName + "_";
       if(!m_header.Create(chartId, prefix + "hdr", subwin, x1, y1, x2, y1 + 18))
@@ -32,7 +32,7 @@ public:
       m_header.Text(m_title);
       m_header.Color(FUSION_CLR_VALUE);
       m_header.FontSize(10);
-      if(!parent.AddControl(m_header))
+      if(!parent.Add(m_header))
          return false;
 
       if(!m_description.Create(chartId, prefix + "desc", subwin, x1, y1 + 24, x2, y1 + 44))
@@ -40,13 +40,13 @@ public:
       m_description.Text("Hot reload dedicado para esta estrategia.");
       m_description.Color(FUSION_CLR_MUTED);
       m_description.FontSize(8);
-      if(!parent.AddControl(m_description))
+      if(!parent.Add(m_description))
          return false;
 
       if(!m_toggle.Create(chartId, prefix + "toggle", subwin, x1, y1 + 56, x1 + 110, y1 + 80))
          return false;
       FusionApplyToggleButtonStyle(m_toggle, false);
-      if(!parent.AddControl(m_toggle))
+      if(!parent.Add(m_toggle))
          return false;
 
       Hide();

@@ -533,8 +533,6 @@ public:
       if(!CAppDialog::Create(chartId, "FusionPanel", m_subWindow, 10, 20, 530, 360))
          return false;
 
-      ColorBackground(FUSION_CLR_BG);
-
       if(!BuildHeader()) return false;
       if(!BuildTabs()) return false;
       if(!BuildStatusTab()) return false;
@@ -631,7 +629,6 @@ public:
       if(!m_created)
          return false;
 
-      CAppDialog::ChartEvent(id, 0, 0.0, objectName);
       if(id != CHARTEVENT_OBJECT_CLICK)
          return false;
 
