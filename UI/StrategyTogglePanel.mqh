@@ -30,7 +30,7 @@ public:
       if(!m_header.Create(chartId, prefix + "hdr", subwin, x1, y1, x2, y1 + 18))
          return false;
       m_header.Text(m_title);
-      m_header.Color(FUSION_CLR_VALUE);
+      m_header.Color(FUSION_CLR_TITLE);
       m_header.FontSize(10);
       if(!parent.AddControl(m_header))
          return false;

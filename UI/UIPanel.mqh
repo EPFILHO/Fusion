@@ -58,6 +58,7 @@ private:
    bool                       m_origDragTrade;
    bool                       m_origMouseScroll;
    bool                       m_hasPendingCommand;
+   bool                       m_configInputsValid;
    SUICommand                 m_pendingCommand;
    SUIPanelSnapshot           m_snapshot;
    ENUM_FUSION_TAB            m_activeTab;
@@ -107,6 +108,7 @@ private:
    CLabel                     m_cfgSystemConflictLbl;
    CButton                    m_cfgSystemConflictBtn;
    CButton                    m_cfgApplyBtn;
+   CLabel                     m_cfgStatus;
 
    CStrategyPanelBase        *m_strategyPanels[3];
    CFilterPanelBase          *m_filterPanels[2];
@@ -180,8 +182,17 @@ private:
    void                       UpdateHeaderButtons(void)
      {
       m_btnStart.Text(m_snapshot.started ? "PAUSAR" : "INICIAR");
-      m_btnStart.ColorBackground(m_snapshot.started ? FUSION_CLR_WARN : FUSION_CLR_GOOD);
+      FusionApplyActionButtonStyle(m_btnStart, m_snapshot.started ? FUSION_CLR_WARN : FUSION_CLR_GOOD, true);
       FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, m_snapshot.started);
+     }
+
+   void                       RefreshTheme(void)
+     {
+      FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_ACTION_SAVE, true);
+      FusionApplyActionButtonStyle(m_btnLoad, FUSION_CLR_ACTION_LOAD, true);
+      FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
+      FusionApplyApplyButtonStyle(m_cfgApplyBtn, m_configInputsValid);
+      FusionApplyEditStyle(m_editProfile, true, true);
      }
 
    void                       UpdateTabStyles(void)
@@ -226,8 +237,7 @@ private:
       for(int i = 0; i < 3; ++i)
         {
          m_strategyOverviewName[i].Text(strategyNames[i]);
-         m_strategyOverviewState[i].Text(strategyStates[i] ? "ATIVA" : "OFF");
-         m_strategyOverviewState[i].Color(strategyStates[i] ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
+         FusionApplyStateLabel(m_strategyOverviewState[i], strategyStates[i], "ATIVO", "OFF");
         }
 
       string filterNames[2] = {"Trend", "RSI"};
@@ -235,9 +245,38 @@ private:
       for(int j = 0; j < 2; ++j)
         {
          m_filterOverviewName[j].Text(filterNames[j]);
-         m_filterOverviewState[j].Text(filterStates[j] ? "ATIVO" : "OFF");
-         m_filterOverviewState[j].Color(filterStates[j] ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
+         FusionApplyStateLabel(m_filterOverviewState[j], filterStates[j], "ATIVO", "OFF");
         }
+     }
+
+   bool                       RefreshConfigValidation(void)
+     {
+      bool lotValid    = FusionIsDecimalText(m_cfgRiskLotEdit.Text(), false);
+      bool spreadValid = FusionIsIntegerText(m_cfgRiskSpreadEdit.Text(), true);
+      bool magicValid  = FusionIsIntegerText(m_cfgSystemMagicEdit.Text(), true);
+
+      FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, true);
+      FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, true);
+      FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, true);
+      m_cfgRiskLotLbl.Color(lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+      m_cfgRiskSpreadLbl.Color(spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+      m_cfgSystemMagicLbl.Color(magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+
+      m_configInputsValid = lotValid && spreadValid && magicValid;
+      FusionApplyApplyButtonStyle(m_cfgApplyBtn, m_configInputsValid);
+
+      if(m_configInputsValid)
+        {
+         m_cfgStatus.Text("Campos validados. Hot reload pronto.");
+         m_cfgStatus.Color(FUSION_CLR_GOOD);
+        }
+      else
+        {
+         m_cfgStatus.Text("Corrija os campos destacados antes de aplicar.");
+         m_cfgStatus.Color(FUSION_CLR_BAD);
+        }
+
+      return m_configInputsValid;
      }
 
    void                       UpdateConfigReadOnly(void)
@@ -338,6 +377,7 @@ private:
       SetVisible(m_cfgSystemConflictLbl, systemVisible);
       SetVisible(m_cfgSystemConflictBtn, systemVisible);
       SetVisible(m_cfgApplyBtn, visible);
+      SetVisible(m_cfgStatus, visible);
      }
 
    void                       ApplyVisibility(void)
@@ -347,18 +387,19 @@ private:
       SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
       SetFiltersVisible(m_activeTab == FUSION_TAB_FILTERS);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
+      RefreshTheme();
       UpdateTabStyles();
      }
 
    bool                       BuildHeader(void)
      {
-      if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, 250, 26, "Fusion Control", FUSION_CLR_VALUE, 10))
+      if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, 250, 26, "Fusion Control", FUSION_CLR_TITLE, 10))
          return false;
       if(!AddButton(m_btnStart, "Fusion_btnStart", 250, 4, 340, 28, "INICIAR", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_btnSave, "Fusion_btnSave", 346, 4, 430, 28, "SALVAR", FUSION_CLR_ACCENT_DARK))
+      if(!AddButton(m_btnSave, "Fusion_btnSave", 346, 4, 430, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
          return false;
-      if(!AddButton(m_btnLoad, "Fusion_btnLoad", 436, 4, 530, 28, "CARREGAR", FUSION_CLR_ACCENT))
+      if(!AddButton(m_btnLoad, "Fusion_btnLoad", 436, 4, 530, 28, "CARREGAR", FUSION_CLR_ACTION_LOAD))
          return false;
       if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 70, 54, "Perfil", FUSION_CLR_MUTED))
          return false;
@@ -386,9 +427,9 @@ private:
       int y = 112;
       for(int i = 0; i < 8; ++i)
         {
-         if(!AddLabel(m_statusLabels[i], "Fusion_status_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL))
+         if(!AddLabel(m_statusLabels[i], "Fusion_status_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL, 9))
             return false;
-         if(!AddLabel(m_statusValues[i], "Fusion_status_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE))
+         if(!AddLabel(m_statusValues[i], "Fusion_status_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE, 9))
             return false;
          y += 30;
         }
@@ -401,9 +442,9 @@ private:
       int y = 112;
       for(int i = 0; i < 6; ++i)
         {
-         if(!AddLabel(m_resultsLabels[i], "Fusion_results_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL))
+         if(!AddLabel(m_resultsLabels[i], "Fusion_results_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL, 9))
             return false;
-         if(!AddLabel(m_resultsValues[i], "Fusion_results_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE))
+         if(!AddLabel(m_resultsValues[i], "Fusion_results_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE, 9))
             return false;
          y += 34;
         }
@@ -427,9 +468,9 @@ private:
       int y = 194;
       for(int i = 0; i < 3; ++i)
         {
-         if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 240, y + 18, "--", FUSION_CLR_LABEL))
+         if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             return false;
-         if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 270, y, 390, y + 18, "--", FUSION_CLR_VALUE))
+         if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
             return false;
          y += 34;
         }
@@ -465,9 +506,9 @@ private:
       int y = 194;
       for(int i = 0; i < 2; ++i)
         {
-         if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 240, y + 18, "--", FUSION_CLR_LABEL))
+         if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             return false;
-         if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 270, y, 390, y + 18, "--", FUSION_CLR_VALUE))
+         if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
             return false;
          y += 34;
         }
@@ -528,7 +569,9 @@ private:
          return false;
       if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORITY", FUSION_CLR_PANEL))
          return false;
-      if(!AddButton(m_cfgApplyBtn, "Fusion_cfg_apply_btn", 22, 360, 150, 388, "APLICAR", FUSION_CLR_ACCENT))
+      if(!AddButton(m_cfgApplyBtn, "Fusion_cfg_apply_btn", 22, 360, 150, 388, "APLICAR", FUSION_CLR_ACTION_APPLY))
+         return false;
+      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 398, 420, 418, "", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -562,6 +605,8 @@ private:
       if(objectName == m_cfgApplyBtn.Name())
         {
          ReleaseButton(m_cfgApplyBtn);
+         if(!RefreshConfigValidation())
+            return true;
          QueueSimpleCommand(UI_COMMAND_APPLY_SETTINGS);
          return true;
         }
@@ -664,6 +709,7 @@ public:
       m_mouseOverPanel  = false;
       m_origDragTrade   = true;
       m_origMouseScroll = true;
+      m_configInputsValid = true;
       m_activeTab       = FUSION_TAB_STATUS;
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
@@ -709,6 +755,7 @@ public:
       if(!BuildFilterTab())   { Destroy(REASON_REMOVE); return false; }
       if(!BuildConfigTab())   { Destroy(REASON_REMOVE); return false; }
       LoadSettings(snapshot);
+      RefreshConfigValidation();
       Update(snapshot);
       return true;
      }
@@ -772,6 +819,7 @@ public:
       m_cfgRiskSpreadEdit.Text(IntegerToString(settings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(settings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(settings.conflictMode));
+      RefreshConfigValidation();
      }
 
    void                       Update(const SUIPanelSnapshot &snapshot)
@@ -784,6 +832,7 @@ public:
       UpdateResultsTab();
       UpdateOverviews();
       UpdateConfigReadOnly();
+      RefreshConfigValidation();
       for(int i = 0; i < 3; ++i)
          if(m_strategyPanels[i] != NULL)
             m_strategyPanels[i].Sync(m_snapshot);
@@ -881,8 +930,12 @@ public:
    virtual bool               OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
       bool result = CAppDialog::OnEvent(id, lparam, dparam, sparam);
-      if(result && !m_minimized)
-         ApplyVisibility();
+      if(!m_minimized)
+        {
+         RefreshConfigValidation();
+         if(result)
+            ApplyVisibility();
+        }
       return result;
      }
   };
