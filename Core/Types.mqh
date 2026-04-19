@@ -57,6 +57,7 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_BB,
    UI_COMMAND_TOGGLE_TREND_FILTER,
    UI_COMMAND_TOGGLE_RSI_FILTER,
+   UI_COMMAND_APPLY_SETTINGS,
    UI_COMMAND_SAVE_PROFILE,
    UI_COMMAND_LOAD_PROFILE
   };
@@ -224,9 +225,17 @@ struct SClosedTradeSummary
 struct SUIPanelSnapshot
   {
    bool   started;
+   bool   hasPosition;
    string activeProfileName;
+   string symbol;
+   string timeframe;
+   int    magicNumber;
    int    activeStrategies;
    int    activeFilters;
+   ENUM_CONFLICT_RESOLUTION conflictMode;
+   double fixedLot;
+   int    maxSpreadPoints;
+   string ownerStrategyName;
    bool   useMACross;
    bool   useRSI;
    bool   useBollinger;
@@ -238,6 +247,9 @@ struct SUICommand
   {
    ENUM_UI_COMMAND type;
    string          text;
+   bool            hasSettings;
+   ENUM_RELOAD_SCOPE reloadScope;
+   SEASettings     settings;
   };
 
 string SignalToString(ENUM_SIGNAL_TYPE signal)
@@ -367,4 +379,3 @@ void ResetPositionRuntimeState(SPositionRuntimeState &state)
   }
 
 #endif
-

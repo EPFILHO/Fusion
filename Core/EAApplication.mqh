@@ -36,7 +36,7 @@ private:
    CSymbolNormalizer       m_normalizer;
    CExecutionService       m_executionService;
    CSettingsStore          m_settingsStore;
-   CUIPanel                m_panel;
+   CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
    string                  m_activeProfileName;
    bool                    m_started;
@@ -72,9 +72,17 @@ private:
      {
       SUIPanelSnapshot snapshot;
       snapshot.started          = m_started;
+      snapshot.hasPosition      = m_positionState.hasPosition;
       snapshot.activeProfileName= m_activeProfileName;
+      snapshot.symbol           = _Symbol;
+      snapshot.timeframe        = EnumToString((ENUM_TIMEFRAMES)Period());
+      snapshot.magicNumber      = m_settings.magicNumber;
       snapshot.activeStrategies = m_signalManager.ActiveStrategyCount();
       snapshot.activeFilters    = m_signalManager.ActiveFilterCount();
+      snapshot.conflictMode     = m_settings.conflictMode;
+      snapshot.fixedLot         = m_settings.fixedLot;
+      snapshot.maxSpreadPoints  = m_settings.maxSpreadPoints;
+      snapshot.ownerStrategyName= m_positionState.ownerStrategyName;
       snapshot.useMACross       = m_settings.useMACross;
       snapshot.useRSI           = m_settings.useRSI;
       snapshot.useBollinger     = m_settings.useBollinger;
@@ -278,6 +286,17 @@ private:
             m_panel.SetProfileName(m_activeProfileName);
             PersistChartState();
            }
+         return;
+        }
+      else if(command.type == UI_COMMAND_APPLY_SETTINGS)
+        {
+         SEASettings updated = m_settings;
+         updated.fixedLot = m_panel.EditedFixedLot();
+         updated.maxSpreadPoints = m_panel.EditedMaxSpread();
+         updated.magicNumber = m_panel.EditedMagicNumber();
+         updated.conflictMode = m_panel.EditedConflictMode();
+         ApplySettings(updated, command.reloadScope);
+         PersistChartState();
          return;
         }
 
