@@ -67,15 +67,15 @@ public:
       m_toggle.Hide();
      }
 
-   void              Sync(const SUIPanelSnapshot &snapshot)
+   void              Sync(const SEASettings &settings)
      {
       bool enabled = false;
       if(m_toggleCommand == UI_COMMAND_TOGGLE_MACROSS)
-         enabled = snapshot.useMACross;
+         enabled = settings.useMACross;
       else if(m_toggleCommand == UI_COMMAND_TOGGLE_RSI)
-         enabled = snapshot.useRSI;
+         enabled = settings.useRSI;
       else if(m_toggleCommand == UI_COMMAND_TOGGLE_BB)
-         enabled = snapshot.useBollinger;
+         enabled = settings.useBollinger;
       FusionApplyToggleButtonStyle(m_toggle, enabled);
      }
 

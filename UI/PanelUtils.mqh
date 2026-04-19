@@ -22,7 +22,6 @@
 #define FUSION_CLR_NAV_ACTIVE    C'43,144,234'
 #define FUSION_CLR_ACTION_SAVE   C'31,84,141'
 #define FUSION_CLR_ACTION_LOAD   C'43,128,214'
-#define FUSION_CLR_ACTION_APPLY  C'43,144,234'
 #define FUSION_CLR_DISABLED      C'155,164,178'
 #define FUSION_CLR_DISABLED_TXT  C'228,232,238'
 #define FUSION_CLR_FIELD_BG      clrWhite
@@ -97,9 +96,47 @@ bool FusionIsIntegerText(const string text,const bool allowZero=true)
    return true;
   }
 
+string FusionNormalizeDecimalText(const string text)
+  {
+   string normalized = FusionTrimCopy(text);
+   StringReplace(normalized, ",", ".");
+   return normalized;
+  }
+
+int FusionVolumeDigits(const double step)
+  {
+   double value = step;
+   int digits = 0;
+
+   while(digits < 8 && MathAbs(value - MathRound(value)) > 0.0000001)
+     {
+      value *= 10.0;
+      digits++;
+     }
+
+   return digits;
+  }
+
+bool FusionIsVolumeAligned(const double volume,const SSymbolSpec &spec)
+  {
+   if(spec.volumeStep <= 0.0)
+      return true;
+
+   double steps = volume / spec.volumeStep;
+   return MathAbs(steps - MathRound(steps)) <= 0.0000001;
+  }
+
+string FusionFormatVolume(const double volume,const SSymbolSpec &spec)
+  {
+   int digits = FusionVolumeDigits(spec.volumeStep);
+   if(digits < 2)
+      digits = 2;
+   return DoubleToString(volume, digits);
+  }
+
 bool FusionIsDecimalText(const string text,const bool allowZero=true)
   {
-   string trimmed = FusionTrimCopy(text);
+   string trimmed = FusionNormalizeDecimalText(text);
    if(trimmed == "")
       return false;
 
@@ -127,9 +164,7 @@ bool FusionIsDecimalText(const string text,const bool allowZero=true)
          return false;
      }
 
-   string normalized = trimmed;
-   StringReplace(normalized, ",", ".");
-   double value = StringToDouble(normalized);
+   double value = StringToDouble(trimmed);
    if(!allowZero && value <= 0.0)
       return false;
    return true;
@@ -141,14 +176,19 @@ void FusionApplyActionButtonStyle(CButton &button,const color bg,const bool enab
    button.ColorBackground(enabled ? bg : FUSION_CLR_DISABLED);
   }
 
+void FusionApplyNeutralButtonStyle(CButton &button)
+  {
+   FusionApplyActionButtonStyle(button, FUSION_CLR_DISABLED, false);
+  }
+
+void FusionApplyBlockedButtonStyle(CButton &button)
+  {
+   FusionApplyActionButtonStyle(button, FUSION_CLR_BAD, true);
+  }
+
 void FusionApplyPrimaryButtonStyle(CButton &button,const bool active)
   {
    FusionApplyActionButtonStyle(button, active ? FUSION_CLR_NAV_ACTIVE : FUSION_CLR_NAV_IDLE, true);
-  }
-
-void FusionApplyApplyButtonStyle(CButton &button,const bool enabled)
-  {
-   FusionApplyActionButtonStyle(button, FUSION_CLR_ACTION_APPLY, enabled);
   }
 
 void FusionApplyToggleButtonStyle(CButton &button,const bool enabled)

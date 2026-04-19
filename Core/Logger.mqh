@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_LOGGER_MQH__
-#define __MODULAR_EA_LOGGER_MQH__
+#ifndef __FUSION_LOGGER_MQH__
+#define __FUSION_LOGGER_MQH__
 
 class CLogger
   {
@@ -71,4 +71,3 @@ public:
   };
 
 #endif
-

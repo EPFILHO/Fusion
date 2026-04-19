@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_SETTINGS_STORE_MQH__
-#define __MODULAR_EA_SETTINGS_STORE_MQH__
+#ifndef __FUSION_SETTINGS_STORE_MQH__
+#define __FUSION_SETTINGS_STORE_MQH__
 
 #include "../Core/Types.mqh"
 

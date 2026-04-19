@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_ICONFLICT_RESOLVER_MQH__
-#define __MODULAR_EA_ICONFLICT_RESOLVER_MQH__
+#ifndef __FUSION_I_CONFLICT_RESOLVER_MQH__
+#define __FUSION_I_CONFLICT_RESOLVER_MQH__
 
 #include "../../Core/Types.mqh"
 
@@ -12,4 +12,3 @@ public:
   };
 
 #endif
-

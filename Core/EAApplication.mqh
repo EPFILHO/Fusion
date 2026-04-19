@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_APPLICATION_MQH__
-#define __MODULAR_EA_APPLICATION_MQH__
+#ifndef __FUSION_APPLICATION_MQH__
+#define __FUSION_APPLICATION_MQH__
 
 #include "Inputs.mqh"
 #include "Logger.mqh"
@@ -76,6 +76,7 @@ private:
       snapshot.activeProfileName= m_activeProfileName;
       snapshot.symbol           = _Symbol;
       snapshot.timeframe        = EnumToString((ENUM_TIMEFRAMES)Period());
+      snapshot.symbolSpec       = SymbolSpec();
       snapshot.magicNumber      = m_settings.magicNumber;
       snapshot.activeStrategies = m_signalManager.ActiveStrategyCount();
       snapshot.activeFilters    = m_signalManager.ActiveFilterCount();
@@ -106,17 +107,7 @@ private:
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_executionService.Reload(m_settings);
       m_protectionManager.Reload(m_settings, scope);
-      if(!m_signalManager.ReloadAll(m_settings, scope))
-         return false;
-
-      if(m_settings.panelEnabled && !m_settings.isTester)
-        {
-         m_panel.LoadSettings(m_settings);
-         m_panel.Update(BuildPanelSnapshot());
-        }
-
-      PersistChartState();
-      return true;
+      return m_signalManager.ReloadAll(m_settings, scope);
      }
 
    bool                    PriceReached(const ENUM_POSITION_TYPE type,const double currentPrice,const double targetPrice) const
@@ -257,29 +248,34 @@ private:
          return;
         }
 
-      if(command.type == UI_COMMAND_TOGGLE_MACROSS)
-         m_settings.useMACross = !m_settings.useMACross;
-      else if(command.type == UI_COMMAND_TOGGLE_RSI)
-         m_settings.useRSI = !m_settings.useRSI;
-      else if(command.type == UI_COMMAND_TOGGLE_BB)
-         m_settings.useBollinger = !m_settings.useBollinger;
-      else if(command.type == UI_COMMAND_TOGGLE_TREND_FILTER)
-         m_settings.useTrendFilter = !m_settings.useTrendFilter;
-      else if(command.type == UI_COMMAND_TOGGLE_RSI_FILTER)
-         m_settings.useRSIFilter = !m_settings.useRSIFilter;
-      else if(command.type == UI_COMMAND_SAVE_PROFILE)
+      if(command.type == UI_COMMAND_SAVE_PROFILE)
         {
          string profileName = (command.text == "") ? m_activeProfileName : command.text;
          if(profileName == "")
             profileName = m_settings.defaultProfileName;
+
+         SEASettings settingsToSave = m_settings;
+         if(command.hasSettings)
+            settingsToSave = command.settings;
+         settingsToSave.isTester = m_settings.isTester;
+
+         if(!ApplySettings(settingsToSave, command.reloadScope))
+            return;
+
          if(m_settingsStore.SaveProfile(profileName, m_settings))
             m_activeProfileName = profileName;
-         m_panel.SetProfileName(m_activeProfileName);
-         m_panel.Update(BuildPanelSnapshot());
+
+         if(m_settings.panelEnabled && !m_settings.isTester)
+           {
+            m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
+            m_panel.Update(BuildPanelSnapshot());
+           }
+
          PersistChartState();
          return;
         }
-      else if(command.type == UI_COMMAND_LOAD_PROFILE)
+
+      if(command.type == UI_COMMAND_LOAD_PROFILE)
         {
          string profileName = (command.text == "") ? m_activeProfileName : command.text;
          if(profileName == "")
@@ -289,30 +285,20 @@ private:
          if(m_settingsStore.LoadProfile(profileName, loadedSettings))
            {
             loadedSettings.isTester = m_settings.isTester;
-            ApplySettings(loadedSettings, RELOAD_COLD);
+            if(!ApplySettings(loadedSettings, RELOAD_COLD))
+               return;
             m_activeProfileName = profileName;
-            m_panel.SetProfileName(m_activeProfileName);
-            m_panel.LoadSettings(m_settings);
-            m_panel.Update(BuildPanelSnapshot());
+
+            if(m_settings.panelEnabled && !m_settings.isTester)
+              {
+               m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
+               m_panel.Update(BuildPanelSnapshot());
+              }
+
             PersistChartState();
            }
          return;
         }
-      else if(command.type == UI_COMMAND_APPLY_SETTINGS)
-        {
-         SEASettings updated = m_settings;
-         updated.fixedLot = m_panel.EditedFixedLot();
-         updated.maxSpreadPoints = m_panel.EditedMaxSpread();
-         updated.magicNumber = m_panel.EditedMagicNumber();
-         updated.conflictMode = m_panel.EditedConflictMode();
-         ApplySettings(updated, command.reloadScope);
-         m_panel.LoadSettings(m_settings);
-         m_panel.Update(BuildPanelSnapshot());
-         PersistChartState();
-         return;
-        }
-
-      ApplySettings(m_settings, RELOAD_HOT);
      }
 
 public:
@@ -382,7 +368,6 @@ public:
             return false;
            }
 
-         m_panel.LoadSettings(m_settings);
          if(!m_panel.Run())
            {
             m_logger.Error("UI", "Failed to run Fusion panel");

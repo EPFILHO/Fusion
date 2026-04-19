@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_TREND_FILTER_MQH__
-#define __MODULAR_EA_TREND_FILTER_MQH__
+#ifndef __FUSION_TREND_FILTER_MQH__
+#define __FUSION_TREND_FILTER_MQH__
 
 #include "../Base/FilterBase.mqh"
 
@@ -101,4 +101,3 @@ public:
   };
 
 #endif
-

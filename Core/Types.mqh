@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_TYPES_MQH__
-#define __MODULAR_EA_TYPES_MQH__
+#ifndef __FUSION_TYPES_MQH__
+#define __FUSION_TYPES_MQH__
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -57,7 +57,6 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_BB,
    UI_COMMAND_TOGGLE_TREND_FILTER,
    UI_COMMAND_TOGGLE_RSI_FILTER,
-   UI_COMMAND_APPLY_SETTINGS,
    UI_COMMAND_SAVE_PROFILE,
    UI_COMMAND_LOAD_PROFILE
   };
@@ -229,6 +228,7 @@ struct SUIPanelSnapshot
    string activeProfileName;
    string symbol;
    string timeframe;
+   SSymbolSpec symbolSpec;
    int    magicNumber;
    int    activeStrategies;
    int    activeFilters;

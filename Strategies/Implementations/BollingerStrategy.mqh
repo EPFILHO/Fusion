@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_BOLLINGER_STRATEGY_MQH__
-#define __MODULAR_EA_BOLLINGER_STRATEGY_MQH__
+#ifndef __FUSION_BOLLINGER_STRATEGY_MQH__
+#define __FUSION_BOLLINGER_STRATEGY_MQH__
 
 #include "../Base/StrategyBase.mqh"
 
@@ -156,4 +156,3 @@ public:
   };
 
 #endif
-

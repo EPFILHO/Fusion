@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_PROTECTION_MANAGER_MQH__
-#define __MODULAR_EA_PROTECTION_MANAGER_MQH__
+#ifndef __FUSION_PROTECTION_MANAGER_MQH__
+#define __FUSION_PROTECTION_MANAGER_MQH__
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"

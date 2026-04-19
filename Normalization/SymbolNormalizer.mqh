@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_SYMBOL_NORMALIZER_MQH__
-#define __MODULAR_EA_SYMBOL_NORMALIZER_MQH__
+#ifndef __FUSION_SYMBOL_NORMALIZER_MQH__
+#define __FUSION_SYMBOL_NORMALIZER_MQH__
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"
@@ -90,4 +90,3 @@ public:
   };
 
 #endif
-

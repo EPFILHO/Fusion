@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_SIGNAL_MANAGER_MQH__
-#define __MODULAR_EA_SIGNAL_MANAGER_MQH__
+#ifndef __FUSION_SIGNAL_MANAGER_MQH__
+#define __FUSION_SIGNAL_MANAGER_MQH__
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"
@@ -207,4 +207,3 @@ public:
   };
 
 #endif
-

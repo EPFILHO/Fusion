@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_RSI_STRATEGY_MQH__
-#define __MODULAR_EA_RSI_STRATEGY_MQH__
+#ifndef __FUSION_RSI_STRATEGY_MQH__
+#define __FUSION_RSI_STRATEGY_MQH__
 
 #include "../Base/StrategyBase.mqh"
 
@@ -146,4 +146,3 @@ public:
   };
 
 #endif
-

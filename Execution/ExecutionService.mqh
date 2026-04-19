@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_EXECUTION_SERVICE_MQH__
-#define __MODULAR_EA_EXECUTION_SERVICE_MQH__
+#ifndef __FUSION_EXECUTION_SERVICE_MQH__
+#define __FUSION_EXECUTION_SERVICE_MQH__
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"

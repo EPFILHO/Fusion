@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_INPUTS_MQH__
-#define __MODULAR_EA_INPUTS_MQH__
+#ifndef __FUSION_INPUTS_MQH__
+#define __FUSION_INPUTS_MQH__
 
 #include "Types.mqh"
 
@@ -176,4 +176,3 @@ void FillSettingsFromInputs(SEASettings &settings)
   }
 
 #endif
-

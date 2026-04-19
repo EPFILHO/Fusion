@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_FILTER_BASE_MQH__
-#define __MODULAR_EA_FILTER_BASE_MQH__
+#ifndef __FUSION_FILTER_BASE_MQH__
+#define __FUSION_FILTER_BASE_MQH__
 
 #include "../../Core/Types.mqh"
 #include "../../Core/Logger.mqh"
@@ -54,4 +54,3 @@ public:
   };
 
 #endif
-

@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_PRIORITY_CONFLICT_RESOLVER_MQH__
-#define __MODULAR_EA_PRIORITY_CONFLICT_RESOLVER_MQH__
+#ifndef __FUSION_PRIORITY_CONFLICT_RESOLVER_MQH__
+#define __FUSION_PRIORITY_CONFLICT_RESOLVER_MQH__
 
 #include "IConflictResolver.mqh"
 
@@ -42,4 +42,3 @@ public:
   };
 
 #endif
-

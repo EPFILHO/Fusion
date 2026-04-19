@@ -59,8 +59,12 @@ private:
    bool                       m_origMouseScroll;
    bool                       m_hasPendingCommand;
    bool                       m_configInputsValid;
+   bool                       m_hasCommittedSettings;
    SUICommand                 m_pendingCommand;
    SUIPanelSnapshot           m_snapshot;
+   SEASettings                m_committedSettings;
+   SEASettings                m_draftSettings;
+   string                     m_committedProfileName;
    ENUM_FUSION_TAB            m_activeTab;
    ENUM_FUSION_STRATEGY_PAGE  m_strategyPage;
    ENUM_FUSION_FILTER_PAGE    m_filterPage;
@@ -107,7 +111,6 @@ private:
    CEdit                      m_cfgSystemMagicEdit;
    CLabel                     m_cfgSystemConflictLbl;
    CButton                    m_cfgSystemConflictBtn;
-   CButton                    m_cfgApplyBtn;
    CLabel                     m_cfgStatus;
 
    CStrategyPanelBase        *m_strategyPanels[3];
@@ -131,7 +134,7 @@ private:
      {
       ResetCommand(m_pendingCommand);
       m_pendingCommand.type = type;
-      m_pendingCommand.text = ProfileName();
+      m_pendingCommand.text = DraftProfileName();
       m_hasPendingCommand   = true;
      }
 
@@ -179,20 +182,201 @@ private:
          control.Hide();
      }
 
+   void                       ToggleDraftFlag(const ENUM_UI_COMMAND type)
+     {
+      if(type == UI_COMMAND_TOGGLE_MACROSS)
+         m_draftSettings.useMACross = !m_draftSettings.useMACross;
+      else if(type == UI_COMMAND_TOGGLE_RSI)
+         m_draftSettings.useRSI = !m_draftSettings.useRSI;
+      else if(type == UI_COMMAND_TOGGLE_BB)
+         m_draftSettings.useBollinger = !m_draftSettings.useBollinger;
+      else if(type == UI_COMMAND_TOGGLE_TREND_FILTER)
+         m_draftSettings.useTrendFilter = !m_draftSettings.useTrendFilter;
+      else if(type == UI_COMMAND_TOGGLE_RSI_FILTER)
+         m_draftSettings.useRSIFilter = !m_draftSettings.useRSIFilter;
+     }
+
+   string                     DraftProfileName(void)
+     {
+      return FusionTrimCopy(m_editProfile.Text());
+     }
+
+   string                     CommittedLotText(void)
+     {
+      return FusionNormalizeDecimalText(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
+     }
+
+   bool                       HasPendingChanges(void)
+     {
+      if(!m_hasCommittedSettings)
+         return false;
+
+      if(DraftProfileName() != m_committedProfileName)
+         return true;
+
+      string lotText = FusionNormalizeDecimalText(m_cfgRiskLotEdit.Text());
+      if(FusionIsDecimalText(lotText, false))
+        {
+         if(MathAbs(StringToDouble(lotText) - m_committedSettings.fixedLot) > 0.0000001)
+            return true;
+        }
+      else if(lotText != CommittedLotText())
+         return true;
+
+      string spreadText = FusionTrimCopy(m_cfgRiskSpreadEdit.Text());
+      if(FusionIsIntegerText(spreadText, true))
+        {
+         if((int)StringToInteger(spreadText) != m_committedSettings.maxSpreadPoints)
+            return true;
+        }
+      else if(spreadText != IntegerToString(m_committedSettings.maxSpreadPoints))
+         return true;
+
+      string magicText = FusionTrimCopy(m_cfgSystemMagicEdit.Text());
+      if(FusionIsIntegerText(magicText, false))
+        {
+         if((int)StringToInteger(magicText) != m_committedSettings.magicNumber)
+            return true;
+        }
+      else if(magicText != IntegerToString(m_committedSettings.magicNumber))
+         return true;
+
+      if(m_draftSettings.conflictMode != m_committedSettings.conflictMode)
+         return true;
+      if(m_draftSettings.useMACross != m_committedSettings.useMACross)
+         return true;
+      if(m_draftSettings.useRSI != m_committedSettings.useRSI)
+         return true;
+      if(m_draftSettings.useBollinger != m_committedSettings.useBollinger)
+         return true;
+      if(m_draftSettings.useTrendFilter != m_committedSettings.useTrendFilter)
+         return true;
+      if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
+         return true;
+
+      return false;
+     }
+
+   bool                       BuildPendingSettings(SEASettings &outSettings,string &outProfileName,string &outStatus)
+     {
+      outSettings = m_draftSettings;
+      outProfileName = DraftProfileName();
+
+      bool profileValid = !FusionIsBlank(outProfileName);
+      bool lotValid = false;
+      bool spreadValid = false;
+      bool magicValid = false;
+      double parsedLot = 0.0;
+      int parsedSpread = 0;
+      int parsedMagic = 0;
+
+      string lotText = FusionNormalizeDecimalText(m_cfgRiskLotEdit.Text());
+      if(FusionIsDecimalText(lotText, false))
+        {
+         parsedLot = StringToDouble(lotText);
+         lotValid = (parsedLot > 0.0);
+         if(lotValid && m_snapshot.symbolSpec.volumeMin > 0.0)
+            lotValid = (parsedLot >= (m_snapshot.symbolSpec.volumeMin - 0.0000001));
+         if(lotValid && m_snapshot.symbolSpec.volumeMax > 0.0)
+            lotValid = (parsedLot <= (m_snapshot.symbolSpec.volumeMax + 0.0000001));
+         if(lotValid)
+            lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
+        }
+
+      string spreadText = FusionTrimCopy(m_cfgRiskSpreadEdit.Text());
+      if(FusionIsIntegerText(spreadText, true))
+        {
+         parsedSpread = (int)StringToInteger(spreadText);
+         spreadValid = (parsedSpread >= 0);
+        }
+
+      string magicText = FusionTrimCopy(m_cfgSystemMagicEdit.Text());
+      if(FusionIsIntegerText(magicText, false))
+        {
+         parsedMagic = (int)StringToInteger(magicText);
+         magicValid = (parsedMagic > 0);
+        }
+
+      FusionApplyEditStyle(m_editProfile, profileValid, true);
+      FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, true);
+      FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, true);
+      FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, true);
+
+      m_lblProfile.Color(profileValid ? FUSION_CLR_MUTED : FUSION_CLR_BAD);
+      m_cfgRiskLotLbl.Color(lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+      m_cfgRiskSpreadLbl.Color(spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+      m_cfgSystemMagicLbl.Color(magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+
+      m_configInputsValid = profileValid && lotValid && spreadValid && magicValid;
+      if(m_configInputsValid)
+        {
+         outSettings.fixedLot = parsedLot;
+         outSettings.maxSpreadPoints = parsedSpread;
+         outSettings.magicNumber = parsedMagic;
+        }
+
+      bool dirty = HasPendingChanges();
+      if(!m_configInputsValid)
+        {
+         outStatus = "Corrija os campos em rosa antes de salvar.";
+         m_cfgStatus.Color(FUSION_CLR_BAD);
+        }
+      else if(dirty)
+        {
+         outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
+         m_cfgStatus.Color(FUSION_CLR_GOOD);
+        }
+      else if(m_snapshot.started)
+        {
+         outStatus = "EA em execucao com configuracao salva.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else
+        {
+         outStatus = "Configuracao salva e pronta para iniciar.";
+         m_cfgStatus.Color(FUSION_CLR_MUTED);
+        }
+
+      m_cfgStatus.Text(outStatus);
+      return m_configInputsValid;
+     }
+
    void                       UpdateHeaderButtons(void)
      {
-      m_btnStart.Text(m_snapshot.started ? "PAUSAR" : "INICIAR");
-      FusionApplyActionButtonStyle(m_btnStart, m_snapshot.started ? FUSION_CLR_WARN : FUSION_CLR_GOOD, true);
-      FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, m_snapshot.started);
+      bool dirty = HasPendingChanges();
+
+      if(m_snapshot.started)
+        {
+         m_btnStart.Text("PAUSAR");
+         FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
+         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true);
+         return;
+        }
+
+      m_btnStart.Text("INICIAR");
+      if(!dirty && m_configInputsValid)
+         FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_GOOD, true);
+      else
+         FusionApplyBlockedButtonStyle(m_btnStart);
+
+      FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false);
      }
 
    void                       RefreshTheme(void)
      {
-      FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_ACTION_SAVE, true);
+      bool dirty = HasPendingChanges();
+
+      if(!dirty)
+         FusionApplyNeutralButtonStyle(m_btnSave);
+      else if(m_configInputsValid)
+         FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
+      else
+         FusionApplyBlockedButtonStyle(m_btnSave);
+
       FusionApplyActionButtonStyle(m_btnLoad, FUSION_CLR_ACTION_LOAD, true);
       FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
-      FusionApplyApplyButtonStyle(m_cfgApplyBtn, m_configInputsValid);
-      FusionApplyEditStyle(m_editProfile, true, true);
+      FusionApplyEditStyle(m_editProfile, !FusionIsBlank(DraftProfileName()), true);
+      UpdateHeaderButtons();
      }
 
    void                       UpdateTabStyles(void)
@@ -205,7 +389,7 @@ private:
          FusionApplyPrimaryButtonStyle(m_filterTabs[i], i == (int)m_filterPage);
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
          FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_snapshot.conflictMode));
+      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
      }
 
    void                       UpdateStatusTab(void)
@@ -222,10 +406,10 @@ private:
 
    void                       UpdateResultsTab(void)
      {
-      m_resultsValues[0].Text(DoubleToString(m_snapshot.fixedLot, 2));
-      m_resultsValues[1].Text(IntegerToString(m_snapshot.maxSpreadPoints));
-      m_resultsValues[2].Text(IntegerToString(m_snapshot.magicNumber));
-      m_resultsValues[3].Text(m_snapshot.activeProfileName);
+      m_resultsValues[0].Text(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
+      m_resultsValues[1].Text(IntegerToString(m_committedSettings.maxSpreadPoints));
+      m_resultsValues[2].Text(IntegerToString(m_committedSettings.magicNumber));
+      m_resultsValues[3].Text(m_committedProfileName == "" ? m_snapshot.activeProfileName : m_committedProfileName);
       m_resultsValues[4].Text(m_snapshot.started ? "HOT RELOAD READY" : "EDIT MODE");
       m_resultsValues[5].Text(m_snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
      }
@@ -233,7 +417,7 @@ private:
    void                       UpdateOverviews(void)
      {
       string strategyNames[3] = {"MA Cross", "RSI", "Bollinger"};
-      bool strategyStates[3] = {m_snapshot.useMACross, m_snapshot.useRSI, m_snapshot.useBollinger};
+      bool strategyStates[3] = {m_draftSettings.useMACross, m_draftSettings.useRSI, m_draftSettings.useBollinger};
       for(int i = 0; i < 3; ++i)
         {
          m_strategyOverviewName[i].Text(strategyNames[i]);
@@ -241,7 +425,7 @@ private:
         }
 
       string filterNames[2] = {"Trend", "RSI"};
-      bool filterStates[2] = {m_snapshot.useTrendFilter, m_snapshot.useRSIFilter};
+      bool filterStates[2] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter};
       for(int j = 0; j < 2; ++j)
         {
          m_filterOverviewName[j].Text(filterNames[j]);
@@ -251,32 +435,12 @@ private:
 
    bool                       RefreshConfigValidation(void)
      {
-      bool lotValid    = FusionIsDecimalText(m_cfgRiskLotEdit.Text(), false);
-      bool spreadValid = FusionIsIntegerText(m_cfgRiskSpreadEdit.Text(), true);
-      bool magicValid  = FusionIsIntegerText(m_cfgSystemMagicEdit.Text(), true);
-
-      FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, true);
-      FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, true);
-      FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, true);
-      m_cfgRiskLotLbl.Color(lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
-      m_cfgRiskSpreadLbl.Color(spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
-      m_cfgSystemMagicLbl.Color(magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
-
-      m_configInputsValid = lotValid && spreadValid && magicValid;
-      FusionApplyApplyButtonStyle(m_cfgApplyBtn, m_configInputsValid);
-
-      if(m_configInputsValid)
-        {
-         m_cfgStatus.Text("Campos validados. Hot reload pronto.");
-         m_cfgStatus.Color(FUSION_CLR_GOOD);
-        }
-      else
-        {
-         m_cfgStatus.Text("Corrija os campos destacados antes de aplicar.");
-         m_cfgStatus.Color(FUSION_CLR_BAD);
-        }
-
-      return m_configInputsValid;
+      SEASettings candidate;
+      string profileName = "";
+      string status = "";
+      bool valid = BuildPendingSettings(candidate, profileName, status);
+      RefreshTheme();
+      return valid;
      }
 
    void                       UpdateConfigReadOnly(void)
@@ -376,7 +540,6 @@ private:
       SetVisible(m_cfgSystemMagicEdit, systemVisible);
       SetVisible(m_cfgSystemConflictLbl, systemVisible);
       SetVisible(m_cfgSystemConflictBtn, systemVisible);
-      SetVisible(m_cfgApplyBtn, visible);
       SetVisible(m_cfgStatus, visible);
      }
 
@@ -569,9 +732,7 @@ private:
          return false;
       if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORITY", FUSION_CLR_PANEL))
          return false;
-      if(!AddButton(m_cfgApplyBtn, "Fusion_cfg_apply_btn", 22, 360, 150, 388, "APLICAR", FUSION_CLR_ACTION_APPLY))
-         return false;
-      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 398, 420, 418, "", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 360, 470, 388, "", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -581,13 +742,31 @@ private:
       if(objectName == m_btnStart.Name())
         {
          ReleaseButton(m_btnStart);
-         QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+         if(m_snapshot.started)
+            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+         else if(m_configInputsValid && !HasPendingChanges())
+            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+         RefreshTheme();
          return true;
         }
       if(objectName == m_btnSave.Name())
         {
          ReleaseButton(m_btnSave);
-         QueueSimpleCommand(UI_COMMAND_SAVE_PROFILE);
+         SEASettings pendingSettings;
+         string profileName = "";
+         string status = "";
+         bool valid = BuildPendingSettings(pendingSettings, profileName, status);
+         if(valid && HasPendingChanges())
+           {
+            ResetCommand(m_pendingCommand);
+            m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
+            m_pendingCommand.text = profileName;
+            m_pendingCommand.hasSettings = true;
+            m_pendingCommand.settings = pendingSettings;
+            m_pendingCommand.reloadScope = RELOAD_COLD;
+            m_hasPendingCommand = true;
+           }
+         RefreshTheme();
          return true;
         }
       if(objectName == m_btnLoad.Name())
@@ -599,21 +778,18 @@ private:
       if(objectName == m_cfgProtectionStartedBtn.Name())
         {
          ReleaseButton(m_cfgProtectionStartedBtn);
-         QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         return true;
-        }
-      if(objectName == m_cfgApplyBtn.Name())
-        {
-         ReleaseButton(m_cfgApplyBtn);
-         if(!RefreshConfigValidation())
-            return true;
-         QueueSimpleCommand(UI_COMMAND_APPLY_SETTINGS);
+         if(m_snapshot.started)
+            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+         else if(m_configInputsValid && !HasPendingChanges())
+            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+         RefreshTheme();
          return true;
         }
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
-         m_snapshot.conflictMode = (m_snapshot.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
+         m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
+         RefreshConfigValidation();
          UpdateTabStyles();
          return true;
         }
@@ -670,9 +846,12 @@ private:
          ResetCommand(tempCommand);
          if(m_strategyPanels[sp].HandleClick(objectName, tempCommand))
            {
-            tempCommand.text = ProfileName();
-            m_pendingCommand = tempCommand;
-            m_hasPendingCommand = true;
+            ToggleDraftFlag(tempCommand.type);
+            RefreshConfigValidation();
+            UpdateOverviews();
+            for(int i = 0; i < 3; ++i)
+               if(m_strategyPanels[i] != NULL)
+                  m_strategyPanels[i].Sync(m_draftSettings);
             return true;
            }
         }
@@ -684,9 +863,12 @@ private:
          ResetCommand(tempCommand);
          if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
            {
-            tempCommand.text = ProfileName();
-            m_pendingCommand = tempCommand;
-            m_hasPendingCommand = true;
+            ToggleDraftFlag(tempCommand.type);
+            RefreshConfigValidation();
+            UpdateOverviews();
+            for(int j = 0; j < 2; ++j)
+               if(m_filterPanels[j] != NULL)
+                  m_filterPanels[j].Sync(m_draftSettings);
             return true;
            }
         }
@@ -710,15 +892,46 @@ public:
       m_origDragTrade   = true;
       m_origMouseScroll = true;
       m_configInputsValid = true;
+      m_hasCommittedSettings = false;
       m_activeTab       = FUSION_TAB_STATUS;
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
       m_configPage      = FUSION_CFG_RISK;
+      m_committedProfileName = "";
+      SetDefaultSettings(m_committedSettings);
+      SetDefaultSettings(m_draftSettings);
       for(int i = 0; i < 3; ++i)
          m_strategyPanels[i] = NULL;
       for(int j = 0; j < 2; ++j)
          m_filterPanels[j] = NULL;
-      ZeroMemory(m_snapshot);
+      m_snapshot.started = false;
+      m_snapshot.hasPosition = false;
+      m_snapshot.activeProfileName = "";
+      m_snapshot.symbol = "";
+      m_snapshot.timeframe = "";
+      m_snapshot.symbolSpec.symbol = "";
+      m_snapshot.symbolSpec.digits = 0;
+      m_snapshot.symbolSpec.point = 0.0;
+      m_snapshot.symbolSpec.tickSize = 0.0;
+      m_snapshot.symbolSpec.tickValue = 0.0;
+      m_snapshot.symbolSpec.volumeMin = 0.0;
+      m_snapshot.symbolSpec.volumeMax = 0.0;
+      m_snapshot.symbolSpec.volumeStep = 0.0;
+      m_snapshot.symbolSpec.stopsLevel = 0;
+      m_snapshot.symbolSpec.freezeLevel = 0;
+      m_snapshot.symbolSpec.fillingMode = 0;
+      m_snapshot.magicNumber = 0;
+      m_snapshot.activeStrategies = 0;
+      m_snapshot.activeFilters = 0;
+      m_snapshot.conflictMode = CONFLICT_PRIORITY;
+      m_snapshot.fixedLot = 0.0;
+      m_snapshot.maxSpreadPoints = 0;
+      m_snapshot.ownerStrategyName = "";
+      m_snapshot.useMACross = false;
+      m_snapshot.useRSI = false;
+      m_snapshot.useBollinger = false;
+      m_snapshot.useTrendFilter = false;
+      m_snapshot.useRSIFilter = false;
       ClearPendingCommand();
      }
 
@@ -794,18 +1007,36 @@ public:
      {
       if(!m_created)
          return;
+
       m_snapshot = snapshot;
-      m_editProfile.Text(m_snapshot.activeProfileName);
-      m_cfgRiskLotEdit.Text(DoubleToString(m_snapshot.fixedLot, 2));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(m_snapshot.maxSpreadPoints));
-      m_cfgSystemMagicEdit.Text(IntegerToString(m_snapshot.magicNumber));
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_snapshot.conflictMode));
+      m_committedProfileName = m_snapshot.activeProfileName;
+      m_hasCommittedSettings = true;
+
+      m_committedSettings.fixedLot        = m_snapshot.fixedLot;
+      m_committedSettings.maxSpreadPoints = m_snapshot.maxSpreadPoints;
+      m_committedSettings.magicNumber     = m_snapshot.magicNumber;
+      m_committedSettings.conflictMode    = m_snapshot.conflictMode;
+      m_committedSettings.useMACross      = m_snapshot.useMACross;
+      m_committedSettings.useRSI          = m_snapshot.useRSI;
+      m_committedSettings.useBollinger    = m_snapshot.useBollinger;
+      m_committedSettings.useTrendFilter  = m_snapshot.useTrendFilter;
+      m_committedSettings.useRSIFilter    = m_snapshot.useRSIFilter;
+      m_draftSettings = m_committedSettings;
+
+      m_editProfile.Text(m_committedProfileName);
+      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
+      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
      }
 
-   void                       LoadSettings(const SEASettings &settings)
+   void                       LoadSettings(const SEASettings &settings,const string profileName,const SSymbolSpec &spec)
      {
       if(!m_created)
          return;
+
+      m_snapshot.symbolSpec      = spec;
+      m_snapshot.activeProfileName = profileName;
       m_snapshot.fixedLot        = settings.fixedLot;
       m_snapshot.maxSpreadPoints = settings.maxSpreadPoints;
       m_snapshot.magicNumber     = settings.magicNumber;
@@ -815,10 +1046,17 @@ public:
       m_snapshot.useBollinger    = settings.useBollinger;
       m_snapshot.useTrendFilter  = settings.useTrendFilter;
       m_snapshot.useRSIFilter    = settings.useRSIFilter;
-      m_cfgRiskLotEdit.Text(DoubleToString(settings.fixedLot, 2));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(settings.maxSpreadPoints));
-      m_cfgSystemMagicEdit.Text(IntegerToString(settings.magicNumber));
-      m_cfgSystemConflictBtn.Text(FusionConflictText(settings.conflictMode));
+
+      m_committedSettings        = settings;
+      m_draftSettings            = settings;
+      m_committedProfileName     = profileName;
+      m_hasCommittedSettings     = true;
+
+      m_editProfile.Text(m_committedProfileName);
+      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
+      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
       RefreshConfigValidation();
      }
 
@@ -826,6 +1064,7 @@ public:
      {
       if(!m_created || m_minimized)
          return;
+
       m_snapshot = snapshot;
       UpdateHeaderButtons();
       UpdateStatusTab();
@@ -835,10 +1074,10 @@ public:
       RefreshConfigValidation();
       for(int i = 0; i < 3; ++i)
          if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].Sync(m_snapshot);
+            m_strategyPanels[i].Sync(m_draftSettings);
       for(int j = 0; j < 2; ++j)
          if(m_filterPanels[j] != NULL)
-            m_filterPanels[j].Sync(m_snapshot);
+            m_filterPanels[j].Sync(m_draftSettings);
       ApplyVisibility();
      }
 
@@ -858,38 +1097,6 @@ public:
          ChartSetInteger(m_chartId, CHART_MOUSE_SCROLL, m_origMouseScroll);
          m_mouseOverPanel = false;
         }
-     }
-
-   string                     ProfileName(void) const
-     {
-      return m_editProfile.Text();
-     }
-
-   void                       SetProfileName(const string profileName)
-     {
-      if(!m_created)
-         return;
-      m_editProfile.Text(profileName);
-     }
-
-   double                     EditedFixedLot(void) const
-     {
-      return StringToDouble(m_cfgRiskLotEdit.Text());
-     }
-
-   int                        EditedMaxSpread(void) const
-     {
-      return (int)StringToInteger(m_cfgRiskSpreadEdit.Text());
-     }
-
-   int                        EditedMagicNumber(void) const
-     {
-      return (int)StringToInteger(m_cfgSystemMagicEdit.Text());
-     }
-
-   ENUM_CONFLICT_RESOLUTION   EditedConflictMode(void) const
-     {
-      return m_snapshot.conflictMode;
      }
 
    bool                       ConsumeCommand(SUICommand &command)

@@ -1,5 +1,5 @@
-#ifndef __MODULAR_EA_MACROSS_STRATEGY_MQH__
-#define __MODULAR_EA_MACROSS_STRATEGY_MQH__
+#ifndef __FUSION_MACROSS_STRATEGY_MQH__
+#define __FUSION_MACROSS_STRATEGY_MQH__
 
 #include "../Base/StrategyBase.mqh"
 
@@ -141,4 +141,3 @@ public:
   };
 
 #endif
-

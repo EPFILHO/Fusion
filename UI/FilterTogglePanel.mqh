@@ -67,13 +67,13 @@ public:
       m_toggle.Hide();
      }
 
-   void              Sync(const SUIPanelSnapshot &snapshot)
+   void              Sync(const SEASettings &settings)
      {
       bool enabled = false;
       if(m_toggleCommand == UI_COMMAND_TOGGLE_TREND_FILTER)
-         enabled = snapshot.useTrendFilter;
+         enabled = settings.useTrendFilter;
       else if(m_toggleCommand == UI_COMMAND_TOGGLE_RSI_FILTER)
-         enabled = snapshot.useRSIFilter;
+         enabled = settings.useRSIFilter;
       FusionApplyToggleButtonStyle(m_toggle, enabled);
      }
 
