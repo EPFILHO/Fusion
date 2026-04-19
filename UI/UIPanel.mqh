@@ -406,7 +406,7 @@ private:
         {
          if(m_strategyPanels[p] == NULL)
             return false;
-         if(!m_strategyPanels[p].Create(this, m_chartId, m_subWindow, 24, panelY1, 470, panelY2))
+         if(!m_strategyPanels[p].Create(GetPointer(this), m_chartId, m_subWindow, 24, panelY1, 470, panelY2))
             return false;
         }
       return true;
@@ -443,7 +443,7 @@ private:
         {
          if(m_filterPanels[p] == NULL)
             return false;
-         if(!m_filterPanels[p].Create(this, m_chartId, m_subWindow, 24, 148, 470, 300))
+         if(!m_filterPanels[p].Create(GetPointer(this), m_chartId, m_subWindow, 24, 148, 470, 300))
             return false;
         }
       return true;
