@@ -219,6 +219,70 @@ private:
      }
 
 public:
+   string            SanitizeProfileName(const string profileName) const
+     {
+      return SanitizeName(profileName);
+     }
+
+   bool              ProfileExists(const string profileName) const
+     {
+      EnsureFolders();
+      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      return FileIsExist(fileName);
+     }
+
+   bool              ListProfiles(string &profiles[]) const
+     {
+      EnsureFolders();
+      ArrayResize(profiles, 0);
+
+      string fileName = "";
+      long handle = FileFindFirst("Fusion\\Profiles\\*.cfg", fileName);
+      if(handle == INVALID_HANDLE)
+         return true;
+
+      do
+        {
+         string profileName = fileName;
+         int slash = StringFind(profileName, "\\");
+         while(slash >= 0)
+           {
+            profileName = StringSubstr(profileName, slash + 1);
+            slash = StringFind(profileName, "\\");
+           }
+
+         int len = StringLen(profileName);
+         if(len > 4 && StringSubstr(profileName, len - 4) == ".cfg")
+            profileName = StringSubstr(profileName, 0, len - 4);
+
+         if(profileName != "")
+           {
+            int count = ArraySize(profiles);
+            ArrayResize(profiles, count + 1);
+            profiles[count] = profileName;
+           }
+        }
+      while(FileFindNext(handle, fileName));
+
+      FileFindClose(handle);
+
+      int count = ArraySize(profiles);
+      for(int i = 0; i < count - 1; ++i)
+        {
+         for(int j = i + 1; j < count; ++j)
+           {
+            if(StringCompare(profiles[j], profiles[i]) < 0)
+              {
+               string tmp = profiles[i];
+               profiles[i] = profiles[j];
+               profiles[j] = tmp;
+              }
+           }
+        }
+
+      return true;
+     }
+
    bool              SaveProfile(const string profileName,const SEASettings &settings)
      {
       EnsureFolders();
@@ -231,6 +295,29 @@ public:
       SaveSettingsBlock(handle, settings);
       FileClose(handle);
       return true;
+     }
+
+   bool              DeleteProfile(const string profileName)
+     {
+      EnsureFolders();
+      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      if(!FileIsExist(fileName))
+         return false;
+      return FileDelete(fileName);
+     }
+
+   bool              CopyProfile(const string sourceProfileName,const string targetProfileName)
+     {
+      if(SanitizeName(sourceProfileName) == SanitizeName(targetProfileName))
+         return false;
+      if(ProfileExists(targetProfileName))
+         return false;
+
+      SEASettings settings;
+      if(!LoadProfile(sourceProfileName, settings))
+         return false;
+
+      return SaveProfile(targetProfileName, settings);
      }
 
    bool              LoadProfile(const string profileName,SEASettings &settings)
