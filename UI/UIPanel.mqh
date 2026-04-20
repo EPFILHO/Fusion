@@ -182,6 +182,31 @@ private:
          control.Hide();
      }
 
+   bool                       CanEditSettings(void)
+     {
+      return (!m_snapshot.started && !m_snapshot.hasPosition);
+     }
+
+   bool                       CanPause(void)
+     {
+      return (m_snapshot.started && !m_snapshot.hasPosition);
+     }
+
+   bool                       CanStart(void)
+     {
+      return (!m_snapshot.started && !m_snapshot.hasPosition && m_configInputsValid && !HasPendingChanges());
+     }
+
+   bool                       CanSave(void)
+     {
+      return (CanEditSettings() && m_configInputsValid && HasPendingChanges());
+     }
+
+   bool                       CanLoad(void)
+     {
+      return CanEditSettings();
+     }
+
    void                       ToggleDraftFlag(const ENUM_UI_COMMAND type)
      {
       if(type == UI_COMMAND_TOGGLE_MACROSS)
@@ -297,15 +322,16 @@ private:
          magicValid = (parsedMagic > 0);
         }
 
-      FusionApplyEditStyle(m_editProfile, profileValid, true);
-      FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, true);
-      FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, true);
-      FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, true);
+      bool editable = CanEditSettings();
+      FusionApplyEditStyle(m_editProfile, profileValid, editable);
+      FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
+      FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, editable);
+      FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, editable);
 
-      m_lblProfile.Color(profileValid ? FUSION_CLR_MUTED : FUSION_CLR_BAD);
-      m_cfgRiskLotLbl.Color(lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
-      m_cfgRiskSpreadLbl.Color(spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
-      m_cfgSystemMagicLbl.Color(magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD);
+      m_lblProfile.Color(!editable ? FUSION_CLR_MUTED : (profileValid ? FUSION_CLR_MUTED : FUSION_CLR_BAD));
+      m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_cfgRiskSpreadLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : (magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
 
       m_configInputsValid = profileValid && lotValid && spreadValid && magicValid;
       if(m_configInputsValid)
@@ -316,7 +342,17 @@ private:
         }
 
       bool dirty = HasPendingChanges();
-      if(!m_configInputsValid)
+      if(m_snapshot.hasPosition)
+        {
+         outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(m_snapshot.started)
+        {
+         outStatus = "EA rodando: pause antes de editar configuracoes.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(!m_configInputsValid)
         {
          outStatus = "Corrija os campos em rosa antes de salvar.";
          m_cfgStatus.Color(FUSION_CLR_BAD);
@@ -343,39 +379,46 @@ private:
 
    void                       UpdateHeaderButtons(void)
      {
-      bool dirty = HasPendingChanges();
-
       if(m_snapshot.started)
         {
-         m_btnStart.Text("PAUSAR");
-         FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
-         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true);
+         m_btnStart.Text(m_snapshot.hasPosition ? "OPERANDO" : "PAUSAR");
+         if(CanPause())
+            FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
+         else
+            FusionApplyNeutralButtonStyle(m_btnStart);
+         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true, CanPause());
          return;
         }
 
       m_btnStart.Text("INICIAR");
-      if(!dirty && m_configInputsValid)
+      if(CanStart())
          FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnStart);
 
-      FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false);
+      FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, CanStart());
      }
 
    void                       RefreshTheme(void)
      {
-      bool dirty = HasPendingChanges();
-
-      if(!dirty)
+      if(!CanEditSettings() || !HasPendingChanges())
          FusionApplyNeutralButtonStyle(m_btnSave);
-      else if(m_configInputsValid)
+      else if(CanSave())
          FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnSave);
 
-      FusionApplyActionButtonStyle(m_btnLoad, FUSION_CLR_ACTION_LOAD, true);
-      FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
-      FusionApplyEditStyle(m_editProfile, !FusionIsBlank(DraftProfileName()), true);
+      if(CanLoad())
+         FusionApplyActionButtonStyle(m_btnLoad, FUSION_CLR_ACTION_LOAD, true);
+      else
+         FusionApplyNeutralButtonStyle(m_btnLoad);
+
+      if(CanEditSettings())
+         FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
+      else
+         FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
+
+      FusionApplyEditStyle(m_editProfile, !FusionIsBlank(DraftProfileName()), CanEditSettings());
       UpdateHeaderButtons();
      }
 
@@ -742,9 +785,9 @@ private:
       if(objectName == m_btnStart.Name())
         {
          ReleaseButton(m_btnStart);
-         if(m_snapshot.started)
+         if(CanPause())
             QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         else if(m_configInputsValid && !HasPendingChanges())
+         else if(CanStart())
             QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
          RefreshTheme();
          return true;
@@ -756,7 +799,7 @@ private:
          string profileName = "";
          string status = "";
          bool valid = BuildPendingSettings(pendingSettings, profileName, status);
-         if(valid && HasPendingChanges())
+         if(valid && CanSave())
            {
             ResetCommand(m_pendingCommand);
             m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
@@ -772,15 +815,17 @@ private:
       if(objectName == m_btnLoad.Name())
         {
          ReleaseButton(m_btnLoad);
-         QueueSimpleCommand(UI_COMMAND_LOAD_PROFILE);
+         if(CanLoad())
+            QueueSimpleCommand(UI_COMMAND_LOAD_PROFILE);
+         RefreshTheme();
          return true;
         }
       if(objectName == m_cfgProtectionStartedBtn.Name())
         {
          ReleaseButton(m_cfgProtectionStartedBtn);
-         if(m_snapshot.started)
+         if(CanPause())
             QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         else if(m_configInputsValid && !HasPendingChanges())
+         else if(CanStart())
             QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
          RefreshTheme();
          return true;
@@ -788,6 +833,11 @@ private:
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
+         if(!CanEditSettings())
+           {
+            RefreshTheme();
+            return true;
+           }
          m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
          RefreshConfigValidation();
          UpdateTabStyles();
@@ -846,12 +896,17 @@ private:
          ResetCommand(tempCommand);
          if(m_strategyPanels[sp].HandleClick(objectName, tempCommand))
            {
+            if(!CanEditSettings())
+              {
+               RefreshTheme();
+               return true;
+              }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
             for(int i = 0; i < 3; ++i)
                if(m_strategyPanels[i] != NULL)
-                  m_strategyPanels[i].Sync(m_draftSettings);
+                  m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
             return true;
            }
         }
@@ -863,12 +918,17 @@ private:
          ResetCommand(tempCommand);
          if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
            {
+            if(!CanEditSettings())
+              {
+               RefreshTheme();
+               return true;
+              }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
             for(int j = 0; j < 2; ++j)
                if(m_filterPanels[j] != NULL)
-                  m_filterPanels[j].Sync(m_draftSettings);
+                  m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
             return true;
            }
         }
@@ -1074,10 +1134,10 @@ public:
       RefreshConfigValidation();
       for(int i = 0; i < 3; ++i)
          if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].Sync(m_draftSettings);
+            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
       for(int j = 0; j < 2; ++j)
          if(m_filterPanels[j] != NULL)
-            m_filterPanels[j].Sync(m_draftSettings);
+            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
       ApplyVisibility();
      }
 

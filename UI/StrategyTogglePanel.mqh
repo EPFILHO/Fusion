@@ -67,7 +67,7 @@ public:
       m_toggle.Hide();
      }
 
-   void              Sync(const SEASettings &settings)
+   void              Sync(const SEASettings &settings,const bool editable)
      {
       bool enabled = false;
       if(m_toggleCommand == UI_COMMAND_TOGGLE_MACROSS)
@@ -76,7 +76,8 @@ public:
          enabled = settings.useRSI;
       else if(m_toggleCommand == UI_COMMAND_TOGGLE_BB)
          enabled = settings.useBollinger;
-      FusionApplyToggleButtonStyle(m_toggle, enabled);
+      FusionApplyToggleButtonStyle(m_toggle, enabled, editable);
+      m_description.Color(editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED);
      }
 
    bool              HandleClick(const string objectName,SUICommand &command)

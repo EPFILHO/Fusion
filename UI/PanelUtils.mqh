@@ -25,6 +25,7 @@
 #define FUSION_CLR_DISABLED      C'155,164,178'
 #define FUSION_CLR_DISABLED_TXT  C'228,232,238'
 #define FUSION_CLR_FIELD_BG      clrWhite
+#define FUSION_CLR_FIELD_DISABLED C'220,224,230'
 #define FUSION_CLR_FIELD_BORDER  C'166,181,204'
 #define FUSION_CLR_FIELD_ERROR   C'255,233,233'
 
@@ -191,10 +192,13 @@ void FusionApplyPrimaryButtonStyle(CButton &button,const bool active)
    FusionApplyActionButtonStyle(button, active ? FUSION_CLR_NAV_ACTIVE : FUSION_CLR_NAV_IDLE, true);
   }
 
-void FusionApplyToggleButtonStyle(CButton &button,const bool enabled)
+void FusionApplyToggleButtonStyle(CButton &button,const bool enabled,const bool editable=true)
   {
    button.Text(enabled ? "ON" : "OFF");
-   FusionApplyActionButtonStyle(button, enabled ? FUSION_CLR_GOOD : FUSION_CLR_BAD, true);
+   if(!editable)
+      FusionApplyNeutralButtonStyle(button);
+   else
+      FusionApplyActionButtonStyle(button, enabled ? FUSION_CLR_GOOD : FUSION_CLR_BAD, true);
   }
 
 void FusionApplyStateLabel(CLabel &label,const bool enabled,const string enabledText,const string disabledText)
@@ -207,6 +211,14 @@ void FusionApplyStateLabel(CLabel &label,const bool enabled,const string enabled
 void FusionApplyEditStyle(CEdit &edit,const bool valid,const bool enabled=true)
   {
    edit.ReadOnly(!enabled);
+   if(!enabled)
+     {
+      edit.Color(FUSION_CLR_MUTED);
+      edit.ColorBackground(FUSION_CLR_FIELD_DISABLED);
+      edit.ColorBorder(FUSION_CLR_DISABLED);
+      return;
+     }
+
    edit.Color(clrBlack);
    edit.ColorBackground(valid ? FUSION_CLR_FIELD_BG : FUSION_CLR_FIELD_ERROR);
    edit.ColorBorder(valid ? FUSION_CLR_FIELD_BORDER : FUSION_CLR_BAD);

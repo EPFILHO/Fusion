@@ -67,14 +67,15 @@ public:
       m_toggle.Hide();
      }
 
-   void              Sync(const SEASettings &settings)
+   void              Sync(const SEASettings &settings,const bool editable)
      {
       bool enabled = false;
       if(m_toggleCommand == UI_COMMAND_TOGGLE_TREND_FILTER)
          enabled = settings.useTrendFilter;
       else if(m_toggleCommand == UI_COMMAND_TOGGLE_RSI_FILTER)
          enabled = settings.useRSIFilter;
-      FusionApplyToggleButtonStyle(m_toggle, enabled);
+      FusionApplyToggleButtonStyle(m_toggle, enabled, editable);
+      m_description.Color(editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED);
      }
 
    bool              HandleClick(const string objectName,SUICommand &command)
