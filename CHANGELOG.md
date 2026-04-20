@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.002 - 2026-04-20
+- Replaced the loaded profile input in the header with a read-only status label.
+- Replaced profile list `UP`/`DN` buttons with arrow glyphs.
+- Improved profile tab validation so load/delete require the typed name to match the selected profile.
+- Refreshed profile validation from live edit text and chart edit/key events.
+
 ## 1.001 - 2026-04-20
 - Added the `PERFIS` panel tab for profile administration from the chart.
 - Added profile listing, selection, refresh, load, save-as, duplicate and delete actions.

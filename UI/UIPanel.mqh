@@ -84,7 +84,7 @@ private:
    CButton                    m_btnStart;
    CButton                    m_btnSave;
    CButton                    m_btnLoad;
-   CEdit                      m_editProfile;
+   CLabel                     m_activeProfile;
    CLabel                     m_lblProfile;
    CLabel                     m_lblHeader;
 
@@ -207,6 +207,14 @@ private:
       return Add(edit);
      }
 
+   string                     LiveEditText(CEdit &edit)
+     {
+      string name = edit.Name();
+      if(name != "" && ObjectFind(m_chartId, name) >= 0)
+         return ObjectGetString(m_chartId, name, OBJPROP_TEXT);
+      return edit.Text();
+     }
+
    void                       SetVisible(CWnd &control,const bool visible)
      {
       if(visible)
@@ -247,7 +255,7 @@ private:
 
    string                     ProfileDraftName(void)
      {
-      return m_profileStore.SanitizeProfileName(FusionTrimCopy(m_profileNewEdit.Text()));
+      return m_profileStore.SanitizeProfileName(FusionTrimCopy(LiveEditText(m_profileNewEdit)));
      }
 
    bool                       HasValidProfileDraftName(void)
@@ -260,6 +268,19 @@ private:
       if(m_profileSelected < 0 || m_profileSelected >= m_profileCount)
          return "";
       return m_profileNames[m_profileSelected];
+     }
+
+   bool                       ProfileDraftMatchesSelection(void)
+     {
+      string selectedProfile = SelectedProfileName();
+      if(selectedProfile == "")
+         return false;
+
+      string draftName = ProfileDraftName();
+      if(draftName == "")
+         return false;
+
+      return (m_profileStore.SanitizeProfileName(selectedProfile) == draftName);
      }
 
    void                       ToggleDraftFlag(const ENUM_UI_COMMAND type)
@@ -278,7 +299,7 @@ private:
 
    string                     DraftProfileName(void)
      {
-      return FusionTrimCopy(m_editProfile.Text());
+      return FusionTrimCopy(m_committedProfileName);
      }
 
    string                     CommittedLotText(void)
@@ -291,10 +312,7 @@ private:
       if(!m_hasCommittedSettings)
          return false;
 
-      if(DraftProfileName() != m_committedProfileName)
-         return true;
-
-      string lotText = FusionNormalizeDecimalText(m_cfgRiskLotEdit.Text());
+      string lotText = FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit));
       if(FusionIsDecimalText(lotText, false))
         {
          if(MathAbs(StringToDouble(lotText) - m_committedSettings.fixedLot) > 0.0000001)
@@ -303,7 +321,7 @@ private:
       else if(lotText != CommittedLotText())
          return true;
 
-      string spreadText = FusionTrimCopy(m_cfgRiskSpreadEdit.Text());
+      string spreadText = FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit));
       if(FusionIsIntegerText(spreadText, true))
         {
          if((int)StringToInteger(spreadText) != m_committedSettings.maxSpreadPoints)
@@ -312,7 +330,7 @@ private:
       else if(spreadText != IntegerToString(m_committedSettings.maxSpreadPoints))
          return true;
 
-      string magicText = FusionTrimCopy(m_cfgSystemMagicEdit.Text());
+      string magicText = FusionTrimCopy(LiveEditText(m_cfgSystemMagicEdit));
       if(FusionIsIntegerText(magicText, false))
         {
          if((int)StringToInteger(magicText) != m_committedSettings.magicNumber)
@@ -350,7 +368,7 @@ private:
       int parsedSpread = 0;
       int parsedMagic = 0;
 
-      string lotText = FusionNormalizeDecimalText(m_cfgRiskLotEdit.Text());
+      string lotText = FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit));
       if(FusionIsDecimalText(lotText, false))
         {
          parsedLot = StringToDouble(lotText);
@@ -363,14 +381,14 @@ private:
             lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
         }
 
-      string spreadText = FusionTrimCopy(m_cfgRiskSpreadEdit.Text());
+      string spreadText = FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit));
       if(FusionIsIntegerText(spreadText, true))
         {
          parsedSpread = (int)StringToInteger(spreadText);
          spreadValid = (parsedSpread >= 0);
         }
 
-      string magicText = FusionTrimCopy(m_cfgSystemMagicEdit.Text());
+      string magicText = FusionTrimCopy(LiveEditText(m_cfgSystemMagicEdit));
       if(FusionIsIntegerText(magicText, false))
         {
          parsedMagic = (int)StringToInteger(magicText);
@@ -378,12 +396,13 @@ private:
         }
 
       bool editable = CanEditSettings();
-      FusionApplyEditStyle(m_editProfile, profileValid, editable);
       FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
       FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, editable);
       FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, editable);
 
-      m_lblProfile.Color(!editable ? FUSION_CLR_MUTED : (profileValid ? FUSION_CLR_MUTED : FUSION_CLR_BAD));
+      m_lblProfile.Color(FUSION_CLR_MUTED);
+      m_activeProfile.Text(profileValid ? outProfileName : "--");
+      m_activeProfile.Color(profileValid ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
       m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       m_cfgRiskSpreadLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : (magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
@@ -473,7 +492,8 @@ private:
       else
          FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
 
-      FusionApplyEditStyle(m_editProfile, !FusionIsBlank(DraftProfileName()), false);
+      m_activeProfile.Text(FusionIsBlank(DraftProfileName()) ? "--" : DraftProfileName());
+      m_activeProfile.Color(FusionIsBlank(DraftProfileName()) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       UpdateHeaderButtons();
       UpdateProfileListView();
      }
@@ -621,14 +641,14 @@ private:
 
       bool validName = HasValidProfileDraftName();
       bool selected = (SelectedProfileName() != "");
+      bool draftMatchesSelection = ProfileDraftMatchesSelection();
       bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
-      bool sameAsSelected = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == m_profileStore.SanitizeProfileName(ProfileDraftName()));
       bool draftExists = (validName && m_profileStore.ProfileExists(ProfileDraftName()));
 
       FusionApplyEditStyle(m_profileNewEdit, true, CanEditSettings());
       m_profileNewLbl.Color(CanEditSettings() ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
 
-      if(CanLoad() && selected)
+      if(CanLoad() && selected && draftMatchesSelection)
          FusionApplyActionButtonStyle(m_profileLoadBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileLoadBtn);
@@ -638,12 +658,12 @@ private:
       else
          FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
 
-      if(CanAdminProfiles() && selected && validName && !sameAsSelected && !draftExists)
+      if(CanAdminProfiles() && selected && validName && !draftMatchesSelection && !draftExists)
          FusionApplyActionButtonStyle(m_profileDuplicateBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
 
-      if(CanAdminProfiles() && selected && !selectedIsActive)
+      if(CanAdminProfiles() && selected && draftMatchesSelection && !selectedIsActive)
          FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
@@ -654,10 +674,14 @@ private:
          SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
       else if(HasPendingChanges())
          SetProfileStatus("Salve ou descarte alteracoes antes de carregar outro perfil.", FUSION_CLR_WARN);
+      else if(selected && draftMatchesSelection)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar ou informe um novo nome.", FUSION_CLR_MUTED);
+      else if(selected && validName && !draftExists)
+         SetProfileStatus("Novo nome: " + ProfileDraftName() + ". Salve como ou duplique o selecionado.", FUSION_CLR_MUTED);
       else if(draftExists)
          SetProfileStatus("Nome ja existe. Carregue o perfil ou escolha outro nome.", FUSION_CLR_WARN);
-      else if(selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar ou informe um novo nome.", FUSION_CLR_MUTED);
+      else if(validName)
+         SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Use Salvar Como.", FUSION_CLR_MUTED);
       else
          SetProfileStatus("Selecione um perfil na lista ou informe um novo nome.", FUSION_CLR_MUTED);
      }
@@ -837,10 +861,11 @@ private:
          return false;
       if(!AddButton(m_btnLoad, "Fusion_btnLoad", 436, 4, 530, 28, "CARREGAR", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 70, 54, "Perfil", FUSION_CLR_MUTED))
+      if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 116, 54, "Perfil carregado:", FUSION_CLR_MUTED))
          return false;
-      if(!AddEdit(m_editProfile, "Fusion_editProfile", 72, 34, 250, 56, m_snapshot.activeProfileName))
+      if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 118, 36, 250, 56, m_snapshot.activeProfileName, FUSION_CLR_GOOD, 9))
          return false;
+      m_activeProfile.Font("Arial Bold");
       return true;
      }
 
@@ -977,9 +1002,9 @@ private:
          y += 28;
         }
 
-      if(!AddButton(m_profileUpBtn, "Fusion_profile_up", 340, 176, 382, 202, "UP", FUSION_CLR_PANEL))
+      if(!AddButton(m_profileUpBtn, "Fusion_profile_up", 340, 176, 382, 202, ShortToString(0x25B2), FUSION_CLR_PANEL))
          return false;
-      if(!AddButton(m_profileDownBtn, "Fusion_profile_down", 340, 208, 382, 234, "DN", FUSION_CLR_PANEL))
+      if(!AddButton(m_profileDownBtn, "Fusion_profile_down", 340, 208, 382, 234, ShortToString(0x25BC), FUSION_CLR_PANEL))
          return false;
       if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 500, 202, "ATUALIZAR", FUSION_CLR_ACTION_LOAD))
          return false;
@@ -1206,7 +1231,7 @@ private:
         {
          ReleaseButton(m_profileLoadBtn);
          string selectedProfile = SelectedProfileName();
-         if(CanLoad() && selectedProfile != "")
+         if(CanLoad() && selectedProfile != "" && ProfileDraftMatchesSelection())
             QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
          else
             UpdateProfileListView();
@@ -1245,7 +1270,7 @@ private:
          string selectedProfile = SelectedProfileName();
          string newProfileName = ProfileDraftName();
          if(CanAdminProfiles() && selectedProfile != "" && newProfileName != "" &&
-            m_profileStore.SanitizeProfileName(selectedProfile) != m_profileStore.SanitizeProfileName(newProfileName) &&
+            !ProfileDraftMatchesSelection() &&
             !m_profileStore.ProfileExists(newProfileName))
            {
             if(m_profileStore.CopyProfile(selectedProfile, newProfileName))
@@ -1271,7 +1296,7 @@ private:
         {
          ReleaseButton(m_profileDeleteBtn);
          string selectedProfile = SelectedProfileName();
-         if(CanAdminProfiles() && selectedProfile != "" &&
+         if(CanAdminProfiles() && selectedProfile != "" && ProfileDraftMatchesSelection() &&
             m_profileStore.SanitizeProfileName(selectedProfile) != m_profileStore.SanitizeProfileName(m_committedProfileName))
            {
             if(m_profileStore.DeleteProfile(selectedProfile))
@@ -1490,7 +1515,8 @@ public:
       m_committedSettings.useRSIFilter    = m_snapshot.useRSIFilter;
       m_draftSettings = m_committedSettings;
 
-      m_editProfile.Text(m_committedProfileName);
+      m_activeProfile.Text(m_committedProfileName);
+      m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
@@ -1520,7 +1546,8 @@ public:
       m_committedProfileName     = profileName;
       m_hasCommittedSettings     = true;
 
-      m_editProfile.Text(m_committedProfileName);
+      m_activeProfile.Text(m_committedProfileName);
+      m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
@@ -1601,6 +1628,13 @@ public:
         }
 
       CAppDialog::ChartEvent(id, lparam, dparam, sparam);
+
+      if(id == CHARTEVENT_KEYDOWN || id == CHARTEVENT_OBJECT_CHANGE || id == CHARTEVENT_OBJECT_ENDEDIT)
+        {
+         RefreshConfigValidation();
+         ApplyVisibility();
+         ChartRedraw();
+        }
      }
 
    virtual bool               OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
