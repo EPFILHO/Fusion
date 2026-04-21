@@ -51,6 +51,13 @@ enum ENUM_FUSION_CONFIG_PAGE
    FUSION_CFG_COUNT
   };
 
+enum ENUM_FUSION_PROFILE_MODE
+  {
+   FUSION_PROFILE_BROWSE = 0,
+   FUSION_PROFILE_NEW,
+   FUSION_PROFILE_DUPLICATE
+  };
+
 class CFusionPanel : public CAppDialog
   {
 private:
@@ -73,8 +80,6 @@ private:
    int                        m_profileCount;
    int                        m_profileOffset;
    int                        m_profileSelected;
-   bool                       m_profileNameEditing;
-   string                     m_profileNameDraftLive;
    string                     m_profileStatusOverride;
    color                      m_profileStatusOverrideColor;
    uint                       m_profileStatusOverrideUntil;
@@ -82,6 +87,7 @@ private:
    ENUM_FUSION_STRATEGY_PAGE  m_strategyPage;
    ENUM_FUSION_FILTER_PAGE    m_filterPage;
    ENUM_FUSION_CONFIG_PAGE    m_configPage;
+   ENUM_FUSION_PROFILE_MODE   m_profileMode;
 
    CButton                    m_btnStart;
    CButton                    m_btnSave;
@@ -113,12 +119,14 @@ private:
    CButton                    m_profileUpBtn;
    CButton                    m_profileDownBtn;
    CButton                    m_profileRefreshBtn;
+   CButton                    m_profileNewBtn;
    CLabel                     m_profileNewLbl;
    CEdit                      m_profileNewEdit;
    CButton                    m_profileLoadBtn;
    CButton                    m_profileSaveAsBtn;
    CButton                    m_profileDuplicateBtn;
    CButton                    m_profileDeleteBtn;
+   CButton                    m_profileCancelBtn;
    CLabel                     m_profileStatus;
 
    CLabel                     m_cfgRiskHdr;
@@ -217,85 +225,15 @@ private:
       return edit.Text();
      }
 
-   void                       SetProfileDraftText(const string value)
+   bool                       ProfileEditMode(void)
      {
-      m_profileNameDraftLive = value;
-      m_profileNewEdit.Text(value);
+      return (m_profileMode == FUSION_PROFILE_NEW || m_profileMode == FUSION_PROFILE_DUPLICATE);
      }
 
-   void                       BeginProfileDraftEdit(void)
+   void                       SetProfileMode(const ENUM_FUSION_PROFILE_MODE mode,const string draft="")
      {
-      m_profileNameEditing = true;
-      m_profileNameDraftLive = LiveEditText(m_profileNewEdit);
-     }
-
-   void                       EndProfileDraftEdit(void)
-     {
-      m_profileNameDraftLive = LiveEditText(m_profileNewEdit);
-      m_profileNameEditing = false;
-     }
-
-   string                     ProfileDraftRawName(void)
-     {
-      if(m_profileNameEditing)
-         return m_profileNameDraftLive;
-      return LiveEditText(m_profileNewEdit);
-     }
-
-   void                       AppendProfileDraftChar(const string text)
-     {
-      if(text == "")
-         return;
-      m_profileNameDraftLive = m_profileStore.SanitizeProfileName(m_profileNameDraftLive + text);
-      m_profileNewEdit.Text(m_profileNameDraftLive);
-     }
-
-   bool                       HandleProfileDraftKey(const long keyCode)
-     {
-      if(!m_profileNameEditing || !CanEditSettings())
-         return false;
-
-      int key = (int)keyCode;
-      if(key == 8)
-        {
-         int len = StringLen(m_profileNameDraftLive);
-         if(len > 0)
-            m_profileNameDraftLive = StringSubstr(m_profileNameDraftLive, 0, len - 1);
-         m_profileNewEdit.Text(m_profileNameDraftLive);
-         return true;
-        }
-
-      if(key == 13 || key == 27)
-        {
-         m_profileNameEditing = false;
-         return true;
-        }
-
-      if(key >= 48 && key <= 57)
-        {
-         AppendProfileDraftChar(ShortToString((ushort)key));
-         return true;
-        }
-
-      if(key >= 96 && key <= 105)
-        {
-         AppendProfileDraftChar(ShortToString((ushort)('0' + key - 96)));
-         return true;
-        }
-
-      if(key >= 65 && key <= 90)
-        {
-         AppendProfileDraftChar(ShortToString((ushort)key));
-         return true;
-        }
-
-      if(key == 32 || key == 189 || key == 109)
-        {
-         AppendProfileDraftChar("_");
-         return true;
-        }
-
-      return false;
+      m_profileMode = mode;
+      m_profileNewEdit.Text(draft);
      }
 
    void                       SetVisible(CWnd &control,const bool visible)
@@ -338,7 +276,7 @@ private:
 
    string                     ProfileDraftName(void)
      {
-      return m_profileStore.SanitizeProfileName(FusionTrimCopy(ProfileDraftRawName()));
+      return m_profileStore.SanitizeProfileName(FusionTrimCopy(LiveEditText(m_profileNewEdit)));
      }
 
    bool                       HasValidProfileDraftName(void)
@@ -353,9 +291,31 @@ private:
       return m_profileNames[m_profileSelected];
      }
 
-   bool                       ProfileDraftHasName(void)
+   bool                       CanStartNewProfile(void)
      {
-      return !FusionIsBlank(ProfileDraftName());
+      return (CanEditSettings() && m_configInputsValid);
+     }
+
+   bool                       CanStartDuplicateProfile(void)
+     {
+      return (CanAdminProfiles() && SelectedProfileName() != "");
+     }
+
+   string                     SuggestedCopyProfileName(void)
+     {
+      string source = m_profileStore.SanitizeProfileName(SelectedProfileName());
+      if(source == "")
+         source = "perfil";
+
+      string candidate = source + "_copy";
+      int suffix = 2;
+      while(m_profileStore.ProfileExists(candidate) && suffix < 1000)
+        {
+         candidate = source + "_copy" + IntegerToString(suffix);
+         suffix++;
+        }
+
+      return candidate;
      }
 
    void                       ToggleDraftFlag(const ENUM_UI_COMMAND type)
@@ -716,49 +676,68 @@ private:
 
       bool validName = HasValidProfileDraftName();
       bool selected = (SelectedProfileName() != "");
-      bool hasNewName = ProfileDraftHasName();
       bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
       bool draftExists = (validName && m_profileStore.ProfileExists(ProfileDraftName()));
+      bool editMode = ProfileEditMode();
 
-      FusionApplyEditStyle(m_profileNewEdit, true, CanEditSettings());
-      m_profileNewLbl.Color(CanEditSettings() ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+      if(m_profileMode == FUSION_PROFILE_DUPLICATE)
+         m_profileNewLbl.Text("Nome da copia");
+      else
+         m_profileNewLbl.Text("Novo perfil");
 
-      if(CanLoad() && selected && !hasNewName)
+      FusionApplyEditStyle(m_profileNewEdit, true, editMode && CanEditSettings());
+      m_profileNewLbl.Color((editMode && CanEditSettings()) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+
+      if(CanStartNewProfile())
+         FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);
+      else
+         FusionApplyNeutralButtonStyle(m_profileNewBtn);
+
+      if(CanLoad() && selected && !editMode)
          FusionApplyActionButtonStyle(m_profileLoadBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileLoadBtn);
 
-      if(CanEditSettings() && m_configInputsValid && validName && !draftExists)
+      if(editMode && CanEditSettings() && m_configInputsValid && validName && !draftExists)
          FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
 
-      if(CanAdminProfiles() && selected && validName && !draftExists)
+      if(CanStartDuplicateProfile())
          FusionApplyActionButtonStyle(m_profileDuplicateBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
 
-      if(CanAdminProfiles() && selected && !hasNewName && !selectedIsActive)
+      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive)
          FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
 
-      if(m_profileCount == 0)
-         SetProfileStatus("Nenhum perfil salvo ainda. Use Salvar Como para criar.", FUSION_CLR_MUTED);
-      else if(!CanEditSettings())
+      if(editMode)
+         FusionApplyActionButtonStyle(m_profileCancelBtn, FUSION_CLR_WARN, true);
+      else
+         FusionApplyNeutralButtonStyle(m_profileCancelBtn);
+
+      if(!CanEditSettings())
          SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
+      else if(editMode && m_profileMode == FUSION_PROFILE_NEW && !validName)
+         SetProfileStatus("Novo perfil: informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
+      else if(editMode && m_profileMode == FUSION_PROFILE_DUPLICATE && !validName)
+         SetProfileStatus("Duplicando: informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
+      else if(editMode && draftExists)
+         SetProfileStatus("Nome ja existe. Escolha outro nome ou cancele.", FUSION_CLR_WARN);
+      else if(editMode && m_profileMode == FUSION_PROFILE_NEW)
+         SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
+      else if(editMode && m_profileMode == FUSION_PROFILE_DUPLICATE)
+         SetProfileStatus("Duplicar " + SelectedProfileName() + " como " + ProfileDraftName() + ".", FUSION_CLR_MUTED);
+      else if(m_profileCount == 0)
+         SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(HasPendingChanges())
          SetProfileStatus("Salve ou descarte alteracoes antes de carregar outro perfil.", FUSION_CLR_WARN);
-      else if(selected && validName && !draftExists)
-         SetProfileStatus("Novo nome: " + ProfileDraftName() + ". Salve como ou duplique o selecionado.", FUSION_CLR_MUTED);
-      else if(draftExists)
-         SetProfileStatus("Nome ja existe. Carregue o perfil ou escolha outro nome.", FUSION_CLR_WARN);
-      else if(selected && !hasNewName)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar ou informe um novo nome.", FUSION_CLR_MUTED);
-      else if(validName)
-         SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Use Salvar Como.", FUSION_CLR_MUTED);
+      else if(selected)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Novo, Duplicar ou Excluir.", FUSION_CLR_MUTED);
       else
-         SetProfileStatus("Selecione um perfil na lista ou informe um novo nome.", FUSION_CLR_MUTED);
+         SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
      }
 
    void                       RefreshProfileList(const bool keepSelection=true)
@@ -869,6 +848,9 @@ private:
 
    void                       SetProfilesVisible(const bool visible)
      {
+      bool editVisible = visible && ProfileEditMode();
+      bool browseVisible = visible && !ProfileEditMode();
+
       SetVisible(m_profilesHdr, visible);
       SetVisible(m_profilesHint, visible);
       for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
@@ -876,12 +858,14 @@ private:
       SetVisible(m_profileUpBtn, visible);
       SetVisible(m_profileDownBtn, visible);
       SetVisible(m_profileRefreshBtn, visible);
-      SetVisible(m_profileNewLbl, visible);
-      SetVisible(m_profileNewEdit, visible);
-      SetVisible(m_profileLoadBtn, visible);
-      SetVisible(m_profileSaveAsBtn, visible);
-      SetVisible(m_profileDuplicateBtn, visible);
-      SetVisible(m_profileDeleteBtn, visible);
+      SetVisible(m_profileNewBtn, browseVisible);
+      SetVisible(m_profileNewLbl, editVisible);
+      SetVisible(m_profileNewEdit, editVisible);
+      SetVisible(m_profileLoadBtn, browseVisible);
+      SetVisible(m_profileSaveAsBtn, editVisible);
+      SetVisible(m_profileDuplicateBtn, browseVisible);
+      SetVisible(m_profileDeleteBtn, browseVisible);
+      SetVisible(m_profileCancelBtn, editVisible);
       SetVisible(m_profileStatus, visible);
      }
 
@@ -1083,19 +1067,23 @@ private:
          return false;
       if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 500, 202, "ATUALIZAR", FUSION_CLR_ACTION_LOAD))
          return false;
+      if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 236, 520, 262, "NOVO", FUSION_CLR_GOOD))
+         return false;
 
       if(!AddLabel(m_profileNewLbl, "Fusion_profile_new_lbl", 390, 236, 520, 254, "Novo nome", FUSION_CLR_LABEL, 8))
          return false;
       if(!AddEdit(m_profileNewEdit, "Fusion_profile_new_edit", 390, 258, 520, 282, ""))
          return false;
 
-      if(!AddButton(m_profileLoadBtn, "Fusion_profile_load", 390, 298, 520, 324, "CARREGAR", FUSION_CLR_ACTION_LOAD))
+      if(!AddButton(m_profileLoadBtn, "Fusion_profile_load", 390, 268, 520, 294, "CARREGAR", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddButton(m_profileSaveAsBtn, "Fusion_profile_save_as", 390, 330, 520, 356, "SALVAR COMO", FUSION_CLR_GOOD))
+      if(!AddButton(m_profileSaveAsBtn, "Fusion_profile_save_as", 390, 298, 520, 324, "SALVAR", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_profileDuplicateBtn, "Fusion_profile_duplicate", 390, 362, 520, 388, "DUPLICAR", FUSION_CLR_ACTION_LOAD))
+      if(!AddButton(m_profileDuplicateBtn, "Fusion_profile_duplicate", 390, 300, 520, 326, "DUPLICAR", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddButton(m_profileDeleteBtn, "Fusion_profile_delete", 390, 394, 520, 420, "EXCLUIR", FUSION_CLR_BAD))
+      if(!AddButton(m_profileDeleteBtn, "Fusion_profile_delete", 390, 332, 520, 358, "EXCLUIR", FUSION_CLR_BAD))
+         return false;
+      if(!AddButton(m_profileCancelBtn, "Fusion_profile_cancel", 390, 330, 520, 356, "CANCELAR", FUSION_CLR_WARN))
          return false;
 
       if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, 520, 456, "", FUSION_CLR_MUTED, 8))
@@ -1265,12 +1253,14 @@ private:
          if(objectName == m_profileRows[pr].Name())
            {
             ReleaseButton(m_profileRows[pr]);
+            if(ProfileEditMode())
+               return true;
+
             int idx = m_profileOffset + pr;
             if(idx >= 0 && idx < m_profileCount)
               {
                m_profileSelected = idx;
-               m_profileNameEditing = false;
-               SetProfileDraftText("");
+               SetProfileMode(FUSION_PROFILE_BROWSE);
                UpdateProfileListView();
               }
             return true;
@@ -1303,11 +1293,24 @@ private:
          return true;
         }
 
+      if(objectName == m_profileNewBtn.Name())
+        {
+         ReleaseButton(m_profileNewBtn);
+         if(CanStartNewProfile())
+           {
+            SetProfileMode(FUSION_PROFILE_NEW);
+            ApplyVisibility();
+           }
+         else
+            UpdateProfileListView();
+         return true;
+        }
+
       if(objectName == m_profileLoadBtn.Name())
         {
          ReleaseButton(m_profileLoadBtn);
          string selectedProfile = SelectedProfileName();
-         if(CanLoad() && selectedProfile != "" && !ProfileDraftHasName())
+         if(!ProfileEditMode() && CanLoad() && selectedProfile != "")
             QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
          else
             UpdateProfileListView();
@@ -1318,52 +1321,82 @@ private:
         {
          ReleaseButton(m_profileSaveAsBtn);
          string newProfileName = ProfileDraftName();
-         SEASettings pendingSettings;
-         string ignoredProfile = "";
-         string status = "";
-         bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status);
-         if(CanEditSettings() && valid && newProfileName != "" && !m_profileStore.ProfileExists(newProfileName))
+         if(!ProfileEditMode())
            {
-            ResetCommand(m_pendingCommand);
-            m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
-            m_pendingCommand.text = newProfileName;
-            m_pendingCommand.hasSettings = true;
-            m_pendingCommand.settings = pendingSettings;
-            m_pendingCommand.reloadScope = RELOAD_COLD;
-            m_hasPendingCommand = true;
-            SetProfileStatus("Solicitado salvamento do perfil " + newProfileName + ".", FUSION_CLR_GOOD, true);
-           }
-         else if(newProfileName != "" && m_profileStore.ProfileExists(newProfileName))
-            SetProfileStatus("Perfil ja existe. Escolha outro nome para Salvar Como.", FUSION_CLR_WARN, true);
-         else
             UpdateProfileListView();
+            return true;
+           }
+
+         if(newProfileName != "" && m_profileStore.ProfileExists(newProfileName))
+           {
+            SetProfileStatus("Perfil ja existe. Escolha outro nome.", FUSION_CLR_WARN, true);
+            return true;
+           }
+
+         if(m_profileMode == FUSION_PROFILE_NEW)
+           {
+            SEASettings pendingSettings;
+            string ignoredProfile = "";
+            string status = "";
+            bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status);
+            if(CanEditSettings() && valid && newProfileName != "")
+              {
+               ResetCommand(m_pendingCommand);
+               m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
+               m_pendingCommand.text = newProfileName;
+               m_pendingCommand.hasSettings = true;
+               m_pendingCommand.settings = pendingSettings;
+               m_pendingCommand.reloadScope = RELOAD_COLD;
+               m_hasPendingCommand = true;
+               SetProfileStatus("Solicitado salvamento do perfil " + newProfileName + ".", FUSION_CLR_GOOD, true);
+              }
+            else
+               UpdateProfileListView();
+            return true;
+           }
+
+         if(m_profileMode == FUSION_PROFILE_DUPLICATE)
+           {
+            string selectedProfile = SelectedProfileName();
+            if(CanAdminProfiles() && selectedProfile != "" && newProfileName != "")
+              {
+               if(m_profileStore.CopyProfile(selectedProfile, newProfileName))
+                 {
+                  SetProfileMode(FUSION_PROFILE_BROWSE);
+                  RefreshProfileList(false);
+                  for(int i = 0; i < m_profileCount; ++i)
+                     if(m_profileNames[i] == m_profileStore.SanitizeProfileName(newProfileName))
+                        m_profileSelected = i;
+                  UpdateProfileListView();
+                  SetProfileStatus("Perfil duplicado para " + newProfileName + ".", FUSION_CLR_GOOD, true);
+                 }
+               else
+                  SetProfileStatus("Nao foi possivel duplicar o perfil.", FUSION_CLR_BAD, true);
+              }
+            else
+               UpdateProfileListView();
+           }
          return true;
         }
 
       if(objectName == m_profileDuplicateBtn.Name())
         {
          ReleaseButton(m_profileDuplicateBtn);
-         string selectedProfile = SelectedProfileName();
-         string newProfileName = ProfileDraftName();
-         if(CanAdminProfiles() && selectedProfile != "" && newProfileName != "" &&
-            !m_profileStore.ProfileExists(newProfileName))
+         if(CanStartDuplicateProfile())
            {
-            if(m_profileStore.CopyProfile(selectedProfile, newProfileName))
-              {
-               RefreshProfileList(false);
-               for(int i = 0; i < m_profileCount; ++i)
-                  if(m_profileNames[i] == m_profileStore.SanitizeProfileName(newProfileName))
-                     m_profileSelected = i;
-               UpdateProfileListView();
-               SetProfileStatus("Perfil duplicado para " + newProfileName + ".", FUSION_CLR_GOOD, true);
-              }
-            else
-               SetProfileStatus("Nao foi possivel duplicar o perfil.", FUSION_CLR_BAD, true);
+            SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedCopyProfileName());
+            ApplyVisibility();
            }
-         else if(newProfileName != "" && m_profileStore.ProfileExists(newProfileName))
-            SetProfileStatus("Perfil ja existe. Escolha outro nome para duplicar.", FUSION_CLR_WARN, true);
          else
             UpdateProfileListView();
+         return true;
+        }
+
+      if(objectName == m_profileCancelBtn.Name())
+        {
+         ReleaseButton(m_profileCancelBtn);
+         SetProfileMode(FUSION_PROFILE_BROWSE);
+         ApplyVisibility();
          return true;
         }
 
@@ -1371,7 +1404,7 @@ private:
         {
          ReleaseButton(m_profileDeleteBtn);
          string selectedProfile = SelectedProfileName();
-         if(CanAdminProfiles() && selectedProfile != "" && !ProfileDraftHasName() &&
+         if(!ProfileEditMode() && CanAdminProfiles() && selectedProfile != "" &&
             m_profileStore.SanitizeProfileName(selectedProfile) != m_profileStore.SanitizeProfileName(m_committedProfileName))
            {
             if(m_profileStore.DeleteProfile(selectedProfile))
@@ -1456,13 +1489,12 @@ public:
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
       m_configPage      = FUSION_CFG_RISK;
+      m_profileMode     = FUSION_PROFILE_BROWSE;
       m_committedProfileName = "";
       ArrayResize(m_profileNames, 0);
       m_profileCount = 0;
       m_profileOffset = 0;
       m_profileSelected = -1;
-      m_profileNameEditing = false;
-      m_profileNameDraftLive = "";
       m_profileStatusOverride = "";
       m_profileStatusOverrideColor = FUSION_CLR_MUTED;
       m_profileStatusOverrideUntil = 0;
@@ -1598,8 +1630,7 @@ public:
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      m_profileNameEditing = false;
-      SetProfileDraftText("");
+      SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
      }
 
@@ -1631,8 +1662,7 @@ public:
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      m_profileNameEditing = false;
-      SetProfileDraftText("");
+      SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
       RefreshConfigValidation();
      }
@@ -1701,8 +1731,6 @@ public:
 
       if(id == CHARTEVENT_OBJECT_CLICK)
         {
-         if(sparam == m_profileNewEdit.Name())
-            BeginProfileDraftEdit();
          if(HandlePanelClick(sparam))
            {
             ChartRedraw();
@@ -1713,28 +1741,8 @@ public:
       CAppDialog::ChartEvent(id, lparam, dparam, sparam);
 
       bool refreshAfterEvent = false;
-      if(id == CHARTEVENT_KEYDOWN)
-         refreshAfterEvent = HandleProfileDraftKey(lparam);
-      else if(id == CHARTEVENT_OBJECT_ENDEDIT && sparam == m_profileNewEdit.Name())
-        {
-         EndProfileDraftEdit();
+      if((id == CHARTEVENT_OBJECT_ENDEDIT || id == CHARTEVENT_OBJECT_CHANGE) && sparam == m_profileNewEdit.Name())
          refreshAfterEvent = true;
-        }
-      else if(id == CHARTEVENT_OBJECT_CHANGE && sparam == m_profileNewEdit.Name())
-        {
-         m_profileNameDraftLive = LiveEditText(m_profileNewEdit);
-         refreshAfterEvent = true;
-        }
-      else if(id == CHARTEVENT_CUSTOM + ON_START_EDIT && sparam == m_profileNewEdit.Name())
-        {
-         BeginProfileDraftEdit();
-         refreshAfterEvent = true;
-        }
-      else if(id == CHARTEVENT_CUSTOM + ON_END_EDIT && sparam == m_profileNewEdit.Name())
-        {
-         EndProfileDraftEdit();
-         refreshAfterEvent = true;
-        }
 
       if(refreshAfterEvent)
         {

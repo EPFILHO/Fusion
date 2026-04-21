@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.004 - 2026-04-21
+- Reworked profile management into explicit browse, new and duplicate modes.
+- Added a `NOVO` profile button and a `CANCELAR` action for profile editing mode.
+- Removed the fragile live key-tracking workaround for `CEdit` profile names.
+- Kept load/delete actions exclusive to browse mode to avoid ambiguous profile operations.
+
 ## 1.003 - 2026-04-20
 - Added a live draft state for the profile `Novo nome` field.
 - Made profile load/delete depend on an empty new-name draft, while save-as/duplicate use the live draft.
