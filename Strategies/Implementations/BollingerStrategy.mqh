@@ -109,7 +109,6 @@ public:
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) override
      {
       m_enabled  = settings.useBollinger;
-      m_magicNumber = settings.bbMagicNumber;
       m_priority = settings.bbPriority;
       m_mode     = settings.bbMode;
       m_exitMode = settings.bbExitMode;

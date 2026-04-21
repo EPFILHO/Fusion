@@ -138,7 +138,6 @@ public:
          candidates[index].strategyId   = m_strategies[i].Id();
          candidates[index].strategyName = m_strategies[i].Name();
          candidates[index].shortName    = m_strategies[i].ShortName();
-         candidates[index].magicNumber  = m_strategies[i].MagicNumber();
         }
 
       if(ArraySize(candidates) == 0)

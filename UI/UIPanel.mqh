@@ -342,13 +342,6 @@ private:
       return FusionNormalizeDecimalText(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
      }
 
-   string                     StrategyMagicSummary(const SEASettings &settings) const
-     {
-      return "MA " + IntegerToString(settings.maCrossMagicNumber) +
-             " | RSI " + IntegerToString(settings.rsiMagicNumber) +
-             " | BB " + IntegerToString(settings.bbMagicNumber);
-     }
-
    bool                       HasPendingChanges(void)
      {
       if(!m_hasCommittedSettings)
@@ -394,10 +387,6 @@ private:
       if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
          return true;
 
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL && m_strategyPanels[i].HasPendingChanges(m_committedSettings))
-            return true;
-
       return false;
      }
 
@@ -410,9 +399,6 @@ private:
       bool lotValid = false;
       bool spreadValid = false;
       bool magicValid = false;
-      bool strategyMagicFieldsValid = true;
-      bool strategyMagicsValid = true;
-      string strategyMagicStatus = "";
       double parsedLot = 0.0;
       int parsedSpread = 0;
       int parsedMagic = 0;
@@ -444,19 +430,10 @@ private:
          magicValid = (parsedMagic > 0);
         }
 
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL && !m_strategyPanels[i].ApplyInputs(outSettings))
-            strategyMagicFieldsValid = false;
-
-      strategyMagicsValid = FusionValidateActiveStrategyMagics(outSettings, strategyMagicStatus);
-
       bool editable = CanEditSettings();
       FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
       FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, editable);
       FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid, editable);
-      for(int j = 0; j < 3; ++j)
-         if(m_strategyPanels[j] != NULL)
-            m_strategyPanels[j].SetMagicConflict(FusionActiveStrategyMagicConflict(outSettings, j), editable);
 
       m_lblProfile.Color(FUSION_CLR_MUTED);
       m_activeProfile.Text(profileValid ? outProfileName : "--");
@@ -465,8 +442,7 @@ private:
       m_cfgRiskSpreadLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : (magicValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
 
-      m_configInputsValid = profileValid && lotValid && spreadValid && magicValid &&
-                            strategyMagicFieldsValid && strategyMagicsValid;
+      m_configInputsValid = profileValid && lotValid && spreadValid && magicValid;
       if(m_configInputsValid)
         {
          outSettings.fixedLot = parsedLot;
@@ -487,10 +463,7 @@ private:
         }
       else if(!m_configInputsValid)
         {
-         if(!strategyMagicsValid && strategyMagicStatus != "")
-            outStatus = strategyMagicStatus;
-         else
-            outStatus = "Corrija os campos em rosa antes de salvar.";
+         outStatus = "Corrija os campos em rosa antes de salvar.";
          m_cfgStatus.Color(FUSION_CLR_BAD);
         }
       else if(dirty)
@@ -589,7 +562,7 @@ private:
      {
       m_resultsValues[0].Text(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
       m_resultsValues[1].Text(IntegerToString(m_committedSettings.maxSpreadPoints));
-      m_resultsValues[2].Text(StrategyMagicSummary(m_committedSettings));
+      m_resultsValues[2].Text(IntegerToString(m_committedSettings.magicNumber));
       m_resultsValues[3].Text(m_committedProfileName == "" ? m_snapshot.activeProfileName : m_committedProfileName);
       m_resultsValues[4].Text(m_snapshot.started ? "HOT RELOAD READY" : "EDIT MODE");
       m_resultsValues[5].Text(m_snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
@@ -985,7 +958,7 @@ private:
 
    bool                       BuildResultsTab(void)
      {
-      string labels[6] = {"Lote", "Max Spread", "Magics", "Perfil", "Modo", "Execucao"};
+      string labels[6] = {"Lote", "Max Spread", "Magic", "Perfil", "Modo", "Execucao"};
       int y = 112;
       for(int i = 0; i < 6; ++i)
         {
@@ -1154,7 +1127,7 @@ private:
 
       if(!AddLabel(m_cfgSystemHdr, "Fusion_cfg_system_hdr", 22, 160, 300, 180, "Sistema e Persistencia", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_cfgSystemMagicLbl, "Fusion_cfg_magic_lbl", 22, 198, 170, 216, "Magic Base", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemMagicLbl, "Fusion_cfg_magic_lbl", 22, 198, 170, 216, "Magic", FUSION_CLR_LABEL))
          return false;
       if(!AddEdit(m_cfgSystemMagicEdit, "Fusion_cfg_magic_edit", 200, 196, 340, 220, "0"))
          return false;
@@ -1548,9 +1521,6 @@ public:
       m_snapshot.symbolSpec.freezeLevel = 0;
       m_snapshot.symbolSpec.fillingMode = 0;
       m_snapshot.magicNumber = 0;
-      m_snapshot.maCrossMagicNumber = 0;
-      m_snapshot.rsiMagicNumber = 0;
-      m_snapshot.bbMagicNumber = 0;
       m_snapshot.activeStrategies = 0;
       m_snapshot.activeFilters = 0;
       m_snapshot.conflictMode = CONFLICT_PRIORITY;
@@ -1646,9 +1616,6 @@ public:
       m_committedSettings.fixedLot        = m_snapshot.fixedLot;
       m_committedSettings.maxSpreadPoints = m_snapshot.maxSpreadPoints;
       m_committedSettings.magicNumber     = m_snapshot.magicNumber;
-      m_committedSettings.maCrossMagicNumber = m_snapshot.maCrossMagicNumber;
-      m_committedSettings.rsiMagicNumber  = m_snapshot.rsiMagicNumber;
-      m_committedSettings.bbMagicNumber   = m_snapshot.bbMagicNumber;
       m_committedSettings.conflictMode    = m_snapshot.conflictMode;
       m_committedSettings.useMACross      = m_snapshot.useMACross;
       m_committedSettings.useRSI          = m_snapshot.useRSI;
@@ -1663,9 +1630,6 @@ public:
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].LoadSettings(m_draftSettings);
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
      }
@@ -1680,9 +1644,6 @@ public:
       m_snapshot.fixedLot        = settings.fixedLot;
       m_snapshot.maxSpreadPoints = settings.maxSpreadPoints;
       m_snapshot.magicNumber     = settings.magicNumber;
-      m_snapshot.maCrossMagicNumber = settings.maCrossMagicNumber;
-      m_snapshot.rsiMagicNumber  = settings.rsiMagicNumber;
-      m_snapshot.bbMagicNumber   = settings.bbMagicNumber;
       m_snapshot.conflictMode    = settings.conflictMode;
       m_snapshot.useMACross      = settings.useMACross;
       m_snapshot.useRSI          = settings.useRSI;
@@ -1701,9 +1662,6 @@ public:
       m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].LoadSettings(m_draftSettings);
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
       RefreshConfigValidation();

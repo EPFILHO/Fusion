@@ -3,6 +3,7 @@
 
 #include "Inputs.mqh"
 #include "Logger.mqh"
+#include "InstanceRegistry.mqh"
 #include "../Signals/SignalManager.mqh"
 #include "../Signals/Resolvers/PriorityConflictResolver.mqh"
 #include "../Signals/Resolvers/CancelConflictResolver.mqh"
@@ -36,6 +37,7 @@ private:
    CSymbolNormalizer       m_normalizer;
    CExecutionService       m_executionService;
    CSettingsStore          m_settingsStore;
+   CInstanceRegistry       m_instanceRegistry;
    CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
    string                  m_activeProfileName;
@@ -45,21 +47,26 @@ private:
 
    string                  ChartStateKey(void) const
      {
-      return _Symbol + "_" + IntegerToString((int)Period()) + "_" + IntegerToString(FusionPrimaryMagicNumber(m_settings));
+      return _Symbol + "_" + IntegerToString((int)Period()) + "_" + IntegerToString(m_settings.magicNumber);
      }
 
-   bool                    ValidateSettings(const SEASettings &settings,const string scope) const
+   bool                    RegisterRunningInstance(void)
      {
-      string validationMessage = "";
-      if(FusionValidateActiveStrategyMagics(settings, validationMessage))
+      if(m_settings.isTester)
          return true;
 
-      string message = "Invalid strategy magic configuration: " + validationMessage;
-      if(m_logger.IsTester())
-         Print("[ERROR][", _Symbol, "][CONFIG] ", message);
-      else
-         m_logger.Error(scope, message);
+      string reason = "";
+      if(m_instanceRegistry.Register(_Symbol, m_settings.magicNumber, ChartID(), reason))
+         return true;
+
+      m_logger.Error("INSTANCE", reason);
       return false;
+     }
+
+   void                    ReleaseRunningInstance(void)
+     {
+      if(!m_settings.isTester)
+         m_instanceRegistry.Unregister();
      }
 
    bool                    IsNettingAccount(void) const
@@ -80,12 +87,12 @@ private:
             continue;
 
          int positionMagic = (int)PositionGetInteger(POSITION_MAGIC);
-         if(FusionMagicBelongsToActiveStrategy(m_settings, positionMagic))
+         if(positionMagic == m_settings.magicNumber)
             continue;
 
          reason = "Conta netting/exchange: existe posicao em " + _Symbol +
-                  " com magic " + IntegerToString(positionMagic) +
-                  " fora das estrategias ativas do Fusion.";
+                  " com Magic " + IntegerToString(positionMagic) +
+                  " fora do perfil atual.";
          return true;
         }
 
@@ -123,9 +130,6 @@ private:
       snapshot.timeframe        = EnumToString((ENUM_TIMEFRAMES)Period());
       snapshot.symbolSpec       = SymbolSpec();
       snapshot.magicNumber      = m_settings.magicNumber;
-      snapshot.maCrossMagicNumber = m_settings.maCrossMagicNumber;
-      snapshot.rsiMagicNumber   = m_settings.rsiMagicNumber;
-      snapshot.bbMagicNumber    = m_settings.bbMagicNumber;
       snapshot.activeStrategies = m_signalManager.ActiveStrategyCount();
       snapshot.activeFilters    = m_signalManager.ActiveFilterCount();
       snapshot.conflictMode     = m_settings.conflictMode;
@@ -150,12 +154,9 @@ private:
 
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
-      if(!ValidateSettings(settings, "CONFIG"))
-         return false;
-
       m_settings = settings;
       ConfigureResolver();
-      m_logger.Init(m_settings.debugLogs, _Symbol, FusionPrimaryMagicNumber(m_settings), m_settings.isTester);
+      m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_executionService.Reload(m_settings);
       m_protectionManager.Reload(m_settings, scope);
       return m_signalManager.ReloadAll(m_settings, scope);
@@ -293,7 +294,19 @@ private:
 
       if(command.type == UI_COMMAND_TOGGLE_RUNNING)
         {
-         m_started = !m_started;
+         if(m_started)
+           {
+            if(m_positionState.hasPosition)
+               return;
+            m_started = false;
+            ReleaseRunningInstance();
+           }
+         else
+           {
+            if(!RegisterRunningInstance())
+               return;
+            m_started = true;
+           }
          m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
@@ -386,10 +399,7 @@ public:
          m_positionState = restoredState;
         }
 
-      m_logger.Init(m_settings.debugLogs, _Symbol, FusionPrimaryMagicNumber(m_settings), m_settings.isTester);
-      if(!ValidateSettings(m_settings, "CONFIG"))
-         return false;
-
+      m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
       m_protectionManager.Init(&m_logger, m_settings);
@@ -402,6 +412,9 @@ public:
          return false;
 
       m_executionService.SyncPosition(m_positionState);
+
+      if((m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
+         m_started = false;
 
       if(m_settings.panelEnabled && !m_settings.isTester)
         {
@@ -439,6 +452,7 @@ public:
      {
       EventKillTimer();
       PersistChartState();
+      ReleaseRunningInstance();
       m_panel.Destroy(reason);
       m_signalManager.Shutdown();
      }
@@ -457,6 +471,9 @@ public:
          return;
 
       string blockReason = "";
+      if(!m_settings.isTester)
+         m_instanceRegistry.Refresh();
+
       if(HasForeignNettingPosition(blockReason))
         {
          datetime now = TimeCurrent();
@@ -479,9 +496,6 @@ public:
       if(decision.signal == SIGNAL_NONE)
          return;
 
-      if(decision.magicNumber <= 0)
-         return;
-
       if(!m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
          return;
 
@@ -499,6 +513,9 @@ public:
 
    void              OnTimer(void)
      {
+      if(m_started && !m_settings.isTester)
+         m_instanceRegistry.Refresh();
+
       if(m_settings.panelEnabled && !m_settings.isTester)
          m_panel.Update(BuildPanelSnapshot());
      }

@@ -74,7 +74,6 @@ public:
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) override
      {
       m_enabled  = settings.useMACross;
-      m_magicNumber = settings.maCrossMagicNumber;
       m_priority = settings.maCrossPriority;
       m_exitMode = settings.maExitMode;
 

@@ -14,7 +14,6 @@ protected:
    string           m_symbol;
    ENUM_TIMEFRAMES  m_timeframe;
    int              m_priority;
-   int              m_magicNumber;
    bool             m_enabled;
    bool             m_initialized;
 
@@ -28,7 +27,6 @@ public:
       m_symbol      = "";
       m_timeframe   = PERIOD_CURRENT;
       m_priority    = priority;
-      m_magicNumber = 0;
       m_enabled     = true;
       m_initialized = false;
      }
@@ -57,7 +55,6 @@ public:
    string            Name(void) const        { return m_name; }
    string            ShortName(void) const   { return m_shortName; }
    int               Priority(void) const    { return m_priority; }
-   int               MagicNumber(void) const { return m_magicNumber; }
    void              SetPriority(const int value) { m_priority = value; }
    bool              Enabled(void) const     { return m_enabled; }
    void              SetEnabled(const bool value) { m_enabled = value; }

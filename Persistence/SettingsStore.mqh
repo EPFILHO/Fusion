@@ -86,7 +86,6 @@ private:
       WriteLine(handle, "breakevenTriggerPoints", IntegerToString(settings.breakevenTriggerPoints));
       WriteLine(handle, "breakevenOffsetPoints", IntegerToString(settings.breakevenOffsetPoints));
       WriteLine(handle, "useMACross", IntegerToString((int)settings.useMACross));
-      WriteLine(handle, "maCrossMagicNumber", IntegerToString(settings.maCrossMagicNumber));
       WriteLine(handle, "maCrossPriority", IntegerToString(settings.maCrossPriority));
       WriteLine(handle, "maFastPeriod", IntegerToString(settings.maFastPeriod));
       WriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod));
@@ -94,7 +93,6 @@ private:
       WriteLine(handle, "maPrice", IntegerToString((int)settings.maPrice));
       WriteLine(handle, "maExitMode", IntegerToString((int)settings.maExitMode));
       WriteLine(handle, "useRSI", IntegerToString((int)settings.useRSI));
-      WriteLine(handle, "rsiMagicNumber", IntegerToString(settings.rsiMagicNumber));
       WriteLine(handle, "rsiPriority", IntegerToString(settings.rsiPriority));
       WriteLine(handle, "rsiPeriod", IntegerToString(settings.rsiPeriod));
       WriteLine(handle, "rsiOversold", IntegerToString(settings.rsiOversold));
@@ -104,7 +102,6 @@ private:
       WriteLine(handle, "rsiPrice", IntegerToString((int)settings.rsiPrice));
       WriteLine(handle, "rsiExitMode", IntegerToString((int)settings.rsiExitMode));
       WriteLine(handle, "useBollinger", IntegerToString((int)settings.useBollinger));
-      WriteLine(handle, "bbMagicNumber", IntegerToString(settings.bbMagicNumber));
       WriteLine(handle, "bbPriority", IntegerToString(settings.bbPriority));
       WriteLine(handle, "bbPeriod", IntegerToString(settings.bbPeriod));
       WriteLine(handle, "bbDeviation", DoubleToString(settings.bbDeviation, 2));
@@ -168,7 +165,6 @@ private:
       else if(key == "breakevenTriggerPoints") settings.breakevenTriggerPoints = (int)StringToInteger(value);
       else if(key == "breakevenOffsetPoints") settings.breakevenOffsetPoints = (int)StringToInteger(value);
       else if(key == "useMACross") settings.useMACross = (bool)StringToInteger(value);
-      else if(key == "maCrossMagicNumber") settings.maCrossMagicNumber = (int)StringToInteger(value);
       else if(key == "maCrossPriority") settings.maCrossPriority = (int)StringToInteger(value);
       else if(key == "maFastPeriod") settings.maFastPeriod = (int)StringToInteger(value);
       else if(key == "maSlowPeriod") settings.maSlowPeriod = (int)StringToInteger(value);
@@ -176,7 +172,6 @@ private:
       else if(key == "maPrice") settings.maPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "maExitMode") settings.maExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useRSI") settings.useRSI = (bool)StringToInteger(value);
-      else if(key == "rsiMagicNumber") settings.rsiMagicNumber = (int)StringToInteger(value);
       else if(key == "rsiPriority") settings.rsiPriority = (int)StringToInteger(value);
       else if(key == "rsiPeriod") settings.rsiPeriod = (int)StringToInteger(value);
       else if(key == "rsiOversold") settings.rsiOversold = (int)StringToInteger(value);
@@ -186,7 +181,6 @@ private:
       else if(key == "rsiPrice") settings.rsiPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "rsiExitMode") settings.rsiExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useBollinger") settings.useBollinger = (bool)StringToInteger(value);
-      else if(key == "bbMagicNumber") settings.bbMagicNumber = (int)StringToInteger(value);
       else if(key == "bbPriority") settings.bbPriority = (int)StringToInteger(value);
       else if(key == "bbPeriod") settings.bbPeriod = (int)StringToInteger(value);
       else if(key == "bbDeviation") settings.bbDeviation = StringToDouble(value);
@@ -210,7 +204,6 @@ private:
       else if(key == "started") started = (bool)StringToInteger(value);
       else if(key == "state.hasPosition") state.hasPosition = (bool)StringToInteger(value);
       else if(key == "state.positionId") state.positionId = (ulong)StringToInteger(value);
-      else if(key == "state.magicNumber") state.magicNumber = (int)StringToInteger(value);
       else if(key == "state.ownerStrategyId") state.ownerStrategyId = value;
       else if(key == "state.ownerStrategyName") state.ownerStrategyName = value;
       else if(key == "state.tp1Executed") state.tp1Executed = (bool)StringToInteger(value);
@@ -364,7 +357,6 @@ public:
       WriteLine(handle, "started", IntegerToString((int)started));
       WriteLine(handle, "state.hasPosition", IntegerToString((int)state.hasPosition));
       WriteLine(handle, "state.positionId", StringFormat("%I64u", state.positionId));
-      WriteLine(handle, "state.magicNumber", IntegerToString(state.magicNumber));
       WriteLine(handle, "state.ownerStrategyId", state.ownerStrategyId);
       WriteLine(handle, "state.ownerStrategyName", state.ownerStrategyName);
       WriteLine(handle, "state.tp1Executed", IntegerToString((int)state.tp1Executed));

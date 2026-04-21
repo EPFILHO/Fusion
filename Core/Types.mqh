@@ -124,7 +124,6 @@ struct SEASettings
    int                      breakevenTriggerPoints;
    int                      breakevenOffsetPoints;
    bool                     useMACross;
-   int                      maCrossMagicNumber;
    int                      maCrossPriority;
    int                      maFastPeriod;
    int                      maSlowPeriod;
@@ -132,7 +131,6 @@ struct SEASettings
    ENUM_APPLIED_PRICE       maPrice;
    ENUM_EXIT_MODE           maExitMode;
    bool                     useRSI;
-   int                      rsiMagicNumber;
    int                      rsiPriority;
    int                      rsiPeriod;
    int                      rsiOversold;
@@ -142,7 +140,6 @@ struct SEASettings
    ENUM_APPLIED_PRICE       rsiPrice;
    ENUM_EXIT_MODE           rsiExitMode;
    bool                     useBollinger;
-   int                      bbMagicNumber;
    int                      bbPriority;
    int                      bbPeriod;
    double                   bbDeviation;
@@ -168,7 +165,6 @@ struct SSignalCandidate
    string           strategyId;
    string           strategyName;
    string           shortName;
-   int              magicNumber;
   };
 
 struct SSignalDecision
@@ -178,7 +174,6 @@ struct SSignalDecision
    string           strategyName;
    string           shortName;
    string           blockedBy;
-   int              magicNumber;
   };
 
 struct SRiskPlan
@@ -198,7 +193,6 @@ struct SPositionRuntimeState
    bool               hasPosition;
    ulong              ticket;
    ulong              positionId;
-   int                magicNumber;
    ENUM_POSITION_TYPE type;
    string             symbol;
    double             entryPrice;
@@ -236,9 +230,6 @@ struct SUIPanelSnapshot
    string timeframe;
    SSymbolSpec symbolSpec;
    int    magicNumber;
-   int    maCrossMagicNumber;
-   int    rsiMagicNumber;
-   int    bbMagicNumber;
    int    activeStrategies;
    int    activeFilters;
    ENUM_CONFLICT_RESOLUTION conflictMode;
@@ -274,134 +265,9 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
      }
   }
 
-int FusionStrategyMagicByIndex(const SEASettings &settings,const int index)
-  {
-   if(index == 0)
-      return settings.maCrossMagicNumber;
-   if(index == 1)
-      return settings.rsiMagicNumber;
-   if(index == 2)
-      return settings.bbMagicNumber;
-   return 0;
-  }
-
-int FusionStrategyMagicById(const SEASettings &settings,const string strategyId)
-  {
-   if(strategyId == "ma_cross")
-      return settings.maCrossMagicNumber;
-   if(strategyId == "rsi")
-      return settings.rsiMagicNumber;
-   if(strategyId == "bollinger")
-      return settings.bbMagicNumber;
-   return settings.magicNumber;
-  }
-
-bool FusionStrategyEnabledByIndex(const SEASettings &settings,const int index)
-  {
-   if(index == 0)
-      return settings.useMACross;
-   if(index == 1)
-      return settings.useRSI;
-   if(index == 2)
-      return settings.useBollinger;
-   return false;
-  }
-
-string FusionStrategyNameByIndex(const int index)
-  {
-   if(index == 0)
-      return "MA Cross";
-   if(index == 1)
-      return "RSI";
-   if(index == 2)
-      return "Bollinger";
-   return "Strategy";
-  }
-
-string FusionStrategyIdByIndex(const int index)
-  {
-   if(index == 0)
-      return "ma_cross";
-   if(index == 1)
-      return "rsi";
-   if(index == 2)
-      return "bollinger";
-   return "";
-  }
-
-int FusionPrimaryMagicNumber(const SEASettings &settings)
-  {
-   for(int i = 0; i < 3; ++i)
-      if(FusionStrategyEnabledByIndex(settings, i) && FusionStrategyMagicByIndex(settings, i) > 0)
-         return FusionStrategyMagicByIndex(settings, i);
-   return settings.magicNumber;
-  }
-
-bool FusionMagicBelongsToActiveStrategy(const SEASettings &settings,const int magicNumber)
-  {
-   if(magicNumber <= 0)
-      return false;
-
-   for(int i = 0; i < 3; ++i)
-      if(FusionStrategyEnabledByIndex(settings, i) && FusionStrategyMagicByIndex(settings, i) == magicNumber)
-         return true;
-
-   return false;
-  }
-
-bool FusionActiveStrategyMagicConflict(const SEASettings &settings,const int strategyIndex)
-  {
-   if(!FusionStrategyEnabledByIndex(settings, strategyIndex))
-      return false;
-
-   int magic = FusionStrategyMagicByIndex(settings, strategyIndex);
-   if(magic <= 0)
-      return true;
-
-   for(int i = 0; i < 3; ++i)
-     {
-      if(i == strategyIndex || !FusionStrategyEnabledByIndex(settings, i))
-         continue;
-      if(FusionStrategyMagicByIndex(settings, i) == magic)
-         return true;
-     }
-
-   return false;
-  }
-
-bool FusionValidateActiveStrategyMagics(const SEASettings &settings,string &message)
-  {
-   for(int i = 0; i < 3; ++i)
-     {
-      if(!FusionStrategyEnabledByIndex(settings, i))
-         continue;
-
-      int magic = FusionStrategyMagicByIndex(settings, i);
-      if(magic <= 0)
-        {
-         message = "Magic invalido em " + FusionStrategyNameByIndex(i) + ".";
-         return false;
-        }
-
-      for(int j = i + 1; j < 3; ++j)
-        {
-         if(!FusionStrategyEnabledByIndex(settings, j))
-            continue;
-         if(FusionStrategyMagicByIndex(settings, j) == magic)
-           {
-            message = "Magic duplicado entre " + FusionStrategyNameByIndex(i) + " e " + FusionStrategyNameByIndex(j) + ".";
-            return false;
-           }
-        }
-     }
-
-   message = "";
-   return true;
-  }
-
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 2;
+   settings.schemaVersion         = 1;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -444,7 +310,6 @@ void SetDefaultSettings(SEASettings &settings)
    settings.breakevenTriggerPoints= 120;
    settings.breakevenOffsetPoints = 10;
    settings.useMACross            = true;
-   settings.maCrossMagicNumber    = 10001;
    settings.maCrossPriority       = 10;
    settings.maFastPeriod          = 9;
    settings.maSlowPeriod          = 21;
@@ -452,7 +317,6 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maPrice               = PRICE_CLOSE;
    settings.maExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useRSI                = false;
-   settings.rsiMagicNumber        = 10002;
    settings.rsiPriority           = 8;
    settings.rsiPeriod             = 14;
    settings.rsiOversold           = 30;
@@ -462,7 +326,6 @@ void SetDefaultSettings(SEASettings &settings)
    settings.rsiPrice              = PRICE_CLOSE;
    settings.rsiExitMode           = EXIT_OPPOSITE_SIGNAL;
    settings.useBollinger          = false;
-   settings.bbMagicNumber         = 10003;
    settings.bbPriority            = 6;
    settings.bbPeriod              = 20;
    settings.bbDeviation           = 2.0;
@@ -488,7 +351,6 @@ void ResetSignalDecision(SSignalDecision &decision)
    decision.strategyName = "";
    decision.shortName    = "";
    decision.blockedBy    = "";
-   decision.magicNumber  = 0;
   }
 
 void ResetPositionRuntimeState(SPositionRuntimeState &state)
@@ -496,7 +358,6 @@ void ResetPositionRuntimeState(SPositionRuntimeState &state)
    state.hasPosition          = false;
    state.ticket               = 0;
    state.positionId           = 0;
-   state.magicNumber          = 0;
    state.type                 = POSITION_TYPE_BUY;
    state.symbol               = "";
    state.entryPrice           = 0.0;

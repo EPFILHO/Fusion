@@ -56,7 +56,6 @@ input int    inp_BreakevenOffsetPoints     = 10;
 
 input group "Strategy - MA Cross"
 input bool               inp_UseMACross    = true;
-input int                inp_MACrossMagicNumber = 10001;
 input int                inp_MACrossPriority = 10;
 input int                inp_MAFastPeriod  = 9;
 input int                inp_MASlowPeriod  = 21;
@@ -66,7 +65,6 @@ input ENUM_EXIT_MODE     inp_MAExitMode    = EXIT_OPPOSITE_SIGNAL;
 
 input group "Strategy - RSI"
 input bool                   inp_UseRSI    = false;
-input int                    inp_RSIMagicNumber = 10002;
 input int                    inp_RSIPriority = 8;
 input int                    inp_RSIPeriod = 14;
 input int                    inp_RSIOversold = 30;
@@ -78,7 +76,6 @@ input ENUM_EXIT_MODE         inp_RSIExitMode = EXIT_OPPOSITE_SIGNAL;
 
 input group "Strategy - Bollinger"
 input bool                   inp_UseBollinger = false;
-input int                    inp_BollingerMagicNumber = 10003;
 input int                    inp_BollingerPriority = 6;
 input int                    inp_BollingerPeriod = 20;
 input double                 inp_BollingerDeviation = 2.0;
@@ -145,7 +142,6 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.breakevenTriggerPoints = inp_BreakevenTriggerPoints;
    settings.breakevenOffsetPoints  = inp_BreakevenOffsetPoints;
    settings.useMACross             = inp_UseMACross;
-   settings.maCrossMagicNumber     = inp_MACrossMagicNumber;
    settings.maCrossPriority        = inp_MACrossPriority;
    settings.maFastPeriod           = inp_MAFastPeriod;
    settings.maSlowPeriod           = inp_MASlowPeriod;
@@ -153,7 +149,6 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.maPrice                = inp_MAPrice;
    settings.maExitMode             = inp_MAExitMode;
    settings.useRSI                 = inp_UseRSI;
-   settings.rsiMagicNumber         = inp_RSIMagicNumber;
    settings.rsiPriority            = inp_RSIPriority;
    settings.rsiPeriod              = inp_RSIPeriod;
    settings.rsiOversold            = inp_RSIOversold;
@@ -163,7 +158,6 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.rsiPrice               = inp_RSIPrice;
    settings.rsiExitMode            = inp_RSIExitMode;
    settings.useBollinger           = inp_UseBollinger;
-   settings.bbMagicNumber          = inp_BollingerMagicNumber;
    settings.bbPriority             = inp_BollingerPriority;
    settings.bbPeriod               = inp_BollingerPeriod;
    settings.bbDeviation            = inp_BollingerDeviation;

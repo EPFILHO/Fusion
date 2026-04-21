@@ -1,11 +1,11 @@
 # Changelog
 
-## 1.005 - 2026-04-21
-- Added per-strategy magic numbers for MA Cross, RSI and Bollinger.
-- Routed the selected strategy magic through signal resolution, execution, partial closes and position synchronization.
-- Added validation so active strategies cannot share the same magic number.
-- Persisted strategy magic numbers in profiles and chart state.
-- Added a netting/exchange account guard to avoid opening against a foreign position on the same symbol.
+## 1.006 - 2026-04-21
+- Reverted the incorrect per-strategy magic-number model.
+- Restored the profile/EA magic number as the operational trade identity.
+- Added a runtime instance registry to block another active Fusion on the same symbol and magic number.
+- Added a netting/exchange account guard to avoid opening when the symbol has a foreign magic position.
+- Documented the profile-magic ownership decision and the next validation step for profile metadata.
 
 ## 1.004 - 2026-04-21
 - Reworked profile management into explicit browse, new and duplicate modes.
