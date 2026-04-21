@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.003 - 2026-04-20
+- Added a live draft state for the profile `Novo nome` field.
+- Made profile load/delete depend on an empty new-name draft, while save-as/duplicate use the live draft.
+- Cleared the new-name draft when selecting a saved profile to keep selection and creation flows separate.
+
 ## 1.002 - 2026-04-20
 - Replaced the loaded profile input in the header with a read-only status label.
 - Replaced profile list `UP`/`DN` buttons with arrow glyphs.
