@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.007 - 2026-04-21
+- Added global profile validation so a Magic Number can belong to only one saved profile.
+- Blocked profile saves and new-profile creation when the chosen Magic Number is already used.
+- Blocked direct profile duplication because it would copy the same Magic Number.
+- Kept runtime instance validation as an additional safety layer for active charts.
+
 ## 1.006 - 2026-04-21
 - Reverted the incorrect per-strategy magic-number model.
 - Restored the profile/EA magic number as the operational trade identity.

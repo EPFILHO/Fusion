@@ -30,5 +30,6 @@ This project is a clean-room MT5 EA scaffold inspired by the strengths of the `M
 - Persistence is separated into named profiles and per-chart autosave so the user can maintain multiple setups per market and strategy family.
 - `OnTradeTransaction` is part of the design from the beginning, even in this first scaffold.
 - Operational ownership is based on `symbol + profile magic + position/deal identifiers`. Order comments are only human-readable labels and are not a source of truth.
+- Saved profiles must have unique Magic Numbers. This intentionally avoids reusing a market-specific profile in another setup by accident.
 - The runtime registry prevents two active Fusion instances from claiming the same `symbol + magic` in the same terminal.
-- Profile files are still symbol-agnostic. If we want to block duplicated magic at profile-cadastro time by asset/timeframe, the next clean step is to persist profile metadata for target symbol and timeframe.
+- Direct profile duplication is blocked for now because it would duplicate the Magic Number. The safe flow is to load a profile, change the Magic Number and use `NOVO`.

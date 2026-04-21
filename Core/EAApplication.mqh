@@ -99,6 +99,17 @@ private:
       return false;
      }
 
+   bool                    CanPersistProfile(const string profileName,const SEASettings &settings) const
+     {
+      string conflictProfile = "";
+      if(!m_settingsStore.FindProfileByMagicNumber(settings.magicNumber, profileName, conflictProfile))
+         return true;
+
+      m_logger.Error("PROFILE", "Magic " + IntegerToString(settings.magicNumber) +
+                              " ja esta em uso pelo perfil " + conflictProfile + ".");
+      return false;
+     }
+
    void                    ConfigureResolver(void)
      {
       if(m_settings.conflictMode == CONFLICT_PRIORITY)
@@ -322,6 +333,9 @@ private:
          if(command.hasSettings)
             settingsToSave = command.settings;
          settingsToSave.isTester = m_settings.isTester;
+
+         if(!CanPersistProfile(profileName, settingsToSave))
+            return;
 
          if(!ApplySettings(settingsToSave, command.reloadScope))
             return;

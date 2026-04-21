@@ -231,6 +231,36 @@ public:
       return FileIsExist(fileName);
      }
 
+   bool              FindProfileByMagicNumber(const int magicNumber,const string exceptProfileName,string &foundProfileName) const
+     {
+      foundProfileName = "";
+      if(magicNumber <= 0)
+         return false;
+
+      string profiles[];
+      if(!ListProfiles(profiles))
+         return false;
+
+      string exceptSafe = SanitizeName(exceptProfileName);
+      for(int i = 0; i < ArraySize(profiles); ++i)
+        {
+         if(SanitizeName(profiles[i]) == exceptSafe)
+            continue;
+
+         SEASettings settings;
+         if(!LoadProfile(profiles[i], settings))
+            continue;
+
+         if(settings.magicNumber == magicNumber)
+           {
+            foundProfileName = profiles[i];
+            return true;
+           }
+        }
+
+      return false;
+     }
+
    bool              ListProfiles(string &profiles[]) const
      {
       EnsureFolders();
@@ -315,6 +345,10 @@ public:
 
       SEASettings settings;
       if(!LoadProfile(sourceProfileName, settings))
+         return false;
+
+      string conflictProfile = "";
+      if(FindProfileByMagicNumber(settings.magicNumber, targetProfileName, conflictProfile))
          return false;
 
       return SaveProfile(targetProfileName, settings);

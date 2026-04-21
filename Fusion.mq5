@@ -3,7 +3,7 @@
 //|                          Clean modular multi-strategy EA scaffold |
 //+------------------------------------------------------------------+
 #property copyright "OpenAI / Codex"
-#property version   "1.006"
+#property version   "1.007"
 #property strict
 
 #include "Core/EAApplication.mqh"
