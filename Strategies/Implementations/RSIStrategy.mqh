@@ -100,6 +100,7 @@ public:
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) override
      {
       m_enabled  = settings.useRSI;
+      m_magicNumber = settings.rsiMagicNumber;
       m_priority = settings.rsiPriority;
       m_oversold = settings.rsiOversold;
       m_overbought = settings.rsiOverbought;

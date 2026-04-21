@@ -32,6 +32,7 @@ public:
       decision.strategyId   = candidates[bestIndex].strategyId;
       decision.strategyName = candidates[bestIndex].strategyName;
       decision.shortName    = candidates[bestIndex].shortName;
+      decision.magicNumber  = candidates[bestIndex].magicNumber;
       return true;
      }
 

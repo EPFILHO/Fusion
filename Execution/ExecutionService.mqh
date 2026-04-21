@@ -11,7 +11,9 @@ private:
    CLogger           *m_logger;
    CSymbolNormalizer *m_normalizer;
    string             m_symbol;
-   int                m_magicNumber;
+   SEASettings        m_settings;
+   int                m_magicNumbers[3];
+   int                m_magicCount;
    int                m_slippagePoints;
    bool               m_needsSync;
 
@@ -22,13 +24,71 @@ private:
       return SymbolInfoDouble(m_symbol, SYMBOL_ASK);
      }
 
+   void              AddMagicNumber(const int magicNumber)
+     {
+      if(magicNumber <= 0 || m_magicCount >= 3)
+         return;
+
+      for(int i = 0; i < m_magicCount; ++i)
+         if(m_magicNumbers[i] == magicNumber)
+            return;
+
+      m_magicNumbers[m_magicCount] = magicNumber;
+      m_magicCount++;
+     }
+
+   void              RefreshMagicNumbers(const SEASettings &settings)
+     {
+      m_settings = settings;
+      m_magicCount = 0;
+      for(int i = 0; i < 3; ++i)
+         if(FusionStrategyEnabledByIndex(settings, i))
+            AddMagicNumber(FusionStrategyMagicByIndex(settings, i));
+
+      if(m_magicCount == 0)
+         AddMagicNumber(settings.magicNumber);
+     }
+
+   bool              MagicBelongsToThisInstance(const int magicNumber,const SPositionRuntimeState &previous) const
+     {
+      if(magicNumber <= 0)
+         return false;
+
+      if(previous.hasPosition && previous.magicNumber == magicNumber)
+         return true;
+
+      for(int i = 0; i < m_magicCount; ++i)
+         if(m_magicNumbers[i] == magicNumber)
+            return true;
+
+      return false;
+     }
+
+   void              RestoreOwnerFromMagic(SPositionRuntimeState &state) const
+     {
+      if(state.ownerStrategyId != "")
+         return;
+
+      for(int i = 0; i < 3; ++i)
+        {
+         if(!FusionStrategyEnabledByIndex(m_settings, i))
+            continue;
+         if(FusionStrategyMagicByIndex(m_settings, i) != state.magicNumber)
+            continue;
+         state.ownerStrategyId   = FusionStrategyIdByIndex(i);
+         state.ownerStrategyName = FusionStrategyNameByIndex(i);
+         return;
+        }
+     }
+
 public:
                      CExecutionService(void)
      {
       m_logger         = NULL;
       m_normalizer     = NULL;
       m_symbol         = "";
-      m_magicNumber    = 0;
+      SetDefaultSettings(m_settings);
+      m_magicCount     = 0;
       m_slippagePoints = 0;
       m_needsSync      = false;
      }
@@ -38,7 +98,7 @@ public:
       m_logger         = logger;
       m_normalizer     = normalizer;
       m_symbol         = symbol;
-      m_magicNumber    = settings.magicNumber;
+      RefreshMagicNumbers(settings);
       m_slippagePoints = settings.slippagePoints;
       m_needsSync      = false;
       return true;
@@ -46,7 +106,7 @@ public:
 
    void              Reload(const SEASettings &settings)
      {
-      m_magicNumber    = settings.magicNumber;
+      RefreshMagicNumbers(settings);
       m_slippagePoints = settings.slippagePoints;
       m_needsSync      = true;
      }
@@ -71,12 +131,14 @@ public:
          if(PositionGetSymbol(i) != m_symbol)
             continue;
 
-         if((int)PositionGetInteger(POSITION_MAGIC) != m_magicNumber)
+         int positionMagic = (int)PositionGetInteger(POSITION_MAGIC);
+         if(!MagicBelongsToThisInstance(positionMagic, previous))
             continue;
 
          state.hasPosition = true;
          state.ticket      = (ulong)PositionGetInteger(POSITION_TICKET);
          state.positionId  = (ulong)PositionGetInteger(POSITION_IDENTIFIER);
+         state.magicNumber = positionMagic;
          state.type        = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
          state.symbol      = m_symbol;
          state.entryPrice  = PositionGetDouble(POSITION_PRICE_OPEN);
@@ -100,6 +162,7 @@ public:
             state.dayPeakProjectedProfit= previous.dayPeakProjectedProfit;
            }
 
+         RestoreOwnerFromMagic(state);
          m_needsSync = false;
          return true;
         }
@@ -117,7 +180,7 @@ public:
 
       request.action       = TRADE_ACTION_DEAL;
       request.symbol       = m_symbol;
-      request.magic        = m_magicNumber;
+      request.magic        = decision.magicNumber;
       request.deviation    = m_slippagePoints;
       request.type_filling = m_normalizer.ResolveFillingMode();
       request.volume       = plan.volume;
@@ -144,6 +207,7 @@ public:
 
       state.ownerStrategyId    = decision.strategyId;
       state.ownerStrategyName  = decision.strategyName;
+      state.magicNumber        = decision.magicNumber;
       state.tp1Price           = plan.tp1Price;
       state.tp1Volume          = plan.tp1Volume;
       state.tp2Price           = plan.tp2Price;
@@ -168,7 +232,7 @@ public:
       request.action       = TRADE_ACTION_DEAL;
       request.position     = state.ticket;
       request.symbol       = m_symbol;
-      request.magic        = m_magicNumber;
+      request.magic        = state.magicNumber;
       request.deviation    = m_slippagePoints;
       request.type_filling = m_normalizer.ResolveFillingMode();
       request.volume       = state.volume;
@@ -206,7 +270,7 @@ public:
       request.action       = TRADE_ACTION_DEAL;
       request.position     = state.ticket;
       request.symbol       = m_symbol;
-      request.magic        = m_magicNumber;
+      request.magic        = state.magicNumber;
       request.deviation    = m_slippagePoints;
       request.type_filling = m_normalizer.ResolveFillingMode();
       request.volume       = lotToClose;
@@ -238,6 +302,7 @@ public:
       request.action   = TRADE_ACTION_SLTP;
       request.position = state.ticket;
       request.symbol   = m_symbol;
+      request.magic    = state.magicNumber;
       request.sl       = newSL;
       request.tp       = newTP;
 

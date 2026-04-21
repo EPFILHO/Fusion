@@ -41,10 +41,55 @@ private:
    string                  m_activeProfileName;
    bool                    m_started;
    bool                    m_modulesRegistered;
+   datetime                m_lastNettingWarning;
 
    string                  ChartStateKey(void) const
      {
-      return _Symbol + "_" + IntegerToString((int)Period()) + "_" + IntegerToString(m_settings.magicNumber);
+      return _Symbol + "_" + IntegerToString((int)Period()) + "_" + IntegerToString(FusionPrimaryMagicNumber(m_settings));
+     }
+
+   bool                    ValidateSettings(const SEASettings &settings,const string scope) const
+     {
+      string validationMessage = "";
+      if(FusionValidateActiveStrategyMagics(settings, validationMessage))
+         return true;
+
+      string message = "Invalid strategy magic configuration: " + validationMessage;
+      if(m_logger.IsTester())
+         Print("[ERROR][", _Symbol, "][CONFIG] ", message);
+      else
+         m_logger.Error(scope, message);
+      return false;
+     }
+
+   bool                    IsNettingAccount(void) const
+     {
+      ENUM_ACCOUNT_MARGIN_MODE mode = (ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE);
+      return (mode != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING);
+     }
+
+   bool                    HasForeignNettingPosition(string &reason) const
+     {
+      reason = "";
+      if(!IsNettingAccount())
+         return false;
+
+      for(int i = PositionsTotal() - 1; i >= 0; --i)
+        {
+         if(PositionGetSymbol(i) != _Symbol)
+            continue;
+
+         int positionMagic = (int)PositionGetInteger(POSITION_MAGIC);
+         if(FusionMagicBelongsToActiveStrategy(m_settings, positionMagic))
+            continue;
+
+         reason = "Conta netting/exchange: existe posicao em " + _Symbol +
+                  " com magic " + IntegerToString(positionMagic) +
+                  " fora das estrategias ativas do Fusion.";
+         return true;
+        }
+
+      return false;
      }
 
    void                    ConfigureResolver(void)
@@ -78,6 +123,9 @@ private:
       snapshot.timeframe        = EnumToString((ENUM_TIMEFRAMES)Period());
       snapshot.symbolSpec       = SymbolSpec();
       snapshot.magicNumber      = m_settings.magicNumber;
+      snapshot.maCrossMagicNumber = m_settings.maCrossMagicNumber;
+      snapshot.rsiMagicNumber   = m_settings.rsiMagicNumber;
+      snapshot.bbMagicNumber    = m_settings.bbMagicNumber;
       snapshot.activeStrategies = m_signalManager.ActiveStrategyCount();
       snapshot.activeFilters    = m_signalManager.ActiveFilterCount();
       snapshot.conflictMode     = m_settings.conflictMode;
@@ -102,9 +150,12 @@ private:
 
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
+      if(!ValidateSettings(settings, "CONFIG"))
+         return false;
+
       m_settings = settings;
       ConfigureResolver();
-      m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
+      m_logger.Init(m_settings.debugLogs, _Symbol, FusionPrimaryMagicNumber(m_settings), m_settings.isTester);
       m_executionService.Reload(m_settings);
       m_protectionManager.Reload(m_settings, scope);
       return m_signalManager.ReloadAll(m_settings, scope);
@@ -309,6 +360,7 @@ public:
       m_activeProfileName   = "default";
       m_started             = false;
       m_modulesRegistered   = false;
+      m_lastNettingWarning  = 0;
      }
 
    bool              Initialize(void)
@@ -334,7 +386,10 @@ public:
          m_positionState = restoredState;
         }
 
-      m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
+      m_logger.Init(m_settings.debugLogs, _Symbol, FusionPrimaryMagicNumber(m_settings), m_settings.isTester);
+      if(!ValidateSettings(m_settings, "CONFIG"))
+         return false;
+
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
       m_protectionManager.Init(&m_logger, m_settings);
@@ -402,6 +457,17 @@ public:
          return;
 
       string blockReason = "";
+      if(HasForeignNettingPosition(blockReason))
+        {
+         datetime now = TimeCurrent();
+         if(now - m_lastNettingWarning >= 60)
+           {
+            m_logger.Warn("NETTING", blockReason);
+            m_lastNettingWarning = now;
+           }
+         return;
+        }
+
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
          return;
 
@@ -411,6 +477,9 @@ public:
          return;
 
       if(decision.signal == SIGNAL_NONE)
+         return;
+
+      if(decision.magicNumber <= 0)
          return;
 
       if(!m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
