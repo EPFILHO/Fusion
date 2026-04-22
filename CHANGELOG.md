@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.010 - 2026-04-22
+- Reworked the README in Portuguese to document the current project state.
+- Added architecture and project-decision documents under `docs/`.
+- Standardized strategy and filter panel descriptions.
+- Renamed the profile refresh button to `Atualizar Lista`.
+
 ## 1.009 - 2026-04-21
 - Decoupled the `NOVO` profile action from current configuration validity; validation now belongs to save/start.
 - Added a real duplicate-profile flow that loads the selected profile as an editable draft and requires a unique Magic Number before saving.

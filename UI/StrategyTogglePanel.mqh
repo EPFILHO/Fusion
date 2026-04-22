@@ -37,7 +37,7 @@ public:
 
       if(!m_description.Create(chartId, prefix + "desc", subwin, x1, y1 + 24, x2, y1 + 44))
          return false;
-      m_description.Text("Hot reload dedicado para esta estrategia.");
+      m_description.Text("Gera sinais de entrada e saida quando ativa.");
       m_description.Color(FUSION_CLR_MUTED);
       m_description.FontSize(8);
       if(!parent.AddControl(m_description))

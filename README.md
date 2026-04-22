@@ -1,35 +1,62 @@
 # Fusion
 
-This project is a clean-room MT5 EA scaffold inspired by the strengths of the `Matrix` repository without copying its structure blindly.
+Fusion é um Expert Advisor para MetaTrader 5, escrito em MQL5, com foco em arquitetura modular, operação segura e evolução incremental.
 
-## Current principles
-- One EA instance operates only the symbol/timeframe of the chart where it is attached.
-- Different charts must use different magic numbers when isolation is required.
-- One position at a time per EA instance.
-- Multi-strategy and multi-filter architecture.
-- Strategy conflict resolution is pluggable.
-- The strategy that owns the entry owns the signal-based exit.
-- Risk and protection layers may always force the exit.
-- Hot reload is treated as a first-class concern.
-- Persistence is versioned from day one.
+O projeto nasceu como uma implementação clean-room inspirada em boas ideias do Matrix, mas sem tratar os documentos ou a estrutura daquele repositório como fonte da verdade. A regra aqui é simples: código limpo, módulos acopláveis e decisões documentadas desde o começo.
 
-## Initial module map
-- `Core`: lifecycle, types, logging, input mapping and the application orchestrator.
-- `Signals`: strategy aggregation, filter validation and conflict resolution.
-- `Strategies`: strategy base class and concrete implementations.
-- `Filters`: filter base class and concrete implementations.
-- `Risk`: lot, SL, TP, partial TP, breakeven and trailing calculations.
-- `Protection`: spread, session window, daily limits, streak and drawdown guards.
-- `Execution`: order routing, sync, position ownership and trade-history reconciliation.
-- `Persistence`: named profiles and chart autosave/restore.
-- `Normalization`: broker and symbol normalization.
-- `UI`: lightweight chart panel and UI command translation.
+## Estado Atual
 
-## Notes
-- The panel included in this first revision is intentionally lean. It is the seed for hot reload, not the final UX.
-- Persistence is separated into named profiles and per-chart autosave so the user can maintain multiple setups per market and strategy family.
-- `OnTradeTransaction` is part of the design from the beginning, even in this first scaffold.
-- Operational ownership is based on `symbol + profile magic + position/deal identifiers`. Order comments are only human-readable labels and are not a source of truth.
-- Saved profiles must have unique Magic Numbers. This intentionally avoids reusing a market-specific profile in another setup by accident.
-- The runtime registry prevents two active Fusion instances from claiming the same `symbol + magic` in the same terminal.
-- Direct profile duplication is blocked for now because it would duplicate the Magic Number. The safe flow is to load a profile, change the Magic Number and use `NOVO`.
+- Opera somente o símbolo e timeframe do gráfico onde o EA está anexado.
+- Permite múltiplas instâncias em gráficos diferentes, desde que os perfis usem Magic Numbers distintos.
+- Mantém uma posição líquida por EA.
+- Usa arquitetura multi-estratégia e multi-filtro.
+- Usa resolvedores de conflito plugáveis para sinais simultâneos.
+- A estratégia que abriu a posição é responsável pela saída por sinal.
+- Camadas de risco e proteção podem forçar saída independentemente da estratégia.
+- Perfis nomeados são salvos pela GUI para operação em gráfico.
+- Backtests devem priorizar os `input` do MT5 Strategy Tester.
+- Hot reload existe como preocupação arquitetural, mas edição em produção fica bloqueada enquanto o EA está rodando ou gerenciando posição.
+
+## Módulos
+
+- `Core`: ciclo de vida, tipos centrais, inputs, logging e orquestração do EA.
+- `Signals`: agregação de estratégias, filtros e resolução de conflitos.
+- `Strategies`: contrato base e implementações de estratégias.
+- `Filters`: contrato base e implementações de filtros.
+- `Risk`: lote, SL, TP, TP parcial, breakeven e trailing stop.
+- `Protection`: spread, sessão, limites diários, drawdown e streak.
+- `Execution`: envio de ordens, sincronização de posição e reconciliação com histórico.
+- `Persistence`: perfis nomeados e autosave/autorestore por gráfico.
+- `Normalization`: normalização de símbolo, volume, preço e especificações da corretora.
+- `UI`: painel gráfico, validações visuais e tradução de ações da GUI em comandos.
+
+## Perfis e Magic Number
+
+O Magic Number pertence ao perfil/EA, não a cada estratégia individual. Essa decisão evita que uma mesma instância misture posições ou interfira em outro gráfico.
+
+Perfis salvos devem ter Magic Numbers únicos. Isso impede, por exemplo, usar por engano um perfil calibrado para BTCUSD em XAUUSD ou B3. O runtime ainda tem uma proteção adicional para impedir duas instâncias ativas com o mesmo `símbolo + magic` no mesmo terminal.
+
+## GUI
+
+A GUI é parte central do projeto porque concentra operação visual, perfis e futuras validações. Ela não é apenas decoração.
+
+Hoje ela permite:
+
+- iniciar ou pausar o EA quando não há posição aberta;
+- bloquear edição enquanto o EA está rodando ou gerenciando posição;
+- salvar/carregar perfis;
+- criar perfis novos;
+- duplicar perfis com fluxo seguro, exigindo Magic Number único antes de salvar;
+- validar lote, spread e magic com feedback visual.
+
+## Documentação Técnica
+
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Decisões do Projeto](docs/DECISIONS.md)
+- [Changelog](CHANGELOG.md)
+
+## Compilação
+
+Abra `Fusion.mq5` no MetaEditor 5 e compile. O projeto usa apenas MQL5 e includes padrão do MetaTrader 5.
+
+Arquivos `*.ex5`, logs de compilação e arquivos locais do editor são ignorados pelo Git.

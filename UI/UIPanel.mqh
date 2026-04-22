@@ -1126,7 +1126,7 @@ private:
          return false;
       if(!AddButton(m_profileDownBtn, "Fusion_profile_down", 340, 208, 382, 234, ShortToString(0x25BC), FUSION_CLR_PANEL))
          return false;
-      if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 500, 202, "ATUALIZAR", FUSION_CLR_ACTION_LOAD))
+      if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 520, 202, "Atualizar Lista", FUSION_CLR_ACTION_LOAD))
          return false;
       if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 236, 520, 262, "NOVO", FUSION_CLR_GOOD))
          return false;
