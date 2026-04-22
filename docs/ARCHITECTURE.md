@@ -112,6 +112,15 @@ A GUI é parte do projeto porque concentra operação em gráfico, perfis e vali
 
 A UI não deve executar trade diretamente. Ela monta comandos e envia para `CFusionApplication`.
 
+`CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que já têm responsabilidade própria ficam em includes dedicados:
+
+- `UIPanelTypes.mqh`: dimensões, enums e constantes da UI.
+- `UIPanelStatusResults.mqh`: abas de status e resultados.
+- `UIPanelSignalTabs.mqh`: abas de estratégias e filtros.
+- `UIPanelProfiles.mqh`: administração de perfis.
+
+Esse corte usa includes internos para preservar o comportamento da classe no MQL5 e reduzir risco durante a refatoração.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.
@@ -124,6 +133,6 @@ No futuro, hot reload pode ser reabilitado por categorias de alteração, desde 
 
 - Criar um modelo estruturado para status de bloqueios.
 - Expor estatísticas reais para `RESULTS` e `STATS`.
-- Separar partes da `UIPanel.mqh` por aba quando a GUI crescer mais.
+- Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
 - Transformar trailing, breakeven, drawdown, streak e limites diários em submódulos mais independentes se a complexidade aumentar.
 - Ampliar validações de volume, stops, freeze level e distância mínima.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.011 - 2026-04-22
+- Split reusable `CFusionPanel` sections into dedicated UI include files.
+- Moved panel constants/enums to `UI/UIPanelTypes.mqh`.
+- Moved status/results, strategy/filter tabs and profile-tab logic out of `UI/UIPanel.mqh`.
+- Preserved existing GUI behavior while reducing the main panel file size.
+
 ## 1.010 - 2026-04-22
 - Reworked the README in Portuguese to document the current project state.
 - Added architecture and project-decision documents under `docs/`.

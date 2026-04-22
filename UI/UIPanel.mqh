@@ -6,57 +6,10 @@
 #include <Controls\Label.mqh>
 #include <Controls\Edit.mqh>
 #include "PanelUtils.mqh"
+#include "UIPanelTypes.mqh"
 #include "StrategyTogglePanel.mqh"
 #include "FilterTogglePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
-
-#define FUSION_PANEL_WIDTH   560
-#define FUSION_PANEL_HEIGHT  626
-#define FUSION_PANEL_TOP     20
-#define FUSION_PROFILE_VISIBLE_ROWS 8
-
-enum ENUM_FUSION_TAB
-  {
-   FUSION_TAB_STATUS = 0,
-   FUSION_TAB_RESULTS,
-   FUSION_TAB_STRATEGIES,
-   FUSION_TAB_FILTERS,
-   FUSION_TAB_PROFILES,
-   FUSION_TAB_CONFIG,
-   FUSION_TAB_COUNT
-  };
-
-enum ENUM_FUSION_STRATEGY_PAGE
-  {
-   FUSION_STRAT_OVERVIEW = 0,
-   FUSION_STRAT_MACROSS,
-   FUSION_STRAT_RSI,
-   FUSION_STRAT_BB,
-   FUSION_STRAT_COUNT
-  };
-
-enum ENUM_FUSION_FILTER_PAGE
-  {
-   FUSION_FILTER_OVERVIEW = 0,
-   FUSION_FILTER_TREND,
-   FUSION_FILTER_RSI,
-   FUSION_FILTER_COUNT
-  };
-
-enum ENUM_FUSION_CONFIG_PAGE
-  {
-   FUSION_CFG_RISK = 0,
-   FUSION_CFG_PROTECTION,
-   FUSION_CFG_SYSTEM,
-   FUSION_CFG_COUNT
-  };
-
-enum ENUM_FUSION_PROFILE_MODE
-  {
-   FUSION_PROFILE_BROWSE = 0,
-   FUSION_PROFILE_NEW,
-   FUSION_PROFILE_DUPLICATE
-  };
 
 class CFusionPanel : public CAppDialog
   {
@@ -74,21 +27,10 @@ private:
    SUIPanelSnapshot           m_snapshot;
    SEASettings                m_committedSettings;
    SEASettings                m_draftSettings;
-   CSettingsStore             m_profileStore;
-   string                     m_committedProfileName;
-   string                     m_profileNames[];
-   int                        m_profileCount;
-   int                        m_profileOffset;
-   int                        m_profileSelected;
-   string                     m_profileStatusOverride;
-   color                      m_profileStatusOverrideColor;
-   uint                       m_profileStatusOverrideUntil;
-   string                     m_profileEditSourceName;
    ENUM_FUSION_TAB            m_activeTab;
    ENUM_FUSION_STRATEGY_PAGE  m_strategyPage;
    ENUM_FUSION_FILTER_PAGE    m_filterPage;
    ENUM_FUSION_CONFIG_PAGE    m_configPage;
-   ENUM_FUSION_PROFILE_MODE   m_profileMode;
 
    CButton                    m_btnStart;
    CButton                    m_btnSave;
@@ -102,33 +44,9 @@ private:
    CButton                    m_filterTabs[FUSION_FILTER_COUNT];
    CButton                    m_configTabs[FUSION_CFG_COUNT];
 
-   CLabel                     m_statusLabels[8];
-   CLabel                     m_statusValues[8];
-   CLabel                     m_resultsLabels[6];
-   CLabel                     m_resultsValues[6];
-
-   CLabel                     m_strategyOverviewHdr;
-   CLabel                     m_strategyOverviewName[3];
-   CLabel                     m_strategyOverviewState[3];
-   CLabel                     m_filterOverviewHdr;
-   CLabel                     m_filterOverviewName[2];
-   CLabel                     m_filterOverviewState[2];
-
-   CLabel                     m_profilesHdr;
-   CLabel                     m_profilesHint;
-   CButton                    m_profileRows[FUSION_PROFILE_VISIBLE_ROWS];
-   CButton                    m_profileUpBtn;
-   CButton                    m_profileDownBtn;
-   CButton                    m_profileRefreshBtn;
-   CButton                    m_profileNewBtn;
-   CLabel                     m_profileNewLbl;
-   CEdit                      m_profileNewEdit;
-   CButton                    m_profileLoadBtn;
-   CButton                    m_profileSaveAsBtn;
-   CButton                    m_profileDuplicateBtn;
-   CButton                    m_profileDeleteBtn;
-   CButton                    m_profileCancelBtn;
-   CLabel                     m_profileStatus;
+#include "UIPanelStatusResults.mqh"
+#include "UIPanelSignalTabs.mqh"
+#include "UIPanelProfiles.mqh"
 
    CLabel                     m_cfgRiskHdr;
    CLabel                     m_cfgRiskLotLbl;
@@ -148,9 +66,6 @@ private:
    CLabel                     m_cfgSystemConflictLbl;
    CButton                    m_cfgSystemConflictBtn;
    CLabel                     m_cfgStatus;
-
-   CStrategyPanelBase        *m_strategyPanels[3];
-   CFilterPanelBase          *m_filterPanels[2];
 
    void                       ResetCommand(SUICommand &command)
      {
@@ -226,43 +141,6 @@ private:
       return edit.Text();
      }
 
-   bool                       ProfileEditMode(void)
-     {
-      return (m_profileMode == FUSION_PROFILE_NEW || m_profileMode == FUSION_PROFILE_DUPLICATE);
-     }
-
-   bool                       ProfileDuplicateMode(void)
-     {
-      return (m_profileMode == FUSION_PROFILE_DUPLICATE);
-     }
-
-   void                       SetProfileMode(const ENUM_FUSION_PROFILE_MODE mode,const string draft="",const string sourceName="")
-     {
-      m_profileMode = mode;
-      m_profileEditSourceName = sourceName;
-      m_profileNewEdit.Text(draft);
-     }
-
-   string                     SuggestedDuplicateName(const string sourceName)
-     {
-      string baseName = m_profileStore.SanitizeProfileName(sourceName);
-      if(FusionIsBlank(baseName))
-         baseName = "perfil";
-
-      string candidate = baseName + "_copy";
-      if(!m_profileStore.ProfileExists(candidate))
-         return candidate;
-
-      for(int i = 2; i < 1000; ++i)
-        {
-         candidate = baseName + "_copy_" + IntegerToString(i);
-         if(!m_profileStore.ProfileExists(candidate))
-            return candidate;
-        }
-
-      return baseName + "_copy_" + IntegerToString((int)GetTickCount());
-     }
-
    void                       SetVisible(CWnd &control,const bool visible)
      {
       if(visible)
@@ -301,23 +179,6 @@ private:
       return (!ProfileEditMode() && CanEditSettings() && !HasPendingChanges());
      }
 
-   string                     ProfileDraftName(void)
-     {
-      return m_profileStore.SanitizeProfileName(FusionTrimCopy(LiveEditText(m_profileNewEdit)));
-     }
-
-   bool                       HasValidProfileDraftName(void)
-     {
-      return !FusionIsBlank(ProfileDraftName());
-     }
-
-   string                     SelectedProfileName(void)
-     {
-      if(m_profileSelected < 0 || m_profileSelected >= m_profileCount)
-         return "";
-      return m_profileNames[m_profileSelected];
-     }
-
    bool                       ParsedDraftMagicNumber(int &magicNumber)
      {
       magicNumber = 0;
@@ -327,24 +188,6 @@ private:
 
       magicNumber = (int)StringToInteger(magicText);
       return (magicNumber > 0);
-     }
-
-   bool                       MagicAvailableForProfile(const int magicNumber,const string profileName,string &conflictProfile)
-     {
-      conflictProfile = "";
-      if(magicNumber <= 0)
-         return false;
-      return !m_profileStore.FindProfileByMagicNumber(magicNumber, profileName, conflictProfile);
-     }
-
-   bool                       CanStartNewProfile(void)
-     {
-      return (!ProfileEditMode() && CanEditSettings());
-     }
-
-   bool                       CanStartDuplicateProfile(void)
-     {
-      return (CanAdminProfiles() && SelectedProfileName() != "");
      }
 
    void                       ToggleDraftFlag(const ENUM_UI_COMMAND type)
@@ -601,231 +444,6 @@ private:
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
      }
 
-   void                       UpdateStatusTab(void)
-     {
-      m_statusValues[0].Text(m_snapshot.started ? "RUNNING" : "PAUSED");
-      m_statusValues[1].Text(m_snapshot.symbol);
-      m_statusValues[2].Text(m_snapshot.timeframe);
-      m_statusValues[3].Text(IntegerToString(m_snapshot.activeStrategies));
-      m_statusValues[4].Text(IntegerToString(m_snapshot.activeFilters));
-      m_statusValues[5].Text(m_snapshot.hasPosition ? "YES" : "NO");
-      m_statusValues[6].Text(m_snapshot.ownerStrategyName == "" ? "--" : m_snapshot.ownerStrategyName);
-      m_statusValues[7].Text(FusionConflictText(m_snapshot.conflictMode));
-     }
-
-   void                       UpdateResultsTab(void)
-     {
-      m_resultsValues[0].Text(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
-      m_resultsValues[1].Text(IntegerToString(m_committedSettings.maxSpreadPoints));
-      m_resultsValues[2].Text(IntegerToString(m_committedSettings.magicNumber));
-      m_resultsValues[3].Text(m_committedProfileName == "" ? m_snapshot.activeProfileName : m_committedProfileName);
-      m_resultsValues[4].Text(m_snapshot.started ? "HOT RELOAD READY" : "EDIT MODE");
-      m_resultsValues[5].Text(m_snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
-     }
-
-   void                       UpdateOverviews(void)
-     {
-      string strategyNames[3] = {"MA Cross", "RSI", "Bollinger"};
-      bool strategyStates[3] = {m_draftSettings.useMACross, m_draftSettings.useRSI, m_draftSettings.useBollinger};
-      for(int i = 0; i < 3; ++i)
-        {
-         m_strategyOverviewName[i].Text(strategyNames[i]);
-         FusionApplyStateLabel(m_strategyOverviewState[i], strategyStates[i], "ATIVO", "OFF");
-        }
-
-      string filterNames[2] = {"Trend", "RSI"};
-      bool filterStates[2] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter};
-      for(int j = 0; j < 2; ++j)
-        {
-         m_filterOverviewName[j].Text(filterNames[j]);
-         FusionApplyStateLabel(m_filterOverviewState[j], filterStates[j], "ATIVO", "OFF");
-        }
-     }
-
-   void                       SetProfileStatus(const string text,const color clr,const bool persist=false)
-     {
-      uint now = GetTickCount();
-      if(!persist && m_profileStatusOverrideUntil > now)
-        {
-         m_profileStatus.Text(m_profileStatusOverride);
-         m_profileStatus.Color(m_profileStatusOverrideColor);
-         return;
-        }
-
-      if(persist)
-        {
-         m_profileStatusOverride = text;
-         m_profileStatusOverrideColor = clr;
-         m_profileStatusOverrideUntil = now + 5000;
-        }
-
-      m_profileStatus.Text(text);
-      m_profileStatus.Color(clr);
-     }
-
-   void                       EnsureProfileSelectionVisible(void)
-     {
-      if(m_profileSelected < 0)
-        {
-         m_profileOffset = 0;
-         return;
-        }
-
-      if(m_profileSelected < m_profileOffset)
-         m_profileOffset = m_profileSelected;
-
-      if(m_profileSelected >= m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS)
-         m_profileOffset = m_profileSelected - FUSION_PROFILE_VISIBLE_ROWS + 1;
-
-      int maxOffset = m_profileCount - FUSION_PROFILE_VISIBLE_ROWS;
-      if(maxOffset < 0)
-         maxOffset = 0;
-      if(m_profileOffset > maxOffset)
-         m_profileOffset = maxOffset;
-      if(m_profileOffset < 0)
-         m_profileOffset = 0;
-     }
-
-   void                       UpdateProfileListView(void)
-     {
-      EnsureProfileSelectionVisible();
-
-      string activeName = m_committedProfileName;
-      string activeKey = m_profileStore.SanitizeProfileName(activeName);
-      for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
-        {
-         int idx = m_profileOffset + i;
-         if(idx >= 0 && idx < m_profileCount)
-           {
-            string rowText = m_profileNames[idx];
-            string rowKey = m_profileStore.SanitizeProfileName(m_profileNames[idx]);
-            if(rowKey == activeKey)
-               rowText += "  [ATIVO]";
-            m_profileRows[i].Text(rowText);
-
-            if(idx == m_profileSelected)
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_NAV_ACTIVE, true);
-            else if(rowKey == activeKey)
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_GOOD, true);
-            else
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_NAV_IDLE, true);
-           }
-         else
-           {
-            m_profileRows[i].Text("");
-            FusionApplyNeutralButtonStyle(m_profileRows[i]);
-           }
-        }
-
-      if(m_profileOffset > 0)
-         FusionApplyActionButtonStyle(m_profileUpBtn, FUSION_CLR_NAV_IDLE, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileUpBtn);
-
-      if(m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS < m_profileCount)
-         FusionApplyActionButtonStyle(m_profileDownBtn, FUSION_CLR_NAV_IDLE, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileDownBtn);
-
-      FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
-
-      bool validName = HasValidProfileDraftName();
-      bool selected = (SelectedProfileName() != "");
-      bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
-      bool draftExists = (validName && m_profileStore.ProfileExists(ProfileDraftName()));
-      bool editMode = ProfileEditMode();
-      bool duplicateMode = ProfileDuplicateMode();
-      int draftMagic = 0;
-      string magicConflictProfile = "";
-      bool magicAvailableForDraft = true;
-      if(editMode && validName && ParsedDraftMagicNumber(draftMagic))
-         magicAvailableForDraft = MagicAvailableForProfile(draftMagic, ProfileDraftName(), magicConflictProfile);
-
-      m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
-      m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
-
-      FusionApplyEditStyle(m_profileNewEdit, true, editMode && CanEditSettings());
-      m_profileNewLbl.Color((editMode && CanEditSettings()) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
-
-      if(CanStartNewProfile())
-         FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileNewBtn);
-
-      if(CanLoad() && selected && !editMode)
-         FusionApplyActionButtonStyle(m_profileLoadBtn, FUSION_CLR_ACTION_LOAD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileLoadBtn);
-
-      if(editMode && CanEditSettings() && m_configInputsValid && validName && !draftExists && magicAvailableForDraft)
-         FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
-
-      if(CanStartDuplicateProfile())
-         FusionApplyActionButtonStyle(m_profileDuplicateBtn, FUSION_CLR_ACTION_LOAD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
-
-      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive)
-         FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
-
-      if(editMode)
-         FusionApplyActionButtonStyle(m_profileCancelBtn, FUSION_CLR_WARN, true);
-      else
-         FusionApplyNeutralButtonStyle(m_profileCancelBtn);
-
-      if(!CanEditSettings())
-         SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
-      else if(editMode && !validName)
-         SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
-      else if(editMode && draftExists)
-         SetProfileStatus("Nome ja existe. Escolha outro nome ou cancele.", FUSION_CLR_WARN);
-      else if(editMode && !magicAvailableForDraft)
-         SetProfileStatus("Magic ja usado pelo perfil " + magicConflictProfile + ".", FUSION_CLR_WARN);
-      else if(editMode && duplicateMode)
-         SetProfileStatus("Copia de " + m_profileEditSourceName + " como " + ProfileDraftName() + ". Altere o Magic se necessario e salve.", FUSION_CLR_MUTED);
-      else if(editMode)
-         SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
-      else if(m_profileCount == 0)
-         SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
-      else if(HasPendingChanges())
-         SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
-      else if(selected && selectedIsActive)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
-      else if(selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
-      else
-         SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
-     }
-
-   void                       RefreshProfileList(const bool keepSelection=true)
-     {
-      string previousSelection = keepSelection ? SelectedProfileName() : "";
-      if(previousSelection == "")
-         previousSelection = m_committedProfileName;
-
-      m_profileStore.ListProfiles(m_profileNames);
-      m_profileCount = ArraySize(m_profileNames);
-      m_profileSelected = -1;
-
-      for(int i = 0; i < m_profileCount; ++i)
-        {
-         if(m_profileStore.SanitizeProfileName(m_profileNames[i]) == m_profileStore.SanitizeProfileName(previousSelection))
-           {
-            m_profileSelected = i;
-            break;
-           }
-        }
-
-      if(m_profileSelected < 0 && m_profileCount > 0)
-         m_profileSelected = 0;
-
-      UpdateProfileListView();
-     }
-
    bool                       RefreshConfigValidation(void)
      {
       SEASettings candidate;
@@ -839,95 +457,6 @@ private:
    void                       UpdateConfigReadOnly(void)
      {
       m_cfgProtectionPositionVal.Text(m_snapshot.hasPosition ? "SIM" : "NAO");
-     }
-
-   void                       SetStatusVisible(const bool visible)
-     {
-      for(int i = 0; i < 8; ++i)
-        {
-         SetVisible(m_statusLabels[i], visible);
-         SetVisible(m_statusValues[i], visible);
-        }
-     }
-
-   void                       SetResultsVisible(const bool visible)
-     {
-      for(int i = 0; i < 6; ++i)
-        {
-         SetVisible(m_resultsLabels[i], visible);
-         SetVisible(m_resultsValues[i], visible);
-        }
-     }
-
-   void                       SetStrategiesVisible(const bool visible)
-     {
-      for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
-         SetVisible(m_strategyTabs[i], visible);
-
-      bool overviewVisible = visible && m_strategyPage == FUSION_STRAT_OVERVIEW;
-      SetVisible(m_strategyOverviewHdr, overviewVisible);
-      for(int j = 0; j < 3; ++j)
-        {
-         SetVisible(m_strategyOverviewName[j], overviewVisible);
-         SetVisible(m_strategyOverviewState[j], overviewVisible);
-        }
-
-      for(int p = 0; p < 3; ++p)
-        {
-         if(m_strategyPanels[p] == NULL)
-            continue;
-         if(visible && m_strategyPage == (ENUM_FUSION_STRATEGY_PAGE)(p + 1))
-            m_strategyPanels[p].Show();
-         else
-            m_strategyPanels[p].Hide();
-        }
-     }
-
-   void                       SetFiltersVisible(const bool visible)
-     {
-      for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
-         SetVisible(m_filterTabs[i], visible);
-
-      bool overviewVisible = visible && m_filterPage == FUSION_FILTER_OVERVIEW;
-      SetVisible(m_filterOverviewHdr, overviewVisible);
-      for(int j = 0; j < 2; ++j)
-        {
-         SetVisible(m_filterOverviewName[j], overviewVisible);
-         SetVisible(m_filterOverviewState[j], overviewVisible);
-        }
-
-      for(int p = 0; p < 2; ++p)
-        {
-         if(m_filterPanels[p] == NULL)
-            continue;
-         if(visible && m_filterPage == (ENUM_FUSION_FILTER_PAGE)(p + 1))
-            m_filterPanels[p].Show();
-         else
-            m_filterPanels[p].Hide();
-        }
-     }
-
-   void                       SetProfilesVisible(const bool visible)
-     {
-      bool editVisible = visible && ProfileEditMode();
-      bool browseVisible = visible && !ProfileEditMode();
-
-      SetVisible(m_profilesHdr, visible);
-      SetVisible(m_profilesHint, visible);
-      for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
-         SetVisible(m_profileRows[i], visible);
-      SetVisible(m_profileUpBtn, visible);
-      SetVisible(m_profileDownBtn, visible);
-      SetVisible(m_profileRefreshBtn, visible);
-      SetVisible(m_profileNewBtn, browseVisible);
-      SetVisible(m_profileNewLbl, editVisible);
-      SetVisible(m_profileNewEdit, editVisible);
-      SetVisible(m_profileLoadBtn, browseVisible);
-      SetVisible(m_profileSaveAsBtn, editVisible);
-      SetVisible(m_profileDuplicateBtn, browseVisible);
-      SetVisible(m_profileDeleteBtn, browseVisible);
-      SetVisible(m_profileCancelBtn, editVisible);
-      SetVisible(m_profileStatus, visible);
      }
 
    void                       SetConfigVisible(const bool visible)
@@ -999,157 +528,6 @@ private:
             return false;
          x += 86;
         }
-      return true;
-     }
-
-   bool                       BuildStatusTab(void)
-     {
-      string labels[8] = {"Estado", "Symbol", "Timeframe", "Strategies", "Filters", "Posicao", "Owner", "Resolver"};
-      int y = 112;
-      for(int i = 0; i < 8; ++i)
-        {
-         if(!AddLabel(m_statusLabels[i], "Fusion_status_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL, 9))
-            return false;
-         if(!AddLabel(m_statusValues[i], "Fusion_status_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
-         y += 30;
-        }
-      return true;
-     }
-
-   bool                       BuildResultsTab(void)
-     {
-      string labels[6] = {"Lote", "Max Spread", "Magic", "Perfil", "Modo", "Execucao"};
-      int y = 112;
-      for(int i = 0; i < 6; ++i)
-        {
-         if(!AddLabel(m_resultsLabels[i], "Fusion_results_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL, 9))
-            return false;
-         if(!AddLabel(m_resultsValues[i], "Fusion_results_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
-         y += 34;
-        }
-      return true;
-     }
-
-   bool                       BuildStrategyTab(void)
-     {
-      string pageNames[FUSION_STRAT_COUNT] = {"GERAL", "MA", "RSI", "BB"};
-      int x = 18;
-      for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
-        {
-         if(!AddButton(m_strategyTabs[i], "Fusion_strat_tab_" + IntegerToString(i), x, 110, x + 96, 134, pageNames[i], FUSION_CLR_PANEL))
-            return false;
-         x += 100;
-        }
-
-      if(!AddLabel(m_strategyOverviewHdr, "Fusion_strat_overview_hdr", 22, 156, 260, 176, "Visao Geral das Estrategias", FUSION_CLR_VALUE, 9))
-         return false;
-
-      int y = 194;
-      for(int i = 0; i < 3; ++i)
-        {
-         if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
-            return false;
-         if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
-         y += 34;
-        }
-
-      m_strategyPanels[0] = new CStrategyTogglePanel("MA Cross", "ma", UI_COMMAND_TOGGLE_MACROSS);
-      m_strategyPanels[1] = new CStrategyTogglePanel("RSI", "rsi", UI_COMMAND_TOGGLE_RSI);
-      m_strategyPanels[2] = new CStrategyTogglePanel("Bollinger", "bb", UI_COMMAND_TOGGLE_BB);
-
-      for(int p = 0; p < 3; ++p)
-        {
-         if(m_strategyPanels[p] == NULL)
-            return false;
-         if(!m_strategyPanels[p].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360))
-            return false;
-        }
-      return true;
-     }
-
-   bool                       BuildFilterTab(void)
-     {
-      string pageNames[FUSION_FILTER_COUNT] = {"GERAL", "TREND", "RSI"};
-      int x = 18;
-      for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
-        {
-         if(!AddButton(m_filterTabs[i], "Fusion_filter_tab_" + IntegerToString(i), x, 110, x + 110, 134, pageNames[i], FUSION_CLR_PANEL))
-            return false;
-         x += 114;
-        }
-
-      if(!AddLabel(m_filterOverviewHdr, "Fusion_filter_overview_hdr", 22, 156, 260, 176, "Visao Geral dos Filtros", FUSION_CLR_VALUE, 9))
-         return false;
-
-      int y = 194;
-      for(int i = 0; i < 2; ++i)
-        {
-         if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
-            return false;
-         if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
-         y += 34;
-        }
-
-      m_filterPanels[0] = new CFilterTogglePanel("Trend Filter", "trend", UI_COMMAND_TOGGLE_TREND_FILTER);
-      m_filterPanels[1] = new CFilterTogglePanel("RSI Filter", "rsi", UI_COMMAND_TOGGLE_RSI_FILTER);
-
-      for(int p = 0; p < 2; ++p)
-        {
-         if(m_filterPanels[p] == NULL)
-            return false;
-         if(!m_filterPanels[p].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360))
-            return false;
-        }
-      return true;
-     }
-
-   bool                       BuildProfilesTab(void)
-     {
-      if(!AddLabel(m_profilesHdr, "Fusion_profiles_hdr", 22, 118, 300, 138, "Administracao de Perfis", FUSION_CLR_VALUE, 9))
-         return false;
-      if(!AddLabel(m_profilesHint, "Fusion_profiles_hint", 22, 142, 520, 162, "Perfis da GUI sao para operacao em grafico. Backtest usa inputs do MT5.", FUSION_CLR_MUTED, 8))
-         return false;
-
-      int y = 176;
-      for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
-        {
-         if(!AddButton(m_profileRows[i], "Fusion_profile_row_" + IntegerToString(i), 24, y, 330, y + 24, "", FUSION_CLR_PANEL))
-            return false;
-         y += 28;
-        }
-
-      if(!AddButton(m_profileUpBtn, "Fusion_profile_up", 340, 176, 382, 202, ShortToString(0x25B2), FUSION_CLR_PANEL))
-         return false;
-      if(!AddButton(m_profileDownBtn, "Fusion_profile_down", 340, 208, 382, 234, ShortToString(0x25BC), FUSION_CLR_PANEL))
-         return false;
-      if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 520, 202, "Atualizar Lista", FUSION_CLR_ACTION_LOAD))
-         return false;
-      if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 236, 520, 262, "NOVO", FUSION_CLR_GOOD))
-         return false;
-
-      if(!AddLabel(m_profileNewLbl, "Fusion_profile_new_lbl", 390, 236, 520, 254, "Novo nome", FUSION_CLR_LABEL, 8))
-         return false;
-      if(!AddEdit(m_profileNewEdit, "Fusion_profile_new_edit", 390, 258, 520, 282, ""))
-         return false;
-
-      if(!AddButton(m_profileLoadBtn, "Fusion_profile_load", 390, 268, 520, 294, "CARREGAR", FUSION_CLR_ACTION_LOAD))
-         return false;
-      if(!AddButton(m_profileSaveAsBtn, "Fusion_profile_save_as", 390, 298, 520, 324, "SALVAR", FUSION_CLR_GOOD))
-         return false;
-      if(!AddButton(m_profileDuplicateBtn, "Fusion_profile_duplicate", 390, 300, 520, 326, "DUPLICAR", FUSION_CLR_ACTION_LOAD))
-         return false;
-      if(!AddButton(m_profileDeleteBtn, "Fusion_profile_delete", 390, 332, 520, 358, "EXCLUIR", FUSION_CLR_BAD))
-         return false;
-      if(!AddButton(m_profileCancelBtn, "Fusion_profile_cancel", 390, 330, 520, 356, "CANCELAR", FUSION_CLR_WARN))
-         return false;
-
-      if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, 520, 456, "", FUSION_CLR_MUTED, 8))
-         return false;
-
       return true;
      }
 
