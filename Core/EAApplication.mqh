@@ -199,6 +199,8 @@ private:
 
          ResetPositionRuntimeState(m_positionState);
          PersistChartState();
+         if(!m_started)
+            ReleaseRunningInstance();
         }
      }
 
@@ -409,7 +411,8 @@ public:
          restoredSettings.isTester = m_settings.isTester;
          m_settings = restoredSettings;
          m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
-         m_started = m_settings.isTester ? true : restoredStarted;
+         // Regra de seguranca: em grafico real/demo o start exige clique manual.
+         m_started = m_settings.isTester;
          m_positionState = restoredState;
         }
 
@@ -527,7 +530,7 @@ public:
 
    void              OnTimer(void)
      {
-      if(m_started && !m_settings.isTester)
+      if((m_started || m_positionState.hasPosition) && !m_settings.isTester)
          m_instanceRegistry.Refresh();
 
       if(m_settings.panelEnabled && !m_settings.isTester)

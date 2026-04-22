@@ -72,7 +72,15 @@ Ela será o centro de operação visual, perfis, validação e feedback de bloqu
 
 Perfis nomeados guardam configurações de setups.
 
-Estado automático por gráfico guarda restauração local daquela instância, como perfil ativo, estado ligado/desligado e dados de posição em gerenciamento.
+Estado automático por gráfico guarda restauração local daquela instância, como perfil ativo, estado anterior e dados de posição em gerenciamento.
+
+Por segurança, o Fusion não restaura `started=true` em gráfico real/demo. Ao anexar, recompilar ou reinicializar o EA, a operação volta pausada e exige clique manual em `INICIAR`.
+
+Exceções e limites:
+
+- no Strategy Tester, o EA continua iniciando automaticamente para preservar backtests via `input`;
+- se uma posição aberta for sincronizada/restaurada, ela continua sendo gerenciada mesmo com o EA pausado;
+- pausar significa bloquear novas entradas, não abandonar uma operação já aberta.
 
 Esses dois arquivos têm propósitos diferentes e não devem ser misturados.
 

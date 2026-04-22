@@ -90,6 +90,8 @@ Salva e carrega perfis nomeados e estado automático por gráfico.
 
 Perfis são configurações operacionais. Estado de gráfico é restauração local da instância. Esses dois conceitos não devem ser misturados.
 
+Em gráfico real/demo, a restauração de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posição aberta sincronizada/restaurada.
+
 ### `Normalization`
 
 Centraliza detalhes de símbolo e corretora:

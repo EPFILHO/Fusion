@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.012 - 2026-04-22
+- Alterada a restauração de estado por gráfico para que contas real/demo nunca retomem operações automaticamente.
+- Mantido o comportamento automático no Strategy Tester para preservar backtests via parâmetros `input`.
+- Mantido o gerenciamento de posições restauradas/abertas mesmo com o EA pausado, incluindo refresh e liberação do registro de instância.
+
 ## 1.011 - 2026-04-22
 - Split reusable `CFusionPanel` sections into dedicated UI include files.
 - Moved panel constants/enums to `UI/UIPanelTypes.mqh`.
