@@ -336,24 +336,6 @@ public:
       return FileDelete(fileName);
      }
 
-   bool              CopyProfile(const string sourceProfileName,const string targetProfileName)
-     {
-      if(SanitizeName(sourceProfileName) == SanitizeName(targetProfileName))
-         return false;
-      if(ProfileExists(targetProfileName))
-         return false;
-
-      SEASettings settings;
-      if(!LoadProfile(sourceProfileName, settings))
-         return false;
-
-      string conflictProfile = "";
-      if(FindProfileByMagicNumber(settings.magicNumber, targetProfileName, conflictProfile))
-         return false;
-
-      return SaveProfile(targetProfileName, settings);
-     }
-
    bool              LoadProfile(const string profileName,SEASettings &settings) const
      {
       EnsureFolders();

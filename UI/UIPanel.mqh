@@ -54,7 +54,8 @@ enum ENUM_FUSION_CONFIG_PAGE
 enum ENUM_FUSION_PROFILE_MODE
   {
    FUSION_PROFILE_BROWSE = 0,
-   FUSION_PROFILE_NEW
+   FUSION_PROFILE_NEW,
+   FUSION_PROFILE_DUPLICATE
   };
 
 class CFusionPanel : public CAppDialog
@@ -82,6 +83,7 @@ private:
    string                     m_profileStatusOverride;
    color                      m_profileStatusOverrideColor;
    uint                       m_profileStatusOverrideUntil;
+   string                     m_profileEditSourceName;
    ENUM_FUSION_TAB            m_activeTab;
    ENUM_FUSION_STRATEGY_PAGE  m_strategyPage;
    ENUM_FUSION_FILTER_PAGE    m_filterPage;
@@ -226,13 +228,39 @@ private:
 
    bool                       ProfileEditMode(void)
      {
-      return (m_profileMode == FUSION_PROFILE_NEW);
+      return (m_profileMode == FUSION_PROFILE_NEW || m_profileMode == FUSION_PROFILE_DUPLICATE);
      }
 
-   void                       SetProfileMode(const ENUM_FUSION_PROFILE_MODE mode,const string draft="")
+   bool                       ProfileDuplicateMode(void)
+     {
+      return (m_profileMode == FUSION_PROFILE_DUPLICATE);
+     }
+
+   void                       SetProfileMode(const ENUM_FUSION_PROFILE_MODE mode,const string draft="",const string sourceName="")
      {
       m_profileMode = mode;
+      m_profileEditSourceName = sourceName;
       m_profileNewEdit.Text(draft);
+     }
+
+   string                     SuggestedDuplicateName(const string sourceName)
+     {
+      string baseName = m_profileStore.SanitizeProfileName(sourceName);
+      if(FusionIsBlank(baseName))
+         baseName = "perfil";
+
+      string candidate = baseName + "_copy";
+      if(!m_profileStore.ProfileExists(candidate))
+         return candidate;
+
+      for(int i = 2; i < 1000; ++i)
+        {
+         candidate = baseName + "_copy_" + IntegerToString(i);
+         if(!m_profileStore.ProfileExists(candidate))
+            return candidate;
+        }
+
+      return baseName + "_copy_" + IntegerToString((int)GetTickCount());
      }
 
    void                       SetVisible(CWnd &control,const bool visible)
@@ -255,22 +283,22 @@ private:
 
    bool                       CanStart(void)
      {
-      return (!m_snapshot.started && !m_snapshot.hasPosition && m_configInputsValid && !HasPendingChanges());
+      return (!ProfileEditMode() && !m_snapshot.started && !m_snapshot.hasPosition && m_configInputsValid && !HasPendingChanges());
      }
 
    bool                       CanSave(void)
      {
-      return (CanEditSettings() && m_configInputsValid && HasPendingChanges());
+      return (!ProfileEditMode() && CanEditSettings() && m_configInputsValid && HasPendingChanges());
      }
 
    bool                       CanLoad(void)
      {
-      return (CanEditSettings() && !HasPendingChanges());
+      return (!ProfileEditMode() && CanEditSettings() && !HasPendingChanges());
      }
 
    bool                       CanAdminProfiles(void)
      {
-      return (CanEditSettings() && !HasPendingChanges());
+      return (!ProfileEditMode() && CanEditSettings() && !HasPendingChanges());
      }
 
    string                     ProfileDraftName(void)
@@ -311,7 +339,7 @@ private:
 
    bool                       CanStartNewProfile(void)
      {
-      return (CanEditSettings() && m_configInputsValid);
+      return (!ProfileEditMode() && CanEditSettings());
      }
 
    bool                       CanStartDuplicateProfile(void)
@@ -341,6 +369,29 @@ private:
    string                     CommittedLotText(void)
      {
       return FusionNormalizeDecimalText(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
+     }
+
+   void                       SyncDraftSettingsToControls(void)
+     {
+      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
+      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      UpdateOverviews();
+
+      for(int i = 0; i < 3; ++i)
+         if(m_strategyPanels[i] != NULL)
+            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
+
+      for(int j = 0; j < 2; ++j)
+         if(m_filterPanels[j] != NULL)
+            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+     }
+
+   void                       RestoreCommittedDraftToControls(void)
+     {
+      m_draftSettings = m_committedSettings;
+      SyncDraftSettingsToControls();
      }
 
    bool                       HasPendingChanges(void)
@@ -683,13 +734,15 @@ private:
       bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
       bool draftExists = (validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
+      bool duplicateMode = ProfileDuplicateMode();
       int draftMagic = 0;
       string magicConflictProfile = "";
       bool magicAvailableForDraft = true;
       if(editMode && validName && ParsedDraftMagicNumber(draftMagic))
          magicAvailableForDraft = MagicAvailableForProfile(draftMagic, ProfileDraftName(), magicConflictProfile);
 
-      m_profileNewLbl.Text("Novo perfil");
+      m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
+      m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
 
       FusionApplyEditStyle(m_profileNewEdit, true, editMode && CanEditSettings());
       m_profileNewLbl.Color((editMode && CanEditSettings()) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
@@ -726,20 +779,24 @@ private:
 
       if(!CanEditSettings())
          SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
-      else if(editMode && m_profileMode == FUSION_PROFILE_NEW && !validName)
-         SetProfileStatus("Novo perfil: informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
+      else if(editMode && !validName)
+         SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
       else if(editMode && draftExists)
          SetProfileStatus("Nome ja existe. Escolha outro nome ou cancele.", FUSION_CLR_WARN);
       else if(editMode && !magicAvailableForDraft)
          SetProfileStatus("Magic ja usado pelo perfil " + magicConflictProfile + ".", FUSION_CLR_WARN);
-      else if(editMode && m_profileMode == FUSION_PROFILE_NEW)
+      else if(editMode && duplicateMode)
+         SetProfileStatus("Copia de " + m_profileEditSourceName + " como " + ProfileDraftName() + ". Altere o Magic se necessario e salve.", FUSION_CLR_MUTED);
+      else if(editMode)
          SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(HasPendingChanges())
-         SetProfileStatus("Salve ou descarte alteracoes antes de carregar outro perfil.", FUSION_CLR_WARN);
+         SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
+      else if(selected && selectedIsActive)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
       else if(selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Novo ou Excluir.", FUSION_CLR_MUTED);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
       else
          SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
      }
@@ -1337,7 +1394,7 @@ private:
             return true;
            }
 
-         if(m_profileMode == FUSION_PROFILE_NEW)
+         if(ProfileEditMode())
            {
             SEASettings pendingSettings;
             string ignoredProfile = "";
@@ -1371,7 +1428,21 @@ private:
         {
          ReleaseButton(m_profileDuplicateBtn);
          if(CanStartDuplicateProfile())
-            SetProfileStatus("Duplicar direto copiaria o Magic. Carregue, altere Magic e use NOVO.", FUSION_CLR_WARN, true);
+           {
+            string selectedProfile = SelectedProfileName();
+            SEASettings sourceSettings;
+            if(m_profileStore.LoadProfile(selectedProfile, sourceSettings))
+              {
+               m_draftSettings = sourceSettings;
+               SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
+               SyncDraftSettingsToControls();
+               RefreshConfigValidation();
+               ApplyVisibility();
+               SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
+              }
+            else
+               SetProfileStatus("Nao foi possivel ler o perfil selecionado.", FUSION_CLR_BAD, true);
+           }
          else
             UpdateProfileListView();
          return true;
@@ -1381,6 +1452,8 @@ private:
         {
          ReleaseButton(m_profileCancelBtn);
          SetProfileMode(FUSION_PROFILE_BROWSE);
+         RestoreCommittedDraftToControls();
+         RefreshConfigValidation();
          ApplyVisibility();
          return true;
         }
@@ -1483,6 +1556,7 @@ public:
       m_profileStatusOverride = "";
       m_profileStatusOverrideColor = FUSION_CLR_MUTED;
       m_profileStatusOverrideUntil = 0;
+      m_profileEditSourceName = "";
       SetDefaultSettings(m_committedSettings);
       SetDefaultSettings(m_draftSettings);
       for(int i = 0; i < 3; ++i)
@@ -1611,10 +1685,7 @@ public:
 
       m_activeProfile.Text(m_committedProfileName);
       m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
-      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
-      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
      }
@@ -1643,10 +1714,7 @@ public:
 
       m_activeProfile.Text(m_committedProfileName);
       m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
-      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
-      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RefreshProfileList(false);
       RefreshConfigValidation();

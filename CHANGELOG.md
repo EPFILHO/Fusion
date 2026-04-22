@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.009 - 2026-04-21
+- Decoupled the `NOVO` profile action from current configuration validity; validation now belongs to save/start.
+- Added a real duplicate-profile flow that loads the selected profile as an editable draft and requires a unique Magic Number before saving.
+- Removed the dead direct-copy profile helper to avoid implying unsafe Magic duplication.
+
 ## 1.008 - 2026-04-21
 - Fixed `CSettingsStore::LoadProfile` const-correctness so profile magic validation compiles in MQL5.
 
