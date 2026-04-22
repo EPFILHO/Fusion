@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.008 - 2026-04-21
+- Fixed `CSettingsStore::LoadProfile` const-correctness so profile magic validation compiles in MQL5.
+
 ## 1.007 - 2026-04-21
 - Added global profile validation so a Magic Number can belong to only one saved profile.
 - Blocked profile saves and new-profile creation when the chosen Magic Number is already used.

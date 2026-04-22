@@ -354,7 +354,7 @@ public:
       return SaveProfile(targetProfileName, settings);
      }
 
-   bool              LoadProfile(const string profileName,SEASettings &settings)
+   bool              LoadProfile(const string profileName,SEASettings &settings) const
      {
       EnsureFolders();
       SetDefaultSettings(settings);
