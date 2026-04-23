@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.013 - 2026-04-22
+- Transformadas as abas `STATUS` e `RESULTS` em componentes reais em `UI/Pages`.
+- Removido o include textual antigo `UIPanelStatusResults.mqh`.
+- Mantido `CFusionPanel` como orquestrador da janela, delegando criação, visibilidade e atualização dessas abas.
+
 ## 1.012 - 2026-04-22
 - Alterada a restauração de estado por gráfico para que contas real/demo nunca retomem operações automaticamente.
 - Mantido o comportamento automático no Strategy Tester para preservar backtests via parâmetros `input`.

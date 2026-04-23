@@ -7,6 +7,8 @@
 #include <Controls\Edit.mqh>
 #include "PanelUtils.mqh"
 #include "UIPanelTypes.mqh"
+#include "Pages/StatusPage.mqh"
+#include "Pages/ResultsPage.mqh"
 #include "StrategyTogglePanel.mqh"
 #include "FilterTogglePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
@@ -43,8 +45,9 @@ private:
    CButton                    m_strategyTabs[FUSION_STRAT_COUNT];
    CButton                    m_filterTabs[FUSION_FILTER_COUNT];
    CButton                    m_configTabs[FUSION_CFG_COUNT];
+   CStatusPage                m_statusPage;
+   CResultsPage               m_resultsPage;
 
-#include "UIPanelStatusResults.mqh"
 #include "UIPanelSignalTabs.mqh"
 #include "UIPanelProfiles.mqh"
 
@@ -490,8 +493,8 @@ private:
 
    void                       ApplyVisibility(void)
      {
-      SetStatusVisible(m_activeTab == FUSION_TAB_STATUS);
-      SetResultsVisible(m_activeTab == FUSION_TAB_RESULTS);
+      m_statusPage.SetVisible(m_activeTab == FUSION_TAB_STATUS);
+      m_resultsPage.SetVisible(m_activeTab == FUSION_TAB_RESULTS);
       SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
       SetFiltersVisible(m_activeTab == FUSION_TAB_FILTERS);
       SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
@@ -999,8 +1002,8 @@ public:
 
       if(!BuildHeader())      { Destroy(REASON_REMOVE); return false; }
       if(!BuildTabs())        { Destroy(REASON_REMOVE); return false; }
-      if(!BuildStatusTab())   { Destroy(REASON_REMOVE); return false; }
-      if(!BuildResultsTab())  { Destroy(REASON_REMOVE); return false; }
+      if(!m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow))   { Destroy(REASON_REMOVE); return false; }
+      if(!m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow))  { Destroy(REASON_REMOVE); return false; }
       if(!BuildStrategyTab()) { Destroy(REASON_REMOVE); return false; }
       if(!BuildFilterTab())   { Destroy(REASON_REMOVE); return false; }
       if(!BuildProfilesTab()) { Destroy(REASON_REMOVE); return false; }
@@ -1105,8 +1108,8 @@ public:
 
       m_snapshot = snapshot;
       UpdateHeaderButtons();
-      UpdateStatusTab();
-      UpdateResultsTab();
+      m_statusPage.Update(m_snapshot);
+      m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
       UpdateOverviews();
       UpdateConfigReadOnly();
       RefreshConfigValidation();

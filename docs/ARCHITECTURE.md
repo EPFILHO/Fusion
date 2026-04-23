@@ -117,11 +117,12 @@ A UI não deve executar trade diretamente. Ela monta comandos e envia para `CFus
 `CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que já têm responsabilidade própria ficam em includes dedicados:
 
 - `UIPanelTypes.mqh`: dimensões, enums e constantes da UI.
-- `UIPanelStatusResults.mqh`: abas de status e resultados.
+- `UI/Pages/StatusPage.mqh`: componente da aba `STATUS`.
+- `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
 - `UIPanelSignalTabs.mqh`: abas de estratégias e filtros.
 - `UIPanelProfiles.mqh`: administração de perfis.
 
-Esse corte usa includes internos para preservar o comportamento da classe no MQL5 e reduzir risco durante a refatoração.
+Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo método `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoração.
 
 ## Hot Reload
 
