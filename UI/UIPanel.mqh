@@ -1011,6 +1011,7 @@ public:
       LoadSettings(snapshot);
       RefreshConfigValidation();
       Update(snapshot);
+      ApplyVisibility();
       return true;
      }
 
@@ -1119,7 +1120,6 @@ public:
       for(int j = 0; j < 2; ++j)
          if(m_filterPanels[j] != NULL)
             m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
-      ApplyVisibility();
      }
 
    void                       MouseProtection(const int x,const int y)

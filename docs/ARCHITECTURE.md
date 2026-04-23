@@ -124,6 +124,8 @@ A UI não deve executar trade diretamente. Ela monta comandos e envia para `CFus
 
 Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo método `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoração.
 
+Atualizações periódicas da GUI devem alterar dados, textos e estilos, mas não devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criação do painel, navegação ou troca explícita de modo.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.

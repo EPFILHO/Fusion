@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.014 - 2026-04-23
+- Ajustado o refresh da GUI para nao reaplicar visibilidade estrutural em todo `OnTimer`.
+- Mantida a visibilidade das abas apenas na criacao do painel e em navegacao/mudanca de modo.
+- Reduzida a chance de cliques intermitentes causada por `Show/Hide` repetido em objetos do MT5.
+
 ## 1.013 - 2026-04-22
 - Transformadas as abas `STATUS` e `RESULTS` em componentes reais em `UI/Pages`.
 - Removido o include textual antigo `UIPanelStatusResults.mqh`.
