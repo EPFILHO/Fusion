@@ -224,14 +224,8 @@ private:
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
       UpdateOverviews();
-
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
-
-      for(int j = 0; j < 2; ++j)
-         if(m_filterPanels[j] != NULL)
-            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+      SyncStrategyPanels();
+      SyncFilterPanels();
      }
 
    void                       RestoreCommittedDraftToControls(void)
@@ -431,7 +425,8 @@ private:
       m_activeProfile.Text(FusionIsBlank(DraftProfileName()) ? "--" : DraftProfileName());
       m_activeProfile.Color(FusionIsBlank(DraftProfileName()) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       UpdateHeaderButtons();
-      UpdateProfileListView();
+      if(m_activeTab == FUSION_TAB_PROFILES)
+         UpdateProfileListView();
      }
 
    void                       UpdateTabStyles(void)
@@ -455,6 +450,49 @@ private:
       bool valid = BuildPendingSettings(candidate, profileName, status);
       RefreshTheme();
       return valid;
+     }
+
+   void                       SyncStrategyPanels(void)
+     {
+      for(int i = 0; i < 3; ++i)
+         if(m_strategyPanels[i] != NULL)
+            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
+     }
+
+   void                       SyncFilterPanels(void)
+     {
+      for(int j = 0; j < 2; ++j)
+         if(m_filterPanels[j] != NULL)
+            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+     }
+
+   void                       UpdateActiveTabContent(const bool runtimeStateChanged)
+     {
+      if(m_activeTab == FUSION_TAB_STATUS)
+         m_statusPage.Update(m_snapshot);
+      else if(m_activeTab == FUSION_TAB_RESULTS)
+         m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
+      else if(m_activeTab == FUSION_TAB_STRATEGIES)
+        {
+         if(runtimeStateChanged)
+            SyncStrategyPanels();
+        }
+      else if(m_activeTab == FUSION_TAB_FILTERS)
+        {
+         if(runtimeStateChanged)
+            SyncFilterPanels();
+        }
+      else if(m_activeTab == FUSION_TAB_PROFILES)
+        {
+         if(runtimeStateChanged)
+            UpdateProfileListView();
+        }
+      else if(m_activeTab == FUSION_TAB_CONFIG)
+        {
+         UpdateConfigReadOnly();
+         if(runtimeStateChanged)
+            RefreshConfigValidation();
+        }
      }
 
    void                       UpdateConfigReadOnly(void)
@@ -653,6 +691,7 @@ private:
             ReleaseButton(m_tabs[t]);
             m_activeTab = (ENUM_FUSION_TAB)t;
             ApplyVisibility();
+            UpdateActiveTabContent(true);
             return true;
            }
         }
@@ -875,9 +914,7 @@ private:
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
-            for(int i = 0; i < 3; ++i)
-               if(m_strategyPanels[i] != NULL)
-                  m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
+            SyncStrategyPanels();
             return true;
            }
         }
@@ -897,9 +934,7 @@ private:
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
-            for(int j = 0; j < 2; ++j)
-               if(m_filterPanels[j] != NULL)
-                  m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+            SyncFilterPanels();
             return true;
            }
         }
@@ -1107,19 +1142,10 @@ public:
       if(!m_created || m_minimized)
          return;
 
+      bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
       m_snapshot = snapshot;
       UpdateHeaderButtons();
-      m_statusPage.Update(m_snapshot);
-      m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
-      UpdateOverviews();
-      UpdateConfigReadOnly();
-      RefreshConfigValidation();
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
-      for(int j = 0; j < 2; ++j)
-         if(m_filterPanels[j] != NULL)
-            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+      UpdateActiveTabContent(runtimeStateChanged);
      }
 
    void                       MouseProtection(const int x,const int y)

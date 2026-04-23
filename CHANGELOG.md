@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.015 - 2026-04-23
+- Otimizado o update periodico da GUI para atualizar apenas a aba ativa.
+- Evitado refresh de perfis, validacoes de config e sync de estrategias/filtros quando essas abas nao estao visiveis.
+- Mantidos os botoes globais e o status operacional atualizados sem sobrecarregar o timer.
+
 ## 1.014 - 2026-04-23
 - Ajustado o refresh da GUI para nao reaplicar visibilidade estrutural em todo `OnTimer`.
 - Mantida a visibilidade das abas apenas na criacao do painel e em navegacao/mudanca de modo.

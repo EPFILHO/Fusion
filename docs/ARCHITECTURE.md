@@ -126,6 +126,8 @@ Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo métod
 
 Atualizações periódicas da GUI devem alterar dados, textos e estilos, mas não devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criação do painel, navegação ou troca explícita de modo.
 
+O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensáveis. Abas pesadas, listas de perfis, validações de configuração e sincronização de páginas de estratégias/filtros devem rodar sob demanda ou quando a aba correspondente estiver visível.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.
