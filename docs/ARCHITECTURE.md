@@ -130,6 +130,8 @@ Atualizações periódicas da GUI devem alterar dados, textos e estilos, mas nã
 
 O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensáveis. Abas pesadas, listas de perfis, validações de configuração e sincronização de páginas de estratégias/filtros devem rodar sob demanda ou quando a aba correspondente estiver visível.
 
+As abas principais devem preferir criacao lazy/on-demand. No estado atual, o painel nasce com `STATUS` e com a estrutura global minima; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` passam a ser materializadas na primeira abertura. Isso reduz custo de reinicializacao em troca de timeframe e deixa o crescimento da GUI mais previsivel.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.

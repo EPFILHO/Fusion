@@ -43,7 +43,8 @@
      {
       m_profileMode = mode;
       m_profileEditSourceName = sourceName;
-      m_profileNewEdit.Text(draft);
+      if(m_profilesTabCreated)
+         m_profileNewEdit.Text(draft);
      }
 
    string                     SuggestedDuplicateName(const string sourceName)
@@ -106,8 +107,11 @@
       uint now = GetTickCount();
       if(!persist && m_profileStatusOverrideUntil > now)
         {
-         m_profileStatus.Text(m_profileStatusOverride);
-         m_profileStatus.Color(m_profileStatusOverrideColor);
+         if(m_profilesTabCreated)
+           {
+            m_profileStatus.Text(m_profileStatusOverride);
+            m_profileStatus.Color(m_profileStatusOverrideColor);
+           }
          return;
         }
 
@@ -118,8 +122,11 @@
          m_profileStatusOverrideUntil = now + 5000;
         }
 
-      m_profileStatus.Text(text);
-      m_profileStatus.Color(clr);
+      if(m_profilesTabCreated)
+        {
+         m_profileStatus.Text(text);
+         m_profileStatus.Color(clr);
+        }
      }
 
    void                       EnsureProfileSelectionVisible(void)
@@ -147,6 +154,9 @@
 
    void                       UpdateProfileListView(void)
      {
+      if(!m_profilesTabCreated)
+         return;
+
       EnsureProfileSelectionVisible();
 
       string activeName = m_committedProfileName;
@@ -282,11 +292,15 @@
       if(m_profileSelected < 0 && m_profileCount > 0)
          m_profileSelected = 0;
 
-      UpdateProfileListView();
+      if(m_profilesTabCreated)
+         UpdateProfileListView();
      }
 
    void                       SetProfilesVisible(const bool visible)
      {
+      if(!m_profilesTabCreated)
+         return;
+
       bool editVisible = visible && ProfileEditMode();
       bool browseVisible = visible && !ProfileEditMode();
 

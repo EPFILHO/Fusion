@@ -95,3 +95,6 @@ Isso evita espalhar lógica de volume, step, digits, stops level e freeze level 
 Toda mudança relevante deve entrar no `CHANGELOG.md`.
 
 O histórico ajuda humanos e IAs a entender por que o projeto está como está, especialmente quando decisões anteriores são revertidas ou refinadas.
+## 13. GUI Pesada Deve Nascer Sob Demanda
+
+Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy/on-demand em vez de manter todos os controles vivos desde o boot.

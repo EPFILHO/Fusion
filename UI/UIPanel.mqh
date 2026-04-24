@@ -47,6 +47,12 @@ private:
    CButton                    m_configTabs[FUSION_CFG_COUNT];
    CStatusPage                m_statusPage;
    CResultsPage               m_resultsPage;
+   bool                       m_statusPageCreated;
+   bool                       m_resultsPageCreated;
+   bool                       m_strategyTabCreated;
+   bool                       m_filterTabCreated;
+   bool                       m_profilesTabCreated;
+   bool                       m_configTabCreated;
 
 #include "UIPanelSignalTabs.mqh"
 #include "UIPanelProfiles.mqh"
@@ -152,6 +158,91 @@ private:
          control.Hide();
      }
 
+   bool                       EnsureStatusPageCreated(void)
+     {
+      if(m_statusPageCreated)
+         return true;
+      if(!m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow))
+         return false;
+      m_statusPageCreated = true;
+      return true;
+     }
+
+   bool                       EnsureResultsPageCreated(void)
+     {
+      if(m_resultsPageCreated)
+         return true;
+      if(!m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow))
+         return false;
+      m_resultsPageCreated = true;
+      return true;
+     }
+
+   bool                       EnsureStrategyTabCreated(void)
+     {
+      if(m_strategyTabCreated)
+         return true;
+      if(!BuildStrategyTab())
+         return false;
+      m_strategyTabCreated = true;
+      UpdateOverviews();
+      SyncStrategyPanels();
+      return true;
+     }
+
+   bool                       EnsureFilterTabCreated(void)
+     {
+      if(m_filterTabCreated)
+         return true;
+      if(!BuildFilterTab())
+         return false;
+      m_filterTabCreated = true;
+      UpdateOverviews();
+      SyncFilterPanels();
+      return true;
+     }
+
+   bool                       EnsureProfilesTabCreated(void)
+     {
+      if(m_profilesTabCreated)
+         return true;
+      if(!BuildProfilesTab())
+         return false;
+      m_profilesTabCreated = true;
+      RefreshProfileList(false);
+      return true;
+     }
+
+   bool                       EnsureConfigTabCreated(void)
+     {
+      if(m_configTabCreated)
+         return true;
+      if(!BuildConfigTab())
+         return false;
+      m_configTabCreated = true;
+      SyncDraftSettingsToControls();
+      UpdateConfigReadOnly();
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       EnsureActiveTabCreated(void)
+     {
+      if(m_activeTab == FUSION_TAB_STATUS)
+         return EnsureStatusPageCreated();
+      if(m_activeTab == FUSION_TAB_RESULTS)
+         return EnsureResultsPageCreated();
+      if(m_activeTab == FUSION_TAB_STRATEGIES)
+         return EnsureStrategyTabCreated();
+      if(m_activeTab == FUSION_TAB_FILTERS)
+         return EnsureFilterTabCreated();
+      if(m_activeTab == FUSION_TAB_PROFILES)
+         return EnsureProfilesTabCreated();
+      if(m_activeTab == FUSION_TAB_CONFIG)
+         return EnsureConfigTabCreated();
+      return true;
+     }
+
    bool                       CanEditSettings(void)
      {
       return (!m_snapshot.started && !m_snapshot.hasPosition);
@@ -185,6 +276,11 @@ private:
    bool                       ParsedDraftMagicNumber(int &magicNumber)
      {
       magicNumber = 0;
+      if(!m_configTabCreated)
+        {
+         magicNumber = m_committedSettings.magicNumber;
+         return (magicNumber > 0);
+        }
       string magicText = FusionTrimCopy(LiveEditText(m_cfgSystemMagicEdit));
       if(!FusionIsIntegerText(magicText, false))
          return false;
@@ -219,13 +315,19 @@ private:
 
    void                       SyncDraftSettingsToControls(void)
      {
-      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
-      m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      UpdateOverviews();
-      SyncStrategyPanels();
-      SyncFilterPanels();
+      if(m_configTabCreated)
+        {
+         m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+         m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+         m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
+         m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+        }
+      if(m_strategyTabCreated || m_filterTabCreated)
+         UpdateOverviews();
+      if(m_strategyTabCreated)
+         SyncStrategyPanels();
+      if(m_filterTabCreated)
+         SyncFilterPanels();
      }
 
    void                       RestoreCommittedDraftToControls(void)
@@ -239,32 +341,35 @@ private:
       if(!m_hasCommittedSettings)
          return false;
 
-      string lotText = FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit));
-      if(FusionIsDecimalText(lotText, false))
+      if(m_configTabCreated)
         {
-         if(MathAbs(StringToDouble(lotText) - m_committedSettings.fixedLot) > 0.0000001)
+         string lotText = FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit));
+         if(FusionIsDecimalText(lotText, false))
+           {
+            if(MathAbs(StringToDouble(lotText) - m_committedSettings.fixedLot) > 0.0000001)
+               return true;
+           }
+         else if(lotText != CommittedLotText())
             return true;
-        }
-      else if(lotText != CommittedLotText())
-         return true;
 
-      string spreadText = FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit));
-      if(FusionIsIntegerText(spreadText, true))
-        {
-         if((int)StringToInteger(spreadText) != m_committedSettings.maxSpreadPoints)
+         string spreadText = FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit));
+         if(FusionIsIntegerText(spreadText, true))
+           {
+            if((int)StringToInteger(spreadText) != m_committedSettings.maxSpreadPoints)
+               return true;
+           }
+         else if(spreadText != IntegerToString(m_committedSettings.maxSpreadPoints))
             return true;
-        }
-      else if(spreadText != IntegerToString(m_committedSettings.maxSpreadPoints))
-         return true;
 
-      string magicText = FusionTrimCopy(LiveEditText(m_cfgSystemMagicEdit));
-      if(FusionIsIntegerText(magicText, false))
-        {
-         if((int)StringToInteger(magicText) != m_committedSettings.magicNumber)
+         string magicText = FusionTrimCopy(LiveEditText(m_cfgSystemMagicEdit));
+         if(FusionIsIntegerText(magicText, false))
+           {
+            if((int)StringToInteger(magicText) != m_committedSettings.magicNumber)
+               return true;
+           }
+         else if(magicText != IntegerToString(m_committedSettings.magicNumber))
             return true;
         }
-      else if(magicText != IntegerToString(m_committedSettings.magicNumber))
-         return true;
 
       if(m_draftSettings.conflictMode != m_committedSettings.conflictMode)
          return true;
@@ -289,6 +394,20 @@ private:
       string profileForMagicCheck = (targetProfileName == "") ? outProfileName : targetProfileName;
 
       bool profileValid = !FusionIsBlank(outProfileName);
+
+      if(!m_configTabCreated)
+        {
+         outSettings.fixedLot = m_committedSettings.fixedLot;
+         outSettings.maxSpreadPoints = m_committedSettings.maxSpreadPoints;
+         outSettings.magicNumber = m_committedSettings.magicNumber;
+         m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0);
+         outStatus = m_configInputsValid ? "Configuracao pronta." : "Perfil invalido.";
+         m_lblProfile.Color(FUSION_CLR_MUTED);
+         m_activeProfile.Text(profileValid ? outProfileName : "--");
+         m_activeProfile.Color(profileValid ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
+         return m_configInputsValid;
+        }
+
       bool lotValid = false;
       bool spreadValid = false;
       bool magicValid = false;
@@ -390,7 +509,8 @@ private:
             FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
          else
             FusionApplyNeutralButtonStyle(m_btnStart);
-         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true, CanPause());
+         if(m_configTabCreated)
+            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true, CanPause());
          return;
         }
 
@@ -400,7 +520,8 @@ private:
       else
          FusionApplyBlockedButtonStyle(m_btnStart);
 
-      FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, CanStart());
+      if(m_configTabCreated)
+         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, CanStart());
      }
 
    void                       RefreshTheme(void)
@@ -417,10 +538,13 @@ private:
       else
          FusionApplyNeutralButtonStyle(m_btnLoad);
 
-      if(CanEditSettings())
-         FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
-      else
-         FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
+      if(m_configTabCreated)
+        {
+         if(CanEditSettings())
+            FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
+         else
+            FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
+        }
 
       m_activeProfile.Text(FusionIsBlank(DraftProfileName()) ? "--" : DraftProfileName());
       m_activeProfile.Color(FusionIsBlank(DraftProfileName()) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
@@ -433,13 +557,18 @@ private:
      {
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
          FusionApplyPrimaryButtonStyle(m_tabs[i], i == (int)m_activeTab);
-      for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
-         FusionApplyPrimaryButtonStyle(m_strategyTabs[i], i == (int)m_strategyPage);
-      for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
-         FusionApplyPrimaryButtonStyle(m_filterTabs[i], i == (int)m_filterPage);
-      for(int i = 0; i < FUSION_CFG_COUNT; ++i)
-         FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
-      m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      if(m_strategyTabCreated)
+         for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
+            FusionApplyPrimaryButtonStyle(m_strategyTabs[i], i == (int)m_strategyPage);
+      if(m_filterTabCreated)
+         for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
+            FusionApplyPrimaryButtonStyle(m_filterTabs[i], i == (int)m_filterPage);
+      if(m_configTabCreated)
+        {
+         for(int i = 0; i < FUSION_CFG_COUNT; ++i)
+            FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
+         m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+        }
      }
 
    bool                       RefreshConfigValidation(void)
@@ -469,28 +598,39 @@ private:
    void                       UpdateActiveTabContent(const bool runtimeStateChanged)
      {
       if(m_activeTab == FUSION_TAB_STATUS)
-         m_statusPage.Update(m_snapshot);
+        {
+         if(m_statusPageCreated)
+            m_statusPage.Update(m_snapshot);
+        }
       else if(m_activeTab == FUSION_TAB_RESULTS)
-         m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
+        {
+         if(m_resultsPageCreated)
+            m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
+        }
       else if(m_activeTab == FUSION_TAB_STRATEGIES)
         {
-         if(runtimeStateChanged)
+         if(m_strategyTabCreated)
+            UpdateOverviews();
+         if(runtimeStateChanged && m_strategyTabCreated)
             SyncStrategyPanels();
         }
       else if(m_activeTab == FUSION_TAB_FILTERS)
         {
-         if(runtimeStateChanged)
+         if(m_filterTabCreated)
+            UpdateOverviews();
+         if(runtimeStateChanged && m_filterTabCreated)
             SyncFilterPanels();
         }
       else if(m_activeTab == FUSION_TAB_PROFILES)
         {
-         if(runtimeStateChanged)
+         if(runtimeStateChanged && m_profilesTabCreated)
             UpdateProfileListView();
         }
       else if(m_activeTab == FUSION_TAB_CONFIG)
         {
-         UpdateConfigReadOnly();
-         if(runtimeStateChanged)
+         if(m_configTabCreated)
+            UpdateConfigReadOnly();
+         if(runtimeStateChanged && m_configTabCreated)
             RefreshConfigValidation();
         }
      }
@@ -502,6 +642,9 @@ private:
 
    void                       SetConfigVisible(const bool visible)
      {
+      if(!m_configTabCreated)
+         return;
+
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
          SetVisible(m_configTabs[i], visible);
 
@@ -531,11 +674,19 @@ private:
 
    void                       ApplyVisibility(void)
      {
-      m_statusPage.SetVisible(m_activeTab == FUSION_TAB_STATUS);
-      m_resultsPage.SetVisible(m_activeTab == FUSION_TAB_RESULTS);
-      SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
-      SetFiltersVisible(m_activeTab == FUSION_TAB_FILTERS);
-      SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
+      if(!EnsureActiveTabCreated())
+         return;
+
+      if(m_statusPageCreated)
+         m_statusPage.SetVisible(m_activeTab == FUSION_TAB_STATUS);
+      if(m_resultsPageCreated)
+         m_resultsPage.SetVisible(m_activeTab == FUSION_TAB_RESULTS);
+      if(m_strategyTabCreated)
+         SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
+      if(m_filterTabCreated)
+         SetFiltersVisible(m_activeTab == FUSION_TAB_FILTERS);
+      if(m_profilesTabCreated)
+         SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
       RefreshTheme();
       UpdateTabStyles();
@@ -963,6 +1114,12 @@ public:
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
       m_configPage      = FUSION_CFG_RISK;
+      m_statusPageCreated = false;
+      m_resultsPageCreated = false;
+      m_strategyTabCreated = false;
+      m_filterTabCreated = false;
+      m_profilesTabCreated = false;
+      m_configTabCreated = false;
       m_profileMode     = FUSION_PROFILE_BROWSE;
       m_committedProfileName = "";
       ArrayResize(m_profileNames, 0);
@@ -1037,14 +1194,9 @@ public:
 
       if(!BuildHeader())      { Destroy(REASON_REMOVE); return false; }
       if(!BuildTabs())        { Destroy(REASON_REMOVE); return false; }
-      if(!m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow))   { Destroy(REASON_REMOVE); return false; }
-      if(!m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow))  { Destroy(REASON_REMOVE); return false; }
-      if(!BuildStrategyTab()) { Destroy(REASON_REMOVE); return false; }
-      if(!BuildFilterTab())   { Destroy(REASON_REMOVE); return false; }
-      if(!BuildProfilesTab()) { Destroy(REASON_REMOVE); return false; }
-      if(!BuildConfigTab())   { Destroy(REASON_REMOVE); return false; }
+      if(!EnsureStatusPageCreated()) { Destroy(REASON_REMOVE); return false; }
       LoadSettings(snapshot);
-      RefreshConfigValidation();
+      RefreshTheme();
       Update(snapshot);
       ApplyVisibility();
       return true;
@@ -1104,7 +1256,12 @@ public:
       m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
-      RefreshProfileList(false);
+      if(m_profilesTabCreated)
+         RefreshProfileList(false);
+      if(m_configTabCreated)
+         RefreshConfigValidation();
+      else
+         RefreshTheme();
      }
 
    void                       LoadSettings(const SEASettings &settings,const string profileName,const SSymbolSpec &spec)
@@ -1133,8 +1290,12 @@ public:
       m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
       SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
-      RefreshProfileList(false);
-      RefreshConfigValidation();
+      if(m_profilesTabCreated)
+         RefreshProfileList(false);
+      if(m_configTabCreated)
+         RefreshConfigValidation();
+      else
+         RefreshTheme();
      }
 
    void                       Update(const SUIPanelSnapshot &snapshot)

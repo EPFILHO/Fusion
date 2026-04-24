@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.017 - 2026-04-23
+- Iniciada a migracao da GUI para lazy/on-demand nas abas principais.
+- `STATUS` passa a ser a unica pagina criada no boot; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` sao criadas na primeira abertura.
+- Corrigidos acessos prematuros a controles de `PERFIS` e `CONFIG` antes da criacao das abas.
+- Cada aba lazy agora se hidrata ao nascer com os dados correntes do snapshot e do perfil carregado.
+
 ## 1.016 - 2026-04-23
 - Corrigida a inicializacao do `SignalManager` para aplicar configuracoes antes de criar indicadores.
 - Estrategias e filtros desabilitados deixam de criar handles na inicializacao e passam a liberar handles ao serem desligados.
