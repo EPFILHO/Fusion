@@ -134,6 +134,15 @@ As abas principais devem preferir criacao lazy/on-demand. No estado atual, o pai
 
 Ao criar controles apos o `Run()` da `CAppDialog`, o painel deve reatribuir IDs dos controles antes de aceitar novos cliques. Sem isso, a biblioteca padrao pode rotear eventos para handlers errados.
 
+Depois da criacao lazy por aba, o proximo nivel correto e a criacao lazy por subpagina ou secao:
+
+- `STRATS`: shell da aba primeiro; overview e cada painel de estrategia nascem quando abertos.
+- `FILTERS`: shell da aba primeiro; overview e cada painel de filtro nascem quando abertos.
+- `CONFIG`: shell e status geral primeiro; `RISK`, `PROTECT` e `SYSTEM` nascem separadamente.
+- `PERFIS`: shell e navegacao browse primeiro; editor de novo/duplicar nasce somente em modo de edicao.
+
+Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para crescimento modular. Para adicionar uma nova estrategia ou filtro, o objetivo e encaixar uma nova unidade de painel sem reabrir a arquitetura inteira da aba.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.

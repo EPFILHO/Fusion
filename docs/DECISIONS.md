@@ -98,3 +98,5 @@ O histórico ajuda humanos e IAs a entender por que o projeto está como está, 
 ## 13. GUI Pesada Deve Nascer Sob Demanda
 
 Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy/on-demand em vez de manter todos os controles vivos desde o boot.
+
+O shell da aba pode nascer antes, mas o conteudo interno deve preferir subpaginas independentes. Isso reduz carga de eventos, evita uma GUI monolitica e facilita encaixar novos blocos sem refatorar tudo.

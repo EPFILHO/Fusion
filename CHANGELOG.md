@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.019 - 2026-04-24
+- Adicionado lazy interno em `STRATS`, `FILTERS`, `PERFIS` e `CONFIG`.
+- `STRATS` e `FILTERS` passam a criar overview e painéis individuais somente quando cada subpágina é aberta.
+- `CONFIG` passa a criar `RISK`, `PROTECT` e `SYSTEM` separadamente, mantendo apenas o shell e o status geral no boot da aba.
+- `PERFIS` passa a separar o modo browse do modo de edição, criando o editor apenas ao entrar em `NOVO` ou `DUPLICAR`.
+- Ajustado o fluxo de validação para usar `m_draftSettings` como fallback seguro quando uma subpágina ainda não foi materializada.
+
 ## 1.018 - 2026-04-23
 - Corrigido o bug em que cliques em controles criados sob demanda podiam disparar `ExpertRemove()`.
 - Cada aba lazy agora reatribui IDs da `CAppDialog` logo apos criar novos controles.
