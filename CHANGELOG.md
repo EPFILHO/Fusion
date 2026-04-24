@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.018 - 2026-04-23
+- Corrigido o bug em que cliques em controles criados sob demanda podiam disparar `ExpertRemove()`.
+- Cada aba lazy agora reatribui IDs da `CAppDialog` logo apos criar novos controles.
+- Adicionada protecao extra para ignorar qualquer roteamento acidental ao handler interno de fechamento da biblioteca padrao.
+
 ## 1.017 - 2026-04-23
 - Iniciada a migracao da GUI para lazy/on-demand nas abas principais.
 - `STATUS` passa a ser a unica pagina criada no boot; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` sao criadas na primeira abertura.

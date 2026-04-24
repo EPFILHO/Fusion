@@ -456,7 +456,7 @@ public:
             return false;
            }
 
-         if(!m_panel.Run())
+         if(!m_panel.StartDialog())
            {
             m_logger.Error("UI", "Failed to run Fusion panel");
             m_panel.Destroy(REASON_REMOVE);

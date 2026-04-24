@@ -19,6 +19,7 @@ private:
    long                       m_chartId;
    int                        m_subWindow;
    bool                       m_created;
+   bool                       m_dialogRunning;
    bool                       m_mouseOverPanel;
    bool                       m_origDragTrade;
    bool                       m_origMouseScroll;
@@ -88,6 +89,13 @@ private:
      {
       ResetCommand(m_pendingCommand);
       m_hasPendingCommand = false;
+     }
+
+   bool                       RebindControlIdsIfRunning(void)
+     {
+      if(!m_dialogRunning)
+         return true;
+      return CAppDialog::Run();
      }
 
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
@@ -165,7 +173,7 @@ private:
       if(!m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow))
          return false;
       m_statusPageCreated = true;
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureResultsPageCreated(void)
@@ -175,7 +183,7 @@ private:
       if(!m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow))
          return false;
       m_resultsPageCreated = true;
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureStrategyTabCreated(void)
@@ -187,7 +195,7 @@ private:
       m_strategyTabCreated = true;
       UpdateOverviews();
       SyncStrategyPanels();
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureFilterTabCreated(void)
@@ -199,7 +207,7 @@ private:
       m_filterTabCreated = true;
       UpdateOverviews();
       SyncFilterPanels();
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureProfilesTabCreated(void)
@@ -210,7 +218,7 @@ private:
          return false;
       m_profilesTabCreated = true;
       RefreshProfileList(false);
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureConfigTabCreated(void)
@@ -223,7 +231,7 @@ private:
       SyncDraftSettingsToControls();
       UpdateConfigReadOnly();
       RefreshConfigValidation();
-      return true;
+      return RebindControlIdsIfRunning();
      }
 
    bool                       EnsureActiveTabCreated(void)
@@ -1099,12 +1107,19 @@ protected:
       return true;
      }
 
+   virtual void                OnClickButtonClose(void)
+     {
+      // O Fusion nao expoe botao de fechar. Se algum clique mal roteado
+      // cair aqui, ignoramos em vez de remover o EA do grafico.
+     }
+
 public:
                               CFusionPanel(void)
      {
       m_chartId         = 0;
       m_subWindow       = 0;
       m_created         = false;
+      m_dialogRunning   = false;
       m_mouseOverPanel  = false;
       m_origDragTrade   = true;
       m_origMouseScroll = true;
@@ -1202,6 +1217,14 @@ public:
       return true;
      }
 
+   bool                       StartDialog(void)
+     {
+      if(!CAppDialog::Run())
+         return false;
+      m_dialogRunning = true;
+      return true;
+     }
+
    virtual void                Destroy(const int reason=REASON_REMOVE)
      {
       if(!m_created)
@@ -1230,6 +1253,7 @@ public:
 
       CAppDialog::Destroy(reason);
       m_created = false;
+      m_dialogRunning = false;
      }
 
    void                       LoadSettings(const SUIPanelSnapshot &snapshot)
