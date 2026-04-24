@@ -60,8 +60,9 @@ public:
       m_values[1].Text(IntegerToString(settings.maxSpreadPoints));
       m_values[2].Text(IntegerToString(settings.magicNumber));
       m_values[3].Text(committedProfileName == "" ? snapshot.activeProfileName : committedProfileName);
-      m_values[4].Text(snapshot.started ? "HOT RELOAD READY" : "EDIT MODE");
-      m_values[5].Text(snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
+      m_values[4].Text(snapshot.runtimeBlocked ? "SYMBOL LOCK" : (snapshot.started ? "HOT RELOAD READY" : "EDIT MODE"));
+      m_values[5].Text(snapshot.runtimeBlocked ? snapshot.runtimeBlockReason : (snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO"));
+      m_values[5].Color(snapshot.runtimeBlocked ? FUSION_CLR_BAD : FUSION_CLR_VALUE);
      }
 
    void              SetVisible(const bool visible)

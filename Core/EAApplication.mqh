@@ -40,14 +40,21 @@ private:
    CInstanceRegistry       m_instanceRegistry;
    CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
+   SChartStateContext      m_chartContext;
    string                  m_activeProfileName;
    bool                    m_started;
    bool                    m_modulesRegistered;
    datetime                m_lastNettingWarning;
+   bool                    m_runtimeBlocked;
+   string                  m_runtimeBlockReason;
 
-   string                  ChartStateKey(void) const
+   SChartStateContext      CurrentChartContext(void) const
      {
-      return _Symbol + "_" + IntegerToString((int)Period()) + "_" + IntegerToString(m_settings.magicNumber);
+      SChartStateContext context;
+      context.chartId   = (ulong)ChartID();
+      context.symbol    = _Symbol;
+      context.timeframe = EnumToString((ENUM_TIMEFRAMES)Period());
+      return context;
      }
 
    bool                    RegisterRunningInstance(void)
@@ -152,6 +159,8 @@ private:
       snapshot.useBollinger     = m_settings.useBollinger;
       snapshot.useTrendFilter   = m_settings.useTrendFilter;
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
+      snapshot.runtimeBlocked   = m_runtimeBlocked;
+      snapshot.runtimeBlockReason = m_runtimeBlockReason;
       return snapshot;
      }
 
@@ -160,7 +169,24 @@ private:
       if(!m_settings.autoSaveChartState || m_settings.isTester)
          return;
 
-      m_settingsStore.SaveChartState(ChartStateKey(), m_activeProfileName, m_started, m_settings, m_positionState);
+      SChartStateContext context = CurrentChartContext();
+      if(m_chartContext.chartId != 0)
+        {
+         context.chartId = m_chartContext.chartId;
+         if(m_runtimeBlocked && m_chartContext.symbol != "")
+            context.symbol = m_chartContext.symbol;
+         if(m_runtimeBlocked && m_chartContext.timeframe != "")
+            context.timeframe = m_chartContext.timeframe;
+        }
+
+      m_settingsStore.SaveChartState(context, m_activeProfileName, m_started, m_settings, m_positionState);
+     }
+
+   void                    ApplyRuntimeBlock(const string reason)
+     {
+      m_runtimeBlocked = true;
+      m_runtimeBlockReason = reason;
+      m_started = false;
      }
 
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
@@ -307,6 +333,9 @@ private:
 
       if(command.type == UI_COMMAND_TOGGLE_RUNNING)
         {
+         if(m_runtimeBlocked)
+            return;
+
          if(m_started)
            {
             if(m_positionState.hasPosition)
@@ -381,15 +410,20 @@ private:
         }
      }
 
-public:
+   public:
                      CFusionApplication(void)
      {
       SetDefaultSettings(m_settings);
       ResetPositionRuntimeState(m_positionState);
+      m_chartContext.chartId = 0;
+      m_chartContext.symbol = "";
+      m_chartContext.timeframe = "";
       m_activeProfileName   = "default";
       m_started             = false;
       m_modulesRegistered   = false;
       m_lastNettingWarning  = 0;
+      m_runtimeBlocked      = false;
+      m_runtimeBlockReason  = "";
      }
 
    bool              Initialize(void)
@@ -397,24 +431,41 @@ public:
       uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
+      m_chartContext = CurrentChartContext();
       m_activeProfileName = m_settings.defaultProfileName;
       m_started = m_settings.isTester;
+      m_runtimeBlocked = false;
+      m_runtimeBlockReason = "";
 
       SEASettings restoredSettings = m_settings;
+      SChartStateContext restoredContext = m_chartContext;
       string restoredProfile = "";
       bool restoredStarted = false;
       SPositionRuntimeState restoredState;
       ResetPositionRuntimeState(restoredState);
 
       if(m_settings.autoRestoreChartState &&
-         m_settingsStore.LoadChartState(ChartStateKey(), restoredProfile, restoredStarted, restoredSettings, restoredState))
+         m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState))
         {
          restoredSettings.isTester = m_settings.isTester;
          m_settings = restoredSettings;
+         if(restoredContext.symbol != "")
+            m_chartContext.symbol = restoredContext.symbol;
+         if(restoredContext.timeframe != "")
+            m_chartContext.timeframe = restoredContext.timeframe;
          m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
-         // Regra de seguranca: em grafico real/demo o start exige clique manual.
-         m_started = m_settings.isTester;
          m_positionState = restoredState;
+
+         if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
+           {
+            ApplyRuntimeBlock("Ativo alterado. Volte para " + restoredContext.symbol +
+                              " para recuperar o contexto do perfil " + m_activeProfileName + ".");
+           }
+         else
+           {
+            // Regra de seguranca: em grafico real/demo o start exige clique manual.
+            m_started = m_settings.isTester;
+           }
         }
       uint restoreDoneTick = GetTickCount();
 
@@ -431,9 +482,13 @@ public:
          return false;
       uint signalDoneTick = GetTickCount();
 
-      m_executionService.SyncPosition(m_positionState);
+      if(!m_runtimeBlocked)
+         m_executionService.SyncPosition(m_positionState);
 
-      if((m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
+      if(m_runtimeBlocked)
+         m_logger.Warn("CONTEXT", m_runtimeBlockReason);
+
+      if(!m_runtimeBlocked && (m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
          m_started = false;
 
       if(m_settings.panelEnabled && !m_settings.isTester)
@@ -486,6 +541,9 @@ public:
 
    void              OnTick(void)
      {
+      if(m_runtimeBlocked)
+         return;
+
       SyncPositionState();
 
       if(m_positionState.hasPosition)
@@ -561,6 +619,8 @@ public:
 
    void              OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result)
      {
+      if(m_runtimeBlocked)
+         return;
       m_executionService.MarkNeedsSync();
      }
   };

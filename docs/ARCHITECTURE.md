@@ -143,6 +143,19 @@ Depois da criacao lazy por aba, o proximo nivel correto e a criacao lazy por sub
 
 Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para crescimento modular. Para adicionar uma nova estrategia ou filtro, o objetivo e encaixar uma nova unidade de painel sem reabrir a arquitetura inteira da aba.
 
+## Prioridade Atual de Arquitetura
+
+O proximo salto estrutural do Fusion nao e mais a GUI. O proximo salto e consolidar o motor multi-timeframe por modulo.
+
+Antes de novos refactors em arquivos grandes, a arquitetura deve migrar para este modelo:
+
+- cada estrategia recebe seu proprio timeframe operacional;
+- cada filtro recebe seu proprio timeframe operacional;
+- `SignalManager` deixa de agir como distribuidor de um timeframe global;
+- `PERIOD_CURRENT` e `Period()` saem da logica operacional e ficam, no maximo, restritos ao contexto visual do grafico.
+
+Refactors adicionais em `EAApplication.mqh` e `UIPanel.mqh` continuam desejaveis, mas ficam depois dessa virada. A regra e simples: primeiro fechamos o motor, depois emagrecemos o casco.
+
 ## Hot Reload
 
 O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.
@@ -158,3 +171,10 @@ No futuro, hot reload pode ser reabilitado por categorias de alteração, desde 
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
 - Transformar trailing, breakeven, drawdown, streak e limites diários em submódulos mais independentes se a complexidade aumentar.
 - Ampliar validações de volume, stops, freeze level e distância mínima.
+## Nota de PersistÃªncia por GrÃ¡fico
+
+Na arquitetura atual, o estado automÃ¡tico do Fusion por grÃ¡fico deve ser restaurado pelo `chart_id`, e nÃ£o por `symbol + timeframe + magic`.
+
+O arquivo salvo por grÃ¡fico tambÃ©m registra metadados do chart, principalmente sÃ­mbolo e timeframe visuais. Isso permite manter o vÃ­nculo do Ãºltimo perfil do grÃ¡fico quando o usuÃ¡rio muda apenas o timeframe.
+
+Se o mesmo `chart_id` reaparecer com sÃ­mbolo diferente do sÃ­mbolo salvo, o Fusion entra em bloqueio seguro. Nesse modo ele nÃ£o sincroniza posiÃ§Ã£o nem abre novas entradas atÃ© o usuÃ¡rio voltar ao ativo anterior.

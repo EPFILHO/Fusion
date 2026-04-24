@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.020 - 2026-04-24
+- A persistencia automatica por grafico passou a ser chaveada por `chart_id`, e nao mais por `symbol + timeframe + magic`.
+- O estado salvo por grafico agora grava tambem metadados do contexto visual, incluindo simbolo e timeframe do chart.
+- A restauracao voltou a localizar corretamente o ultimo perfil daquele grafico mesmo apos troca de timeframe.
+- Se o usuario trocar o ativo do grafico, o Fusion entra em bloqueio seguro: nao sincroniza posicao, nao abre novas entradas e exige voltar ao ativo anterior para recuperar o contexto.
+- A GUI passou a refletir esse bloqueio em `STATUS`, `RESULTS`, `CONFIG` e no botao `INICIAR`.
+- Documentada a prioridade arquitetural do proximo ciclo: consolidar o modelo multi-timeframe por modulo antes de novos refactors amplos em `EAApplication.mqh` e `UIPanel.mqh`.
+
 ## 1.019 - 2026-04-24
 - Adicionado lazy interno em `STRATS`, `FILTERS`, `PERFIS` e `CONFIG`.
 - `STRATS` e `FILTERS` passam a criar overview e painéis individuais somente quando cada subpágina é aberta.

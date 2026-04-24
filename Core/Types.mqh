@@ -221,6 +221,13 @@ struct SClosedTradeSummary
    int    exitDeals;
   };
 
+struct SChartStateContext
+  {
+   ulong  chartId;
+   string symbol;
+   string timeframe;
+  };
+
 struct SUIPanelSnapshot
   {
    bool   started;
@@ -241,6 +248,8 @@ struct SUIPanelSnapshot
    bool   useBollinger;
    bool   useTrendFilter;
    bool   useRSIFilter;
+   bool   runtimeBlocked;
+   string runtimeBlockReason;
   };
 
 struct SUICommand

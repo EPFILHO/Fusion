@@ -218,6 +218,13 @@ private:
       else if(key == "state.dayPeakProjectedProfit") state.dayPeakProjectedProfit = StringToDouble(value);
      }
 
+   void              ApplyContextField(const string key,const string value,SChartStateContext &context) const
+     {
+      if(key == "context.chartId") context.chartId = (ulong)StringToInteger(value);
+      else if(key == "context.symbol") context.symbol = value;
+      else if(key == "context.timeframe") context.timeframe = value;
+     }
+
 public:
    string            SanitizeProfileName(const string profileName) const
      {
@@ -359,15 +366,19 @@ public:
       return true;
      }
 
-   bool              SaveChartState(const string chartKey,const string activeProfileName,const bool started,const SEASettings &settings,const SPositionRuntimeState &state)
+   bool              SaveChartState(const SChartStateContext &context,const string activeProfileName,const bool started,const SEASettings &settings,const SPositionRuntimeState &state)
      {
       EnsureFolders();
 
+      string chartKey = "chart_" + StringFormat("%I64u", context.chartId);
       string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
 
+      WriteLine(handle, "context.chartId", StringFormat("%I64u", context.chartId));
+      WriteLine(handle, "context.symbol", context.symbol);
+      WriteLine(handle, "context.timeframe", context.timeframe);
       SaveSettingsBlock(handle, settings);
       WriteLine(handle, "activeProfileName", activeProfileName);
       WriteLine(handle, "started", IntegerToString((int)started));
@@ -390,14 +401,18 @@ public:
       return true;
      }
 
-   bool              LoadChartState(const string chartKey,string &activeProfileName,bool &started,SEASettings &settings,SPositionRuntimeState &state)
+   bool              LoadChartState(const ulong chartId,SChartStateContext &context,string &activeProfileName,bool &started,SEASettings &settings,SPositionRuntimeState &state)
      {
       EnsureFolders();
       SetDefaultSettings(settings);
       ResetPositionRuntimeState(state);
+      context.chartId = chartId;
+      context.symbol = "";
+      context.timeframe = "";
       activeProfileName = "";
       started = false;
 
+      string chartKey = "chart_" + StringFormat("%I64u", chartId);
       string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
@@ -413,6 +428,7 @@ public:
 
          ApplySetting(key, value, settings);
          ApplyRuntimeField(key, value, activeProfileName, started, state);
+         ApplyContextField(key, value, context);
         }
 
       FileClose(handle);

@@ -46,6 +46,35 @@ Filtros apenas aprovam ou bloqueiam sinais antes da entrada.
 
 Eles não devem disputar propriedade de posição, não devem emitir ordem e não devem substituir a estratégia.
 
+## 6.1. Ordem de Ataque Importa
+
+O Fusion deve priorizar primeiro as mudancas que definem o comportamento operacional do EA. Refactors de limpeza estrutural importantes, mas nao diretamente operacionais, ficam em segundo plano quando competem com uma mudanca de motor.
+
+Hoje a ordem correta e:
+
+- consolidar a restauracao segura por grafico;
+- consolidar o modelo multi-timeframe por modulo;
+- depois reduzir ainda mais `EAApplication.mqh` e `UIPanel.mqh`.
+
+Isso evita refatorar a casca antes de fechar a regra de negocio principal.
+
+## 6.2. Multi-Timeframe Deve Ser Operacional, Nao Visual
+
+O Fusion deve operar com timeframe explicito por modulo e nao depender de `Period()` ou `PERIOD_CURRENT` na logica operacional.
+
+Isso significa:
+
+- cada estrategia e filtro tera timeframe proprio salvo no perfil;
+- mudar o timeframe do grafico nao deve redefinir o timeframe operacional do EA;
+- o grafico continua sendo o host visual, mas nao a fonte da verdade para calculo de sinais.
+
+No `MA Cross`, o modelo-alvo deve prever dois timeframes independentes:
+
+- `fastTF`
+- `slowTF`
+
+Esse passo tem prioridade acima de novos refactors cosmeticos em arquivos grandes.
+
 ## 7. Hot Reload Seguro Antes de Hot Reload Conveniente
 
 O Fusion foi desenhado com pontos de reload, mas a GUI não permite edição enquanto o EA está rodando ou gerenciando posição.
@@ -100,3 +129,28 @@ O histórico ajuda humanos e IAs a entender por que o projeto está como está, 
 Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy/on-demand em vez de manter todos os controles vivos desde o boot.
 
 O shell da aba pode nascer antes, mas o conteudo interno deve preferir subpaginas independentes. Isso reduz carga de eventos, evita uma GUI monolitica e facilita encaixar novos blocos sem refatorar tudo.
+
+## 14. Estado do GrÃ¡fico Deve Ser Restaurado pelo `chart_id`
+
+A restauraÃ§Ã£o automÃ¡tica do Fusion por grÃ¡fico deve ser vinculada ao `chart_id`.
+
+Motivos:
+
+- `magic number` identifica o perfil, nÃ£o o grÃ¡fico;
+- `symbol + timeframe + magic` falha quando o usuÃ¡rio muda o timeframe;
+- o objetivo da restauraÃ§Ã£o Ã© devolver o contexto daquele grÃ¡fico, nÃ£o adivinhar um setup por combinaÃ§Ã£o de campos.
+
+O estado salvo por grÃ¡fico tambÃ©m deve carregar metadados do chart, principalmente sÃ­mbolo e timeframe visuais.
+
+## 15. Troca de Ativo do GrÃ¡fico Deve Bloquear o Fusion
+
+Se o `chart_id` restaurado apontar para um contexto salvo com sÃ­mbolo diferente do sÃ­mbolo atual do grÃ¡fico, o Fusion nÃ£o deve tentar se adaptar automaticamente.
+
+Nesse caso, o EA entra em bloqueio seguro:
+
+- nÃ£o sincroniza posiÃ§Ã£o com o sÃ­mbolo errado;
+- nÃ£o abre novas entradas;
+- nÃ£o permite iniciar a operaÃ§Ã£o pela GUI;
+- orienta o usuÃ¡rio a voltar ao ativo anterior para recuperar o contexto.
+
+Essa escolha Ã© deliberadamente conservadora. Mudar timeframe Ã© tolerÃ¡vel. Mudar o ativo do grÃ¡fico nÃ£o Ã©.

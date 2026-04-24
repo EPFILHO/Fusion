@@ -350,7 +350,7 @@ private:
 
    bool                       CanEditSettings(void)
      {
-      return (!m_snapshot.started && !m_snapshot.hasPosition);
+      return (!m_snapshot.started && !m_snapshot.hasPosition && !m_snapshot.runtimeBlocked);
      }
 
    bool                       CanPause(void)
@@ -360,7 +360,9 @@ private:
 
    bool                       CanStart(void)
      {
-      return (!ProfileEditMode() && !m_snapshot.started && !m_snapshot.hasPosition && m_configInputsValid && !HasPendingChanges());
+      return (!ProfileEditMode() && !m_snapshot.runtimeBlocked &&
+              !m_snapshot.started && !m_snapshot.hasPosition &&
+              m_configInputsValid && !HasPendingChanges());
      }
 
    bool                       CanSave(void)
@@ -594,7 +596,12 @@ private:
         }
 
       bool dirty = HasPendingChanges();
-      if(m_snapshot.hasPosition)
+      if(m_snapshot.runtimeBlocked)
+        {
+         outStatus = m_snapshot.runtimeBlockReason;
+         m_cfgStatus.Color(FUSION_CLR_BAD);
+        }
+      else if(m_snapshot.hasPosition)
         {
          outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
          m_cfgStatus.Color(FUSION_CLR_WARN);
@@ -634,6 +641,15 @@ private:
 
    void                       UpdateHeaderButtons(void)
      {
+      if(m_snapshot.runtimeBlocked)
+        {
+         m_btnStart.Text("BLOQUEADO");
+         FusionApplyBlockedButtonStyle(m_btnStart);
+         if(m_configProtectionCreated)
+            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, false);
+         return;
+        }
+
       if(m_snapshot.started)
         {
          m_btnStart.Text(m_snapshot.hasPosition ? "OPERANDO" : "PAUSAR");
@@ -1298,6 +1314,8 @@ public:
       m_snapshot.useBollinger = false;
       m_snapshot.useTrendFilter = false;
       m_snapshot.useRSIFilter = false;
+      m_snapshot.runtimeBlocked = false;
+      m_snapshot.runtimeBlockReason = "";
       ClearPendingCommand();
      }
 

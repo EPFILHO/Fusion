@@ -56,7 +56,8 @@ public:
 
    void              Update(const SUIPanelSnapshot &snapshot)
      {
-      m_values[0].Text(snapshot.started ? "RUNNING" : "PAUSED");
+      m_values[0].Text(snapshot.runtimeBlocked ? "BLOCKED" : (snapshot.started ? "RUNNING" : "PAUSED"));
+      m_values[0].Color(snapshot.runtimeBlocked ? FUSION_CLR_BAD : FUSION_CLR_VALUE);
       m_values[1].Text(snapshot.symbol);
       m_values[2].Text(snapshot.timeframe);
       m_values[3].Text(IntegerToString(snapshot.activeStrategies));
