@@ -394,6 +394,7 @@ public:
 
    bool              Initialize(void)
      {
+      uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
       m_activeProfileName = m_settings.defaultProfileName;
@@ -415,6 +416,7 @@ public:
          m_started = m_settings.isTester;
          m_positionState = restoredState;
         }
+      uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
@@ -427,6 +429,7 @@ public:
 
       if(!m_signalManager.Initialize(&m_logger, _Symbol, (ENUM_TIMEFRAMES)Period(), m_settings))
          return false;
+      uint signalDoneTick = GetTickCount();
 
       m_executionService.SyncPosition(m_positionState);
 
@@ -460,6 +463,13 @@ public:
             return false;
            }
         }
+      uint uiDoneTick = GetTickCount();
+
+      m_logger.Debug("INIT",
+                     "Restore=" + IntegerToString((int)(restoreDoneTick - initStartTick)) +
+                     "ms Signals=" + IntegerToString((int)(signalDoneTick - restoreDoneTick)) +
+                     "ms UI=" + IntegerToString((int)(uiDoneTick - signalDoneTick)) +
+                     "ms Total=" + IntegerToString((int)(uiDoneTick - initStartTick)) + "ms");
 
       EventSetTimer(1);
       return true;

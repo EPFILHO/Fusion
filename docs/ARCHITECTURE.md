@@ -34,6 +34,8 @@ Coordena estratégias, filtros e resolvedores.
 
 As estratégias produzem sinais. Os filtros aprovam ou bloqueiam sinais. O resolvedor decide o que fazer quando mais de uma estratégia produz sinal ao mesmo tempo.
 
+Na inicialização, o `SignalManager` deve aplicar as configurações do perfil antes de criar indicadores. Módulos desabilitados não devem abrir handles desnecessários nem consumir tempo de troca de timeframe.
+
 ### `Strategies`
 
 Cada estratégia herda de `CStrategyBase`.

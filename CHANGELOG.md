@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.016 - 2026-04-23
+- Corrigida a inicializacao do `SignalManager` para aplicar configuracoes antes de criar indicadores.
+- Estrategias e filtros desabilitados deixam de criar handles na inicializacao e passam a liberar handles ao serem desligados.
+- Adicionado log de timing da fase de `Initialize` quando `debugLogs` estiver ativo.
+
 ## 1.015 - 2026-04-23
 - Otimizado o update periodico da GUI para atualizar apenas a aba ativa.
 - Evitado refresh de perfis, validacoes de config e sync de estrategias/filtros quando essas abas nao estao visiveis.

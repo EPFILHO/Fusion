@@ -93,7 +93,13 @@ public:
       if(!m_initialized)
          return true;
 
-      if(scope == RELOAD_COLD || scope == RELOAD_WARM || changed)
+      if(!m_enabled)
+        {
+         ReleaseHandles();
+         return true;
+        }
+
+      if(scope == RELOAD_COLD || scope == RELOAD_WARM || changed || m_fastHandle == INVALID_HANDLE || m_slowHandle == INVALID_HANDLE)
          return CreateHandles();
 
       return true;
@@ -103,6 +109,8 @@ public:
      {
       if(!CStrategyBase::Initialize(logger, symbol, timeframe))
          return false;
+      if(!m_enabled)
+         return true;
       return CreateHandles();
      }
 

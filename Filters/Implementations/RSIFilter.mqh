@@ -40,6 +40,8 @@ public:
      {
       if(!CFilterBase::Initialize(logger, symbol, timeframe))
          return false;
+      if(!m_enabled)
+         return true;
       return CreateHandle();
      }
 
@@ -65,7 +67,13 @@ public:
       if(!m_initialized)
          return true;
 
-      if(scope == RELOAD_COLD || scope == RELOAD_WARM || changed)
+      if(!m_enabled)
+        {
+         ReleaseHandle();
+         return true;
+        }
+
+      if(scope == RELOAD_COLD || scope == RELOAD_WARM || changed || m_handle == INVALID_HANDLE)
          return CreateHandle();
 
       return true;

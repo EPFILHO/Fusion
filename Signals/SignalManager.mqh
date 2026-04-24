@@ -66,10 +66,10 @@ public:
          if(m_strategies[i] == NULL)
             continue;
 
-         if(!m_strategies[i].Initialize(logger, symbol, timeframe))
+         if(!m_strategies[i].Reload(settings, RELOAD_COLD))
             return false;
 
-         if(!m_strategies[i].Reload(settings, RELOAD_COLD))
+         if(!m_strategies[i].Initialize(logger, symbol, timeframe))
             return false;
         }
 
@@ -78,10 +78,10 @@ public:
          if(m_filters[i] == NULL)
             continue;
 
-         if(!m_filters[i].Initialize(logger, symbol, timeframe))
+         if(!m_filters[i].Reload(settings, RELOAD_COLD))
             return false;
 
-         if(!m_filters[i].Reload(settings, RELOAD_COLD))
+         if(!m_filters[i].Initialize(logger, symbol, timeframe))
             return false;
         }
 
