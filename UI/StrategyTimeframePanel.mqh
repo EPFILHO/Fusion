@@ -48,7 +48,7 @@ private:
      {
       if(m_kind == FUSION_STRATEGY_PANEL_MA)
          return settings.maSlowTimeframe;
-      return PERIOD_CURRENT;
+      return FUSION_DEFAULT_TIMEFRAME;
      }
 
 public:
@@ -174,8 +174,6 @@ public:
       if(m_primaryTimeframe.Matches(objectName))
         {
          ENUM_TIMEFRAMES timeframe = m_primaryTimeframe.Value();
-         if(timeframe == PERIOD_CURRENT)
-            return false;
 
          if(m_kind == FUSION_STRATEGY_PANEL_MA)
            {
@@ -200,7 +198,7 @@ public:
       if(m_hasSecondaryTimeframe && m_secondaryTimeframe.Matches(objectName))
         {
          ENUM_TIMEFRAMES timeframe = m_secondaryTimeframe.Value();
-         if(timeframe == PERIOD_CURRENT || settings.maSlowTimeframe == timeframe)
+         if(settings.maSlowTimeframe == timeframe)
             return false;
          settings.maSlowTimeframe = timeframe;
          return true;

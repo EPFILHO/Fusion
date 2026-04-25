@@ -69,8 +69,8 @@ public:
       m_slowHandle = INVALID_HANDLE;
       m_fastPeriod = 9;
       m_slowPeriod = 21;
-      m_fastTimeframe = PERIOD_CURRENT;
-      m_slowTimeframe = PERIOD_CURRENT;
+      m_fastTimeframe = FUSION_DEFAULT_TIMEFRAME;
+      m_slowTimeframe = FUSION_DEFAULT_TIMEFRAME;
       m_method     = MODE_EMA;
       m_price      = PRICE_CLOSE;
       m_exitMode   = EXIT_OPPOSITE_SIGNAL;

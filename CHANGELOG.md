@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.023 - 2026-04-25
+- Removida a dependencia residual de `Period()` do caminho operacional do Fusion; ele ficou restrito ao contexto visual e a comparacoes de seguranca do grafico.
+- O fallback operacional do EA passou a usar `chart context` salvo ou `FUSION_DEFAULT_TIMEFRAME`, em vez de puxar o timeframe atual do grafico durante save/load/apply.
+- O Fusion passou a ter timeframe padrao explicito (`PERIOD_M15`) para configuracoes novas, inputs e defaults internos, eliminando o uso de `PERIOD_CURRENT` como sentinela operacional.
+- `StrategyBase`, `FilterBase`, `MACrossStrategy` e os novos componentes de `ComboBox` de timeframe foram alinhados com esse modelo explicito.
+
 ## 1.022 - 2026-04-25
 - `STRATS` e `FILTERS` passaram a expor selecao de timeframe por modulo com `ComboBox`, sem depender de texto livre.
 - `MA Cross` agora pode ser configurado pela GUI com `TF Rapido` e `TF Lento`.

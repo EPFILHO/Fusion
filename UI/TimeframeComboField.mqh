@@ -77,7 +77,7 @@ public:
 
       long targetValue = (long)timeframe;
       if(targetValue <= 0)
-         targetValue = (long)PERIOD_M15;
+         targetValue = (long)FUSION_DEFAULT_TIMEFRAME;
 
       if(m_combo.Value() != targetValue)
          m_combo.SelectByValue(targetValue);
@@ -98,7 +98,7 @@ public:
      {
       long value = m_combo.Value();
       if(value <= 0)
-         return PERIOD_CURRENT;
+         return FUSION_DEFAULT_TIMEFRAME;
       return (ENUM_TIMEFRAMES)value;
      }
   };

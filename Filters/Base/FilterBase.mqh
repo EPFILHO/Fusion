@@ -22,7 +22,7 @@ public:
       m_id          = id;
       m_name        = name;
       m_symbol      = "";
-      m_timeframe   = PERIOD_CURRENT;
+      m_timeframe   = FUSION_DEFAULT_TIMEFRAME;
       m_enabled     = true;
       m_initialized = false;
      }

@@ -59,8 +59,8 @@ input bool               inp_UseMACross    = true;
 input int                inp_MACrossPriority = 10;
 input int                inp_MAFastPeriod  = 9;
 input int                inp_MASlowPeriod  = 21;
-input ENUM_TIMEFRAMES    inp_MAFastTF      = PERIOD_CURRENT;
-input ENUM_TIMEFRAMES    inp_MASlowTF      = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES    inp_MAFastTF      = FUSION_DEFAULT_TIMEFRAME;
+input ENUM_TIMEFRAMES    inp_MASlowTF      = FUSION_DEFAULT_TIMEFRAME;
 input ENUM_MA_METHOD     inp_MAMethod      = MODE_EMA;
 input ENUM_APPLIED_PRICE inp_MAPrice       = PRICE_CLOSE;
 input ENUM_EXIT_MODE     inp_MAExitMode    = EXIT_OPPOSITE_SIGNAL;
@@ -69,7 +69,7 @@ input group "Strategy - RSI"
 input bool                   inp_UseRSI    = false;
 input int                    inp_RSIPriority = 8;
 input int                    inp_RSIPeriod = 14;
-input ENUM_TIMEFRAMES        inp_RSITF     = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES        inp_RSITF     = FUSION_DEFAULT_TIMEFRAME;
 input int                    inp_RSIOversold = 30;
 input int                    inp_RSIOverbought = 70;
 input int                    inp_RSIMiddle = 50;
@@ -81,7 +81,7 @@ input group "Strategy - Bollinger"
 input bool                   inp_UseBollinger = false;
 input int                    inp_BollingerPriority = 6;
 input int                    inp_BollingerPeriod = 20;
-input ENUM_TIMEFRAMES        inp_BollingerTF = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES        inp_BollingerTF = FUSION_DEFAULT_TIMEFRAME;
 input double                 inp_BollingerDeviation = 2.0;
 input ENUM_APPLIED_PRICE     inp_BollingerPrice = PRICE_CLOSE;
 input ENUM_BB_SIGNAL_MODE    inp_BollingerMode = BB_SIGNAL_REENTRY;
@@ -90,14 +90,14 @@ input ENUM_EXIT_MODE         inp_BollingerExitMode = EXIT_OPPOSITE_SIGNAL;
 input group "Filter - Trend"
 input bool               inp_UseTrendFilter = false;
 input int                inp_TrendMAPeriod  = 50;
-input ENUM_TIMEFRAMES    inp_TrendMATF      = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES    inp_TrendMATF      = FUSION_DEFAULT_TIMEFRAME;
 input ENUM_MA_METHOD     inp_TrendMAMethod  = MODE_SMA;
 input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE;
 
 input group "Filter - RSI"
 input bool               inp_UseRSIFilter   = false;
 input int                inp_RSIFilterPeriod = 14;
-input ENUM_TIMEFRAMES    inp_RSIFilterTF    = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES    inp_RSIFilterTF    = FUSION_DEFAULT_TIMEFRAME;
 input int                inp_RSIFilterBuyMin = 50;
 input int                inp_RSIFilterSellMax = 50;
 input ENUM_APPLIED_PRICE inp_RSIFilterPrice = PRICE_CLOSE;

@@ -25,7 +25,7 @@ public:
       m_name        = name;
       m_shortName   = shortName;
       m_symbol      = "";
-      m_timeframe   = PERIOD_CURRENT;
+      m_timeframe   = FUSION_DEFAULT_TIMEFRAME;
       m_priority    = priority;
       m_enabled     = true;
       m_initialized = false;

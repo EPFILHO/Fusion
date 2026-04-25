@@ -135,8 +135,6 @@ public:
          return false;
 
       ENUM_TIMEFRAMES timeframe = m_timeframe.Value();
-      if(timeframe == PERIOD_CURRENT)
-         return false;
 
       if(m_kind == FUSION_FILTER_PANEL_TREND)
         {

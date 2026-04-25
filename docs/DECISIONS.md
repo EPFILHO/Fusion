@@ -76,6 +76,8 @@ No `MA Cross`, o modelo-alvo deve prever dois timeframes independentes:
 
 A primeira fase dessa virada entrou no motor, e a segunda ja chegou na GUI: `SEASettings`, `Inputs`, persistencia, modulos atuais e as abas `STRATS` e `FILTERS` passaram a trabalhar com timeframes explicitos por modulo.
 
+Como regra adicional, configuracoes novas e defaults internos nao devem mais usar `PERIOD_CURRENT` como sentinela operacional. O Fusion agora nasce com timeframe padrao explicito e usa o contexto salvo do grafico apenas como fallback de migracao ou seguranca.
+
 Esse passo tem prioridade acima de novos refactors cosmeticos em arquivos grandes.
 
 ## 7. Hot Reload Seguro Antes de Hot Reload Conveniente

@@ -162,6 +162,8 @@ Essa migracao ja comecou no modelo de dados, na persistencia e nos modulos exist
 - `SignalManager` deixa de agir como distribuidor de um timeframe global;
 - `PERIOD_CURRENT` e `Period()` saem da logica operacional e ficam, no maximo, restritos ao contexto visual do grafico.
 
+No estado atual, esse corte ja foi aplicado ao fluxo principal de configuracao, restore, save/load de perfil e defaults internos. O timeframe atual do grafico continua sendo lido apenas para montar o contexto visual do chart e para avisos de seguranca ao usuario.
+
 Refactors adicionais em `EAApplication.mqh` e `UIPanel.mqh` continuam desejaveis, mas ficam depois dessa virada. A regra e simples: primeiro fechamos o motor, depois emagrecemos o casco.
 
 ## Hot Reload

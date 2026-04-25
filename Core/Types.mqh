@@ -1,6 +1,8 @@
 #ifndef __FUSION_TYPES_MQH__
 #define __FUSION_TYPES_MQH__
 
+#define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
+
 enum ENUM_SIGNAL_TYPE
   {
    SIGNAL_NONE = 0,
@@ -330,15 +332,15 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maCrossPriority       = 10;
    settings.maFastPeriod          = 9;
    settings.maSlowPeriod          = 21;
-   settings.maFastTimeframe       = PERIOD_CURRENT;
-   settings.maSlowTimeframe       = PERIOD_CURRENT;
+   settings.maFastTimeframe       = FUSION_DEFAULT_TIMEFRAME;
+   settings.maSlowTimeframe       = FUSION_DEFAULT_TIMEFRAME;
    settings.maMethod              = MODE_EMA;
    settings.maPrice               = PRICE_CLOSE;
    settings.maExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useRSI                = false;
    settings.rsiPriority           = 8;
    settings.rsiPeriod             = 14;
-   settings.rsiTimeframe          = PERIOD_CURRENT;
+   settings.rsiTimeframe          = FUSION_DEFAULT_TIMEFRAME;
    settings.rsiOversold           = 30;
    settings.rsiOverbought         = 70;
    settings.rsiMiddle             = 50;
@@ -348,19 +350,19 @@ void SetDefaultSettings(SEASettings &settings)
    settings.useBollinger          = false;
    settings.bbPriority            = 6;
    settings.bbPeriod              = 20;
-   settings.bbTimeframe           = PERIOD_CURRENT;
+   settings.bbTimeframe           = FUSION_DEFAULT_TIMEFRAME;
    settings.bbDeviation           = 2.0;
    settings.bbPrice               = PRICE_CLOSE;
    settings.bbMode                = BB_SIGNAL_REENTRY;
    settings.bbExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useTrendFilter        = false;
    settings.trendMAPeriod         = 50;
-   settings.trendMATimeframe      = PERIOD_CURRENT;
+   settings.trendMATimeframe      = FUSION_DEFAULT_TIMEFRAME;
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
    settings.useRSIFilter          = false;
    settings.rsiFilterPeriod       = 14;
-   settings.rsiFilterTimeframe    = PERIOD_CURRENT;
+   settings.rsiFilterTimeframe    = FUSION_DEFAULT_TIMEFRAME;
    settings.rsiFilterBuyMin       = 50;
    settings.rsiFilterSellMax      = 50;
    settings.rsiFilterPrice        = PRICE_CLOSE;
@@ -369,9 +371,11 @@ void SetDefaultSettings(SEASettings &settings)
 
 ENUM_TIMEFRAMES ResolveOperationalTimeframe(const ENUM_TIMEFRAMES configured,const ENUM_TIMEFRAMES fallbackTimeframe)
   {
-   if((int)configured <= 0)
+   if((int)configured > 0)
+      return configured;
+   if((int)fallbackTimeframe > 0)
       return fallbackTimeframe;
-   return configured;
+   return FUSION_DEFAULT_TIMEFRAME;
   }
 
 void ResolveOperationalTimeframes(SEASettings &settings,const ENUM_TIMEFRAMES fallbackTimeframe)

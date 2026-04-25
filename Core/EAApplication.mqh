@@ -199,10 +199,17 @@ private:
       m_runtimeNotice = notice;
      }
 
+   ENUM_TIMEFRAMES         OperationalFallbackTimeframe(void) const
+     {
+      if(m_chartContext.periodValue > 0)
+         return (ENUM_TIMEFRAMES)m_chartContext.periodValue;
+      return FUSION_DEFAULT_TIMEFRAME;
+     }
+
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
       SEASettings resolvedSettings = settings;
-      ResolveOperationalTimeframes(resolvedSettings, (ENUM_TIMEFRAMES)Period());
+      ResolveOperationalTimeframes(resolvedSettings, OperationalFallbackTimeframe());
       m_settings = resolvedSettings;
       ConfigureResolver();
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
@@ -376,7 +383,7 @@ private:
          if(command.hasSettings)
             settingsToSave = command.settings;
          settingsToSave.isTester = m_settings.isTester;
-         ResolveOperationalTimeframes(settingsToSave, (ENUM_TIMEFRAMES)Period());
+         ResolveOperationalTimeframes(settingsToSave, OperationalFallbackTimeframe());
 
          if(!CanPersistProfile(profileName, settingsToSave))
             return;
@@ -407,7 +414,7 @@ private:
          if(m_settingsStore.LoadProfile(profileName, loadedSettings))
            {
             loadedSettings.isTester = m_settings.isTester;
-            ResolveOperationalTimeframes(loadedSettings, (ENUM_TIMEFRAMES)Period());
+            ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
             if(!ApplySettings(loadedSettings, RELOAD_COLD))
                return;
             m_activeProfileName = profileName;
@@ -447,8 +454,8 @@ private:
       uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
-      ResolveOperationalTimeframes(m_settings, (ENUM_TIMEFRAMES)Period());
       m_chartContext = CurrentChartContext();
+      ResolveOperationalTimeframes(m_settings, OperationalFallbackTimeframe());
       m_activeProfileName = m_settings.defaultProfileName;
       m_started = m_settings.isTester;
       m_runtimeBlocked = false;
@@ -468,7 +475,7 @@ private:
          restoredSettings.isTester = m_settings.isTester;
          ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
                                            ? (ENUM_TIMEFRAMES)restoredContext.periodValue
-                                           : (ENUM_TIMEFRAMES)Period();
+                                           : OperationalFallbackTimeframe();
          ResolveOperationalTimeframes(restoredSettings, restoreFallback);
          m_settings = restoredSettings;
          if(restoredContext.symbol != "")
