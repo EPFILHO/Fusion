@@ -1590,16 +1590,12 @@ public:
    virtual bool               OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
       bool result = CAppDialog::OnEvent(id, lparam, dparam, sparam);
-      bool changed = false;
       if(!m_minimized)
         {
-         changed = HandleSignalPanelChange(id, sparam);
-         if(!changed)
-            RefreshConfigValidation();
-         if(result || changed)
-            ApplyVisibility();
+         if(HandleSignalPanelChange(id, sparam))
+            return true;
         }
-      return (result || changed);
+      return result;
      }
   };
 

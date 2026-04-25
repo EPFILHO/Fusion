@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.024 - 2026-04-25
+- Corrigido o fluxo de eventos interno da GUI para nao reaplicar `ApplyVisibility()` apos eventos tratados pela `CAppDialog`.
+- Essa mudanca evita que `ComboBox` de timeframe esconda a propria lista ao receber clique interno e tambem reduz o atraso ao trocar entre subabas vizinhas em `STRATS` e `FILTERS`.
+
 ## 1.023 - 2026-04-25
 - Removida a dependencia residual de `Period()` do caminho operacional do Fusion; ele ficou restrito ao contexto visual e a comparacoes de seguranca do grafico.
 - O fallback operacional do EA passou a usar `chart context` salvo ou `FUSION_DEFAULT_TIMEFRAME`, em vez de puxar o timeframe atual do grafico durante save/load/apply.
