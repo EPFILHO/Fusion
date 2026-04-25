@@ -29,11 +29,26 @@ private:
       return true;
      }
 
+   string            ProfilesFolderRelative(void) const
+     {
+      return "Fusion\\Profiles";
+     }
+
+   string            ChartStateFolderRelative(void) const
+     {
+      return "Fusion\\ChartState";
+     }
+
+   string            ProfileFileName(const string profileName) const
+     {
+      return ProfilesFolderRelative() + "\\" + SanitizeName(profileName) + ".cfg";
+     }
+
    void              EnsureFolders(void) const
      {
       FolderCreate("Fusion");
-      FolderCreate("Fusion\\Profiles");
-      FolderCreate("Fusion\\ChartState");
+      FolderCreate(ProfilesFolderRelative());
+      FolderCreate(ChartStateFolderRelative());
      }
 
    bool              WriteLine(const int handle,const string key,const string value) const
@@ -239,6 +254,12 @@ private:
      }
 
 public:
+   string            ProfilesFolderPath(void) const
+     {
+      EnsureFolders();
+      return TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + ProfilesFolderRelative();
+     }
+
    string            SanitizeProfileName(const string profileName) const
      {
       return SanitizeName(profileName);
@@ -247,7 +268,7 @@ public:
    bool              ProfileExists(const string profileName) const
      {
       EnsureFolders();
-      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = ProfileFileName(profileName);
       return FileIsExist(fileName);
      }
 
@@ -287,7 +308,7 @@ public:
       ArrayResize(profiles, 0);
 
       string fileName = "";
-      long handle = FileFindFirst("Fusion\\Profiles\\*.cfg", fileName);
+      long handle = FileFindFirst(ProfilesFolderRelative() + "\\*.cfg", fileName);
       if(handle == INVALID_HANDLE)
          return true;
 
@@ -337,7 +358,7 @@ public:
      {
       EnsureFolders();
 
-      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = ProfileFileName(profileName);
       int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -350,7 +371,7 @@ public:
    bool              DeleteProfile(const string profileName)
      {
       EnsureFolders();
-      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = ProfileFileName(profileName);
       if(!FileIsExist(fileName))
          return false;
       return FileDelete(fileName);
@@ -361,7 +382,7 @@ public:
       EnsureFolders();
       SetDefaultSettings(settings);
 
-      string fileName = "Fusion\\Profiles\\" + SanitizeName(profileName) + ".cfg";
+      string fileName = ProfileFileName(profileName);
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -384,7 +405,7 @@ public:
       EnsureFolders();
 
       string chartKey = "chart_" + StringFormat("%I64u", context.chartId);
-      string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
+      string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -428,7 +449,7 @@ public:
       started = false;
 
       string chartKey = "chart_" + StringFormat("%I64u", chartId);
-      string fileName = "Fusion\\ChartState\\" + SanitizeName(chartKey) + ".state";
+      string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;

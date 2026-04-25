@@ -138,6 +138,14 @@ Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural 
 
 O shell da aba pode nascer antes, mas o conteudo interno deve preferir subpaginas independentes. Isso reduz carga de eventos, evita uma GUI monolitica e facilita encaixar novos blocos sem refatorar tudo.
 
+## 14. Integracao com o Sistema Operacional Deve Ficar Fora do Core
+
+Recursos de conveniencia da GUI que dependem do sistema operacional, como abrir a pasta de perfis no Windows, nao devem ser colocados dentro de `EAApplication.mqh`.
+
+Essas integracoes devem viver em helpers pequenos e isolados, como `Platform/FolderLauncher.mqh`, para manter o core focado em operacao, persistencia e seguranca de trade.
+
+Isso tambem facilita tratar restricoes do MT5, como `DLL imports` desabilitadas, sem misturar regra operacional com perfumaria da interface.
+
 ## 14. Estado do Grafico Deve Ser Restaurado pelo `chart_id`
 
 A restauracao automatica do Fusion por grafico deve ser vinculada ao `chart_id`.

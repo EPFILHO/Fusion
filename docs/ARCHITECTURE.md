@@ -123,14 +123,18 @@ A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusi
 `CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que ja tem responsabilidade propria ficam em includes dedicados:
 
 - `UIPanelTypes.mqh`: dimensoes, enums e constantes da UI.
+- `UIPanelHeader.mqh`: titulo, perfil carregado e botoes globais do topo.
 - `UI/Pages/StatusPage.mqh`: componente da aba `STATUS`.
 - `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
 - `UIPanelSignalTabs.mqh`: abas de estrategias e filtros.
 - `UIPanelProfiles.mqh`: administracao de perfis.
+- `Platform/FolderLauncher.mqh`: integracao opcional com shell do Windows, mantida fora do core operacional.
 
 Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo metodo `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoracao.
 
 Mensagens operacionais persistentes devem ficar concentradas em `STATUS`. A aba `RESULTS` deve permanecer voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+
+Quando um alerta operacional for importante para a seguranca, a `STATUS` deve ser dona da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
 
 Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criacao do painel, navegacao ou troca explicita de modo.
 

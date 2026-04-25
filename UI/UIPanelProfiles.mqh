@@ -21,6 +21,7 @@
    CButton                    m_profileUpBtn;
    CButton                    m_profileDownBtn;
    CButton                    m_profileRefreshBtn;
+   CButton                    m_profileOpenFolderBtn;
    CButton                    m_profileNewBtn;
    CLabel                     m_profileNewLbl;
    CEdit                      m_profileNewEdit;
@@ -59,6 +60,8 @@
       if(!AddButton(m_profileDownBtn, "Fusion_profile_down", 340, 208, 382, 234, ShortToString(0x25BC), FUSION_CLR_PANEL))
          return false;
       if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 520, 202, "Atualizar Lista", FUSION_CLR_ACTION_LOAD))
+         return false;
+      if(!AddButton(m_profileOpenFolderBtn, "Fusion_profile_open_folder", 390, 208, 520, 234, "ABRIR PASTA", FUSION_CLR_ACTION_SAVE))
          return false;
       if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 236, 520, 262, "NOVO", FUSION_CLR_GOOD))
          return false;
@@ -258,6 +261,7 @@
          FusionApplyNeutralButtonStyle(m_profileDownBtn);
 
       FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
+      FusionApplyActionButtonStyle(m_profileOpenFolderBtn, FUSION_CLR_ACTION_SAVE, true);
 
       bool validName = HasValidProfileDraftName();
       bool selected = (SelectedProfileName() != "");
@@ -334,7 +338,7 @@
       else if(selected && selectedIsActive)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
       else if(selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo, Abrir Pasta ou Excluir.", FUSION_CLR_MUTED);
       else
          SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
      }
@@ -390,6 +394,7 @@
          SetVisible(m_profileUpBtn, visible);
          SetVisible(m_profileDownBtn, visible);
          SetVisible(m_profileRefreshBtn, visible);
+         SetVisible(m_profileOpenFolderBtn, browseVisible);
          SetVisible(m_profileNewBtn, browseVisible);
          SetVisible(m_profileLoadBtn, browseVisible);
          SetVisible(m_profileDuplicateBtn, browseVisible);

@@ -2,8 +2,10 @@
 //|                                                        Fusion.mq5 |
 //|                          Clean modular multi-strategy EA scaffold |
 //+------------------------------------------------------------------+
+#include "Core/Version.mqh"
+
 #property copyright "OpenAI / Codex"
-#property version   "1.024"
+#property version   FUSION_APP_VERSION
 #property strict
 
 #include "Core/EAApplication.mqh"

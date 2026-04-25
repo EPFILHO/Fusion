@@ -6,6 +6,8 @@
 #include <Controls\Label.mqh>
 #include <Controls\Edit.mqh>
 #include "PanelUtils.mqh"
+#include "../Core/Version.mqh"
+#include "../Platform/FolderLauncher.mqh"
 #include "UIPanelTypes.mqh"
 #include "Pages/StatusPage.mqh"
 #include "Pages/ResultsPage.mqh"
@@ -35,13 +37,6 @@ private:
    ENUM_FUSION_FILTER_PAGE    m_filterPage;
    ENUM_FUSION_CONFIG_PAGE    m_configPage;
 
-   CButton                    m_btnStart;
-   CButton                    m_btnSave;
-   CButton                    m_btnLoad;
-   CLabel                     m_activeProfile;
-   CLabel                     m_lblProfile;
-   CLabel                     m_lblHeader;
-
    CButton                    m_tabs[FUSION_TAB_COUNT];
    CButton                    m_strategyTabs[FUSION_STRAT_COUNT];
    CButton                    m_filterTabs[FUSION_FILTER_COUNT];
@@ -58,6 +53,7 @@ private:
    bool                       m_configProtectionCreated;
    bool                       m_configSystemCreated;
 
+#include "UIPanelHeader.mqh"
 #include "UIPanelSignalTabs.mqh"
 #include "UIPanelProfiles.mqh"
 
@@ -578,9 +574,7 @@ private:
          outSettings.magicNumber = m_draftSettings.magicNumber;
          m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0);
          outStatus = m_configInputsValid ? "Configuracao pronta." : "Perfil invalido.";
-         m_lblProfile.Color(FUSION_CLR_MUTED);
-         m_activeProfile.Text(profileValid ? outProfileName : "--");
-         m_activeProfile.Color(profileValid ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
+         SyncHeaderProfile(profileValid ? outProfileName : "");
          return m_configInputsValid;
         }
 
@@ -628,9 +622,7 @@ private:
       if(m_configSystemCreated)
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
 
-      m_lblProfile.Color(FUSION_CLR_MUTED);
-      m_activeProfile.Text(profileValid ? outProfileName : "--");
-      m_activeProfile.Color(profileValid ? FUSION_CLR_GOOD : FUSION_CLR_BAD);
+      SyncHeaderProfile(profileValid ? outProfileName : "");
       if(m_configRiskCreated)
         {
          m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
@@ -691,53 +683,9 @@ private:
       return m_configInputsValid;
      }
 
-   void                       UpdateHeaderButtons(void)
-     {
-      if(m_snapshot.runtimeBlocked)
-        {
-         m_btnStart.Text("BLOQUEADO");
-         FusionApplyBlockedButtonStyle(m_btnStart);
-         if(m_configProtectionCreated)
-            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, false);
-         return;
-        }
-
-      if(m_snapshot.started)
-        {
-         m_btnStart.Text(m_snapshot.hasPosition ? "OPERANDO" : "PAUSAR");
-         if(CanPause())
-            FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
-         else
-            FusionApplyNeutralButtonStyle(m_btnStart);
-         if(m_configProtectionCreated)
-            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true, CanPause());
-         return;
-        }
-
-      m_btnStart.Text("INICIAR");
-      if(CanStart())
-         FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_GOOD, true);
-      else
-         FusionApplyBlockedButtonStyle(m_btnStart);
-
-      if(m_configProtectionCreated)
-         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, CanStart());
-     }
-
    void                       RefreshTheme(void)
      {
-      if(!CanEditSettings() || !HasPendingChanges())
-         FusionApplyNeutralButtonStyle(m_btnSave);
-      else if(CanSave())
-         FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
-      else
-         FusionApplyBlockedButtonStyle(m_btnSave);
-
-      if(CanLoad())
-         FusionApplyActionButtonStyle(m_btnLoad, FUSION_CLR_ACTION_LOAD, true);
-      else
-         FusionApplyNeutralButtonStyle(m_btnLoad);
-
+      RefreshHeaderTheme();
       if(m_configSystemCreated)
         {
          if(CanEditSettings())
@@ -745,10 +693,6 @@ private:
          else
             FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
         }
-
-      m_activeProfile.Text(FusionIsBlank(DraftProfileName()) ? "--" : DraftProfileName());
-      m_activeProfile.Color(FusionIsBlank(DraftProfileName()) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
-      UpdateHeaderButtons();
       if(m_activeTab == FUSION_TAB_PROFILES)
          UpdateProfileListView();
      }
@@ -906,24 +850,6 @@ private:
       UpdateTabStyles();
      }
 
-   bool                       BuildHeader(void)
-     {
-      if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, 250, 26, "Fusion Control", FUSION_CLR_TITLE, 10))
-         return false;
-      if(!AddButton(m_btnStart, "Fusion_btnStart", 250, 4, 340, 28, "INICIAR", FUSION_CLR_GOOD))
-         return false;
-      if(!AddButton(m_btnSave, "Fusion_btnSave", 346, 4, 430, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
-         return false;
-      if(!AddButton(m_btnLoad, "Fusion_btnLoad", 436, 4, 530, 28, "CARREGAR", FUSION_CLR_ACTION_LOAD))
-         return false;
-      if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 116, 54, "Perfil carregado:", FUSION_CLR_MUTED))
-         return false;
-      if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 118, 36, 250, 56, m_snapshot.activeProfileName, FUSION_CLR_GOOD, 9))
-         return false;
-      m_activeProfile.Font("Arial Bold");
-      return true;
-     }
-
    bool                       BuildTabs(void)
      {
       string names[FUSION_TAB_COUNT] = {"STATUS", "RESULTS", "STRATS", "FILTERS", "PERFIS", "CONFIG"};
@@ -981,14 +907,6 @@ private:
             m_pendingCommand.reloadScope = RELOAD_COLD;
             m_hasPendingCommand = true;
            }
-         RefreshTheme();
-         return true;
-        }
-      if(objectName == m_btnLoad.Name())
-        {
-         ReleaseButton(m_btnLoad);
-         if(CanLoad())
-            QueueSimpleCommand(UI_COMMAND_LOAD_PROFILE);
          RefreshTheme();
          return true;
         }
@@ -1104,6 +1022,19 @@ private:
          ReleaseButton(m_profileRefreshBtn);
          RefreshProfileList(true);
          SetProfileStatus("Lista de perfis atualizada.", FUSION_CLR_GOOD, true);
+         return true;
+        }
+
+      if(objectName == m_profileOpenFolderBtn.Name())
+        {
+         ReleaseButton(m_profileOpenFolderBtn);
+         string folderPath = m_profileStore.ProfilesFolderPath();
+         if(FusionOpenFolder(folderPath))
+            SetProfileStatus("Pasta de perfis aberta.", FUSION_CLR_GOOD, true);
+         else if(!FusionCanOpenFolder())
+            SetProfileStatus("Habilite DLL imports para abrir a pasta automaticamente.", FUSION_CLR_WARN, true);
+         else
+            SetProfileStatus("Nao foi possivel abrir a pasta de perfis.", FUSION_CLR_BAD, true);
          return true;
         }
 
@@ -1466,8 +1397,7 @@ public:
       m_committedSettings.useRSIFilter    = m_snapshot.useRSIFilter;
       m_draftSettings = m_committedSettings;
 
-      m_activeProfile.Text(m_committedProfileName);
-      m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
+      SyncHeaderProfile(m_committedProfileName);
       SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
       if(m_profilesTabCreated)
@@ -1500,8 +1430,7 @@ public:
       m_committedProfileName     = profileName;
       m_hasCommittedSettings     = true;
 
-      m_activeProfile.Text(m_committedProfileName);
-      m_activeProfile.Color(FusionIsBlank(m_committedProfileName) ? FUSION_CLR_BAD : FUSION_CLR_GOOD);
+      SyncHeaderProfile(m_committedProfileName);
       SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
       if(m_profilesTabCreated)

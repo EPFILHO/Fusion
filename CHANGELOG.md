@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.025 - 2026-04-25
+- Extraido o topo da GUI para `UI/UIPanelHeader.mqh`, removendo do `UIPanel` o botao global `CARREGAR` e preparando o painel para novos polimentos sem inflar o arquivo central.
+- A janela agora expõe o nome completo `EP Fusion - versao 1.025` no titulo do dialogo.
+- A aba `STATUS` passou a usar bloco de aviso multilinha proprio, evitando que alertas de troca de ativo ou timeframe fiquem cortados.
+- A aba `PERFIS` ganhou o botao `ABRIR PASTA`, usando helper isolado de plataforma para abrir a pasta de perfis sem colocar logica de shell dentro do `EAApplication`.
+- `SettingsStore` passou a centralizar melhor os caminhos de perfis e de chart state, reduzindo repeticao de strings e deixando o caminho da pasta de perfis disponivel para a GUI.
+
 ## 1.024 - 2026-04-25
 - Corrigido o fluxo de eventos interno da GUI para nao reaplicar `ApplyVisibility()` apos eventos tratados pela `CAppDialog`.
 - Essa mudanca evita que `ComboBox` de timeframe esconda a propria lista ao receber clique interno e tambem reduz o atraso ao trocar entre subabas vizinhas em `STRATS` e `FILTERS`.

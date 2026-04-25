@@ -533,8 +533,8 @@ private:
             x1 = 10;
 
          if(!m_panel.CreatePanel(ChartID(),
-                                 "Fusion",
-                                 0,
+                                  FusionWindowTitle(),
+                                  0,
                                  x1,
                                  FUSION_PANEL_TOP,
                                  x1 + FUSION_PANEL_WIDTH,
