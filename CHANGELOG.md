@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.028 - 2026-04-25
+- Unificado o bootstrap da GUI para nascer com um unico pass de hidratacao de estado.
+- `SUIPanelSnapshot` passou a carregar o `SEASettings` completo, permitindo que `CreatePanel()` inicialize o painel sem segunda carga logo em seguida.
+- Removida a hidratacao redundante do painel no `EAApplication` logo apos `CreatePanel()`, reduzindo repaint desnecessario na troca de timeframe e no boot do EA.
+
 ## 1.027 - 2026-04-25
 - Adicionado botao global `CANCELAR` no topo da GUI para descartar alteracoes pendentes do perfil carregado e restaurar imediatamente a ultima configuracao salva.
 - O novo `CANCELAR` atua apenas sobre alteracoes pendentes do perfil atual; o `CANCELAR` local de `NOVO` e `DUPLICAR` continua responsavel apenas pelo fluxo de criacao de perfis.

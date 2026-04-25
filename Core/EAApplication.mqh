@@ -144,6 +144,7 @@ private:
    SUIPanelSnapshot        BuildPanelSnapshot(void) const
      {
       SUIPanelSnapshot snapshot;
+      snapshot.settings         = m_settings;
       snapshot.started          = m_started;
       snapshot.hasPosition      = m_positionState.hasPosition;
       snapshot.activeProfileName= m_activeProfileName;
@@ -592,12 +593,9 @@ private:
                                  FUSION_PANEL_TOP + FUSION_PANEL_HEIGHT,
                                  BuildPanelSnapshot()))
            {
-            m_logger.Error("UI", "Failed to create Fusion panel");
-            return false;
-           }
-
-         m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
-         m_panel.Update(BuildPanelSnapshot());
+           m_logger.Error("UI", "Failed to create Fusion panel");
+           return false;
+          }
 
          if(!m_panel.StartDialog())
            {

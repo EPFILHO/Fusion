@@ -240,6 +240,7 @@ struct SChartStateContext
 
 struct SUIPanelSnapshot
   {
+   SEASettings settings;
    bool   started;
    bool   hasPosition;
    string activeProfileName;

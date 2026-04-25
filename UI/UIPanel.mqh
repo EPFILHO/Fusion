@@ -1397,29 +1397,7 @@ public:
          return;
 
       m_snapshot = snapshot;
-      m_committedProfileName = m_snapshot.activeProfileName;
-      m_hasCommittedSettings = true;
-
-      m_committedSettings.fixedLot        = m_snapshot.fixedLot;
-      m_committedSettings.maxSpreadPoints = m_snapshot.maxSpreadPoints;
-      m_committedSettings.magicNumber     = m_snapshot.magicNumber;
-      m_committedSettings.conflictMode    = m_snapshot.conflictMode;
-      m_committedSettings.useMACross      = m_snapshot.useMACross;
-      m_committedSettings.useRSI          = m_snapshot.useRSI;
-      m_committedSettings.useBollinger    = m_snapshot.useBollinger;
-      m_committedSettings.useTrendFilter  = m_snapshot.useTrendFilter;
-      m_committedSettings.useRSIFilter    = m_snapshot.useRSIFilter;
-      m_draftSettings = m_committedSettings;
-
-      SyncHeaderProfile(m_committedProfileName);
-      SyncDraftSettingsToControls();
-      SetProfileMode(FUSION_PROFILE_BROWSE);
-      if(m_profilesTabCreated)
-         RefreshProfileList(false);
-      if(m_configTabCreated)
-         RefreshConfigValidation();
-      else
-         RefreshTheme();
+      LoadSettings(snapshot.settings, snapshot.activeProfileName, snapshot.symbolSpec);
      }
 
    void                       LoadSettings(const SEASettings &settings,const string profileName,const SSymbolSpec &spec)

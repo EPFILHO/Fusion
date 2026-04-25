@@ -142,6 +142,8 @@ Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao de
 
 O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensaveis. Abas pesadas, listas de perfis, validacoes de configuracao e sincronizacao de paginas de estrategias ou filtros devem rodar sob demanda ou quando a aba correspondente estiver visivel.
 
+No bootstrap da GUI, o painel deve nascer com um unico pass de hidratacao. O estado completo necessario para criar o painel deve vir no `SUIPanelSnapshot`, evitando uma segunda carga manual logo apos `CreatePanel()`. Isso reduz repaint desnecessario e ajuda a preservar a fluidez em trocas de timeframe ou recriacao do EA.
+
 As abas principais devem preferir criacao lazy ou on-demand. No estado atual, o painel nasce com `STATUS` e com a estrutura global minima; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` passam a ser materializadas na primeira abertura. Isso reduz custo de reinicializacao em troca de timeframe e deixa o crescimento da GUI mais previsivel.
 
 Ao criar controles apos o `Run()` da `CAppDialog`, o painel deve reatribuir IDs dos controles antes de aceitar novos cliques. Sem isso, a biblioteca padrao pode rotear eventos para handlers errados.
