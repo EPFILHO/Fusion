@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.026 - 2026-04-25
+- Corrigido o restore por `chart_id` para ignorar estado salvo cuja ultima saida foi `REASON_CHARTCLOSE`, evitando que um grafico novo herde contexto “fantasma” de outro grafico fechado.
+- O bloqueio por troca de ativo continua existindo para mudancas reais de contexto do mesmo grafico (`REASON_CHARTCHANGE`), mas deixa de disparar em reaproveitamento acidental de `chart_id`.
+- O boot sem chart state valido agora tenta carregar de verdade o perfil definido em `defaultProfileName` antes de cair nos `inputs`.
+- Quando o perfil default nao existe, o Fusion passa a avisar explicitamente na `STATUS` que os `inputs` atuais foram mantidos ate carregar ou salvar um perfil.
+- O chart state passou a registrar tambem o `deinitReason` para diferenciar troca de contexto, fechamento de grafico e reaproveitamento indevido de estado.
+
 ## 1.025 - 2026-04-25
 - Extraido o topo da GUI para `UI/UIPanelHeader.mqh`, removendo do `UIPanel` o botao global `CARREGAR` e preparando o painel para novos polimentos sem inflar o arquivo central.
 - A janela agora expõe o nome completo `EP Fusion - versao 1.025` no titulo do dialogo.

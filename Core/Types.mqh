@@ -235,6 +235,7 @@ struct SChartStateContext
    string symbol;
    string timeframe;
    int    periodValue;
+   int    deinitReason;
   };
 
 struct SUIPanelSnapshot

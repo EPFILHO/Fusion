@@ -193,4 +193,10 @@ Na arquitetura atual, o estado automatico do Fusion por grafico deve ser restaur
 
 O arquivo salvo por grafico tambem registra metadados do chart, principalmente simbolo e timeframe visuais. Isso permite manter o vinculo do ultimo perfil do grafico quando o usuario muda apenas o timeframe.
 
-Se o mesmo `chart_id` reaparecer com simbolo diferente do simbolo salvo, o Fusion entra em bloqueio seguro. Nesse modo ele nao sincroniza posicao nem abre novas entradas ate o usuario voltar ao ativo anterior.
+O chart state tambem registra o `deinitReason` do ultimo encerramento daquela instancia. Isso e usado para diferenciar:
+
+- `REASON_CHARTCHANGE`: o mesmo grafico mudou de simbolo ou timeframe e o Fusion deve tentar preservar o contexto operacional com aviso ou bloqueio seguro;
+- `REASON_CHARTCLOSE`: o grafico foi fechado de fato, entao um `chart_id` reaproveitado nao deve reviver automaticamente aquele contexto;
+- outros motivos de reinicializacao, como recompilacao ou restart, onde a restauracao continua valida.
+
+Se o mesmo `chart_id` reaparecer com simbolo diferente do simbolo salvo e o ultimo motivo foi `REASON_CHARTCHANGE`, o Fusion entra em bloqueio seguro. Nesse modo ele nao sincroniza posicao nem abre novas entradas ate o usuario voltar ao ativo anterior.

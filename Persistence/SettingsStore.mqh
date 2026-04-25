@@ -251,6 +251,7 @@ private:
       else if(key == "context.symbol") context.symbol = value;
       else if(key == "context.timeframe") context.timeframe = value;
       else if(key == "context.periodValue") context.periodValue = (int)StringToInteger(value);
+      else if(key == "context.deinitReason") context.deinitReason = (int)StringToInteger(value);
      }
 
 public:
@@ -414,6 +415,7 @@ public:
       WriteLine(handle, "context.symbol", context.symbol);
       WriteLine(handle, "context.timeframe", context.timeframe);
       WriteLine(handle, "context.periodValue", IntegerToString(context.periodValue));
+      WriteLine(handle, "context.deinitReason", IntegerToString(context.deinitReason));
       SaveSettingsBlock(handle, settings);
       WriteLine(handle, "activeProfileName", activeProfileName);
       WriteLine(handle, "started", IntegerToString((int)started));
@@ -445,6 +447,7 @@ public:
       context.symbol = "";
       context.timeframe = "";
       context.periodValue = 0;
+      context.deinitReason = -1;
       activeProfileName = "";
       started = false;
 

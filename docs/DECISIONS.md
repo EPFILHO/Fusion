@@ -120,6 +120,13 @@ Excecoes e limites:
 
 Perfis nomeados e estado automatico por grafico tem propositos diferentes e nao devem ser misturados.
 
+Na restauracao por grafico, `chart_id` continua sendo a chave principal, mas o Fusion nao deve tratar um grafico fechado como se fosse o mesmo contexto visual para sempre. Por isso o estado salvo tambem registra o `deinitReason`:
+
+- `REASON_CHARTCHANGE` preserva contexto e permite aviso/bloqueio quando o usuario muda simbolo ou timeframe;
+- `REASON_CHARTCLOSE` nao deve ser usado para ressuscitar contexto em um grafico novo com `chart_id` reaproveitado.
+
+Quando nao houver chart state valido, o Fusion deve tentar carregar o perfil nomeado em `defaultProfileName` de verdade. So na falta desse perfil e que os `inputs` atuais permanecem ativos.
+
 ## 11. Normalizacao Centralizada
 
 Regras que dependem de especificacao do ativo ou corretora devem passar por normalizacao.

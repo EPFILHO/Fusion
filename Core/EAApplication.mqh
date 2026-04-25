@@ -56,6 +56,7 @@ private:
       context.symbol    = _Symbol;
       context.timeframe = EnumToString((ENUM_TIMEFRAMES)Period());
       context.periodValue = (int)Period();
+      context.deinitReason = -1;
       return context;
      }
 
@@ -169,10 +170,16 @@ private:
 
    void                    PersistChartState(void)
      {
+      PersistChartState(-1);
+     }
+
+   void                    PersistChartState(const int deinitReason)
+     {
       if(!m_settings.autoSaveChartState || m_settings.isTester)
          return;
 
       SChartStateContext context = CurrentChartContext();
+      context.deinitReason = deinitReason;
       if(m_chartContext.chartId != 0)
         {
          context.chartId = m_chartContext.chartId;
@@ -204,6 +211,33 @@ private:
       if(m_chartContext.periodValue > 0)
          return (ENUM_TIMEFRAMES)m_chartContext.periodValue;
       return FUSION_DEFAULT_TIMEFRAME;
+     }
+
+   bool                    TryLoadProfileForBoot(const string profileName,SEASettings &settingsOut)
+     {
+      if(m_settings.isTester || profileName == "")
+         return false;
+
+      SEASettings loadedSettings;
+      if(!m_settingsStore.LoadProfile(profileName, loadedSettings))
+         return false;
+
+      loadedSettings.isTester = m_settings.isTester;
+      ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
+      settingsOut = loadedSettings;
+      return true;
+     }
+
+   bool                    ShouldRestoreSavedState(const SChartStateContext &restoredContext) const
+     {
+      if(restoredContext.deinitReason == REASON_CHARTCLOSE)
+         return false;
+
+      if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol &&
+         restoredContext.deinitReason != REASON_CHARTCHANGE)
+         return false;
+
+      return true;
      }
 
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
@@ -440,6 +474,7 @@ private:
       m_chartContext.symbol = "";
       m_chartContext.timeframe = "";
       m_chartContext.periodValue = 0;
+      m_chartContext.deinitReason = -1;
       m_activeProfileName   = "default";
       m_started             = false;
       m_modulesRegistered   = false;
@@ -462,43 +497,63 @@ private:
       m_runtimeBlockReason = "";
       m_runtimeNotice = "";
 
+      bool defaultProfileLoaded = false;
+      SEASettings bootSettings = m_settings;
+      if(TryLoadProfileForBoot(m_settings.defaultProfileName, bootSettings))
+        {
+         m_settings = bootSettings;
+         m_activeProfileName = m_settings.defaultProfileName;
+         defaultProfileLoaded = true;
+        }
+
       SEASettings restoredSettings = m_settings;
       SChartStateContext restoredContext = m_chartContext;
       string restoredProfile = "";
       bool restoredStarted = false;
+      bool restoredStateApplied = false;
       SPositionRuntimeState restoredState;
       ResetPositionRuntimeState(restoredState);
 
       if(m_settings.autoRestoreChartState &&
          m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState))
         {
-         restoredSettings.isTester = m_settings.isTester;
-         ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
-                                           ? (ENUM_TIMEFRAMES)restoredContext.periodValue
-                                           : OperationalFallbackTimeframe();
-         ResolveOperationalTimeframes(restoredSettings, restoreFallback);
-         m_settings = restoredSettings;
-         if(restoredContext.symbol != "")
-            m_chartContext.symbol = restoredContext.symbol;
-         if(restoredContext.timeframe != "")
-            m_chartContext.timeframe = restoredContext.timeframe;
-         if(restoredContext.periodValue > 0)
-            m_chartContext.periodValue = restoredContext.periodValue;
-         m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
-         m_positionState = restoredState;
+         if(ShouldRestoreSavedState(restoredContext))
+           {
+            restoredStateApplied = true;
+            restoredSettings.isTester = m_settings.isTester;
+            ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
+                                              ? (ENUM_TIMEFRAMES)restoredContext.periodValue
+                                              : OperationalFallbackTimeframe();
+            ResolveOperationalTimeframes(restoredSettings, restoreFallback);
+            m_settings = restoredSettings;
+            if(restoredContext.symbol != "")
+               m_chartContext.symbol = restoredContext.symbol;
+            if(restoredContext.timeframe != "")
+               m_chartContext.timeframe = restoredContext.timeframe;
+            if(restoredContext.periodValue > 0)
+               m_chartContext.periodValue = restoredContext.periodValue;
+            m_chartContext.deinitReason = restoredContext.deinitReason;
+            m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
+            m_positionState = restoredState;
 
-         if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
-           {
-            ApplyRuntimeBlock("Ativo do grafico mudou. Volte para " + restoredContext.symbol + ". Nao troque o ativo com o EA anexado. Isso pode causar prejuizo financeiro.");
-           }
-         else
-           {
-            // Regra de seguranca: em grafico real/demo o start exige clique manual.
-            m_started = m_settings.isTester;
-            if(restoredContext.timeframe != "" && restoredContext.timeframe != EnumToString((ENUM_TIMEFRAMES)Period()))
-               ApplyRuntimeNotice("Timeframe do grafico mudou. Os TFs operacionais do perfil foram mantidos, mas evite trocar o TF com o EA anexado. Isso pode causar confusao e prejuizo financeiro.");
+            if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
+              {
+               ApplyRuntimeBlock("Ativo do grafico mudou. Volte para " + restoredContext.symbol + ". Nao troque o ativo com o EA anexado. Isso pode causar prejuizo financeiro.");
+              }
+            else
+              {
+               // Regra de seguranca: em grafico real/demo o start exige clique manual.
+               m_started = m_settings.isTester;
+               if(restoredContext.deinitReason == REASON_CHARTCHANGE &&
+                  restoredContext.timeframe != "" &&
+                  restoredContext.timeframe != EnumToString((ENUM_TIMEFRAMES)Period()))
+                  ApplyRuntimeNotice("Timeframe do grafico mudou. Os TFs operacionais do perfil foram mantidos, mas evite trocar o TF com o EA anexado. Isso pode causar confusao e prejuizo financeiro.");
+              }
            }
         }
+
+      if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
+         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " nao foi encontrado. O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
@@ -570,7 +625,7 @@ private:
    void              Shutdown(const int reason)
      {
       EventKillTimer();
-      PersistChartState();
+      PersistChartState(reason);
       ReleaseRunningInstance();
       m_panel.Destroy(reason);
       m_signalManager.Shutdown();
