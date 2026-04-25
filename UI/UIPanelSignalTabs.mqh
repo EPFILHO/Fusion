@@ -138,7 +138,28 @@
       if(index < 0 || index >= 3)
          return false;
 
-      m_strategyPanels[index] = new CStrategyTogglePanel(StrategyPanelTitle(index), StrategyPanelKey(index), StrategyPanelCommand(index));
+      if(index == 0)
+         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_MA,
+                                                               StrategyPanelTitle(index),
+                                                               StrategyPanelKey(index),
+                                                               "Cruza medias rapida e lenta com TFs independentes.",
+                                                               StrategyPanelCommand(index),
+                                                               true);
+      else if(index == 1)
+         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_RSI,
+                                                               StrategyPanelTitle(index),
+                                                               StrategyPanelKey(index),
+                                                               "Gera sinais de entrada e saida com base no RSI.",
+                                                               StrategyPanelCommand(index),
+                                                               false);
+      else
+         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_BB,
+                                                               StrategyPanelTitle(index),
+                                                               StrategyPanelKey(index),
+                                                               "Gera sinais com leitura das bandas de Bollinger.",
+                                                               StrategyPanelCommand(index),
+                                                               false);
+
       if(m_strategyPanels[index] == NULL)
          return false;
 
@@ -167,7 +188,19 @@
       if(index < 0 || index >= 2)
          return false;
 
-      m_filterPanels[index] = new CFilterTogglePanel(FilterPanelTitle(index), FilterPanelKey(index), FilterPanelCommand(index));
+      if(index == 0)
+         m_filterPanels[index] = new CFilterTimeframePanel(FUSION_FILTER_PANEL_TREND,
+                                                           FilterPanelTitle(index),
+                                                           FilterPanelKey(index),
+                                                           "Valida a direcao do mercado com media movel.",
+                                                           FilterPanelCommand(index));
+      else
+         m_filterPanels[index] = new CFilterTimeframePanel(FUSION_FILTER_PANEL_RSI,
+                                                           FilterPanelTitle(index),
+                                                           FilterPanelKey(index),
+                                                           "Filtra sinais pela faixa operacional do RSI.",
+                                                           FilterPanelCommand(index));
+
       if(m_filterPanels[index] == NULL)
          return false;
 

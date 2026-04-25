@@ -74,7 +74,7 @@ No `MA Cross`, o modelo-alvo deve prever dois timeframes independentes:
 - `fastTF`
 - `slowTF`
 
-A primeira fase dessa virada ja entrou no motor: `SEASettings`, `Inputs`, persistencia e modulos atuais passaram a carregar timeframes explicitos. A exposicao completa desses campos na GUI continua como proxima camada.
+A primeira fase dessa virada entrou no motor, e a segunda ja chegou na GUI: `SEASettings`, `Inputs`, persistencia, modulos atuais e as abas `STRATS` e `FILTERS` passaram a trabalhar com timeframes explicitos por modulo.
 
 Esse passo tem prioridade acima de novos refactors cosmeticos em arquivos grandes.
 

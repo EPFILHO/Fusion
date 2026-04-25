@@ -49,6 +49,7 @@ Hoje ela permite:
 - criar perfis novos;
 - duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
 - validar lote, spread e magic com feedback visual;
+- configurar os timeframes operacionais dos modulos em `STRATS` e `FILTERS` com `ComboBox`;
 - manter avisos operacionais persistentes na aba `STATUS`.
 
 ## Documentacao Tecnica

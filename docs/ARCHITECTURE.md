@@ -149,6 +149,8 @@ Depois da criacao lazy por aba, o proximo nivel correto e a criacao lazy por sub
 
 Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para crescimento modular. Para adicionar uma nova estrategia ou filtro, o objetivo e encaixar uma nova unidade de painel sem reabrir a arquitetura inteira da aba.
 
+As paginas de estrategias e filtros devem preferir campos fechados para selecao de timeframe, usando `ComboBox` com valores explicitos do MT5. Isso evita erro de digitacao, simplifica validacao e preserva a coerencia entre GUI, perfil salvo e motor operacional.
+
 ## Prioridade Atual de Arquitetura
 
 O proximo salto estrutural do Fusion nao e mais a GUI. O proximo salto e consolidar o motor multi-timeframe por modulo.
@@ -172,7 +174,7 @@ No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde qu
 
 ## Proximas Evolucoes Arquiteturais
 
-- Expor na GUI os campos de timeframe por modulo ja existentes no motor.
+- Expandir o mesmo padrao modular de selecao de timeframe para novas estrategias e filtros que forem entrando no projeto.
 - Criar um modelo estruturado para status de bloqueios.
 - Expor estatisticas reais para `RESULTS` e `STATS`.
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.

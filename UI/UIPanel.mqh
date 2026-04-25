@@ -9,8 +9,8 @@
 #include "UIPanelTypes.mqh"
 #include "Pages/StatusPage.mqh"
 #include "Pages/ResultsPage.mqh"
-#include "StrategyTogglePanel.mqh"
-#include "FilterTogglePanel.mqh"
+#include "StrategyTimeframePanel.mqh"
+#include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
 
 class CFusionPanel : public CAppDialog
@@ -507,6 +507,58 @@ private:
          return true;
       if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
          return true;
+      if(m_draftSettings.maFastTimeframe != m_committedSettings.maFastTimeframe)
+         return true;
+      if(m_draftSettings.maSlowTimeframe != m_committedSettings.maSlowTimeframe)
+         return true;
+      if(m_draftSettings.rsiTimeframe != m_committedSettings.rsiTimeframe)
+         return true;
+      if(m_draftSettings.bbTimeframe != m_committedSettings.bbTimeframe)
+         return true;
+      if(m_draftSettings.trendMATimeframe != m_committedSettings.trendMATimeframe)
+         return true;
+      if(m_draftSettings.rsiFilterTimeframe != m_committedSettings.rsiFilterTimeframe)
+         return true;
+
+      return false;
+     }
+
+   bool                       HandleSignalPanelChange(const int id,const string objectName)
+     {
+      if(id != CHARTEVENT_CUSTOM + ON_CHANGE)
+         return false;
+
+      if(!CanEditSettings())
+        {
+         RefreshTheme();
+         return false;
+        }
+
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL)
+            continue;
+         if(m_strategyPanels[sp].HandleChange(objectName, m_draftSettings))
+           {
+            RefreshConfigValidation();
+            UpdateOverviews();
+            SyncStrategyPanels();
+            return true;
+           }
+        }
+
+      for(int fp = 0; fp < 2; ++fp)
+        {
+         if(m_filterPanels[fp] == NULL)
+            continue;
+         if(m_filterPanels[fp].HandleChange(objectName, m_draftSettings))
+           {
+            RefreshConfigValidation();
+            UpdateOverviews();
+            SyncFilterPanels();
+            return true;
+           }
+        }
 
       return false;
      }
@@ -1538,13 +1590,16 @@ public:
    virtual bool               OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
       bool result = CAppDialog::OnEvent(id, lparam, dparam, sparam);
+      bool changed = false;
       if(!m_minimized)
         {
-         RefreshConfigValidation();
-         if(result)
+         changed = HandleSignalPanelChange(id, sparam);
+         if(!changed)
+            RefreshConfigValidation();
+         if(result || changed)
             ApplyVisibility();
         }
-      return result;
+      return (result || changed);
      }
   };
 

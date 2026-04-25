@@ -18,6 +18,7 @@ public:
    virtual void   Hide(void) = 0;
    virtual void   Sync(const SEASettings &settings,const bool editable) = 0;
    virtual bool   HandleClick(const string objectName,SUICommand &command) = 0;
+   virtual bool   HandleChange(const string objectName,SEASettings &settings) = 0;
   };
 
 #endif

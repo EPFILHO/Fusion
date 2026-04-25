@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.022 - 2026-04-25
+- `STRATS` e `FILTERS` passaram a expor selecao de timeframe por modulo com `ComboBox`, sem depender de texto livre.
+- `MA Cross` agora pode ser configurado pela GUI com `TF Rapido` e `TF Lento`.
+- `RSI`, `Bollinger`, `Trend Filter` e `RSI Filter` agora podem ter seus timeframes operacionais editados visualmente e persistidos nos perfis.
+- A GUI passou a tratar mudanca de timeframe nas abas de estrategia e filtro como alteracao pendente real, habilitando `SALVAR` de forma coerente.
+- O suporte a `ComboBox` foi encapsulado em componentes reutilizaveis para manter a expansao de novas estrategias e filtros sem inflar o `UIPanel.mqh`.
+
 ## 1.021 - 2026-04-24
 - O motor do Fusion passou a carregar timeframes explicitos por modulo em `SEASettings`, `Inputs` e persistencia de perfis/chart state.
 - `MA Cross` agora suporta `fastTF` e `slowTF` independentes no nucleo operacional.

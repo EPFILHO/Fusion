@@ -85,6 +85,11 @@ public:
       command.type = m_toggleCommand;
       return true;
      }
+
+   bool              HandleChange(const string objectName,SEASettings &settings)
+     {
+      return false;
+     }
   };
 
 #endif

@@ -4,6 +4,7 @@
 #include <Controls\Button.mqh>
 #include <Controls\Label.mqh>
 #include <Controls\Edit.mqh>
+#include <Controls\ComboBox.mqh>
 #include "../Core/Types.mqh"
 
 #define FUSION_CLR_BG            C'34,40,52'
@@ -31,7 +32,80 @@
 
 string FusionTimeframeName(const ENUM_TIMEFRAMES timeframe)
   {
+   switch(timeframe)
+     {
+      case PERIOD_M1:   return "M1";
+      case PERIOD_M2:   return "M2";
+      case PERIOD_M3:   return "M3";
+      case PERIOD_M4:   return "M4";
+      case PERIOD_M5:   return "M5";
+      case PERIOD_M6:   return "M6";
+      case PERIOD_M10:  return "M10";
+      case PERIOD_M12:  return "M12";
+      case PERIOD_M15:  return "M15";
+      case PERIOD_M20:  return "M20";
+      case PERIOD_M30:  return "M30";
+      case PERIOD_H1:   return "H1";
+      case PERIOD_H2:   return "H2";
+      case PERIOD_H3:   return "H3";
+      case PERIOD_H4:   return "H4";
+      case PERIOD_H6:   return "H6";
+      case PERIOD_H8:   return "H8";
+      case PERIOD_H12:  return "H12";
+      case PERIOD_D1:   return "D1";
+      case PERIOD_W1:   return "W1";
+      case PERIOD_MN1:  return "MN1";
+     }
+
    return EnumToString(timeframe);
+  }
+
+int FusionTimeframeCount(void)
+  {
+   return 21;
+  }
+
+ENUM_TIMEFRAMES FusionTimeframeAt(const int index)
+  {
+   switch(index)
+     {
+      case 0:  return PERIOD_M1;
+      case 1:  return PERIOD_M2;
+      case 2:  return PERIOD_M3;
+      case 3:  return PERIOD_M4;
+      case 4:  return PERIOD_M5;
+      case 5:  return PERIOD_M6;
+      case 6:  return PERIOD_M10;
+      case 7:  return PERIOD_M12;
+      case 8:  return PERIOD_M15;
+      case 9:  return PERIOD_M20;
+      case 10: return PERIOD_M30;
+      case 11: return PERIOD_H1;
+      case 12: return PERIOD_H2;
+      case 13: return PERIOD_H3;
+      case 14: return PERIOD_H4;
+      case 15: return PERIOD_H6;
+      case 16: return PERIOD_H8;
+      case 17: return PERIOD_H12;
+      case 18: return PERIOD_D1;
+      case 19: return PERIOD_W1;
+      case 20: return PERIOD_MN1;
+     }
+
+   return PERIOD_M15;
+  }
+
+bool FusionPopulateTimeframeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(10);
+   for(int i = 0; i < FusionTimeframeCount(); ++i)
+     {
+      ENUM_TIMEFRAMES timeframe = FusionTimeframeAt(i);
+      if(!combo.AddItem(FusionTimeframeName(timeframe), (long)timeframe))
+         return false;
+     }
+
+   return true;
   }
 
 string FusionConflictText(const ENUM_CONFLICT_RESOLUTION mode)
