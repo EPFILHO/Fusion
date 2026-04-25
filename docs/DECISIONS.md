@@ -1,50 +1,52 @@
-# Decisões do Projeto
+# Decisoes do Projeto
 
-Este arquivo registra decisões estruturais do Fusion. A intenção é evitar que o projeto perca contexto com o tempo.
+Este arquivo registra decisoes estruturais do Fusion. A intencao e evitar que o projeto perca contexto com o tempo.
 
-## 1. Implementação Clean-Room
+## 1. Implementacao Clean-Room
 
-O Fusion pode se inspirar em boas ideias do Matrix, mas não deve copiar cegamente estrutura, nomes ou comportamento.
+O Fusion pode se inspirar em boas ideias do Matrix, mas nao deve copiar cegamente estrutura, nomes ou comportamento.
 
-O código é a fonte da verdade. Documentos externos ajudam a entender intenção, mas não substituem análise do que está implementado.
+O codigo e a fonte da verdade. Documentos externos ajudam a entender intencao, mas nao substituem analise do que esta implementado.
 
-## 2. Operação por Gráfico
+## 2. Operacao por Grafico
 
-Cada instância do EA opera somente o símbolo e timeframe do gráfico onde está anexada.
+Cada instancia do EA continua vinculada ao simbolo do grafico onde esta anexada.
 
-Isso permite ter múltiplos gráficos com o Fusion rodando ao mesmo tempo, desde que cada setup use Magic Number adequado para separação operacional.
+O timeframe do grafico e contexto visual. O timeframe operacional deve vir do perfil e, progressivamente, de cada modulo individual.
 
-## 3. Uma Posição Líquida por EA
+Isso permite ter multiplos graficos com o Fusion rodando ao mesmo tempo, desde que cada setup use Magic Number adequado para separacao operacional.
 
-Cada instância do Fusion deve gerenciar apenas uma posição líquida por vez.
+## 3. Uma Posicao Liquida por EA
 
-Essa regra vale como política operacional mesmo em contas hedge. Em contas netting/exchange, o EA ainda precisa respeitar a limitação natural da conta e evitar interferência com posições de outro magic.
+Cada instancia do Fusion deve gerenciar apenas uma posicao liquida por vez.
+
+Essa regra vale como politica operacional mesmo em contas hedge. Em contas netting ou exchange, o EA ainda precisa respeitar a limitacao natural da conta e evitar interferencia com posicoes de outro magic.
 
 ## 4. Magic Number Pertence ao Perfil
 
-O Magic Number pertence ao perfil/EA, não a estratégias individuais.
+O Magic Number pertence ao perfil/EA, nao a estrategias individuais.
 
-Motivo:
+Motivos:
 
-- comentários de ordem não são fonte confiável;
-- comentários podem sumir em TP parcial;
-- algumas corretoras não permitem alterar comentário;
-- múltiplas estratégias dentro do mesmo EA compartilham a mesma posição operacional;
-- perfis de mercados diferentes não devem ser reutilizados por acidente.
+- comentarios de ordem nao sao fonte confiavel;
+- comentarios podem sumir em TP parcial;
+- algumas corretoras nao permitem alterar comentario;
+- multiplas estrategias dentro do mesmo EA compartilham a mesma posicao operacional;
+- perfis de mercados diferentes nao devem ser reutilizados por acidente.
 
-Perfis salvos devem ter Magic Numbers únicos.
+Perfis salvos devem ter Magic Numbers unicos.
 
-## 5. Estratégia Dona da Entrada Dona da Saída por Sinal
+## 5. Estrategia Dona da Entrada Dona da Saida por Sinal
 
-A estratégia que abriu a posição é a única autorizada a gerar saída por sinal daquela posição.
+A estrategia que abriu a posicao e a unica autorizada a gerar saida por sinal daquela posicao.
 
-Proteções de risco continuam podendo forçar saída, porque elas são regras superiores de segurança.
+Protecoes de risco continuam podendo forcar saida, porque elas sao regras superiores de seguranca.
 
-## 6. Filtros Não Geram Entrada
+## 6. Filtros Nao Geram Entrada
 
 Filtros apenas aprovam ou bloqueiam sinais antes da entrada.
 
-Eles não devem disputar propriedade de posição, não devem emitir ordem e não devem substituir a estratégia.
+Eles nao devem disputar propriedade de posicao, nao devem emitir ordem e nao devem substituir a estrategia.
 
 ## 6.1. Ordem de Ataque Importa
 
@@ -52,7 +54,6 @@ O Fusion deve priorizar primeiro as mudancas que definem o comportamento operaci
 
 Hoje a ordem correta e:
 
-- consolidar a restauracao segura por grafico;
 - consolidar o modelo multi-timeframe por modulo;
 - depois reduzir ainda mais `EAApplication.mqh` e `UIPanel.mqh`.
 
@@ -73,84 +74,89 @@ No `MA Cross`, o modelo-alvo deve prever dois timeframes independentes:
 - `fastTF`
 - `slowTF`
 
+A primeira fase dessa virada ja entrou no motor: `SEASettings`, `Inputs`, persistencia e modulos atuais passaram a carregar timeframes explicitos. A exposicao completa desses campos na GUI continua como proxima camada.
+
 Esse passo tem prioridade acima de novos refactors cosmeticos em arquivos grandes.
 
 ## 7. Hot Reload Seguro Antes de Hot Reload Conveniente
 
-O Fusion foi desenhado com pontos de reload, mas a GUI não permite edição enquanto o EA está rodando ou gerenciando posição.
+O Fusion foi desenhado com pontos de reload, mas a GUI nao permite edicao enquanto o EA esta rodando ou gerenciando posicao.
 
-Essa escolha evita confusão operacional e reduz risco de mau uso. No futuro, alterações podem ser classificadas em:
+Essa escolha evita confusao operacional e reduz risco de mau uso. No futuro, alteracoes podem ser classificadas em:
 
 - hot: seguras sem reinicializar indicadores;
-- warm: exigem recriar indicadores, mas não mexem em posição aberta;
-- cold: exigem reaplicação completa e devem ocorrer com EA parado.
+- warm: exigem recriar indicadores, mas nao mexem em posicao aberta;
+- cold: exigem reaplicacao completa e devem ocorrer com EA parado.
 
 ## 8. Strategy Tester Usa Inputs
 
-Perfis da GUI são voltados à operação em gráfico.
+Perfis da GUI sao voltados a operacao em grafico.
 
-No Strategy Tester, a fonte principal de parâmetros deve ser a lista de `input`, porque isso permite otimização e backtest nativo do MT5.
+No Strategy Tester, a fonte principal de parametros deve ser a lista de `input`, porque isso permite otimizacao e backtest nativo do MT5.
 
-## 9. GUI É Parte do Produto
+## 9. GUI e Parte do Produto
 
-A GUI não é um acessório descartável.
+A GUI nao e um acessorio descartavel.
 
-Ela será o centro de operação visual, perfis, validação e feedback de bloqueios. Por isso deve evoluir com estrutura clara, abas e subpáginas desde cedo.
+Ela sera o centro de operacao visual, perfis, validacao e feedback de bloqueios. Por isso deve evoluir com estrutura clara, abas e subpaginas desde cedo.
 
-## 10. Persistência Separada por Conceito
+Avisos operacionais persistentes, como troca indevida de ativo ou mudanca relevante de contexto do grafico, devem ficar concentrados na aba `STATUS`.
 
-Perfis nomeados guardam configurações de setups.
+## 10. Persistencia Separada por Conceito
 
-Estado automático por gráfico guarda restauração local daquela instância, como perfil ativo, estado anterior e dados de posição em gerenciamento.
+Perfis nomeados guardam configuracoes de setup.
 
-Por segurança, o Fusion não restaura `started=true` em gráfico real/demo. Ao anexar, recompilar ou reinicializar o EA, a operação volta pausada e exige clique manual em `INICIAR`.
+Estado automatico por grafico guarda restauracao local daquela instancia, como perfil ativo, estado anterior e dados de posicao em gerenciamento.
 
-Exceções e limites:
+Por seguranca, o Fusion nao restaura `started=true` em grafico real ou demo. Ao anexar, recompilar ou reinicializar o EA, a operacao volta pausada e exige clique manual em `INICIAR`.
+
+Excecoes e limites:
 
 - no Strategy Tester, o EA continua iniciando automaticamente para preservar backtests via `input`;
-- se uma posição aberta for sincronizada/restaurada, ela continua sendo gerenciada mesmo com o EA pausado;
-- pausar significa bloquear novas entradas, não abandonar uma operação já aberta.
+- se uma posicao aberta for sincronizada ou restaurada, ela continua sendo gerenciada mesmo com o EA pausado;
+- pausar significa bloquear novas entradas, nao abandonar uma operacao ja aberta.
 
-Esses dois arquivos têm propósitos diferentes e não devem ser misturados.
+Perfis nomeados e estado automatico por grafico tem propositos diferentes e nao devem ser misturados.
 
-## 11. Normalização Centralizada
+## 11. Normalizacao Centralizada
 
-Regras que dependem de especificação do ativo/corretora devem passar por normalização.
+Regras que dependem de especificacao do ativo ou corretora devem passar por normalizacao.
 
-Isso evita espalhar lógica de volume, step, digits, stops level e freeze level por vários módulos.
+Isso evita espalhar logica de volume, step, digits, stops level e freeze level por varios modulos.
 
-## 12. Changelog Desde o Início
+## 12. Changelog Desde o Inicio
 
-Toda mudança relevante deve entrar no `CHANGELOG.md`.
+Toda mudanca relevante deve entrar no `CHANGELOG.md`.
 
-O histórico ajuda humanos e IAs a entender por que o projeto está como está, especialmente quando decisões anteriores são revertidas ou refinadas.
+O historico ajuda humanos e IAs a entender por que o projeto esta como esta, especialmente quando decisoes anteriores sao revertidas ou refinadas.
+
 ## 13. GUI Pesada Deve Nascer Sob Demanda
 
-Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy/on-demand em vez de manter todos os controles vivos desde o boot.
+Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy ou on-demand, em vez de manter todos os controles vivos desde o boot.
 
 O shell da aba pode nascer antes, mas o conteudo interno deve preferir subpaginas independentes. Isso reduz carga de eventos, evita uma GUI monolitica e facilita encaixar novos blocos sem refatorar tudo.
 
-## 14. Estado do GrÃ¡fico Deve Ser Restaurado pelo `chart_id`
+## 14. Estado do Grafico Deve Ser Restaurado pelo `chart_id`
 
-A restauraÃ§Ã£o automÃ¡tica do Fusion por grÃ¡fico deve ser vinculada ao `chart_id`.
+A restauracao automatica do Fusion por grafico deve ser vinculada ao `chart_id`.
 
 Motivos:
 
-- `magic number` identifica o perfil, nÃ£o o grÃ¡fico;
-- `symbol + timeframe + magic` falha quando o usuÃ¡rio muda o timeframe;
-- o objetivo da restauraÃ§Ã£o Ã© devolver o contexto daquele grÃ¡fico, nÃ£o adivinhar um setup por combinaÃ§Ã£o de campos.
+- `magic number` identifica o perfil, nao o grafico;
+- `symbol + timeframe + magic` falha quando o usuario muda o timeframe;
+- o objetivo da restauracao e devolver o contexto daquele grafico, nao adivinhar um setup por combinacao de campos.
 
-O estado salvo por grÃ¡fico tambÃ©m deve carregar metadados do chart, principalmente sÃ­mbolo e timeframe visuais.
+O estado salvo por grafico tambem deve carregar metadados do chart, principalmente simbolo e timeframe visuais.
 
-## 15. Troca de Ativo do GrÃ¡fico Deve Bloquear o Fusion
+## 15. Troca de Ativo do Grafico Deve Bloquear o Fusion
 
-Se o `chart_id` restaurado apontar para um contexto salvo com sÃ­mbolo diferente do sÃ­mbolo atual do grÃ¡fico, o Fusion nÃ£o deve tentar se adaptar automaticamente.
+Se o `chart_id` restaurado apontar para um contexto salvo com simbolo diferente do simbolo atual do grafico, o Fusion nao deve tentar se adaptar automaticamente.
 
 Nesse caso, o EA entra em bloqueio seguro:
 
-- nÃ£o sincroniza posiÃ§Ã£o com o sÃ­mbolo errado;
-- nÃ£o abre novas entradas;
-- nÃ£o permite iniciar a operaÃ§Ã£o pela GUI;
-- orienta o usuÃ¡rio a voltar ao ativo anterior para recuperar o contexto.
+- nao sincroniza posicao com o simbolo errado;
+- nao abre novas entradas;
+- nao permite iniciar a operacao pela GUI;
+- orienta o usuario a voltar ao ativo anterior para recuperar o contexto.
 
-Essa escolha Ã© deliberadamente conservadora. Mudar timeframe Ã© tolerÃ¡vel. Mudar o ativo do grÃ¡fico nÃ£o Ã©.
+Essa escolha e deliberadamente conservadora. Mudar timeframe e toleravel. Mudar o ativo do grafico nao e.

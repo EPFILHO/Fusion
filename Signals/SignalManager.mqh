@@ -15,7 +15,6 @@ private:
    CFilterBase        *m_filters[];
    IConflictResolver  *m_resolver;
    string              m_symbol;
-   ENUM_TIMEFRAMES     m_timeframe;
 
 public:
                      CSignalManager(void)
@@ -23,7 +22,6 @@ public:
       m_logger    = NULL;
       m_resolver  = NULL;
       m_symbol    = "";
-      m_timeframe = PERIOD_CURRENT;
       ArrayResize(m_strategies, 0);
       ArrayResize(m_filters, 0);
      }
@@ -55,11 +53,10 @@ public:
       return true;
      }
 
-   bool              Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe,const SEASettings &settings)
+   bool              Initialize(CLogger *logger,const string symbol,const SEASettings &settings)
      {
       m_logger    = logger;
       m_symbol    = symbol;
-      m_timeframe = timeframe;
 
       for(int i = 0; i < ArraySize(m_strategies); i++)
         {
@@ -69,7 +66,7 @@ public:
          if(!m_strategies[i].Reload(settings, RELOAD_COLD))
             return false;
 
-         if(!m_strategies[i].Initialize(logger, symbol, timeframe))
+         if(!m_strategies[i].Initialize(logger, symbol))
             return false;
         }
 
@@ -81,7 +78,7 @@ public:
          if(!m_filters[i].Reload(settings, RELOAD_COLD))
             return false;
 
-         if(!m_filters[i].Initialize(logger, symbol, timeframe))
+         if(!m_filters[i].Initialize(logger, symbol))
             return false;
         }
 

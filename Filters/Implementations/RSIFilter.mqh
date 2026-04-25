@@ -36,9 +36,9 @@ public:
       m_price   = PRICE_CLOSE;
      }
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe) override
+   virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
-      if(!CFilterBase::Initialize(logger, symbol, timeframe))
+      if(!CFilterBase::Initialize(logger, symbol))
          return false;
       if(!m_enabled)
          return true;
@@ -60,8 +60,11 @@ public:
       if(scope == RELOAD_HOT && m_initialized)
          return true;
 
-      bool changed = (m_period != settings.rsiFilterPeriod || m_price != settings.rsiFilterPrice);
+      bool changed = (m_period != settings.rsiFilterPeriod ||
+                      m_timeframe != settings.rsiFilterTimeframe ||
+                      m_price != settings.rsiFilterPrice);
       m_period     = settings.rsiFilterPeriod;
+      m_timeframe  = settings.rsiFilterTimeframe;
       m_price      = settings.rsiFilterPrice;
 
       if(!m_initialized)

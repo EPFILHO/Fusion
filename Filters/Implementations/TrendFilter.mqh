@@ -34,9 +34,9 @@ public:
       m_price  = PRICE_CLOSE;
      }
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe) override
+   virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
-      if(!CFilterBase::Initialize(logger, symbol, timeframe))
+      if(!CFilterBase::Initialize(logger, symbol))
          return false;
       if(!m_enabled)
          return true;
@@ -57,10 +57,12 @@ public:
          return true;
 
       bool changed = (m_period != settings.trendMAPeriod ||
+                      m_timeframe != settings.trendMATimeframe ||
                       m_method != settings.trendMAMethod ||
                       m_price  != settings.trendMAPrice);
 
       m_period = settings.trendMAPeriod;
+      m_timeframe = settings.trendMATimeframe;
       m_method = settings.trendMAMethod;
       m_price  = settings.trendMAPrice;
 

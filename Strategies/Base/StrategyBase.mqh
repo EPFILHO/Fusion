@@ -33,11 +33,10 @@ public:
 
    virtual          ~CStrategyBase(void) {}
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe)
+   virtual bool      Initialize(CLogger *logger,const string symbol)
      {
       m_logger      = logger;
       m_symbol      = symbol;
-      m_timeframe   = timeframe;
       m_initialized = true;
       return true;
      }

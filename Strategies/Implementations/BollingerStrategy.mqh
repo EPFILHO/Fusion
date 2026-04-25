@@ -93,9 +93,9 @@ public:
       m_exitMode  = EXIT_OPPOSITE_SIGNAL;
      }
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe) override
+   virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
-      if(!CStrategyBase::Initialize(logger, symbol, timeframe))
+      if(!CStrategyBase::Initialize(logger, symbol))
          return false;
       if(!m_enabled)
          return true;
@@ -119,10 +119,12 @@ public:
          return true;
 
       bool changed = (m_period != settings.bbPeriod ||
+                      m_timeframe != settings.bbTimeframe ||
                       m_deviation != settings.bbDeviation ||
                       m_price != settings.bbPrice);
 
       m_period    = settings.bbPeriod;
+      m_timeframe = settings.bbTimeframe;
       m_deviation = settings.bbDeviation;
       m_price     = settings.bbPrice;
 

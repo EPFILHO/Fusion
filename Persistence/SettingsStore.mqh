@@ -89,12 +89,15 @@ private:
       WriteLine(handle, "maCrossPriority", IntegerToString(settings.maCrossPriority));
       WriteLine(handle, "maFastPeriod", IntegerToString(settings.maFastPeriod));
       WriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod));
+      WriteLine(handle, "maFastTimeframe", IntegerToString((int)settings.maFastTimeframe));
+      WriteLine(handle, "maSlowTimeframe", IntegerToString((int)settings.maSlowTimeframe));
       WriteLine(handle, "maMethod", IntegerToString((int)settings.maMethod));
       WriteLine(handle, "maPrice", IntegerToString((int)settings.maPrice));
       WriteLine(handle, "maExitMode", IntegerToString((int)settings.maExitMode));
       WriteLine(handle, "useRSI", IntegerToString((int)settings.useRSI));
       WriteLine(handle, "rsiPriority", IntegerToString(settings.rsiPriority));
       WriteLine(handle, "rsiPeriod", IntegerToString(settings.rsiPeriod));
+      WriteLine(handle, "rsiTimeframe", IntegerToString((int)settings.rsiTimeframe));
       WriteLine(handle, "rsiOversold", IntegerToString(settings.rsiOversold));
       WriteLine(handle, "rsiOverbought", IntegerToString(settings.rsiOverbought));
       WriteLine(handle, "rsiMiddle", IntegerToString(settings.rsiMiddle));
@@ -104,16 +107,19 @@ private:
       WriteLine(handle, "useBollinger", IntegerToString((int)settings.useBollinger));
       WriteLine(handle, "bbPriority", IntegerToString(settings.bbPriority));
       WriteLine(handle, "bbPeriod", IntegerToString(settings.bbPeriod));
+      WriteLine(handle, "bbTimeframe", IntegerToString((int)settings.bbTimeframe));
       WriteLine(handle, "bbDeviation", DoubleToString(settings.bbDeviation, 2));
       WriteLine(handle, "bbPrice", IntegerToString((int)settings.bbPrice));
       WriteLine(handle, "bbMode", IntegerToString((int)settings.bbMode));
       WriteLine(handle, "bbExitMode", IntegerToString((int)settings.bbExitMode));
       WriteLine(handle, "useTrendFilter", IntegerToString((int)settings.useTrendFilter));
       WriteLine(handle, "trendMAPeriod", IntegerToString(settings.trendMAPeriod));
+      WriteLine(handle, "trendMATimeframe", IntegerToString((int)settings.trendMATimeframe));
       WriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod));
       WriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice));
       WriteLine(handle, "useRSIFilter", IntegerToString((int)settings.useRSIFilter));
       WriteLine(handle, "rsiFilterPeriod", IntegerToString(settings.rsiFilterPeriod));
+      WriteLine(handle, "rsiFilterTimeframe", IntegerToString((int)settings.rsiFilterTimeframe));
       WriteLine(handle, "rsiFilterBuyMin", IntegerToString(settings.rsiFilterBuyMin));
       WriteLine(handle, "rsiFilterSellMax", IntegerToString(settings.rsiFilterSellMax));
       WriteLine(handle, "rsiFilterPrice", IntegerToString((int)settings.rsiFilterPrice));
@@ -168,12 +174,15 @@ private:
       else if(key == "maCrossPriority") settings.maCrossPriority = (int)StringToInteger(value);
       else if(key == "maFastPeriod") settings.maFastPeriod = (int)StringToInteger(value);
       else if(key == "maSlowPeriod") settings.maSlowPeriod = (int)StringToInteger(value);
+      else if(key == "maFastTimeframe") settings.maFastTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
+      else if(key == "maSlowTimeframe") settings.maSlowTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "maMethod") settings.maMethod = (ENUM_MA_METHOD)StringToInteger(value);
       else if(key == "maPrice") settings.maPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "maExitMode") settings.maExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useRSI") settings.useRSI = (bool)StringToInteger(value);
       else if(key == "rsiPriority") settings.rsiPriority = (int)StringToInteger(value);
       else if(key == "rsiPeriod") settings.rsiPeriod = (int)StringToInteger(value);
+      else if(key == "rsiTimeframe") settings.rsiTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "rsiOversold") settings.rsiOversold = (int)StringToInteger(value);
       else if(key == "rsiOverbought") settings.rsiOverbought = (int)StringToInteger(value);
       else if(key == "rsiMiddle") settings.rsiMiddle = (int)StringToInteger(value);
@@ -183,16 +192,19 @@ private:
       else if(key == "useBollinger") settings.useBollinger = (bool)StringToInteger(value);
       else if(key == "bbPriority") settings.bbPriority = (int)StringToInteger(value);
       else if(key == "bbPeriod") settings.bbPeriod = (int)StringToInteger(value);
+      else if(key == "bbTimeframe") settings.bbTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "bbDeviation") settings.bbDeviation = StringToDouble(value);
       else if(key == "bbPrice") settings.bbPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "bbMode") settings.bbMode = (ENUM_BB_SIGNAL_MODE)StringToInteger(value);
       else if(key == "bbExitMode") settings.bbExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useTrendFilter") settings.useTrendFilter = (bool)StringToInteger(value);
       else if(key == "trendMAPeriod") settings.trendMAPeriod = (int)StringToInteger(value);
+      else if(key == "trendMATimeframe") settings.trendMATimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "trendMAMethod") settings.trendMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
       else if(key == "trendMAPrice") settings.trendMAPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "useRSIFilter") settings.useRSIFilter = (bool)StringToInteger(value);
       else if(key == "rsiFilterPeriod") settings.rsiFilterPeriod = (int)StringToInteger(value);
+      else if(key == "rsiFilterTimeframe") settings.rsiFilterTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "rsiFilterBuyMin") settings.rsiFilterBuyMin = (int)StringToInteger(value);
       else if(key == "rsiFilterSellMax") settings.rsiFilterSellMax = (int)StringToInteger(value);
       else if(key == "rsiFilterPrice") settings.rsiFilterPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
@@ -223,6 +235,7 @@ private:
       if(key == "context.chartId") context.chartId = (ulong)StringToInteger(value);
       else if(key == "context.symbol") context.symbol = value;
       else if(key == "context.timeframe") context.timeframe = value;
+      else if(key == "context.periodValue") context.periodValue = (int)StringToInteger(value);
      }
 
 public:
@@ -379,6 +392,7 @@ public:
       WriteLine(handle, "context.chartId", StringFormat("%I64u", context.chartId));
       WriteLine(handle, "context.symbol", context.symbol);
       WriteLine(handle, "context.timeframe", context.timeframe);
+      WriteLine(handle, "context.periodValue", IntegerToString(context.periodValue));
       SaveSettingsBlock(handle, settings);
       WriteLine(handle, "activeProfileName", activeProfileName);
       WriteLine(handle, "started", IntegerToString((int)started));
@@ -409,6 +423,7 @@ public:
       context.chartId = chartId;
       context.symbol = "";
       context.timeframe = "";
+      context.periodValue = 0;
       activeProfileName = "";
       started = false;
 

@@ -1316,6 +1316,7 @@ public:
       m_snapshot.useRSIFilter = false;
       m_snapshot.runtimeBlocked = false;
       m_snapshot.runtimeBlockReason = "";
+      m_snapshot.runtimeNotice = "";
       ClearPendingCommand();
      }
 

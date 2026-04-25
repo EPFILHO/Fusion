@@ -1,63 +1,65 @@
 # Arquitetura do Fusion
 
-Este documento descreve a arquitetura atual do Fusion e serve como guia para manutenção humana ou assistida por IA.
+Este documento descreve a arquitetura atual do Fusion e serve como guia para manutencao humana ou assistida por IA.
 
 ## Objetivo
 
-O Fusion é um EA modular para MT5. A meta é permitir que estratégias, filtros, proteções e regras de risco sejam adicionados sem transformar o projeto em um bloco único difícil de testar e manter.
+O Fusion e um EA modular para MT5. A meta e permitir que estrategias, filtros, protecoes e regras de risco sejam adicionados sem transformar o projeto em um bloco unico dificil de testar e manter.
 
-O projeto deve permanecer simples, mas não simplista: cada módulo precisa ter responsabilidade clara, poucas dependências e um ponto previsível de integração.
+O projeto deve permanecer simples, mas nao simplista: cada modulo precisa ter responsabilidade clara, poucas dependencias e um ponto previsivel de integracao.
 
 ## Fluxo Principal
 
-1. `Fusion.mq5` cria uma instância de `CFusionApplication`.
-2. `CFusionApplication` carrega inputs, estado salvo do gráfico e módulos principais.
-3. Estratégias e filtros são registrados no `CSignalManager`.
-4. A cada tick, o EA sincroniza a posição, gerencia posição aberta e, se permitido, avalia novo sinal.
+1. `Fusion.mq5` cria uma instancia de `CFusionApplication`.
+2. `CFusionApplication` carrega inputs, estado salvo do grafico e modulos principais.
+3. Estrategias e filtros sao registrados no `CSignalManager`.
+4. A cada tick, o EA sincroniza a posicao, gerencia posicao aberta e, se permitido, avalia novo sinal.
 5. O sinal passa por filtros e por um resolvedor de conflito.
-6. O plano de risco é calculado por `CRiskManager`.
-7. A ordem é enviada por `CExecutionService`.
-8. Proteções podem bloquear entrada ou forçar saída.
-9. A GUI envia comandos para a aplicação, mas a aplicação continua sendo dona do estado operacional.
+6. O plano de risco e calculado por `CRiskManager`.
+7. A ordem e enviada por `CExecutionService`.
+8. Protecoes podem bloquear entrada ou forcar saida.
+9. A GUI envia comandos para a aplicacao, mas a aplicacao continua sendo dona do estado operacional.
 
-## Responsabilidades dos Módulos
+## Responsabilidades dos Modulos
 
 ### `Core`
 
-Contém o ciclo de vida do EA, tipos compartilhados, inputs, logger, registro de instância e a classe `CFusionApplication`.
+Contem o ciclo de vida do EA, tipos compartilhados, inputs, logger, registro de instancia e a classe `CFusionApplication`.
 
-`CFusionApplication` é o orquestrador. Ele não deve virar um depósito de regras específicas de estratégia. Sempre que uma regra puder pertencer a risco, proteção, execução, persistência ou sinal, ela deve sair do core.
+`CFusionApplication` e o orquestrador. Ele nao deve virar um deposito de regras especificas de estrategia. Sempre que uma regra puder pertencer a risco, protecao, execucao, persistencia ou sinal, ela deve sair do core.
 
 ### `Signals`
 
-Coordena estratégias, filtros e resolvedores.
+Coordena estrategias, filtros e resolvedores.
 
-As estratégias produzem sinais. Os filtros aprovam ou bloqueiam sinais. O resolvedor decide o que fazer quando mais de uma estratégia produz sinal ao mesmo tempo.
+As estrategias produzem sinais. Os filtros aprovam ou bloqueiam sinais. O resolvedor decide o que fazer quando mais de uma estrategia produz sinal ao mesmo tempo.
 
-Na inicialização, o `SignalManager` deve aplicar as configurações do perfil antes de criar indicadores. Módulos desabilitados não devem abrir handles desnecessários nem consumir tempo de troca de timeframe.
+Na inicializacao, o `SignalManager` deve aplicar as configuracoes do perfil antes de criar indicadores. Modulos desabilitados nao devem abrir handles desnecessarios nem consumir tempo de troca de timeframe.
+
+O `SignalManager` nao deve impor um timeframe unico ao conjunto de modulos. A direcao do Fusion e carregar timeframes operacionais explicitos por estrategia e por filtro.
 
 ### `Strategies`
 
-Cada estratégia herda de `CStrategyBase`.
+Cada estrategia herda de `CStrategyBase`.
 
-Uma estratégia deve:
+Uma estrategia deve:
 
-- carregar seus próprios parâmetros;
+- carregar seus proprios parametros;
 - inicializar e liberar indicadores;
 - produzir sinal de entrada;
-- produzir sinal de saída apenas para posições que ela abriu.
+- produzir sinal de saida apenas para posicoes que ela abriu.
 
-Uma estratégia não deve abrir ordem diretamente, alterar lote, nem fazer gestão financeira. Isso fica em `Risk`, `Protection` e `Execution`.
+Uma estrategia nao deve abrir ordem diretamente, alterar lote, nem fazer gestao financeira. Isso fica em `Risk`, `Protection` e `Execution`.
 
 ### `Filters`
 
 Cada filtro herda de `CFilterBase`.
 
-Um filtro deve responder se um sinal pode seguir adiante. Ele não deve gerar entrada por conta própria. Filtros são camadas de validação, não donos da posição.
+Um filtro deve responder se um sinal pode seguir adiante. Ele nao deve gerar entrada por conta propria. Filtros sao camadas de validacao, nao donos da posicao.
 
 ### `Risk`
 
-Calcula plano de entrada e gestão de posição:
+Calcula plano de entrada e gestao de posicao:
 
 - lote fixo;
 - stop loss;
@@ -66,40 +68,42 @@ Calcula plano de entrada e gestão de posição:
 - breakeven;
 - trailing stop.
 
-Este módulo não envia ordens. Ele calcula o que deve ser feito.
+Este modulo nao envia ordens. Ele calcula o que deve ser feito.
 
 ### `Protection`
 
-Bloqueia entradas ou força saídas com base em regras de segurança:
+Bloqueia entradas ou forca saidas com base em regras de seguranca:
 
 - spread;
-- janela de sessão;
-- limites diários;
+- janela de sessao;
+- limites diarios;
 - drawdown;
-- streak de ganho/perda.
+- streak de ganho ou perda.
 
-O módulo deve evoluir para expor motivos de bloqueio de forma estruturada para a GUI.
+O modulo deve evoluir para expor motivos de bloqueio de forma estruturada para a GUI.
 
 ### `Execution`
 
-Centraliza envio, fechamento parcial, fechamento total, modificação de stops e sincronização de posição.
+Centraliza envio, fechamento parcial, fechamento total, modificacao de stops e sincronizacao de posicao.
 
-Este é o único lugar que deve conversar diretamente com operações de trade de baixo nível, salvo exceções justificadas.
+Este e o unico lugar que deve conversar diretamente com operacoes de trade de baixo nivel, salvo excecoes justificadas.
 
 ### `Persistence`
 
-Salva e carrega perfis nomeados e estado automático por gráfico.
+Salva e carrega perfis nomeados e estado automatico por grafico.
 
-Perfis são configurações operacionais. Estado de gráfico é restauração local da instância. Esses dois conceitos não devem ser misturados.
+Perfis sao configuracoes operacionais. Estado de grafico e restauracao local da instancia. Esses dois conceitos nao devem ser misturados.
 
-Em gráfico real/demo, a restauração de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posição aberta sincronizada/restaurada.
+Em grafico real ou demo, a restauracao de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posicao aberta sincronizada ou restaurada.
+
+O estado por grafico guarda tambem o contexto visual do chart. Esse contexto serve para restauracao segura e para alertas ao usuario, nao para redefinir os timeframes operacionais dos modulos.
 
 ### `Normalization`
 
-Centraliza detalhes de símbolo e corretora:
+Centraliza detalhes de simbolo e corretora:
 
-- volume mínimo;
-- volume máximo;
+- volume minimo;
+- volume maximo;
 - step de volume;
 - digits;
 - point;
@@ -108,29 +112,31 @@ Centraliza detalhes de símbolo e corretora:
 - stops level;
 - freeze level.
 
-Qualquer regra que dependa de especificação do ativo deve preferir este módulo.
+Qualquer regra que dependa de especificacao do ativo deve preferir este modulo.
 
 ### `UI`
 
-A GUI é parte do projeto porque concentra operação em gráfico, perfis e validações visuais.
+A GUI e parte do projeto porque concentra operacao em grafico, perfis e validacoes visuais.
 
-A UI não deve executar trade diretamente. Ela monta comandos e envia para `CFusionApplication`.
+A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusionApplication`.
 
-`CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que já têm responsabilidade própria ficam em includes dedicados:
+`CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que ja tem responsabilidade propria ficam em includes dedicados:
 
-- `UIPanelTypes.mqh`: dimensões, enums e constantes da UI.
+- `UIPanelTypes.mqh`: dimensoes, enums e constantes da UI.
 - `UI/Pages/StatusPage.mqh`: componente da aba `STATUS`.
 - `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
-- `UIPanelSignalTabs.mqh`: abas de estratégias e filtros.
-- `UIPanelProfiles.mqh`: administração de perfis.
+- `UIPanelSignalTabs.mqh`: abas de estrategias e filtros.
+- `UIPanelProfiles.mqh`: administracao de perfis.
 
-Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo método `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoração.
+Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo metodo `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoracao.
 
-Atualizações periódicas da GUI devem alterar dados, textos e estilos, mas não devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criação do painel, navegação ou troca explícita de modo.
+Mensagens operacionais persistentes devem ficar concentradas em `STATUS`. A aba `RESULTS` deve permanecer voltada a leitura de estado e resultados, sem acumular alertas de contexto.
 
-O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensáveis. Abas pesadas, listas de perfis, validações de configuração e sincronização de páginas de estratégias/filtros devem rodar sob demanda ou quando a aba correspondente estiver visível.
+Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criacao do painel, navegacao ou troca explicita de modo.
 
-As abas principais devem preferir criacao lazy/on-demand. No estado atual, o painel nasce com `STATUS` e com a estrutura global minima; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` passam a ser materializadas na primeira abertura. Isso reduz custo de reinicializacao em troca de timeframe e deixa o crescimento da GUI mais previsivel.
+O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensaveis. Abas pesadas, listas de perfis, validacoes de configuracao e sincronizacao de paginas de estrategias ou filtros devem rodar sob demanda ou quando a aba correspondente estiver visivel.
+
+As abas principais devem preferir criacao lazy ou on-demand. No estado atual, o painel nasce com `STATUS` e com a estrutura global minima; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` passam a ser materializadas na primeira abertura. Isso reduz custo de reinicializacao em troca de timeframe e deixa o crescimento da GUI mais previsivel.
 
 Ao criar controles apos o `Run()` da `CAppDialog`, o painel deve reatribuir IDs dos controles antes de aceitar novos cliques. Sem isso, a biblioteca padrao pode rotear eventos para handlers errados.
 
@@ -139,7 +145,7 @@ Depois da criacao lazy por aba, o proximo nivel correto e a criacao lazy por sub
 - `STRATS`: shell da aba primeiro; overview e cada painel de estrategia nascem quando abertos.
 - `FILTERS`: shell da aba primeiro; overview e cada painel de filtro nascem quando abertos.
 - `CONFIG`: shell e status geral primeiro; `RISK`, `PROTECT` e `SYSTEM` nascem separadamente.
-- `PERFIS`: shell e navegacao browse primeiro; editor de novo/duplicar nasce somente em modo de edicao.
+- `PERFIS`: shell e navegacao browse primeiro; editor de novo ou duplicar nasce somente em modo de edicao.
 
 Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para crescimento modular. Para adicionar uma nova estrategia ou filtro, o objetivo e encaixar uma nova unidade de painel sem reabrir a arquitetura inteira da aba.
 
@@ -147,7 +153,7 @@ Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para
 
 O proximo salto estrutural do Fusion nao e mais a GUI. O proximo salto e consolidar o motor multi-timeframe por modulo.
 
-Antes de novos refactors em arquivos grandes, a arquitetura deve migrar para este modelo:
+Essa migracao ja comecou no modelo de dados, na persistencia e nos modulos existentes. Antes de novos refactors em arquivos grandes, a arquitetura deve fechar este modelo:
 
 - cada estrategia recebe seu proprio timeframe operacional;
 - cada filtro recebe seu proprio timeframe operacional;
@@ -158,23 +164,25 @@ Refactors adicionais em `EAApplication.mqh` e `UIPanel.mqh` continuam desejaveis
 
 ## Hot Reload
 
-O projeto já possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os módulos principais têm pontos de recarga.
+O projeto ja possui `RELOAD_HOT`, `RELOAD_WARM` e `RELOAD_COLD`, e os modulos principais tem pontos de recarga.
 
-Mesmo assim, a política atual é conservadora: a GUI bloqueia edição enquanto o EA está rodando ou existe posição aberta. Isso evita alterações ambíguas em produção e reduz risco operacional.
+Mesmo assim, a politica atual e conservadora: a GUI bloqueia edicao enquanto o EA esta rodando ou existe posicao aberta. Isso evita alteracoes ambiguas em producao e reduz risco operacional.
 
-No futuro, hot reload pode ser reabilitado por categorias de alteração, desde que cada módulo declare claramente o que pode ser alterado com segurança em runtime.
+No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde que cada modulo declare claramente o que pode ser alterado com seguranca em runtime.
 
-## Próximas Evoluções Arquiteturais
+## Proximas Evolucoes Arquiteturais
 
+- Expor na GUI os campos de timeframe por modulo ja existentes no motor.
 - Criar um modelo estruturado para status de bloqueios.
-- Expor estatísticas reais para `RESULTS` e `STATS`.
+- Expor estatisticas reais para `RESULTS` e `STATS`.
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
-- Transformar trailing, breakeven, drawdown, streak e limites diários em submódulos mais independentes se a complexidade aumentar.
-- Ampliar validações de volume, stops, freeze level e distância mínima.
-## Nota de PersistÃªncia por GrÃ¡fico
+- Transformar trailing, breakeven, drawdown, streak e limites diarios em submodulos mais independentes se a complexidade aumentar.
+- Ampliar validacoes de volume, stops, freeze level e distancia minima.
 
-Na arquitetura atual, o estado automÃ¡tico do Fusion por grÃ¡fico deve ser restaurado pelo `chart_id`, e nÃ£o por `symbol + timeframe + magic`.
+## Nota de Persistencia por Grafico
 
-O arquivo salvo por grÃ¡fico tambÃ©m registra metadados do chart, principalmente sÃ­mbolo e timeframe visuais. Isso permite manter o vÃ­nculo do Ãºltimo perfil do grÃ¡fico quando o usuÃ¡rio muda apenas o timeframe.
+Na arquitetura atual, o estado automatico do Fusion por grafico deve ser restaurado pelo `chart_id`, e nao por `symbol + timeframe + magic`.
 
-Se o mesmo `chart_id` reaparecer com sÃ­mbolo diferente do sÃ­mbolo salvo, o Fusion entra em bloqueio seguro. Nesse modo ele nÃ£o sincroniza posiÃ§Ã£o nem abre novas entradas atÃ© o usuÃ¡rio voltar ao ativo anterior.
+O arquivo salvo por grafico tambem registra metadados do chart, principalmente simbolo e timeframe visuais. Isso permite manter o vinculo do ultimo perfil do grafico quando o usuario muda apenas o timeframe.
+
+Se o mesmo `chart_id` reaparecer com simbolo diferente do simbolo salvo, o Fusion entra em bloqueio seguro. Nesse modo ele nao sincroniza posicao nem abre novas entradas ate o usuario voltar ao ativo anterior.

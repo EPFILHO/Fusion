@@ -59,6 +59,8 @@ input bool               inp_UseMACross    = true;
 input int                inp_MACrossPriority = 10;
 input int                inp_MAFastPeriod  = 9;
 input int                inp_MASlowPeriod  = 21;
+input ENUM_TIMEFRAMES    inp_MAFastTF      = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES    inp_MASlowTF      = PERIOD_CURRENT;
 input ENUM_MA_METHOD     inp_MAMethod      = MODE_EMA;
 input ENUM_APPLIED_PRICE inp_MAPrice       = PRICE_CLOSE;
 input ENUM_EXIT_MODE     inp_MAExitMode    = EXIT_OPPOSITE_SIGNAL;
@@ -67,6 +69,7 @@ input group "Strategy - RSI"
 input bool                   inp_UseRSI    = false;
 input int                    inp_RSIPriority = 8;
 input int                    inp_RSIPeriod = 14;
+input ENUM_TIMEFRAMES        inp_RSITF     = PERIOD_CURRENT;
 input int                    inp_RSIOversold = 30;
 input int                    inp_RSIOverbought = 70;
 input int                    inp_RSIMiddle = 50;
@@ -78,6 +81,7 @@ input group "Strategy - Bollinger"
 input bool                   inp_UseBollinger = false;
 input int                    inp_BollingerPriority = 6;
 input int                    inp_BollingerPeriod = 20;
+input ENUM_TIMEFRAMES        inp_BollingerTF = PERIOD_CURRENT;
 input double                 inp_BollingerDeviation = 2.0;
 input ENUM_APPLIED_PRICE     inp_BollingerPrice = PRICE_CLOSE;
 input ENUM_BB_SIGNAL_MODE    inp_BollingerMode = BB_SIGNAL_REENTRY;
@@ -86,12 +90,14 @@ input ENUM_EXIT_MODE         inp_BollingerExitMode = EXIT_OPPOSITE_SIGNAL;
 input group "Filter - Trend"
 input bool               inp_UseTrendFilter = false;
 input int                inp_TrendMAPeriod  = 50;
+input ENUM_TIMEFRAMES    inp_TrendMATF      = PERIOD_CURRENT;
 input ENUM_MA_METHOD     inp_TrendMAMethod  = MODE_SMA;
 input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE;
 
 input group "Filter - RSI"
 input bool               inp_UseRSIFilter   = false;
 input int                inp_RSIFilterPeriod = 14;
+input ENUM_TIMEFRAMES    inp_RSIFilterTF    = PERIOD_CURRENT;
 input int                inp_RSIFilterBuyMin = 50;
 input int                inp_RSIFilterSellMax = 50;
 input ENUM_APPLIED_PRICE inp_RSIFilterPrice = PRICE_CLOSE;
@@ -145,12 +151,15 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.maCrossPriority        = inp_MACrossPriority;
    settings.maFastPeriod           = inp_MAFastPeriod;
    settings.maSlowPeriod           = inp_MASlowPeriod;
+   settings.maFastTimeframe        = inp_MAFastTF;
+   settings.maSlowTimeframe        = inp_MASlowTF;
    settings.maMethod               = inp_MAMethod;
    settings.maPrice                = inp_MAPrice;
    settings.maExitMode             = inp_MAExitMode;
    settings.useRSI                 = inp_UseRSI;
    settings.rsiPriority            = inp_RSIPriority;
    settings.rsiPeriod              = inp_RSIPeriod;
+   settings.rsiTimeframe           = inp_RSITF;
    settings.rsiOversold            = inp_RSIOversold;
    settings.rsiOverbought          = inp_RSIOverbought;
    settings.rsiMiddle              = inp_RSIMiddle;
@@ -160,16 +169,19 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.useBollinger           = inp_UseBollinger;
    settings.bbPriority             = inp_BollingerPriority;
    settings.bbPeriod               = inp_BollingerPeriod;
+   settings.bbTimeframe            = inp_BollingerTF;
    settings.bbDeviation            = inp_BollingerDeviation;
    settings.bbPrice                = inp_BollingerPrice;
    settings.bbMode                 = inp_BollingerMode;
    settings.bbExitMode             = inp_BollingerExitMode;
    settings.useTrendFilter         = inp_UseTrendFilter;
    settings.trendMAPeriod          = inp_TrendMAPeriod;
+   settings.trendMATimeframe       = inp_TrendMATF;
    settings.trendMAMethod          = inp_TrendMAMethod;
    settings.trendMAPrice           = inp_TrendMAPrice;
    settings.useRSIFilter           = inp_UseRSIFilter;
    settings.rsiFilterPeriod        = inp_RSIFilterPeriod;
+   settings.rsiFilterTimeframe     = inp_RSIFilterTF;
    settings.rsiFilterBuyMin        = inp_RSIFilterBuyMin;
    settings.rsiFilterSellMax       = inp_RSIFilterSellMax;
    settings.rsiFilterPrice         = inp_RSIFilterPrice;

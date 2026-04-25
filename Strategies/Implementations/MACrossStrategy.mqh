@@ -10,6 +10,8 @@ private:
    int               m_slowHandle;
    int               m_fastPeriod;
    int               m_slowPeriod;
+   ENUM_TIMEFRAMES   m_fastTimeframe;
+   ENUM_TIMEFRAMES   m_slowTimeframe;
    ENUM_MA_METHOD    m_method;
    ENUM_APPLIED_PRICE m_price;
    ENUM_EXIT_MODE    m_exitMode;
@@ -28,8 +30,15 @@ private:
      {
       ReleaseHandles();
 
-      m_fastHandle = iMA(m_symbol, m_timeframe, m_fastPeriod, 0, m_method, m_price);
-      m_slowHandle = iMA(m_symbol, m_timeframe, m_slowPeriod, 0, m_method, m_price);
+      if((int)m_fastTimeframe <= 0 || (int)m_slowTimeframe <= 0)
+        {
+         if(m_logger != NULL)
+            m_logger.Error("STRAT_MA", "Invalid configured timeframes");
+         return false;
+        }
+
+      m_fastHandle = iMA(m_symbol, m_fastTimeframe, m_fastPeriod, 0, m_method, m_price);
+      m_slowHandle = iMA(m_symbol, m_slowTimeframe, m_slowPeriod, 0, m_method, m_price);
 
       if(m_fastHandle == INVALID_HANDLE || m_slowHandle == INVALID_HANDLE)
         {
@@ -60,6 +69,8 @@ public:
       m_slowHandle = INVALID_HANDLE;
       m_fastPeriod = 9;
       m_slowPeriod = 21;
+      m_fastTimeframe = PERIOD_CURRENT;
+      m_slowTimeframe = PERIOD_CURRENT;
       m_method     = MODE_EMA;
       m_price      = PRICE_CLOSE;
       m_exitMode   = EXIT_OPPOSITE_SIGNAL;
@@ -82,11 +93,16 @@ public:
 
       bool changed = (m_fastPeriod != settings.maFastPeriod ||
                       m_slowPeriod != settings.maSlowPeriod ||
+                      m_fastTimeframe != settings.maFastTimeframe ||
+                      m_slowTimeframe != settings.maSlowTimeframe ||
                       m_method     != settings.maMethod ||
                       m_price      != settings.maPrice);
 
       m_fastPeriod = settings.maFastPeriod;
       m_slowPeriod = settings.maSlowPeriod;
+      m_fastTimeframe = settings.maFastTimeframe;
+      m_slowTimeframe = settings.maSlowTimeframe;
+      m_timeframe  = m_fastTimeframe;
       m_method     = settings.maMethod;
       m_price      = settings.maPrice;
 
@@ -105,9 +121,9 @@ public:
       return true;
      }
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe) override
+   virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
-      if(!CStrategyBase::Initialize(logger, symbol, timeframe))
+      if(!CStrategyBase::Initialize(logger, symbol))
          return false;
       if(!m_enabled)
          return true;

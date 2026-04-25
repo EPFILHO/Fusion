@@ -84,9 +84,9 @@ public:
       m_exitMode   = EXIT_OPPOSITE_SIGNAL;
      }
 
-   virtual bool      Initialize(CLogger *logger,const string symbol,const ENUM_TIMEFRAMES timeframe) override
+   virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
-      if(!CStrategyBase::Initialize(logger, symbol, timeframe))
+      if(!CStrategyBase::Initialize(logger, symbol))
          return false;
       if(!m_enabled)
          return true;
@@ -112,8 +112,11 @@ public:
       if(scope == RELOAD_HOT && m_initialized)
          return true;
 
-      bool changed = (m_period != settings.rsiPeriod || m_price != settings.rsiPrice);
+      bool changed = (m_period != settings.rsiPeriod ||
+                      m_timeframe != settings.rsiTimeframe ||
+                      m_price != settings.rsiPrice);
       m_period     = settings.rsiPeriod;
+      m_timeframe  = settings.rsiTimeframe;
       m_price      = settings.rsiPrice;
 
       if(!m_initialized)

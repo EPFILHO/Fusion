@@ -47,6 +47,7 @@ private:
    datetime                m_lastNettingWarning;
    bool                    m_runtimeBlocked;
    string                  m_runtimeBlockReason;
+   string                  m_runtimeNotice;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -54,6 +55,7 @@ private:
       context.chartId   = (ulong)ChartID();
       context.symbol    = _Symbol;
       context.timeframe = EnumToString((ENUM_TIMEFRAMES)Period());
+      context.periodValue = (int)Period();
       return context;
      }
 
@@ -161,6 +163,7 @@ private:
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
+      snapshot.runtimeNotice    = m_runtimeNotice;
       return snapshot;
      }
 
@@ -177,6 +180,8 @@ private:
             context.symbol = m_chartContext.symbol;
          if(m_runtimeBlocked && m_chartContext.timeframe != "")
             context.timeframe = m_chartContext.timeframe;
+         if(m_runtimeBlocked && m_chartContext.periodValue > 0)
+            context.periodValue = m_chartContext.periodValue;
         }
 
       m_settingsStore.SaveChartState(context, m_activeProfileName, m_started, m_settings, m_positionState);
@@ -189,9 +194,16 @@ private:
       m_started = false;
      }
 
+   void                    ApplyRuntimeNotice(const string notice)
+     {
+      m_runtimeNotice = notice;
+     }
+
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
-      m_settings = settings;
+      SEASettings resolvedSettings = settings;
+      ResolveOperationalTimeframes(resolvedSettings, (ENUM_TIMEFRAMES)Period());
+      m_settings = resolvedSettings;
       ConfigureResolver();
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_executionService.Reload(m_settings);
@@ -364,6 +376,7 @@ private:
          if(command.hasSettings)
             settingsToSave = command.settings;
          settingsToSave.isTester = m_settings.isTester;
+         ResolveOperationalTimeframes(settingsToSave, (ENUM_TIMEFRAMES)Period());
 
          if(!CanPersistProfile(profileName, settingsToSave))
             return;
@@ -394,6 +407,7 @@ private:
          if(m_settingsStore.LoadProfile(profileName, loadedSettings))
            {
             loadedSettings.isTester = m_settings.isTester;
+            ResolveOperationalTimeframes(loadedSettings, (ENUM_TIMEFRAMES)Period());
             if(!ApplySettings(loadedSettings, RELOAD_COLD))
                return;
             m_activeProfileName = profileName;
@@ -418,12 +432,14 @@ private:
       m_chartContext.chartId = 0;
       m_chartContext.symbol = "";
       m_chartContext.timeframe = "";
+      m_chartContext.periodValue = 0;
       m_activeProfileName   = "default";
       m_started             = false;
       m_modulesRegistered   = false;
       m_lastNettingWarning  = 0;
       m_runtimeBlocked      = false;
       m_runtimeBlockReason  = "";
+      m_runtimeNotice       = "";
      }
 
    bool              Initialize(void)
@@ -431,11 +447,13 @@ private:
       uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
+      ResolveOperationalTimeframes(m_settings, (ENUM_TIMEFRAMES)Period());
       m_chartContext = CurrentChartContext();
       m_activeProfileName = m_settings.defaultProfileName;
       m_started = m_settings.isTester;
       m_runtimeBlocked = false;
       m_runtimeBlockReason = "";
+      m_runtimeNotice = "";
 
       SEASettings restoredSettings = m_settings;
       SChartStateContext restoredContext = m_chartContext;
@@ -448,23 +466,30 @@ private:
          m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState))
         {
          restoredSettings.isTester = m_settings.isTester;
+         ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
+                                           ? (ENUM_TIMEFRAMES)restoredContext.periodValue
+                                           : (ENUM_TIMEFRAMES)Period();
+         ResolveOperationalTimeframes(restoredSettings, restoreFallback);
          m_settings = restoredSettings;
          if(restoredContext.symbol != "")
             m_chartContext.symbol = restoredContext.symbol;
          if(restoredContext.timeframe != "")
             m_chartContext.timeframe = restoredContext.timeframe;
+         if(restoredContext.periodValue > 0)
+            m_chartContext.periodValue = restoredContext.periodValue;
          m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
          m_positionState = restoredState;
 
          if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
            {
-            ApplyRuntimeBlock("Ativo alterado. Volte para " + restoredContext.symbol +
-                              " para recuperar o contexto do perfil " + m_activeProfileName + ".");
+            ApplyRuntimeBlock("Ativo do grafico mudou. Volte para " + restoredContext.symbol + ". Nao troque o ativo com o EA anexado. Isso pode causar prejuizo financeiro.");
            }
          else
            {
             // Regra de seguranca: em grafico real/demo o start exige clique manual.
             m_started = m_settings.isTester;
+            if(restoredContext.timeframe != "" && restoredContext.timeframe != EnumToString((ENUM_TIMEFRAMES)Period()))
+               ApplyRuntimeNotice("Timeframe do grafico mudou. Os TFs operacionais do perfil foram mantidos, mas evite trocar o TF com o EA anexado. Isso pode causar confusao e prejuizo financeiro.");
            }
         }
       uint restoreDoneTick = GetTickCount();
@@ -478,7 +503,7 @@ private:
       RegisterModules();
       ConfigureResolver();
 
-      if(!m_signalManager.Initialize(&m_logger, _Symbol, (ENUM_TIMEFRAMES)Period(), m_settings))
+      if(!m_signalManager.Initialize(&m_logger, _Symbol, m_settings))
          return false;
       uint signalDoneTick = GetTickCount();
 
@@ -487,6 +512,8 @@ private:
 
       if(m_runtimeBlocked)
          m_logger.Warn("CONTEXT", m_runtimeBlockReason);
+      else if(m_runtimeNotice != "")
+         m_logger.Warn("CONTEXT", m_runtimeNotice);
 
       if(!m_runtimeBlocked && (m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
          m_started = false;
@@ -510,6 +537,9 @@ private:
             m_logger.Error("UI", "Failed to create Fusion panel");
             return false;
            }
+
+         m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
+         m_panel.Update(BuildPanelSnapshot());
 
          if(!m_panel.StartDialog())
            {

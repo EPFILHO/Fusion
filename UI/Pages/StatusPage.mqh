@@ -6,7 +6,7 @@
 
 class CFusionPanel;
 
-#define FUSION_STATUS_ROW_COUNT 8
+#define FUSION_STATUS_ROW_COUNT 9
 
 class CStatusPage
   {
@@ -41,15 +41,16 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin)
      {
-      string labels[FUSION_STATUS_ROW_COUNT] = {"Estado", "Symbol", "Timeframe", "Strategies", "Filters", "Posicao", "Owner", "Resolver"};
+      string labels[FUSION_STATUS_ROW_COUNT] = {"Estado", "Symbol", "Timeframe", "Strategies", "Filters", "Posicao", "Owner", "Resolver", "Aviso"};
       int y = 112;
       for(int i = 0; i < FUSION_STATUS_ROW_COUNT; ++i)
         {
-         if(!AddLabel(parent, m_labels[i], chartId, subwin, "Fusion_status_lbl_" + IntegerToString(i), 20, y, 170, y + 18, labels[i], FUSION_CLR_LABEL))
+         int rowHeight = (i == FUSION_STATUS_ROW_COUNT - 1) ? 28 : 18;
+         if(!AddLabel(parent, m_labels[i], chartId, subwin, "Fusion_status_lbl_" + IntegerToString(i), 20, y, 170, y + rowHeight, labels[i], FUSION_CLR_LABEL))
             return false;
-         if(!AddLabel(parent, m_values[i], chartId, subwin, "Fusion_status_val_" + IntegerToString(i), 190, y, 510, y + 18, "--", FUSION_CLR_VALUE))
+         if(!AddLabel(parent, m_values[i], chartId, subwin, "Fusion_status_val_" + IntegerToString(i), 190, y, 510, y + rowHeight, "--", FUSION_CLR_VALUE, (i == FUSION_STATUS_ROW_COUNT - 1) ? 8 : 9))
             return false;
-         y += 30;
+         y += (i == FUSION_STATUS_ROW_COUNT - 1) ? 34 : 30;
         }
       return true;
      }
@@ -65,6 +66,20 @@ public:
       m_values[5].Text(snapshot.hasPosition ? "YES" : "NO");
       m_values[6].Text(snapshot.ownerStrategyName == "" ? "--" : snapshot.ownerStrategyName);
       m_values[7].Text(FusionConflictText(snapshot.conflictMode));
+      string notice = "--";
+      color noticeColor = FUSION_CLR_VALUE;
+      if(snapshot.runtimeBlocked)
+        {
+         notice = snapshot.runtimeBlockReason;
+         noticeColor = FUSION_CLR_BAD;
+        }
+      else if(snapshot.runtimeNotice != "")
+        {
+         notice = snapshot.runtimeNotice;
+         noticeColor = FUSION_CLR_WARN;
+        }
+      m_values[8].Text(notice);
+      m_values[8].Color(noticeColor);
      }
 
    void              SetVisible(const bool visible)

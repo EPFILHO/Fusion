@@ -1,62 +1,64 @@
 # Fusion
 
-Fusion é um Expert Advisor para MetaTrader 5, escrito em MQL5, com foco em arquitetura modular, operação segura e evolução incremental.
+Fusion e um Expert Advisor para MetaTrader 5, escrito em MQL5, com foco em arquitetura modular, operacao segura e evolucao incremental.
 
-O projeto nasceu como uma implementação clean-room inspirada em boas ideias do Matrix, mas sem tratar os documentos ou a estrutura daquele repositório como fonte da verdade. A regra aqui é simples: código limpo, módulos acopláveis e decisões documentadas desde o começo.
+O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do Matrix, mas sem tratar os documentos ou a estrutura daquele repositorio como fonte da verdade. A regra aqui e simples: codigo limpo, modulos acoplaveis e decisoes documentadas desde o comeco.
 
 ## Estado Atual
 
-- Opera somente o símbolo e timeframe do gráfico onde o EA está anexado.
-- Permite múltiplas instâncias em gráficos diferentes, desde que os perfis usem Magic Numbers distintos.
-- Mantém uma posição líquida por EA.
-- Usa arquitetura multi-estratégia e multi-filtro.
-- Usa resolvedores de conflito plugáveis para sinais simultâneos.
-- A estratégia que abriu a posição é responsável pela saída por sinal.
-- Camadas de risco e proteção podem forçar saída independentemente da estratégia.
-- Perfis nomeados são salvos pela GUI para operação em gráfico.
+- Opera no simbolo do grafico onde o EA esta anexado.
+- Os timeframes operacionais caminham para ser definidos por modulo e perfil, e nao pelo timeframe atual do grafico.
+- Permite multiplas instancias em graficos diferentes, desde que os perfis usem Magic Numbers distintos.
+- Mantem uma posicao liquida por EA.
+- Usa arquitetura multi-estrategia e multi-filtro.
+- Usa resolvedores de conflito plugaveis para sinais simultaneos.
+- A estrategia que abriu a posicao e responsavel pela saida por sinal.
+- Camadas de risco e protecao podem forcar saida independentemente da estrategia.
+- Perfis nomeados sao salvos pela GUI para operacao em grafico.
 - Backtests devem priorizar os `input` do MT5 Strategy Tester.
-- Hot reload existe como preocupação arquitetural, mas edição em produção fica bloqueada enquanto o EA está rodando ou gerenciando posição.
+- Hot reload existe como preocupacao arquitetural, mas edicao em producao fica bloqueada enquanto o EA esta rodando ou gerenciando posicao.
 
-## Módulos
+## Modulos
 
-- `Core`: ciclo de vida, tipos centrais, inputs, logging e orquestração do EA.
-- `Signals`: agregação de estratégias, filtros e resolução de conflitos.
-- `Strategies`: contrato base e implementações de estratégias.
-- `Filters`: contrato base e implementações de filtros.
+- `Core`: ciclo de vida, tipos centrais, inputs, logging e orquestracao do EA.
+- `Signals`: agregacao de estrategias, filtros e resolucao de conflitos.
+- `Strategies`: contrato base e implementacoes de estrategias.
+- `Filters`: contrato base e implementacoes de filtros.
 - `Risk`: lote, SL, TP, TP parcial, breakeven e trailing stop.
-- `Protection`: spread, sessão, limites diários, drawdown e streak.
-- `Execution`: envio de ordens, sincronização de posição e reconciliação com histórico.
-- `Persistence`: perfis nomeados e autosave/autorestore por gráfico.
-- `Normalization`: normalização de símbolo, volume, preço e especificações da corretora.
-- `UI`: painel gráfico, validações visuais e tradução de ações da GUI em comandos.
+- `Protection`: spread, sessao, limites diarios, drawdown e streak.
+- `Execution`: envio de ordens, sincronizacao de posicao e reconciliacao com historico.
+- `Persistence`: perfis nomeados e autosave/autorestore por grafico.
+- `Normalization`: normalizacao de simbolo, volume, preco e especificacoes da corretora.
+- `UI`: painel grafico, validacoes visuais e traducao de acoes da GUI em comandos.
 
 ## Perfis e Magic Number
 
-O Magic Number pertence ao perfil/EA, não a cada estratégia individual. Essa decisão evita que uma mesma instância misture posições ou interfira em outro gráfico.
+O Magic Number pertence ao perfil/EA, nao a cada estrategia individual. Essa decisao evita que uma mesma instancia misture posicoes ou interfira em outro grafico.
 
-Perfis salvos devem ter Magic Numbers únicos. Isso impede, por exemplo, usar por engano um perfil calibrado para BTCUSD em XAUUSD ou B3. O runtime ainda tem uma proteção adicional para impedir duas instâncias ativas com o mesmo `símbolo + magic` no mesmo terminal.
+Perfis salvos devem ter Magic Numbers unicos. Isso impede, por exemplo, usar por engano um perfil calibrado para BTCUSD em XAUUSD ou B3. O runtime ainda tem uma protecao adicional para impedir duas instancias ativas com o mesmo `simbolo + magic` no mesmo terminal.
 
 ## GUI
 
-A GUI é parte central do projeto porque concentra operação visual, perfis e futuras validações. Ela não é apenas decoração.
+A GUI e parte central do projeto porque concentra operacao visual, perfis e futuras validacoes. Ela nao e apenas decoracao.
 
 Hoje ela permite:
 
-- iniciar ou pausar o EA quando não há posição aberta;
-- bloquear edição enquanto o EA está rodando ou gerenciando posição;
-- salvar/carregar perfis;
+- iniciar ou pausar o EA quando nao ha posicao aberta;
+- bloquear edicao enquanto o EA esta rodando ou gerenciando posicao;
+- salvar e carregar perfis;
 - criar perfis novos;
-- duplicar perfis com fluxo seguro, exigindo Magic Number único antes de salvar;
-- validar lote, spread e magic com feedback visual.
+- duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
+- validar lote, spread e magic com feedback visual;
+- manter avisos operacionais persistentes na aba `STATUS`.
 
-## Documentação Técnica
+## Documentacao Tecnica
 
 - [Arquitetura](docs/ARCHITECTURE.md)
-- [Decisões do Projeto](docs/DECISIONS.md)
+- [Decisoes do Projeto](docs/DECISIONS.md)
 - [Changelog](CHANGELOG.md)
 
-## Compilação
+## Compilacao
 
-Abra `Fusion.mq5` no MetaEditor 5 e compile. O projeto usa apenas MQL5 e includes padrão do MetaTrader 5.
+Abra `Fusion.mq5` no MetaEditor 5 e compile. O projeto usa apenas MQL5 e includes padrao do MetaTrader 5.
 
-Arquivos `*.ex5`, logs de compilação e arquivos locais do editor são ignorados pelo Git.
+Arquivos `*.ex5`, logs de compilacao e arquivos locais do editor sao ignorados pelo Git.

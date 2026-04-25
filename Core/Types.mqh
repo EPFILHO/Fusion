@@ -127,12 +127,15 @@ struct SEASettings
    int                      maCrossPriority;
    int                      maFastPeriod;
    int                      maSlowPeriod;
+   ENUM_TIMEFRAMES          maFastTimeframe;
+   ENUM_TIMEFRAMES          maSlowTimeframe;
    ENUM_MA_METHOD           maMethod;
    ENUM_APPLIED_PRICE       maPrice;
    ENUM_EXIT_MODE           maExitMode;
    bool                     useRSI;
    int                      rsiPriority;
    int                      rsiPeriod;
+   ENUM_TIMEFRAMES          rsiTimeframe;
    int                      rsiOversold;
    int                      rsiOverbought;
    int                      rsiMiddle;
@@ -142,16 +145,19 @@ struct SEASettings
    bool                     useBollinger;
    int                      bbPriority;
    int                      bbPeriod;
+   ENUM_TIMEFRAMES          bbTimeframe;
    double                   bbDeviation;
    ENUM_APPLIED_PRICE       bbPrice;
    ENUM_BB_SIGNAL_MODE      bbMode;
    ENUM_EXIT_MODE           bbExitMode;
    bool                     useTrendFilter;
    int                      trendMAPeriod;
+   ENUM_TIMEFRAMES          trendMATimeframe;
    ENUM_MA_METHOD           trendMAMethod;
    ENUM_APPLIED_PRICE       trendMAPrice;
    bool                     useRSIFilter;
    int                      rsiFilterPeriod;
+   ENUM_TIMEFRAMES          rsiFilterTimeframe;
    int                      rsiFilterBuyMin;
    int                      rsiFilterSellMax;
    ENUM_APPLIED_PRICE       rsiFilterPrice;
@@ -226,6 +232,7 @@ struct SChartStateContext
    ulong  chartId;
    string symbol;
    string timeframe;
+   int    periodValue;
   };
 
 struct SUIPanelSnapshot
@@ -250,6 +257,7 @@ struct SUIPanelSnapshot
    bool   useRSIFilter;
    bool   runtimeBlocked;
    string runtimeBlockReason;
+   string runtimeNotice;
   };
 
 struct SUICommand
@@ -322,12 +330,15 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maCrossPriority       = 10;
    settings.maFastPeriod          = 9;
    settings.maSlowPeriod          = 21;
+   settings.maFastTimeframe       = PERIOD_CURRENT;
+   settings.maSlowTimeframe       = PERIOD_CURRENT;
    settings.maMethod              = MODE_EMA;
    settings.maPrice               = PRICE_CLOSE;
    settings.maExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useRSI                = false;
    settings.rsiPriority           = 8;
    settings.rsiPeriod             = 14;
+   settings.rsiTimeframe          = PERIOD_CURRENT;
    settings.rsiOversold           = 30;
    settings.rsiOverbought         = 70;
    settings.rsiMiddle             = 50;
@@ -337,20 +348,40 @@ void SetDefaultSettings(SEASettings &settings)
    settings.useBollinger          = false;
    settings.bbPriority            = 6;
    settings.bbPeriod              = 20;
+   settings.bbTimeframe           = PERIOD_CURRENT;
    settings.bbDeviation           = 2.0;
    settings.bbPrice               = PRICE_CLOSE;
    settings.bbMode                = BB_SIGNAL_REENTRY;
    settings.bbExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useTrendFilter        = false;
    settings.trendMAPeriod         = 50;
+   settings.trendMATimeframe      = PERIOD_CURRENT;
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
    settings.useRSIFilter          = false;
    settings.rsiFilterPeriod       = 14;
+   settings.rsiFilterTimeframe    = PERIOD_CURRENT;
    settings.rsiFilterBuyMin       = 50;
    settings.rsiFilterSellMax      = 50;
    settings.rsiFilterPrice        = PRICE_CLOSE;
    settings.isTester              = false;
+  }
+
+ENUM_TIMEFRAMES ResolveOperationalTimeframe(const ENUM_TIMEFRAMES configured,const ENUM_TIMEFRAMES fallbackTimeframe)
+  {
+   if((int)configured <= 0)
+      return fallbackTimeframe;
+   return configured;
+  }
+
+void ResolveOperationalTimeframes(SEASettings &settings,const ENUM_TIMEFRAMES fallbackTimeframe)
+  {
+   settings.maFastTimeframe    = ResolveOperationalTimeframe(settings.maFastTimeframe, fallbackTimeframe);
+   settings.maSlowTimeframe    = ResolveOperationalTimeframe(settings.maSlowTimeframe, fallbackTimeframe);
+   settings.rsiTimeframe       = ResolveOperationalTimeframe(settings.rsiTimeframe, fallbackTimeframe);
+   settings.bbTimeframe        = ResolveOperationalTimeframe(settings.bbTimeframe, fallbackTimeframe);
+   settings.trendMATimeframe   = ResolveOperationalTimeframe(settings.trendMATimeframe, fallbackTimeframe);
+   settings.rsiFilterTimeframe = ResolveOperationalTimeframe(settings.rsiFilterTimeframe, fallbackTimeframe);
   }
 
 void ResetSignalDecision(SSignalDecision &decision)

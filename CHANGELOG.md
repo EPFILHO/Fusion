@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.021 - 2026-04-24
+- O motor do Fusion passou a carregar timeframes explicitos por modulo em `SEASettings`, `Inputs` e persistencia de perfis/chart state.
+- `MA Cross` agora suporta `fastTF` e `slowTF` independentes no nucleo operacional.
+- `RSI`, `Bollinger`, `Trend Filter` e `RSI Filter` passaram a usar seus proprios timeframes operacionais, em vez de depender de um timeframe global do grafico.
+- `SignalManager` deixou de inicializar estrategias e filtros com um timeframe unico imposto pelo chart.
+- Perfis antigos com timeframes nao explicitos passam por resolucao segura de fallback para evitar quebra imediata na migracao.
+- A mensagem operacional de troca de ativo/timeframe saiu de `RESULTS` e ficou persistente em `STATUS`.
+- Ao criar a GUI, o painel agora tambem recebe o `SEASettings` completo logo no boot para nao perder campos ainda nao expostos visualmente.
+- `README.md`, `docs/ARCHITECTURE.md` e `docs/DECISIONS.md` foram alinhados com a virada multi-timeframe e com o adiamento consciente dos refactors maiores em `EAApplication.mqh` e `UIPanel.mqh`.
+
 ## 1.020 - 2026-04-24
 - A persistencia automatica por grafico passou a ser chaveada por `chart_id`, e nao mais por `symbol + timeframe + magic`.
 - O estado salvo por grafico agora grava tambem metadados do contexto visual, incluindo simbolo e timeframe do chart.
