@@ -36,6 +36,8 @@ Motivos:
 
 Perfis salvos devem ter Magic Numbers unicos.
 
+Enquanto houver outra instancia ativa do Fusion usando o mesmo `Magic`, a GUI deve bloquear apenas o `INICIAR` da instancia atual. Isso evita interferencia operacional sem impedir leitura, troca de perfil ou ajuste de configuracao.
+
 ## 5. Estrategia Dona da Entrada Dona da Saida por Sinal
 
 A estrategia que abriu a posicao e a unica autorizada a gerar saida por sinal daquela posicao.

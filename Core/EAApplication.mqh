@@ -47,6 +47,7 @@ private:
    datetime                m_lastNettingWarning;
    bool                    m_runtimeBlocked;
    string                  m_runtimeBlockReason;
+   string                  m_startBlockedReason;
    string                  m_runtimeNotice;
 
    SChartStateContext      CurrentChartContext(void) const
@@ -69,6 +70,7 @@ private:
       if(m_instanceRegistry.Register(_Symbol, m_settings.magicNumber, ChartID(), reason))
          return true;
 
+      m_startBlockedReason = reason + " Carregue outro perfil antes de iniciar.";
       m_logger.Error("INSTANCE", reason);
       return false;
      }
@@ -165,6 +167,7 @@ private:
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
+      snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
       return snapshot;
      }
@@ -205,6 +208,20 @@ private:
    void                    ApplyRuntimeNotice(const string notice)
      {
       m_runtimeNotice = notice;
+     }
+
+   void                    RefreshStartBlockReason(void)
+     {
+      m_startBlockedReason = "";
+      if(m_settings.isTester)
+         return;
+
+      if(m_started || m_positionState.hasPosition)
+         return;
+
+      string reason = "";
+      if(m_instanceRegistry.HasActiveConflict(m_settings.magicNumber, ChartID(), reason))
+         m_startBlockedReason = reason + " Carregue outro perfil antes de iniciar.";
      }
 
    ENUM_TIMEFRAMES         OperationalFallbackTimeframe(void) const
@@ -389,6 +406,7 @@ private:
         {
          if(m_runtimeBlocked)
             return;
+         RefreshStartBlockReason();
 
          if(m_started)
            {
@@ -399,10 +417,17 @@ private:
            }
          else
            {
+            if(m_startBlockedReason != "")
+              {
+               if(m_settings.panelEnabled && !m_settings.isTester)
+                  m_panel.Update(BuildPanelSnapshot());
+               return;
+              }
             if(!RegisterRunningInstance())
                return;
             m_started = true;
            }
+         RefreshStartBlockReason();
          m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
@@ -428,6 +453,7 @@ private:
 
          if(m_settingsStore.SaveProfile(profileName, m_settings))
             m_activeProfileName = profileName;
+         RefreshStartBlockReason();
 
          if(m_settings.panelEnabled && !m_settings.isTester)
            {
@@ -453,6 +479,7 @@ private:
             if(!ApplySettings(loadedSettings, RELOAD_COLD))
                return;
             m_activeProfileName = profileName;
+            RefreshStartBlockReason();
 
             if(m_settings.panelEnabled && !m_settings.isTester)
               {
@@ -482,6 +509,7 @@ private:
       m_lastNettingWarning  = 0;
       m_runtimeBlocked      = false;
       m_runtimeBlockReason  = "";
+      m_startBlockedReason  = "";
       m_runtimeNotice       = "";
      }
 
@@ -496,6 +524,7 @@ private:
       m_started = m_settings.isTester;
       m_runtimeBlocked = false;
       m_runtimeBlockReason = "";
+      m_startBlockedReason = "";
       m_runtimeNotice = "";
 
       bool defaultProfileLoaded = false;
@@ -551,6 +580,7 @@ private:
 
       if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
          ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " nao foi encontrado. O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
+      RefreshStartBlockReason();
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
@@ -686,6 +716,8 @@ private:
      {
       if((m_started || m_positionState.hasPosition) && !m_settings.isTester)
          m_instanceRegistry.Refresh();
+
+      RefreshStartBlockReason();
 
       if(m_settings.panelEnabled && !m_settings.isTester)
          m_panel.Update(BuildPanelSnapshot());

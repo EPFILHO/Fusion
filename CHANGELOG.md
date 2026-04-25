@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.029 - 2026-04-25
+- A validacao de instancia ativa do Fusion passou a tratar `Magic Number` como chave global de operacao, e nao mais apenas `symbol + magic`.
+- Quando outro Fusion ativo usa o mesmo `Magic`, o painel passa a bloquear somente o `INICIAR`, sem transformar isso em `runtimeBlocked` global.
+- A aba `STATUS` agora mostra esse caso como `INICIO BLOQUEADO`, com orientacao para carregar outro perfil antes de operar.
+- O bloqueio de inicio e recalculado em tempo real no timer e apos salvar/carregar perfil, permitindo que a liberacao apareca automaticamente quando a outra instancia para.
+
 ## 1.028 - 2026-04-25
 - Unificado o bootstrap da GUI para nascer com um unico pass de hidratacao de estado.
 - `SUIPanelSnapshot` passou a carregar o `SEASettings` completo, permitindo que `CreatePanel()` inicialize o painel sem segunda carga logo em seguida.

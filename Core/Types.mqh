@@ -261,6 +261,7 @@ struct SUIPanelSnapshot
    bool   useRSIFilter;
    bool   runtimeBlocked;
    string runtimeBlockReason;
+   string startBlockedReason;
    string runtimeNotice;
   };
 

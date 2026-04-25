@@ -133,6 +133,12 @@ public:
          noticeText = snapshot.runtimeBlockReason;
          noticeColor = FUSION_CLR_BAD;
         }
+      else if(snapshot.startBlockedReason != "")
+        {
+         noticeTitle = "INICIO BLOQUEADO";
+         noticeText = snapshot.startBlockedReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.runtimeNotice != "")
         {
          noticeTitle = "AVISO DE CONTEXTO";

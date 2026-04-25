@@ -21,14 +21,14 @@ private:
       return safe;
      }
 
-   string Prefix(const string symbol,const int magicNumber) const
+   string Prefix(const int magicNumber) const
      {
-      return "Fusion.I." + SanitizeToken(symbol) + "." + IntegerToString(magicNumber) + ".";
+      return "Fusion.I." + IntegerToString(magicNumber) + ".";
      }
 
-   string Key(const string symbol,const int magicNumber,const long chartId) const
+   string Key(const int magicNumber,const long chartId) const
      {
-      return Prefix(symbol, magicNumber) + StringFormat("%I64d", chartId);
+      return Prefix(magicNumber) + StringFormat("%I64d", chartId);
      }
 
    void   PruneStale(const string prefix,const datetime now) const
@@ -73,6 +73,25 @@ public:
       m_ttlSeconds  = 30;
      }
 
+   bool HasActiveConflict(const int magicNumber,const long chartId,string &reason)
+     {
+      reason = "";
+      if(magicNumber <= 0)
+         return false;
+
+      datetime now = TimeLocal();
+      string prefix = Prefix(magicNumber);
+      string key = Key(magicNumber, chartId);
+      PruneStale(prefix, now);
+
+      string peerKey = "";
+      if(!HasLivePeer(prefix, key, now, peerKey))
+         return false;
+
+      reason = "Magic " + IntegerToString(magicNumber) + " ja esta em uso por outro Fusion ativo.";
+      return true;
+     }
+
    bool Register(const string symbol,const int magicNumber,const long chartId,string &reason)
      {
       reason = "";
@@ -82,18 +101,14 @@ public:
          return false;
         }
 
-      datetime now = TimeLocal();
-      string prefix = Prefix(symbol, magicNumber);
-      string key = Key(symbol, magicNumber, chartId);
-      PruneStale(prefix, now);
-
-      string peerKey = "";
-      if(HasLivePeer(prefix, key, now, peerKey))
+      if(HasActiveConflict(magicNumber, chartId, reason))
         {
-         reason = "Ja existe outro Fusion ativo em " + symbol +
-                  " com Magic " + IntegerToString(magicNumber) + ".";
          return false;
         }
+
+      datetime now = TimeLocal();
+      string prefix = Prefix(magicNumber);
+      string key = Key(magicNumber, chartId);
 
       if(m_registered && m_key != key)
          Unregister();

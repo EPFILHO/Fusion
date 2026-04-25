@@ -358,6 +358,7 @@ private:
      {
       return (!ProfileEditMode() && !m_snapshot.runtimeBlocked &&
               !m_snapshot.started && !m_snapshot.hasPosition &&
+              m_snapshot.startBlockedReason == "" &&
               m_configInputsValid && !HasPendingChanges());
      }
 
