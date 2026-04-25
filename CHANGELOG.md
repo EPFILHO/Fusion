@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.030 - 2026-04-25
+- Os edits das subabas de `CONFIG` passaram a entrar no mesmo refresh visual de validacao, fazendo `SALVAR` e `CANCELAR` mudarem de cor de forma coerente apos a edicao.
+- O refresh de pos-edicao da GUI deixou de chamar `ApplyVisibility()` para esses campos, reduzindo a chance de interferencia temporaria com `ComboBox` de timeframe depois de certas acoes de perfil.
+
 ## 1.029 - 2026-04-25
 - A validacao de instancia ativa do Fusion passou a tratar `Magic Number` como chave global de operacao, e nao mais apenas `symbol + magic`.
 - Quando outro Fusion ativo usa o mesmo `Magic`, o painel passa a bloquear somente o `INICIAR`, sem transformar isso em `runtimeBlocked` global.

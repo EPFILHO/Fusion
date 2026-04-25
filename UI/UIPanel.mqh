@@ -97,6 +97,17 @@ private:
       return CAppDialog::Run();
      }
 
+   bool                       IsDeferredRefreshEdit(const string objectName)
+     {
+      if(objectName == m_profileNewEdit.Name())
+         return true;
+      if(m_configRiskCreated && (objectName == m_cfgRiskLotEdit.Name() || objectName == m_cfgRiskSpreadEdit.Name()))
+         return true;
+      if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
+         return true;
+      return false;
+     }
+
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
      {
       ResetCommand(m_pendingCommand);
@@ -1498,13 +1509,12 @@ public:
       CAppDialog::ChartEvent(id, lparam, dparam, sparam);
 
       bool refreshAfterEvent = false;
-      if((id == CHARTEVENT_OBJECT_ENDEDIT || id == CHARTEVENT_OBJECT_CHANGE) && sparam == m_profileNewEdit.Name())
+      if((id == CHARTEVENT_OBJECT_ENDEDIT || id == CHARTEVENT_OBJECT_CHANGE) && IsDeferredRefreshEdit(sparam))
          refreshAfterEvent = true;
 
       if(refreshAfterEvent)
         {
          RefreshConfigValidation();
-         ApplyVisibility();
          ChartRedraw();
         }
      }
