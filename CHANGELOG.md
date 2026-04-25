@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.027 - 2026-04-25
+- Adicionado botao global `CANCELAR` no topo da GUI para descartar alteracoes pendentes do perfil carregado e restaurar imediatamente a ultima configuracao salva.
+- O novo `CANCELAR` atua apenas sobre alteracoes pendentes do perfil atual; o `CANCELAR` local de `NOVO` e `DUPLICAR` continua responsavel apenas pelo fluxo de criacao de perfis.
+- Removido o aviso de mudanca de timeframe do grafico na `STATUS`, porque o Fusion agora caminha para operacao multi-timeframe por modulo e o usuario pode trocar o TF apenas para inspecao visual.
+- Mantido o bloqueio forte apenas para troca de ativo, que continua sendo risco operacional real para o contexto do EA.
+
 ## 1.026 - 2026-04-25
 - Corrigido o restore por `chart_id` para ignorar estado salvo cuja ultima saida foi `REASON_CHARTCLOSE`, evitando que um grafico novo herde contexto “fantasma” de outro grafico fechado.
 - O bloqueio por troca de ativo continua existindo para mudancas reais de contexto do mesmo grafico (`REASON_CHARTCHANGE`), mas deixa de disparar em reaproveitamento acidental de `chart_id`.

@@ -136,6 +136,8 @@ Mensagens operacionais persistentes devem ficar concentradas em `STATUS`. A aba 
 
 Quando um alerta operacional for importante para a seguranca, a `STATUS` deve ser dona da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
 
+Troca de timeframe do grafico, por si so, nao deve mais ser tratada como erro operacional na UI. Como o Fusion esta migrando para timeframes operacionais por modulo, o chart pode ser usado apenas para inspecao visual. Alertas persistentes de `STATUS` ficam reservados para condicoes realmente perigosas, especialmente troca de ativo e ausencia de perfil esperado.
+
 Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criacao do painel, navegacao ou troca explicita de modo.
 
 O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensaveis. Abas pesadas, listas de perfis, validacoes de configuracao e sincronizacao de paginas de estrategias ou filtros devem rodar sob demanda ou quando a aba correspondente estiver visivel.

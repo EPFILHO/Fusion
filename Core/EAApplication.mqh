@@ -544,10 +544,6 @@ private:
               {
                // Regra de seguranca: em grafico real/demo o start exige clique manual.
                m_started = m_settings.isTester;
-               if(restoredContext.deinitReason == REASON_CHARTCHANGE &&
-                  restoredContext.timeframe != "" &&
-                  restoredContext.timeframe != EnumToString((ENUM_TIMEFRAMES)Period()))
-                  ApplyRuntimeNotice("Timeframe do grafico mudou. Os TFs operacionais do perfil foram mantidos, mas evite trocar o TF com o EA anexado. Isso pode causar confusao e prejuizo financeiro.");
               }
            }
         }

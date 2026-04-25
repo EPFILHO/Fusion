@@ -3,6 +3,7 @@
 
    CButton                    m_btnStart;
    CButton                    m_btnSave;
+   CButton                    m_btnCancel;
    CLabel                     m_activeProfile;
    CLabel                     m_lblProfile;
    CLabel                     m_lblHeader;
@@ -24,9 +25,11 @@
      {
       if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, 330, 26, FusionHeaderTitle(), FUSION_CLR_TITLE, 10))
          return false;
-      if(!AddButton(m_btnStart, "Fusion_btnStart", 350, 4, 440, 28, "INICIAR", FUSION_CLR_GOOD))
+      if(!AddButton(m_btnStart, "Fusion_btnStart", 250, 4, 340, 28, "INICIAR", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_btnSave, "Fusion_btnSave", 446, 4, 530, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
+      if(!AddButton(m_btnSave, "Fusion_btnSave", 346, 4, 430, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
+         return false;
+      if(!AddButton(m_btnCancel, "Fusion_btnCancel", 436, 4, 530, 28, "CANCELAR", FUSION_CLR_WARN))
          return false;
       if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 124, 54, "Perfil carregado:", FUSION_CLR_MUTED))
          return false;
@@ -77,6 +80,11 @@
          FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnSave);
+
+      if(!ProfileEditMode() && CanEditSettings() && HasPendingChanges())
+         FusionApplyActionButtonStyle(m_btnCancel, FUSION_CLR_WARN, true);
+      else
+         FusionApplyNeutralButtonStyle(m_btnCancel);
 
       SyncHeaderProfile(DraftProfileName());
       UpdateHeaderButtons();

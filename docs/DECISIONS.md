@@ -104,6 +104,10 @@ Ela sera o centro de operacao visual, perfis, validacao e feedback de bloqueios.
 
 Avisos operacionais persistentes, como troca indevida de ativo ou mudanca relevante de contexto do grafico, devem ficar concentrados na aba `STATUS`.
 
+Como o Fusion esta migrando para operacao multi-timeframe por modulo, troca de timeframe do grafico nao deve gerar alerta persistente por si so. O chart pode ser usado para leitura visual sem que isso seja tratado como falha do usuario.
+
+Alteracoes pendentes do perfil carregado devem poder ser descartadas sem obrigar `SALVAR`. Por isso a GUI deve expor uma acao global de cancelamento/reversao do rascunho atual.
+
 ## 10. Persistencia Separada por Conceito
 
 Perfis nomeados guardam configuracoes de setup.

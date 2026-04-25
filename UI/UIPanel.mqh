@@ -910,6 +910,20 @@ private:
          RefreshTheme();
          return true;
         }
+      if(objectName == m_btnCancel.Name())
+        {
+         ReleaseButton(m_btnCancel);
+         if(!ProfileEditMode() && CanEditSettings() && HasPendingChanges())
+           {
+            RestoreCommittedDraftToControls();
+            RefreshConfigValidation();
+            if(m_profilesTabCreated && m_activeTab == FUSION_TAB_PROFILES)
+               SetProfileStatus("Alteracoes descartadas. Perfil salvo restaurado.", FUSION_CLR_GOOD, true);
+           }
+         else
+            RefreshTheme();
+         return true;
+        }
       if(objectName == m_cfgProtectionStartedBtn.Name())
         {
          ReleaseButton(m_cfgProtectionStartedBtn);
