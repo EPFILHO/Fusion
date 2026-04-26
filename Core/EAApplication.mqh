@@ -49,6 +49,9 @@ private:
    string                  m_runtimeBlockReason;
    string                  m_startBlockedReason;
    string                  m_runtimeNotice;
+   bool                    m_protectionNoticeActive;
+   string                  m_protectionNoticeReason;
+   datetime                m_lastProtectionWarning;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -128,6 +131,18 @@ private:
          m_signalManager.SetResolver(&m_priorityResolver);
       else
          m_signalManager.SetResolver(&m_cancelResolver);
+     }
+
+   bool                    IsVisualTester(void) const
+     {
+      return (bool)MQLInfoInteger(MQL_VISUAL_MODE);
+     }
+
+   bool                    ShouldShowPanel(void) const
+     {
+      if(m_settings.isTester)
+         return IsVisualTester();
+      return m_settings.panelEnabled;
      }
 
    void                    RegisterModules(void)
@@ -213,6 +228,38 @@ private:
    void                    ApplyRuntimeNotice(const string notice)
      {
       m_runtimeNotice = notice;
+     }
+
+   void                    ClearProtectionNotice(void)
+     {
+      if(!m_protectionNoticeActive)
+         return;
+
+      m_protectionNoticeActive = false;
+      m_protectionNoticeReason = "";
+      m_runtimeNotice = "";
+     }
+
+   void                    ApplyProtectionNotice(const string notice)
+     {
+      if(notice == "")
+        {
+         ClearProtectionNotice();
+         return;
+        }
+
+      datetime now = TimeCurrent();
+      bool changed = (!m_protectionNoticeActive || m_protectionNoticeReason != notice);
+
+      m_protectionNoticeActive = true;
+      m_protectionNoticeReason = notice;
+      m_runtimeNotice = notice;
+
+      if(changed || now - m_lastProtectionWarning >= 60)
+        {
+         m_logger.Warn("PROTECT", notice);
+         m_lastProtectionWarning = now;
+        }
      }
 
    void                    RefreshStartBlockReason(void)
@@ -424,7 +471,7 @@ private:
            {
             if(m_startBlockedReason != "")
               {
-               if(m_settings.panelEnabled && !m_settings.isTester)
+               if(ShouldShowPanel())
                   m_panel.Update(BuildPanelSnapshot());
                return;
               }
@@ -460,7 +507,7 @@ private:
             m_activeProfileName = profileName;
          RefreshStartBlockReason();
 
-         if(m_settings.panelEnabled && !m_settings.isTester)
+         if(ShouldShowPanel())
            {
             m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
             m_panel.Update(BuildPanelSnapshot());
@@ -486,7 +533,7 @@ private:
             m_activeProfileName = profileName;
             RefreshStartBlockReason();
 
-            if(m_settings.panelEnabled && !m_settings.isTester)
+            if(ShouldShowPanel())
               {
                m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
                m_panel.Update(BuildPanelSnapshot());
@@ -516,6 +563,9 @@ private:
       m_runtimeBlockReason  = "";
       m_startBlockedReason  = "";
       m_runtimeNotice       = "";
+      m_protectionNoticeActive = false;
+      m_protectionNoticeReason = "";
+      m_lastProtectionWarning  = 0;
      }
 
    bool              Initialize(void)
@@ -531,6 +581,19 @@ private:
       m_runtimeBlockReason = "";
       m_startBlockedReason = "";
       m_runtimeNotice = "";
+      m_protectionNoticeActive = false;
+      m_protectionNoticeReason = "";
+      m_lastProtectionWarning = 0;
+
+      if(!m_settings.isTester &&
+         m_settings.defaultProfileName != "" &&
+         !m_settingsStore.ProfileExists(m_settings.defaultProfileName))
+        {
+         SEASettings defaultSettings = m_settings;
+         ResolveOperationalTimeframes(defaultSettings, OperationalFallbackTimeframe());
+         if(m_settingsStore.SaveProfile(m_settings.defaultProfileName, defaultSettings))
+            m_runtimeNotice = "Perfil " + m_settings.defaultProfileName + " criado automaticamente a partir dos inputs.";
+        }
 
       bool defaultProfileLoaded = false;
       SEASettings bootSettings = m_settings;
@@ -612,7 +675,7 @@ private:
       if(!m_runtimeBlocked && (m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
          m_started = false;
 
-      if(m_settings.panelEnabled && !m_settings.isTester)
+      if(ShouldShowPanel())
         {
          int chartWidth = (int)ChartGetInteger(ChartID(), CHART_WIDTH_IN_PIXELS);
          int x1 = chartWidth - FUSION_PANEL_WIDTH - 10;
@@ -669,12 +732,16 @@ private:
 
       if(m_positionState.hasPosition)
         {
+         ClearProtectionNotice();
          ManageOpenPosition();
          return;
         }
 
       if(!m_started)
+        {
+         ClearProtectionNotice();
          return;
+        }
 
       string blockReason = "";
       if(!m_settings.isTester)
@@ -682,6 +749,7 @@ private:
 
       if(HasForeignNettingPosition(blockReason))
         {
+         ClearProtectionNotice();
          datetime now = TimeCurrent();
          if(now - m_lastNettingWarning >= 60)
            {
@@ -692,7 +760,12 @@ private:
         }
 
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
+        {
+         ApplyProtectionNotice(blockReason);
          return;
+        }
+
+      ClearProtectionNotice();
 
       SSignalDecision decision;
       ResetSignalDecision(decision);
@@ -724,13 +797,13 @@ private:
 
       RefreshStartBlockReason();
 
-      if(m_settings.panelEnabled && !m_settings.isTester)
+      if(ShouldShowPanel())
          m_panel.Update(BuildPanelSnapshot());
      }
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
-      if(!m_settings.panelEnabled || m_settings.isTester)
+      if(!ShouldShowPanel())
          return;
 
       m_panel.ChartEvent(id, lparam, dparam, sparam);

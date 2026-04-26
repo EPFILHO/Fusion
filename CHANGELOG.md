@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.042 - 2026-04-26
+- A protecao de `SPREAD` passou a funcionar ponta a ponta no runtime: quando o limite e excedido, o Fusion bloqueia novas entradas, registra aviso operacional no `STATUS` e faz log com rate-limit para evitar ruido excessivo.
+- O aviso operacional de protecao agora e limpo automaticamente quando a condicao deixa de bloquear o EA, sem deixar mensagem stale no painel.
+- A mensagem de `SPREAD` passou a informar o valor atual e o limite configurado em pontos.
+
+## 1.041 - 2026-04-26
+- A aba `PERFIS` deixou de exibir o botao de abrir pasta, reduzindo a tentacao de manipulacao manual dos arquivos de suporte do EA.
+- O perfil `default` passou a ser tratado como reservado na GUI: ele nao pode ser excluido pela aba `PERFIS`, e a interface agora orienta explicitamente que esse perfil nao deve ser apagado.
+- O fluxo de primeira execucao continua recriando automaticamente o perfil `default` quando ele estiver ausente, preservando um ponto estavel de suporte e restauracao.
+
+## 1.040 - 2026-04-26
+- A validacao de horarios de `SESSION` e `NEWS` passou a exigir `fim > inicio` mesmo quando o modulo estiver desligado, evitando salvar janelas incoerentes.
+- Na primeira execucao em conta real/demo, se o perfil `default` ainda nao existir, o Fusion agora o cria automaticamente a partir dos inputs atuais.
+
+## 1.039 - 2026-04-26
+- Os campos de horario de `SESSION` e `NEWS` agora sanitizam a entrada no fim da edicao, mantendo apenas digitos, formatando em dois caracteres e centralizando o texto no campo.
+- A validacao de protecao passou a exigir `fim > inicio` para `SESSION` e para cada janela `NEWS` ativa.
+- O Fusion reforcou a autodeteccao de tester visual: no tester comum o painel fica oculto automaticamente, e no visual mode ele pode aparecer sem depender de ajuste manual de `ShowPanel`.
+- O botao de pasta deixou de depender de DLL externa, eliminando o ruido `DLL loading is not allowed` no Strategy Tester.
+
+## 1.038 - 2026-04-26
+- O pre-carregamento na `CONFIG` foi reduzido para a subaba `SYSTEM`, que foi o unico caso real observado com primeiro clique vazio vindo de `PROTECT`.
+- `RISK` voltou a nascer apenas pelo fluxo normal da aba ativa, mantendo a correcao mais cirurgica e com menor impacto estrutural.
+
+## 1.037 - 2026-04-26
+- `RISK` e `SYSTEM` passaram a ser precriadas junto com a aba `CONFIG`, reduzindo o risco de primeiro clique vazio em paginas leves dessa area.
+- `PROTECT` continua lazy, preservando o ganho estrutural onde a pagina e maior.
+
+## 1.036 - 2026-04-26
+- O clique em abas e subabas agora precria a pagina lazy correspondente antes de aplicar a visibilidade, reduzindo o risco de primeiro clique com area vazia.
+- A correcao foi aplicada de forma geral ao fluxo de troca de abas principais, `STRATS`, `FILTERS` e `CONFIG`.
+
+## 1.035 - 2026-04-26
+- As faixas de abas e subabas passaram a usar ancora alinhada a esquerda, reduzindo a sensacao de desalinhamento entre conjuntos com larguras diferentes.
+- A distancia vertical entre as abas principais e `RISK / PROTECT / SYSTEM` foi reduzida para acompanhar melhor o espacamento entre `PROTECT` e suas subabas.
+- `PROTECT` teve a terceira linha aproximada da segunda, preservando o restante da mecanica da GUI.
+
+## 1.034 - 2026-04-26
+- O padrao visual de abas e subabas foi estendido para o restante da GUI, mantendo a mesma mecanica de navegacao.
+- As abas principais passaram a ficar centralizadas e ganharam linha de separacao no mesmo azul da aba ativa.
+- `STRATS` e `FILTERS` ganharam centralizacao das subabas, linha de separacao e moldura leve no conteudo ativo.
+- `PERFIS` ganhou moldura de conteudo no mesmo padrao do restante da interface.
+- `CONFIG` passou a reutilizar moldura de conteudo tambem em `RISK` e `SYSTEM`, preservando a moldura propria de `PROTECT`.
+
+## 1.033 - 2026-04-26
+- A largura do painel foi ampliada levemente para dar mais respiro visual sem mudar a mecanica do Fusion.
+- As faixas internas de `CONFIG` e `PROTECT` passaram a ser centralizadas pelo maior conjunto de subabas, melhorando o alinhamento entre linhas de navegacao.
+- As linhas de separacao e a moldura da area ativa de `PROTECT` passaram a usar o mesmo azul da aba selecionada.
+- O cabecalho foi reajustado para respeitar a nova largura, mantendo os botoes alinhados a direita.
+
+## 1.032 - 2026-04-26
+- Refinado o visual das abas internas de `CONFIG` e `PROTECT` para ficarem mais proximas de tabs de desktop, com cinza mais claro e leitura mais limpa.
+- Adicionada linha de separacao sob `RISK / PROTECT / SYSTEM`.
+- A subaba `PROTECT` passou a exibir moldura leve ao redor do conteudo ativo, melhorando a leitura sem alterar a mecanica de clique ou lazy loading.
+
 ## 1.031 - 2026-04-25
 - Iniciada a modularizacao real de `Protection`: `ProtectionManager` passou a orquestrar submodulos dedicados para `Spread`, `Session`, `News`, `Daily Limits`, `Drawdown` e `Streak`.
 - O modelo de dados ganhou suporte a tres janelas de `NEWS`, cada uma com horario proprio e acao individual de apenas bloquear entradas ou fechar posicoes abertas e bloquear novas entradas.

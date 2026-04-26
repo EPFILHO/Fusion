@@ -129,6 +129,8 @@ No motor, a direcao e:
 
 Na GUI, a mesma separacao deve aparecer na subaba `PROTECT`, com subpaginas internas em vez de um formulario gigante. Isso reduz acoplamento, facilita validacao e evita repetir o problema historico de crescimento desordenado visto em outros projetos.
 
+No runtime, bloqueios de protecao devem aparecer na aba `STATUS` enquanto estiverem ativos, com mensagens persistentes e log rate-limited. Isso evita depender apenas do Journal para entender por que o EA nao abriu uma nova operacao.
+
 ## 12. Drawdown Diario Depende de Meta de Ganho
 
 No Fusion, `Drawdown` nao deve ser armado a partir de qualquer pequeno pico projetado do dia. Isso pode bloquear o EA por oscilacoes irrelevantes.

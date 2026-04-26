@@ -23,17 +23,29 @@
 
    bool                       BuildHeader(void)
      {
-      if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, 330, 26, FusionHeaderTitle(), FUSION_CLR_TITLE, 10))
+      int right = FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN;
+      int cancelWidth = 94;
+      int saveWidth = 84;
+      int startWidth = 90;
+      int gap = 6;
+      int cancelX2 = right;
+      int cancelX1 = cancelX2 - cancelWidth;
+      int saveX2 = cancelX1 - gap;
+      int saveX1 = saveX2 - saveWidth;
+      int startX2 = saveX1 - gap;
+      int startX1 = startX2 - startWidth;
+
+      if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, startX1 - 12, 26, FusionHeaderTitle(), FUSION_CLR_TITLE, 10))
          return false;
-      if(!AddButton(m_btnStart, "Fusion_btnStart", 250, 4, 340, 28, "INICIAR", FUSION_CLR_GOOD))
+      if(!AddButton(m_btnStart, "Fusion_btnStart", startX1, 4, startX2, 28, "INICIAR", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_btnSave, "Fusion_btnSave", 346, 4, 430, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
+      if(!AddButton(m_btnSave, "Fusion_btnSave", saveX1, 4, saveX2, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
          return false;
-      if(!AddButton(m_btnCancel, "Fusion_btnCancel", 436, 4, 530, 28, "CANCELAR", FUSION_CLR_WARN))
+      if(!AddButton(m_btnCancel, "Fusion_btnCancel", cancelX1, 4, cancelX2, 28, "CANCELAR", FUSION_CLR_WARN))
          return false;
       if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 124, 54, "Perfil carregado:", FUSION_CLR_MUTED))
          return false;
-      if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 126, 36, 330, 56, "--", FUSION_CLR_GOOD, 9))
+      if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 126, 36, right - 12, 56, "--", FUSION_CLR_GOOD, 9))
          return false;
       m_activeProfile.Font("Arial Bold");
       return true;

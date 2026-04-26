@@ -141,7 +141,7 @@ public:
         }
       else if(snapshot.runtimeNotice != "")
         {
-         noticeTitle = "AVISO DE CONTEXTO";
+         noticeTitle = snapshot.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";
          noticeText = snapshot.runtimeNotice;
          noticeColor = FUSION_CLR_WARN;
         }

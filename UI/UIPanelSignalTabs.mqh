@@ -274,6 +274,8 @@
      {
       for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
          SetVisible(m_strategyTabs[i], visible);
+      SetVisible(m_strategyTabsSeparator, visible);
+      SetVisible(m_strategyContentFrame, visible);
 
       if(visible)
          EnsureActiveStrategyContentCreated();
@@ -306,6 +308,8 @@
      {
       for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
          SetVisible(m_filterTabs[i], visible);
+      SetVisible(m_filterTabsSeparator, visible);
+      SetVisible(m_filterContentFrame, visible);
 
       if(visible)
          EnsureActiveFilterContentCreated();
@@ -337,26 +341,66 @@
    bool                       BuildStrategyTab(void)
      {
       string pageNames[FUSION_STRAT_COUNT] = {"GERAL", "MA", "RSI", "BB"};
+      int tabWidth = 96;
+      int tabGap = 4;
       int x = 18;
       for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
         {
-         if(!AddButton(m_strategyTabs[i], "Fusion_strat_tab_" + IntegerToString(i), x, 110, x + 96, 134, pageNames[i], FUSION_CLR_PANEL))
+         if(!AddButton(m_strategyTabs[i], "Fusion_strat_tab_" + IntegerToString(i), x, 104, x + tabWidth, 128, pageNames[i], FUSION_CLR_PANEL))
             return false;
-         x += 100;
+         x += tabWidth + tabGap;
         }
+      if(!AddPanel(m_strategyTabsSeparator,
+                   "Fusion_strat_tabs_sep",
+                   FUSION_PANEL_MARGIN,
+                   132,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   134,
+                   FUSION_CLR_SUBTAB_LINE,
+                   FUSION_CLR_SUBTAB_LINE))
+         return false;
+      if(!AddPanel(m_strategyContentFrame,
+                   "Fusion_strat_content_frame",
+                   FUSION_PANEL_MARGIN,
+                   138,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   560,
+                   FUSION_CLR_FRAME_BG,
+                   FUSION_CLR_FRAME_BORDER))
+         return false;
       return true;
      }
 
    bool                       BuildFilterTab(void)
      {
       string pageNames[FUSION_FILTER_COUNT] = {"GERAL", "TREND", "RSI"};
+      int tabWidth = 110;
+      int tabGap = 4;
       int x = 18;
       for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
         {
-         if(!AddButton(m_filterTabs[i], "Fusion_filter_tab_" + IntegerToString(i), x, 110, x + 110, 134, pageNames[i], FUSION_CLR_PANEL))
+         if(!AddButton(m_filterTabs[i], "Fusion_filter_tab_" + IntegerToString(i), x, 104, x + tabWidth, 128, pageNames[i], FUSION_CLR_PANEL))
             return false;
-         x += 114;
+         x += tabWidth + tabGap;
         }
+      if(!AddPanel(m_filterTabsSeparator,
+                   "Fusion_filter_tabs_sep",
+                   FUSION_PANEL_MARGIN,
+                   132,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   134,
+                   FUSION_CLR_SUBTAB_LINE,
+                   FUSION_CLR_SUBTAB_LINE))
+         return false;
+      if(!AddPanel(m_filterContentFrame,
+                   "Fusion_filter_content_frame",
+                   FUSION_PANEL_MARGIN,
+                   138,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   560,
+                   FUSION_CLR_FRAME_BG,
+                   FUSION_CLR_FRAME_BORDER))
+         return false;
       return true;
      }
 

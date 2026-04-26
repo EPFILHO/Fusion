@@ -17,11 +17,11 @@
 
    CLabel                     m_profilesHdr;
    CLabel                     m_profilesHint;
+   CPanel                     m_profilesContentFrame;
    CButton                    m_profileRows[FUSION_PROFILE_VISIBLE_ROWS];
    CButton                    m_profileUpBtn;
    CButton                    m_profileDownBtn;
    CButton                    m_profileRefreshBtn;
-   CButton                    m_profileOpenFolderBtn;
    CButton                    m_profileNewBtn;
    CLabel                     m_profileNewLbl;
    CEdit                      m_profileNewEdit;
@@ -61,15 +61,13 @@
          return false;
       if(!AddButton(m_profileRefreshBtn, "Fusion_profile_refresh", 390, 176, 520, 202, "Atualizar Lista", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddButton(m_profileOpenFolderBtn, "Fusion_profile_open_folder", 390, 208, 520, 234, "ABRIR PASTA", FUSION_CLR_ACTION_SAVE))
+      if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 208, 520, 234, "NOVO", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_profileNewBtn, "Fusion_profile_new", 390, 236, 520, 262, "NOVO", FUSION_CLR_GOOD))
+      if(!AddButton(m_profileLoadBtn, "Fusion_profile_load", 390, 240, 520, 266, "CARREGAR", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddButton(m_profileLoadBtn, "Fusion_profile_load", 390, 268, 520, 294, "CARREGAR", FUSION_CLR_ACTION_LOAD))
+      if(!AddButton(m_profileDuplicateBtn, "Fusion_profile_duplicate", 390, 272, 520, 298, "DUPLICAR", FUSION_CLR_ACTION_LOAD))
          return false;
-      if(!AddButton(m_profileDuplicateBtn, "Fusion_profile_duplicate", 390, 300, 520, 326, "DUPLICAR", FUSION_CLR_ACTION_LOAD))
-         return false;
-      if(!AddButton(m_profileDeleteBtn, "Fusion_profile_delete", 390, 332, 520, 358, "EXCLUIR", FUSION_CLR_BAD))
+      if(!AddButton(m_profileDeleteBtn, "Fusion_profile_delete", 390, 304, 520, 330, "EXCLUIR", FUSION_CLR_BAD))
          return false;
 
       m_profilesBrowseCreated = true;
@@ -146,6 +144,23 @@
       if(m_profileSelected < 0 || m_profileSelected >= m_profileCount)
          return "";
       return m_profileNames[m_profileSelected];
+     }
+
+   string                     DefaultProfileKey(void)
+     {
+      string profileName = m_draftSettings.defaultProfileName;
+      if(FusionIsBlank(profileName))
+         profileName = m_committedSettings.defaultProfileName;
+      if(FusionIsBlank(profileName))
+         profileName = "default";
+      return m_profileStore.SanitizeProfileName(profileName);
+     }
+
+   bool                       IsDefaultProfileName(const string profileName)
+     {
+      string sanitized = m_profileStore.SanitizeProfileName(profileName);
+      string defaultKey = DefaultProfileKey();
+      return (sanitized != "" && defaultKey != "" && sanitized == defaultKey);
      }
 
    bool                       MagicAvailableForProfile(const int magicNumber,const string profileName,string &conflictProfile)
@@ -261,11 +276,11 @@
          FusionApplyNeutralButtonStyle(m_profileDownBtn);
 
       FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
-      FusionApplyActionButtonStyle(m_profileOpenFolderBtn, FUSION_CLR_ACTION_SAVE, true);
 
       bool validName = HasValidProfileDraftName();
       bool selected = (SelectedProfileName() != "");
       bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
+      bool selectedIsDefault = IsDefaultProfileName(SelectedProfileName());
       bool draftExists = (m_profilesEditCreated && validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
       bool duplicateMode = ProfileDuplicateMode();
@@ -306,7 +321,7 @@
       else
          FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
 
-      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive)
+      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive && !selectedIsDefault)
          FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
@@ -335,10 +350,14 @@
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(HasPendingChanges())
          SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
+      else if(selected && selectedIsActive && selectedIsDefault)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil reservado: nao apague o perfil default.", FUSION_CLR_MUTED);
       else if(selected && selectedIsActive)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
+      else if(selected && selectedIsDefault)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil reservado: nao apague o perfil default.", FUSION_CLR_WARN);
       else if(selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo, Abrir Pasta ou Excluir.", FUSION_CLR_MUTED);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
       else
          SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
      }
@@ -389,12 +408,12 @@
 
       if(m_profilesBrowseCreated)
         {
+         SetVisible(m_profilesContentFrame, visible);
          for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
             SetVisible(m_profileRows[i], visible);
          SetVisible(m_profileUpBtn, visible);
          SetVisible(m_profileDownBtn, visible);
          SetVisible(m_profileRefreshBtn, visible);
-         SetVisible(m_profileOpenFolderBtn, browseVisible);
          SetVisible(m_profileNewBtn, browseVisible);
          SetVisible(m_profileLoadBtn, browseVisible);
          SetVisible(m_profileDuplicateBtn, browseVisible);
@@ -416,7 +435,16 @@
      {
       if(!AddLabel(m_profilesHdr, "Fusion_profiles_hdr", 22, 118, 300, 138, "Administracao de Perfis", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_profilesHint, "Fusion_profiles_hint", 22, 142, 520, 162, "Perfis da GUI sao para operacao em grafico. Backtest usa inputs do MT5.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_profilesHint, "Fusion_profiles_hint", 22, 142, 520, 162, "Backtest usa inputs do MT5. Nao apague o perfil default.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddPanel(m_profilesContentFrame,
+                   "Fusion_profiles_content_frame",
+                   FUSION_PANEL_MARGIN,
+                   168,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   456,
+                   FUSION_CLR_FRAME_BG,
+                   FUSION_CLR_FRAME_BORDER))
          return false;
       if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, 520, 456, "", FUSION_CLR_MUTED, 8))
          return false;

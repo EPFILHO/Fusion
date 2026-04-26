@@ -94,6 +94,8 @@ Nesta fase, a camada de `Protection` passou a ser organizada em submodulos:
 
 `Drawdown` tem dependencia funcional de `DAY.maxDailyGain`: ele deve ser armado a partir da meta diaria, nao desde qualquer pico minimo de lucro. Isso evita travas por oscilacoes irrelevantes do dia.
 
+Bloqueios operacionais dessas protecoes devem subir para a aba `STATUS` como aviso persistente enquanto a condicao estiver ativa. O log pode acompanhar, mas o painel precisa deixar claro por que novas entradas estao sendo bloqueadas.
+
 ### `Execution`
 
 Centraliza envio, fechamento parcial, fechamento total, modificacao de stops e sincronizacao de posicao.

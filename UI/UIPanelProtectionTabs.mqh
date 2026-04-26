@@ -1,5 +1,7 @@
    ENUM_FUSION_PROTECT_PAGE   m_protectPage;
    CButton                    m_protectTabs[FUSION_PROTECT_COUNT];
+   CPanel                     m_protectTabsSeparator;
+   CPanel                     m_protectContentFrame;
 
    CLabel                     m_protectGeneralHdr;
    CLabel                     m_protectGeneralLabels[6];
@@ -83,7 +85,75 @@
 
    bool                       AddTimeEdit(CEdit &edit,const string name,const int x1,const int y1,const string value)
      {
-      return AddEdit(edit, name, x1, y1, x1 + 40, y1 + 24, value);
+      if(!AddEdit(edit, name, x1, y1, x1 + 40, y1 + 24, value))
+         return false;
+      edit.TextAlign(ALIGN_CENTER);
+      return true;
+     }
+
+   bool                       IsTimeEditObject(const string objectName,int &maxValue)
+     {
+      maxValue = -1;
+      if(m_configProtectionCreated)
+        {
+         if(objectName == m_protectSessionStartHourEdit.Name() ||
+            objectName == m_protectSessionEndHourEdit.Name())
+           {
+            maxValue = 23;
+            return true;
+           }
+         if(objectName == m_protectSessionStartMinuteEdit.Name() ||
+            objectName == m_protectSessionEndMinuteEdit.Name())
+           {
+            maxValue = 59;
+            return true;
+           }
+
+         for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+           {
+            if(objectName == m_protectNewsStartHourEdit[newsIndex].Name() ||
+               objectName == m_protectNewsEndHourEdit[newsIndex].Name())
+              {
+               maxValue = 23;
+               return true;
+              }
+            if(objectName == m_protectNewsStartMinuteEdit[newsIndex].Name() ||
+               objectName == m_protectNewsEndMinuteEdit[newsIndex].Name())
+              {
+               maxValue = 59;
+               return true;
+              }
+           }
+        }
+
+      return false;
+     }
+
+   string                     SanitizeTimeText(const string text,const int maxValue) const
+     {
+      string digits = "";
+      string trimmed = FusionTrimCopy(text);
+      for(int i = 0; i < StringLen(trimmed); ++i)
+        {
+         ushort ch = StringGetCharacter(trimmed, i);
+         if(ch >= '0' && ch <= '9')
+            digits += StringSubstr(trimmed, i, 1);
+        }
+
+      int value = 0;
+      if(digits != "")
+         value = (int)StringToInteger(digits);
+      if(value < 0)
+         value = 0;
+      if(value > maxValue)
+         value = maxValue;
+
+      return StringFormat("%02d", value);
+     }
+
+   void                       NormalizeTimeEdit(CEdit &edit,const int maxValue)
+     {
+      edit.Text(SanitizeTimeText(LiveEditText(edit), maxValue));
      }
 
    bool                       ProtectionTimeValue(const string text,const int maxValue,int &parsed) const
@@ -138,14 +208,33 @@
    bool                       BuildConfigProtectionPage(void)
      {
       string pageNames[FUSION_PROTECT_COUNT] = {"GERAL", "SPREAD", "SESSION", "NEWS", "DAY", "DRAWDOWN", "STREAK"};
-      int tabX = 18;
       int tabWidth = 74;
+      int tabGap = 2;
+      int tabX = 18;
       for(int i = 0; i < FUSION_PROTECT_COUNT; ++i)
         {
-         if(!AddButton(m_protectTabs[i], "Fusion_protect_tab_" + IntegerToString(i), tabX, 146, tabX + tabWidth, 170, pageNames[i], FUSION_CLR_PANEL))
+         if(!AddButton(m_protectTabs[i], "Fusion_protect_tab_" + IntegerToString(i), tabX, 140, tabX + tabWidth, 164, pageNames[i], FUSION_CLR_PANEL))
             return false;
-         tabX += 76;
+         tabX += tabWidth + tabGap;
         }
+      if(!AddPanel(m_protectTabsSeparator,
+                   "Fusion_protect_tabs_sep",
+                   FUSION_PANEL_MARGIN,
+                   168,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   170,
+                   FUSION_CLR_SUBTAB_LINE,
+                   FUSION_CLR_SUBTAB_LINE))
+         return false;
+      if(!AddPanel(m_protectContentFrame,
+                   "Fusion_protect_content_frame",
+                   FUSION_PANEL_MARGIN,
+                   174,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   560,
+                   FUSION_CLR_FRAME_BG,
+                   FUSION_CLR_FRAME_BORDER))
+         return false;
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
@@ -290,6 +379,8 @@
    void                       SetProtectionControlsVisible(const ENUM_FUSION_PROTECT_PAGE page,const bool visible)
      {
       bool showGeneral = visible && page == FUSION_PROTECT_GENERAL;
+      SetVisible(m_protectTabsSeparator, visible);
+      SetVisible(m_protectContentFrame, visible);
       SetVisible(m_protectGeneralHdr, showGeneral);
       for(int generalIndex = 0; generalIndex < 6; ++generalIndex)
         {
@@ -555,6 +646,45 @@
       return false;
      }
 
+   bool                       NormalizeProtectionDeferredEdit(const string objectName)
+     {
+      if(!m_configProtectionCreated)
+         return false;
+
+      int maxValue = -1;
+      if(!IsTimeEditObject(objectName, maxValue))
+         return false;
+
+      if(objectName == m_protectSessionStartHourEdit.Name())
+         NormalizeTimeEdit(m_protectSessionStartHourEdit, maxValue);
+      else if(objectName == m_protectSessionStartMinuteEdit.Name())
+         NormalizeTimeEdit(m_protectSessionStartMinuteEdit, maxValue);
+      else if(objectName == m_protectSessionEndHourEdit.Name())
+         NormalizeTimeEdit(m_protectSessionEndHourEdit, maxValue);
+      else if(objectName == m_protectSessionEndMinuteEdit.Name())
+         NormalizeTimeEdit(m_protectSessionEndMinuteEdit, maxValue);
+      else
+        {
+         for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+           {
+            if(objectName == m_protectNewsStartHourEdit[newsIndex].Name())
+               NormalizeTimeEdit(m_protectNewsStartHourEdit[newsIndex], maxValue);
+            else if(objectName == m_protectNewsStartMinuteEdit[newsIndex].Name())
+               NormalizeTimeEdit(m_protectNewsStartMinuteEdit[newsIndex], maxValue);
+            else if(objectName == m_protectNewsEndHourEdit[newsIndex].Name())
+               NormalizeTimeEdit(m_protectNewsEndHourEdit[newsIndex], maxValue);
+            else if(objectName == m_protectNewsEndMinuteEdit[newsIndex].Name())
+               NormalizeTimeEdit(m_protectNewsEndMinuteEdit[newsIndex], maxValue);
+            else
+               continue;
+            return true;
+           }
+         return false;
+        }
+
+      return true;
+     }
+
    bool                       ValidateProtectionSettings(SEASettings &outSettings,const bool editable,string &error)
      {
       error = "";
@@ -575,12 +705,22 @@
       bool sessionStartMinuteValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectSessionStartMinuteEdit)), 59, sessionStartMinute);
       bool sessionEndHourValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectSessionEndHourEdit)), 23, sessionEndHour);
       bool sessionEndMinuteValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectSessionEndMinuteEdit)), 59, sessionEndMinute);
-      FusionApplyEditStyle(m_protectSessionStartHourEdit, sessionStartHourValid, editable);
-      FusionApplyEditStyle(m_protectSessionStartMinuteEdit, sessionStartMinuteValid, editable);
-      FusionApplyEditStyle(m_protectSessionEndHourEdit, sessionEndHourValid, editable);
-      FusionApplyEditStyle(m_protectSessionEndMinuteEdit, sessionEndMinuteValid, editable);
+      bool sessionOrderValid = true;
+      if(sessionStartHourValid && sessionStartMinuteValid && sessionEndHourValid && sessionEndMinuteValid)
+        {
+         int sessionStartTotal = sessionStartHour * 60 + sessionStartMinute;
+         int sessionEndTotal = sessionEndHour * 60 + sessionEndMinute;
+         sessionOrderValid = (sessionEndTotal > sessionStartTotal);
+        }
+      bool sessionFieldsValid = sessionStartHourValid && sessionStartMinuteValid && sessionEndHourValid && sessionEndMinuteValid && sessionOrderValid;
+      FusionApplyEditStyle(m_protectSessionStartHourEdit, sessionFieldsValid, editable);
+      FusionApplyEditStyle(m_protectSessionStartMinuteEdit, sessionFieldsValid, editable);
+      FusionApplyEditStyle(m_protectSessionEndHourEdit, sessionFieldsValid, editable);
+      FusionApplyEditStyle(m_protectSessionEndMinuteEdit, sessionFieldsValid, editable);
       if(error == "" && (!sessionStartHourValid || !sessionStartMinuteValid || !sessionEndHourValid || !sessionEndMinuteValid))
          error = "Horario da sessao invalido.";
+      if(error == "" && !sessionOrderValid)
+         error = "Fim da sessao deve ser maior que o inicio.";
       outSettings.sessionStartHour = sessionStartHour;
       outSettings.sessionStartMinute = sessionStartMinute;
       outSettings.sessionEndHour = sessionEndHour;
@@ -593,12 +733,22 @@
          bool startMinuteValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectNewsStartMinuteEdit[newsIndex])), 59, startMinute);
          bool endHourValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectNewsEndHourEdit[newsIndex])), 23, endHour);
          bool endMinuteValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectNewsEndMinuteEdit[newsIndex])), 59, endMinute);
-         FusionApplyEditStyle(m_protectNewsStartHourEdit[newsIndex], startHourValid, editable);
-         FusionApplyEditStyle(m_protectNewsStartMinuteEdit[newsIndex], startMinuteValid, editable);
-         FusionApplyEditStyle(m_protectNewsEndHourEdit[newsIndex], endHourValid, editable);
-         FusionApplyEditStyle(m_protectNewsEndMinuteEdit[newsIndex], endMinuteValid, editable);
+         bool newsOrderValid = true;
+         if(startHourValid && startMinuteValid && endHourValid && endMinuteValid)
+           {
+            int newsStartTotal = startHour * 60 + startMinute;
+            int newsEndTotal = endHour * 60 + endMinute;
+            newsOrderValid = (newsEndTotal > newsStartTotal);
+           }
+         bool newsFieldsValid = startHourValid && startMinuteValid && endHourValid && endMinuteValid && newsOrderValid;
+         FusionApplyEditStyle(m_protectNewsStartHourEdit[newsIndex], newsFieldsValid, editable);
+         FusionApplyEditStyle(m_protectNewsStartMinuteEdit[newsIndex], newsFieldsValid, editable);
+         FusionApplyEditStyle(m_protectNewsEndHourEdit[newsIndex], newsFieldsValid, editable);
+         FusionApplyEditStyle(m_protectNewsEndMinuteEdit[newsIndex], newsFieldsValid, editable);
          if(error == "" && (!startHourValid || !startMinuteValid || !endHourValid || !endMinuteValid))
             error = "Horario da News " + IntegerToString(newsIndex + 1) + " invalido.";
+         if(error == "" && !newsOrderValid)
+            error = "Fim da News " + IntegerToString(newsIndex + 1) + " deve ser maior que o inicio.";
          outSettings.newsWindows[newsIndex].startHour = startHour;
          outSettings.newsWindows[newsIndex].startMinute = startMinute;
          outSettings.newsWindows[newsIndex].endHour = endHour;

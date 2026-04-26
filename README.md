@@ -51,6 +51,7 @@ Hoje ela permite:
 - validar lote, spread e magic com feedback visual;
 - configurar os timeframes operacionais dos modulos em `STRATS` e `FILTERS` com `ComboBox`;
 - manter avisos operacionais persistentes na aba `STATUS`.
+- refletir bloqueios de protecao ativos na `STATUS`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
 
 ## Documentacao Tecnica
 

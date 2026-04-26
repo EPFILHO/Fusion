@@ -5,9 +5,9 @@
 #include <Controls\Button.mqh>
 #include <Controls\Label.mqh>
 #include <Controls\Edit.mqh>
+#include <Controls\Panel.mqh>
 #include "PanelUtils.mqh"
 #include "../Core/Version.mqh"
-#include "../Platform/FolderLauncher.mqh"
 #include "UIPanelTypes.mqh"
 #include "Pages/StatusPage.mqh"
 #include "Pages/ResultsPage.mqh"
@@ -38,9 +38,16 @@ private:
    ENUM_FUSION_CONFIG_PAGE    m_configPage;
 
    CButton                    m_tabs[FUSION_TAB_COUNT];
+   CPanel                     m_tabsSeparator;
    CButton                    m_strategyTabs[FUSION_STRAT_COUNT];
+   CPanel                     m_strategyTabsSeparator;
+   CPanel                     m_strategyContentFrame;
    CButton                    m_filterTabs[FUSION_FILTER_COUNT];
+   CPanel                     m_filterTabsSeparator;
+   CPanel                     m_filterContentFrame;
    CButton                    m_configTabs[FUSION_CFG_COUNT];
+   CPanel                     m_configTabsSeparator;
+   CPanel                     m_configContentFrame;
    CStatusPage                m_statusPage;
    CResultsPage               m_resultsPage;
    bool                       m_statusPageCreated;
@@ -153,6 +160,16 @@ private:
       edit.Color(clrBlack);
       edit.ColorBackground(clrWhite);
       return Add(edit);
+     }
+
+   bool                       AddPanel(CPanel &panel,const string name,const int x1,const int y1,const int x2,const int y2,const color bg,const color border,const ENUM_BORDER_TYPE borderType=BORDER_FLAT)
+     {
+      if(!panel.Create(m_chartId, name, m_subWindow, x1, y1, x2, y2))
+         return false;
+      panel.ColorBackground(bg);
+      panel.ColorBorder(border);
+      panel.BorderType(borderType);
+      return Add(panel);
      }
 
    string                     LiveEditText(CEdit &edit)
@@ -293,6 +310,10 @@ private:
       if(!BuildConfigTab())
          return false;
       m_configTabCreated = true;
+      if(!EnsureConfigSystemPageCreated())
+         return false;
+      if(m_configPage == FUSION_CFG_PROTECTION && !EnsureConfigProtectionPageCreated())
+         return false;
       if(!EnsureActiveConfigPageCreated())
          return false;
       SyncDraftSettingsToControls();
@@ -705,10 +726,10 @@ private:
       if(m_configTabCreated)
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
-            FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
+            FusionApplyDesktopTabStyle(m_configTabs[i], i == (int)m_configPage);
          if(m_configProtectionCreated)
             for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
-               FusionApplyPrimaryButtonStyle(m_protectTabs[p], p == (int)m_protectPage);
+               FusionApplyDesktopTabStyle(m_protectTabs[p], p == (int)m_protectPage);
          if(m_configSystemCreated)
             m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
         }
@@ -794,6 +815,8 @@ private:
 
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
          SetVisible(m_configTabs[i], visible);
+      SetVisible(m_configTabsSeparator, visible);
+      SetVisible(m_configContentFrame, visible && m_configPage != FUSION_CFG_PROTECTION);
 
       bool riskVisible = visible && m_configPage == FUSION_CFG_RISK;
       bool protectionVisible = visible && m_configPage == FUSION_CFG_PROTECTION;
@@ -847,27 +870,58 @@ private:
    bool                       BuildTabs(void)
      {
       string names[FUSION_TAB_COUNT] = {"STATUS", "RESULTS", "STRATS", "FILTERS", "PERFIS", "CONFIG"};
-      int x = 10;
+      int tabWidth = 84;
+      int tabGap = 2;
+      int x = 18;
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
         {
-         if(!AddButton(m_tabs[i], "Fusion_tab_" + IntegerToString(i), x, 68, x + 84, 92, names[i], FUSION_CLR_PANEL))
+         if(!AddButton(m_tabs[i], "Fusion_tab_" + IntegerToString(i), x, 68, x + tabWidth, 92, names[i], FUSION_CLR_PANEL))
             return false;
-         x += 86;
+         x += tabWidth + tabGap;
         }
+      if(!AddPanel(m_tabsSeparator,
+                   "Fusion_tabs_sep",
+                   FUSION_PANEL_MARGIN,
+                   96,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   98,
+                   FUSION_CLR_SUBTAB_LINE,
+                   FUSION_CLR_SUBTAB_LINE))
+         return false;
       return true;
      }
 
    bool                       BuildConfigTab(void)
      {
       string pageNames[FUSION_CFG_COUNT] = {"RISK", "PROTECT", "SYSTEM"};
+      int tabWidth = 120;
+      int tabGap = 4;
       int x = 18;
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
         {
-         if(!AddButton(m_configTabs[i], "Fusion_cfg_tab_" + IntegerToString(i), x, 110, x + 120, 134, pageNames[i], FUSION_CLR_PANEL))
+         if(!AddButton(m_configTabs[i], "Fusion_cfg_tab_" + IntegerToString(i), x, 104, x + tabWidth, 128, pageNames[i], FUSION_CLR_PANEL))
             return false;
-         x += 124;
+         x += tabWidth + tabGap;
         }
-      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 576, 520, 600, "", FUSION_CLR_MUTED, 8))
+      if(!AddPanel(m_configTabsSeparator,
+                   "Fusion_cfg_tabs_sep",
+                   FUSION_PANEL_MARGIN,
+                   132,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   134,
+                   FUSION_CLR_SUBTAB_LINE,
+                   FUSION_CLR_SUBTAB_LINE))
+         return false;
+      if(!AddPanel(m_configContentFrame,
+                   "Fusion_cfg_content_frame",
+                   FUSION_PANEL_MARGIN,
+                   138,
+                   FUSION_PANEL_WIDTH - FUSION_PANEL_MARGIN,
+                   560,
+                   FUSION_CLR_FRAME_BG,
+                   FUSION_CLR_FRAME_BORDER))
+         return false;
+      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 576, FUSION_PANEL_WIDTH - 22, 600, "", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -940,6 +994,7 @@ private:
            {
             ReleaseButton(m_tabs[t]);
             m_activeTab = (ENUM_FUSION_TAB)t;
+            EnsureActiveTabCreated();
             ApplyVisibility();
             UpdateActiveTabContent(true);
             return true;
@@ -952,6 +1007,7 @@ private:
            {
             ReleaseButton(m_strategyTabs[s]);
             m_strategyPage = (ENUM_FUSION_STRATEGY_PAGE)s;
+            EnsureActiveStrategyContentCreated();
             ApplyVisibility();
             return true;
            }
@@ -963,6 +1019,7 @@ private:
            {
             ReleaseButton(m_filterTabs[f]);
             m_filterPage = (ENUM_FUSION_FILTER_PAGE)f;
+            EnsureActiveFilterContentCreated();
             ApplyVisibility();
             return true;
            }
@@ -974,6 +1031,7 @@ private:
            {
             ReleaseButton(m_configTabs[c]);
             m_configPage = (ENUM_FUSION_CONFIG_PAGE)c;
+            EnsureActiveConfigPageCreated();
             ApplyVisibility();
             RefreshConfigValidation();
             return true;
@@ -1022,19 +1080,6 @@ private:
          ReleaseButton(m_profileRefreshBtn);
          RefreshProfileList(true);
          SetProfileStatus("Lista de perfis atualizada.", FUSION_CLR_GOOD, true);
-         return true;
-        }
-
-      if(objectName == m_profileOpenFolderBtn.Name())
-        {
-         ReleaseButton(m_profileOpenFolderBtn);
-         string folderPath = m_profileStore.ProfilesFolderPath();
-         if(FusionOpenFolder(folderPath))
-            SetProfileStatus("Pasta de perfis aberta.", FUSION_CLR_GOOD, true);
-         else if(!FusionCanOpenFolder())
-            SetProfileStatus("Habilite DLL imports para abrir a pasta automaticamente.", FUSION_CLR_WARN, true);
-         else
-            SetProfileStatus("Nao foi possivel abrir a pasta de perfis.", FUSION_CLR_BAD, true);
          return true;
         }
 
@@ -1146,6 +1191,11 @@ private:
         {
          ReleaseButton(m_profileDeleteBtn);
          string selectedProfile = SelectedProfileName();
+         if(IsDefaultProfileName(selectedProfile))
+           {
+            SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
+            return true;
+           }
          if(!ProfileEditMode() && CanAdminProfiles() && selectedProfile != "" &&
             m_profileStore.SanitizeProfileName(selectedProfile) != m_profileStore.SanitizeProfileName(m_committedProfileName))
            {
@@ -1506,6 +1556,8 @@ public:
 
       if(refreshAfterEvent)
         {
+         if(id == CHARTEVENT_OBJECT_ENDEDIT)
+            NormalizeProtectionDeferredEdit(sparam);
          RefreshConfigValidation();
          ChartRedraw();
         }

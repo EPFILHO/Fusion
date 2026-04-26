@@ -36,7 +36,8 @@ public:
       if(spread <= m_settings.maxSpreadPoints)
          return true;
 
-      reason = "Spread acima do limite.";
+      reason = "Spread bloqueado: atual " + IntegerToString((int)spread) +
+               " pts, limite " + IntegerToString(m_settings.maxSpreadPoints) + " pts.";
       return false;
      }
   };
