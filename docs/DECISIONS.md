@@ -118,6 +118,29 @@ Estado automatico por grafico guarda restauracao local daquela instancia, como p
 
 Por seguranca, o Fusion nao restaura `started=true` em grafico real ou demo. Ao anexar, recompilar ou reinicializar o EA, a operacao volta pausada e exige clique manual em `INICIAR`.
 
+## 11. Protection Deve Crescer por Modulo
+
+As protecoes do Fusion nao devem ficar amontoadas em um unico bloco logico ou em uma unica subpagina sem separacao conceitual.
+
+No motor, a direcao e:
+
+- um orquestrador central (`ProtectionManager`);
+- submodulos dedicados para `Spread`, `Session`, `News`, `Day`, `Drawdown` e `Streak`.
+
+Na GUI, a mesma separacao deve aparecer na subaba `PROTECT`, com subpaginas internas em vez de um formulario gigante. Isso reduz acoplamento, facilita validacao e evita repetir o problema historico de crescimento desordenado visto em outros projetos.
+
+## 12. Drawdown Diario Depende de Meta de Ganho
+
+No Fusion, `Drawdown` nao deve ser armado a partir de qualquer pequeno pico projetado do dia. Isso pode bloquear o EA por oscilacoes irrelevantes.
+
+A regra escolhida e:
+
+- `DAY.maxDailyGain` continua sendo o gatilho de ativacao;
+- se `Drawdown` estiver desligado, atingir `maxDailyGain` bloqueia/fecha pela propria regra diaria;
+- se `Drawdown` estiver ligado, atingir `maxDailyGain` arma a protecao de drawdown em vez de encerrar imediatamente a operacao.
+
+Por isso a GUI deve validar `Drawdown` como dependente de `DAY` ativo com `Max Ganho > 0`.
+
 Excecoes e limites:
 
 - no Strategy Tester, o EA continua iniciando automaticamente para preservar backtests via `input`;

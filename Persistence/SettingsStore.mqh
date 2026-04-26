@@ -68,6 +68,7 @@ private:
       WriteLine(handle, "debugLogs", IntegerToString((int)settings.debugLogs));
       WriteLine(handle, "conflictMode", IntegerToString((int)settings.conflictMode));
       WriteLine(handle, "tradeDirection", IntegerToString((int)settings.tradeDirection));
+      WriteLine(handle, "enableSpreadProtection", IntegerToString((int)settings.enableSpreadProtection));
       WriteLine(handle, "maxSpreadPoints", IntegerToString(settings.maxSpreadPoints));
       WriteLine(handle, "enableSessionFilter", IntegerToString((int)settings.enableSessionFilter));
       WriteLine(handle, "sessionStartHour", IntegerToString(settings.sessionStartHour));
@@ -75,6 +76,16 @@ private:
       WriteLine(handle, "sessionEndHour", IntegerToString(settings.sessionEndHour));
       WriteLine(handle, "sessionEndMinute", IntegerToString(settings.sessionEndMinute));
       WriteLine(handle, "closeOnSessionEnd", IntegerToString((int)settings.closeOnSessionEnd));
+      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+        {
+         string prefix = "news" + IntegerToString(newsIndex + 1) + ".";
+         WriteLine(handle, prefix + "enabled", IntegerToString((int)settings.newsWindows[newsIndex].enabled));
+         WriteLine(handle, prefix + "startHour", IntegerToString(settings.newsWindows[newsIndex].startHour));
+         WriteLine(handle, prefix + "startMinute", IntegerToString(settings.newsWindows[newsIndex].startMinute));
+         WriteLine(handle, prefix + "endHour", IntegerToString(settings.newsWindows[newsIndex].endHour));
+         WriteLine(handle, prefix + "endMinute", IntegerToString(settings.newsWindows[newsIndex].endMinute));
+         WriteLine(handle, prefix + "action", IntegerToString((int)settings.newsWindows[newsIndex].action));
+        }
       WriteLine(handle, "enableDailyLimits", IntegerToString((int)settings.enableDailyLimits));
       WriteLine(handle, "maxDailyTrades", IntegerToString(settings.maxDailyTrades));
       WriteLine(handle, "maxDailyLoss", DoubleToString(settings.maxDailyLoss, 2));
@@ -153,6 +164,7 @@ private:
       else if(key == "debugLogs") settings.debugLogs = (bool)StringToInteger(value);
       else if(key == "conflictMode") settings.conflictMode = (ENUM_CONFLICT_RESOLUTION)StringToInteger(value);
       else if(key == "tradeDirection") settings.tradeDirection = (ENUM_TRADE_DIRECTION)StringToInteger(value);
+      else if(key == "enableSpreadProtection") settings.enableSpreadProtection = (bool)StringToInteger(value);
       else if(key == "maxSpreadPoints") settings.maxSpreadPoints = (int)StringToInteger(value);
       else if(key == "enableSessionFilter") settings.enableSessionFilter = (bool)StringToInteger(value);
       else if(key == "sessionStartHour") settings.sessionStartHour = (int)StringToInteger(value);
@@ -160,6 +172,24 @@ private:
       else if(key == "sessionEndHour") settings.sessionEndHour = (int)StringToInteger(value);
       else if(key == "sessionEndMinute") settings.sessionEndMinute = (int)StringToInteger(value);
       else if(key == "closeOnSessionEnd") settings.closeOnSessionEnd = (bool)StringToInteger(value);
+      else if(key == "news1.enabled") settings.newsWindows[0].enabled = (bool)StringToInteger(value);
+      else if(key == "news1.startHour") settings.newsWindows[0].startHour = (int)StringToInteger(value);
+      else if(key == "news1.startMinute") settings.newsWindows[0].startMinute = (int)StringToInteger(value);
+      else if(key == "news1.endHour") settings.newsWindows[0].endHour = (int)StringToInteger(value);
+      else if(key == "news1.endMinute") settings.newsWindows[0].endMinute = (int)StringToInteger(value);
+      else if(key == "news1.action") settings.newsWindows[0].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
+      else if(key == "news2.enabled") settings.newsWindows[1].enabled = (bool)StringToInteger(value);
+      else if(key == "news2.startHour") settings.newsWindows[1].startHour = (int)StringToInteger(value);
+      else if(key == "news2.startMinute") settings.newsWindows[1].startMinute = (int)StringToInteger(value);
+      else if(key == "news2.endHour") settings.newsWindows[1].endHour = (int)StringToInteger(value);
+      else if(key == "news2.endMinute") settings.newsWindows[1].endMinute = (int)StringToInteger(value);
+      else if(key == "news2.action") settings.newsWindows[1].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
+      else if(key == "news3.enabled") settings.newsWindows[2].enabled = (bool)StringToInteger(value);
+      else if(key == "news3.startHour") settings.newsWindows[2].startHour = (int)StringToInteger(value);
+      else if(key == "news3.startMinute") settings.newsWindows[2].startMinute = (int)StringToInteger(value);
+      else if(key == "news3.endHour") settings.newsWindows[2].endHour = (int)StringToInteger(value);
+      else if(key == "news3.endMinute") settings.newsWindows[2].endMinute = (int)StringToInteger(value);
+      else if(key == "news3.action") settings.newsWindows[2].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
       else if(key == "enableDailyLimits") settings.enableDailyLimits = (bool)StringToInteger(value);
       else if(key == "maxDailyTrades") settings.maxDailyTrades = (int)StringToInteger(value);
       else if(key == "maxDailyLoss") settings.maxDailyLoss = StringToDouble(value);
@@ -471,6 +501,8 @@ public:
         }
 
       FileClose(handle);
+      if(settings.schemaVersion < 2 && settings.maxSpreadPoints > 0)
+         settings.enableSpreadProtection = true;
       return true;
      }
   };

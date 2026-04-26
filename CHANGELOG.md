@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.031 - 2026-04-25
+- Iniciada a modularizacao real de `Protection`: `ProtectionManager` passou a orquestrar submodulos dedicados para `Spread`, `Session`, `News`, `Daily Limits`, `Drawdown` e `Streak`.
+- O modelo de dados ganhou suporte a tres janelas de `NEWS`, cada uma com horario proprio e acao individual de apenas bloquear entradas ou fechar posicoes abertas e bloquear novas entradas.
+- A regra de `drawdown` foi alinhada com a ideia operacional do Matrix: no Fusion ele depende de `DAY.maxDailyGain`, em vez de ficar armando desde qualquer pequeno pico de lucro do dia.
+- A subaba `PROTECT` comecou a nascer como area propria com subabas internas (`GERAL`, `SPREAD`, `SESSION`, `NEWS`, `DAY`, `DRAWDOWN`, `STREAK`), preparando a GUI para crescer sem virar um bloco unico.
+- O painel passou a redesenhar automaticamente o estado visual quando o bloqueio por `Magic` ou os indicadores runtime mudam, reduzindo a dependencia de eventos de mouse para repintar o `INICIAR`.
+
 ## 1.030 - 2026-04-25
 - Os edits das subabas de `CONFIG` passaram a entrar no mesmo refresh visual de validacao, fazendo `SALVAR` e `CANCELAR` mudarem de cor de forma coerente apos a edicao.
 - O refresh de pos-edicao da GUI deixou de chamar `ApplyVisibility()` para esses campos, reduzindo a chance de interferencia temporaria com `ComboBox` de timeframe depois de certas acoes de perfil.

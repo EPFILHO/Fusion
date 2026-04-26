@@ -25,7 +25,7 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 - `Strategies`: contrato base e implementacoes de estrategias.
 - `Filters`: contrato base e implementacoes de filtros.
 - `Risk`: lote, SL, TP, TP parcial, breakeven e trailing stop.
-- `Protection`: spread, sessao, limites diarios, drawdown e streak.
+- `Protection`: spread, sessao, news, limites diarios, drawdown e streak.
 - `Execution`: envio de ordens, sincronizacao de posicao e reconciliacao com historico.
 - `Persistence`: perfis nomeados e autosave/autorestore por grafico.
 - `Normalization`: normalizacao de simbolo, volume, preco e especificacoes da corretora.
@@ -35,7 +35,7 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 
 O Magic Number pertence ao perfil/EA, nao a cada estrategia individual. Essa decisao evita que uma mesma instancia misture posicoes ou interfira em outro grafico.
 
-Perfis salvos devem ter Magic Numbers unicos. Isso impede, por exemplo, usar por engano um perfil calibrado para BTCUSD em XAUUSD ou B3. O runtime ainda tem uma protecao adicional para impedir duas instancias ativas com o mesmo `simbolo + magic` no mesmo terminal.
+Perfis salvos devem ter Magic Numbers unicos. Isso impede, por exemplo, usar por engano um perfil calibrado para BTCUSD em XAUUSD ou B3. O runtime ainda tem uma protecao adicional para impedir duas instancias ativas do Fusion com o mesmo `Magic` no mesmo terminal.
 
 ## GUI
 

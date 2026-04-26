@@ -45,8 +45,6 @@
         {
          m_btnStart.Text("BLOQUEADO");
          FusionApplyBlockedButtonStyle(m_btnStart);
-         if(m_configProtectionCreated)
-            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, false);
          return;
         }
 
@@ -57,8 +55,6 @@
             FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
          else
             FusionApplyNeutralButtonStyle(m_btnStart);
-         if(m_configProtectionCreated)
-            FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, true, CanPause());
          return;
         }
 
@@ -67,9 +63,6 @@
          FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnStart);
-
-      if(m_configProtectionCreated)
-         FusionApplyToggleButtonStyle(m_cfgProtectionStartedBtn, false, CanStart());
      }
 
    void                       RefreshHeaderTheme(void)

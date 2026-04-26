@@ -169,6 +169,11 @@ private:
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
+      snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
+      snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
+      snapshot.lossStreak       = m_protectionManager.LossStreak();
+      snapshot.winStreak        = m_protectionManager.WinStreak();
+      snapshot.drawdownProtectionActive = m_protectionManager.IsDrawdownProtectionActive();
       return snapshot;
      }
 

@@ -50,6 +50,12 @@ enum ENUM_RELOAD_SCOPE
    RELOAD_COLD
   };
 
+enum ENUM_NEWS_WINDOW_ACTION
+  {
+   NEWS_ACTION_BLOCK_ENTRIES = 0,
+   NEWS_ACTION_CLOSE_AND_BLOCK
+  };
+
 enum ENUM_UI_COMMAND
   {
    UI_COMMAND_NONE = 0,
@@ -68,6 +74,16 @@ struct SPartialTPConfig
    bool   enabled;
    double percent;
    int    distancePoints;
+  };
+
+struct SNewsWindowConfig
+  {
+   bool                    enabled;
+   int                     startHour;
+   int                     startMinute;
+   int                     endHour;
+   int                     endMinute;
+   ENUM_NEWS_WINDOW_ACTION action;
   };
 
 struct SSymbolSpec
@@ -97,6 +113,7 @@ struct SEASettings
    bool                     debugLogs;
    ENUM_CONFLICT_RESOLUTION conflictMode;
    ENUM_TRADE_DIRECTION     tradeDirection;
+   bool                     enableSpreadProtection;
    int                      maxSpreadPoints;
    bool                     enableSessionFilter;
    int                      sessionStartHour;
@@ -104,6 +121,7 @@ struct SEASettings
    int                      sessionEndHour;
    int                      sessionEndMinute;
    bool                     closeOnSessionEnd;
+   SNewsWindowConfig        newsWindows[3];
    bool                     enableDailyLimits;
    int                      maxDailyTrades;
    double                   maxDailyLoss;
@@ -263,6 +281,11 @@ struct SUIPanelSnapshot
    string runtimeBlockReason;
    string startBlockedReason;
    string runtimeNotice;
+   int    dailyTradeCount;
+   double dailyClosedProfit;
+   int    lossStreak;
+   int    winStreak;
+   bool   drawdownProtectionActive;
   };
 
 struct SUICommand
@@ -289,7 +312,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 1;
+   settings.schemaVersion         = 2;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -299,6 +322,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.debugLogs             = false;
    settings.conflictMode          = CONFLICT_PRIORITY;
    settings.tradeDirection        = DIRECTION_BOTH;
+   settings.enableSpreadProtection= false;
    settings.maxSpreadPoints       = 0;
    settings.enableSessionFilter   = false;
    settings.sessionStartHour      = 0;
@@ -306,6 +330,15 @@ void SetDefaultSettings(SEASettings &settings)
    settings.sessionEndHour        = 23;
    settings.sessionEndMinute      = 59;
    settings.closeOnSessionEnd     = false;
+   for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+     {
+      settings.newsWindows[newsIndex].enabled = false;
+      settings.newsWindows[newsIndex].startHour = 0;
+      settings.newsWindows[newsIndex].startMinute = 0;
+      settings.newsWindows[newsIndex].endHour = 0;
+      settings.newsWindows[newsIndex].endMinute = 0;
+      settings.newsWindows[newsIndex].action = NEWS_ACTION_BLOCK_ENTRIES;
+     }
    settings.enableDailyLimits     = false;
    settings.maxDailyTrades        = 0;
    settings.maxDailyLoss          = 0.0;

@@ -19,6 +19,7 @@ input ENUM_CONFLICT_RESOLUTION inp_ConflictMode = CONFLICT_PRIORITY;
 input ENUM_TRADE_DIRECTION     inp_TradeDirection = DIRECTION_BOTH;
 
 input group "Protection"
+input bool   inp_EnableSpreadProtection    = false;
 input int    inp_MaxSpreadPoints           = 0;
 input bool   inp_EnableSessionFilter       = false;
 input int    inp_SessionStartHour          = 9;
@@ -35,6 +36,30 @@ input double inp_MaxDrawdown               = 0.0;
 input bool   inp_EnableStreak              = false;
 input int    inp_MaxLossStreak             = 0;
 input int    inp_MaxWinStreak              = 0;
+
+input group "Protection - News 1"
+input bool   inp_EnableNewsWindow1         = false;
+input int    inp_News1StartHour            = 0;
+input int    inp_News1StartMinute          = 0;
+input int    inp_News1EndHour              = 0;
+input int    inp_News1EndMinute            = 0;
+input bool   inp_News1ClosePositions       = false;
+
+input group "Protection - News 2"
+input bool   inp_EnableNewsWindow2         = false;
+input int    inp_News2StartHour            = 0;
+input int    inp_News2StartMinute          = 0;
+input int    inp_News2EndHour              = 0;
+input int    inp_News2EndMinute            = 0;
+input bool   inp_News2ClosePositions       = false;
+
+input group "Protection - News 3"
+input bool   inp_EnableNewsWindow3         = false;
+input int    inp_News3StartHour            = 0;
+input int    inp_News3StartMinute          = 0;
+input int    inp_News3EndHour              = 0;
+input int    inp_News3EndMinute            = 0;
+input bool   inp_News3ClosePositions       = false;
 
 input group "Risk"
 input double inp_FixedLot                  = 0.10;
@@ -115,6 +140,7 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.autoSaveChartState     = inp_AutoSaveChartState;
    settings.conflictMode           = inp_ConflictMode;
    settings.tradeDirection         = inp_TradeDirection;
+   settings.enableSpreadProtection = (inp_EnableSpreadProtection || inp_MaxSpreadPoints > 0);
    settings.maxSpreadPoints        = inp_MaxSpreadPoints;
    settings.enableSessionFilter    = inp_EnableSessionFilter;
    settings.sessionStartHour       = inp_SessionStartHour;
@@ -122,6 +148,24 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.sessionEndHour         = inp_SessionEndHour;
    settings.sessionEndMinute       = inp_SessionEndMinute;
    settings.closeOnSessionEnd      = inp_CloseOnSessionEnd;
+   settings.newsWindows[0].enabled = inp_EnableNewsWindow1;
+   settings.newsWindows[0].startHour = inp_News1StartHour;
+   settings.newsWindows[0].startMinute = inp_News1StartMinute;
+   settings.newsWindows[0].endHour = inp_News1EndHour;
+   settings.newsWindows[0].endMinute = inp_News1EndMinute;
+   settings.newsWindows[0].action = inp_News1ClosePositions ? NEWS_ACTION_CLOSE_AND_BLOCK : NEWS_ACTION_BLOCK_ENTRIES;
+   settings.newsWindows[1].enabled = inp_EnableNewsWindow2;
+   settings.newsWindows[1].startHour = inp_News2StartHour;
+   settings.newsWindows[1].startMinute = inp_News2StartMinute;
+   settings.newsWindows[1].endHour = inp_News2EndHour;
+   settings.newsWindows[1].endMinute = inp_News2EndMinute;
+   settings.newsWindows[1].action = inp_News2ClosePositions ? NEWS_ACTION_CLOSE_AND_BLOCK : NEWS_ACTION_BLOCK_ENTRIES;
+   settings.newsWindows[2].enabled = inp_EnableNewsWindow3;
+   settings.newsWindows[2].startHour = inp_News3StartHour;
+   settings.newsWindows[2].startMinute = inp_News3StartMinute;
+   settings.newsWindows[2].endHour = inp_News3EndHour;
+   settings.newsWindows[2].endMinute = inp_News3EndMinute;
+   settings.newsWindows[2].action = inp_News3ClosePositions ? NEWS_ACTION_CLOSE_AND_BLOCK : NEWS_ACTION_BLOCK_ENTRIES;
    settings.enableDailyLimits      = inp_EnableDailyLimits;
    settings.maxDailyTrades         = inp_MaxDailyTrades;
    settings.maxDailyLoss           = inp_MaxDailyLoss;

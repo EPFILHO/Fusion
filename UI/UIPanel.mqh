@@ -56,18 +56,11 @@ private:
 #include "UIPanelHeader.mqh"
 #include "UIPanelSignalTabs.mqh"
 #include "UIPanelProfiles.mqh"
+#include "UIPanelProtectionTabs.mqh"
 
    CLabel                     m_cfgRiskHdr;
    CLabel                     m_cfgRiskLotLbl;
    CEdit                      m_cfgRiskLotEdit;
-   CLabel                     m_cfgRiskSpreadLbl;
-   CEdit                      m_cfgRiskSpreadEdit;
-
-   CLabel                     m_cfgProtectionHdr;
-   CLabel                     m_cfgProtectionStartedLbl;
-   CButton                    m_cfgProtectionStartedBtn;
-   CLabel                     m_cfgProtectionPositionLbl;
-   CLabel                     m_cfgProtectionPositionVal;
 
    CLabel                     m_cfgSystemHdr;
    CLabel                     m_cfgSystemMagicLbl;
@@ -101,9 +94,11 @@ private:
      {
       if(objectName == m_profileNewEdit.Name())
          return true;
-      if(m_configRiskCreated && (objectName == m_cfgRiskLotEdit.Name() || objectName == m_cfgRiskSpreadEdit.Name()))
+      if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
+         return true;
+      if(IsProtectionDeferredEdit(objectName))
          return true;
       return false;
      }
@@ -239,10 +234,6 @@ private:
          return false;
       if(!AddEdit(m_cfgRiskLotEdit, "Fusion_cfg_lot_edit", 200, 196, 310, 220, "0.10"))
          return false;
-      if(!AddLabel(m_cfgRiskSpreadLbl, "Fusion_cfg_spread_lbl", 22, 236, 170, 254, "Max Spread", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskSpreadEdit, "Fusion_cfg_spread_edit", 200, 234, 310, 258, "0"))
-         return false;
       return true;
      }
 
@@ -254,34 +245,6 @@ private:
          return false;
       m_configRiskCreated = true;
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
-      return RebindControlIdsIfRunning();
-     }
-
-   bool                       BuildConfigProtectionPage(void)
-     {
-      if(!AddLabel(m_cfgProtectionHdr, "Fusion_cfg_prot_hdr", 22, 160, 270, 180, "Protecao Runtime", FUSION_CLR_VALUE, 9))
-         return false;
-      if(!AddLabel(m_cfgProtectionStartedLbl, "Fusion_cfg_started_lbl", 22, 198, 170, 216, "EA Start", FUSION_CLR_LABEL))
-         return false;
-      if(!AddButton(m_cfgProtectionStartedBtn, "Fusion_cfg_started_btn", 200, 196, 310, 220, "OFF", FUSION_CLR_BAD))
-         return false;
-      if(!AddLabel(m_cfgProtectionPositionLbl, "Fusion_cfg_pos_lbl", 22, 236, 170, 254, "Posicao", FUSION_CLR_LABEL))
-         return false;
-      if(!AddLabel(m_cfgProtectionPositionVal, "Fusion_cfg_pos_val", 200, 236, 320, 254, "--", FUSION_CLR_VALUE))
-         return false;
-      return true;
-     }
-
-   bool                       EnsureConfigProtectionPageCreated(void)
-     {
-      if(m_configProtectionCreated)
-         return true;
-      if(!BuildConfigProtectionPage())
-         return false;
-      m_configProtectionCreated = true;
-      UpdateConfigReadOnly();
-      UpdateHeaderButtons();
       return RebindControlIdsIfRunning();
      }
 
@@ -431,10 +394,9 @@ private:
    void                       SyncDraftSettingsToControls(void)
      {
       if(m_configRiskCreated)
-        {
          m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-         m_cfgRiskSpreadEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
-        }
+      if(m_configProtectionCreated)
+         SyncProtectionControls();
       if(m_configSystemCreated)
         {
          m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
@@ -471,21 +433,10 @@ private:
            }
          else if(lotText != CommittedLotText())
             return true;
-
-         string spreadText = FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit));
-         if(FusionIsIntegerText(spreadText, true))
-           {
-            if((int)StringToInteger(spreadText) != m_committedSettings.maxSpreadPoints)
-               return true;
-           }
-         else if(spreadText != IntegerToString(m_committedSettings.maxSpreadPoints))
-            return true;
         }
       else
         {
          if(MathAbs(m_draftSettings.fixedLot - m_committedSettings.fixedLot) > 0.0000001)
-            return true;
-         if(m_draftSettings.maxSpreadPoints != m_committedSettings.maxSpreadPoints)
             return true;
         }
 
@@ -527,6 +478,48 @@ private:
          return true;
       if(m_draftSettings.rsiFilterTimeframe != m_committedSettings.rsiFilterTimeframe)
          return true;
+      if(m_draftSettings.enableSpreadProtection != m_committedSettings.enableSpreadProtection)
+         return true;
+      if(m_draftSettings.maxSpreadPoints != m_committedSettings.maxSpreadPoints)
+         return true;
+      if(m_draftSettings.enableSessionFilter != m_committedSettings.enableSessionFilter)
+         return true;
+      if(m_draftSettings.sessionStartHour != m_committedSettings.sessionStartHour ||
+         m_draftSettings.sessionStartMinute != m_committedSettings.sessionStartMinute ||
+         m_draftSettings.sessionEndHour != m_committedSettings.sessionEndHour ||
+         m_draftSettings.sessionEndMinute != m_committedSettings.sessionEndMinute)
+         return true;
+      if(m_draftSettings.closeOnSessionEnd != m_committedSettings.closeOnSessionEnd)
+         return true;
+      if(m_draftSettings.enableDailyLimits != m_committedSettings.enableDailyLimits)
+         return true;
+      if(m_draftSettings.maxDailyTrades != m_committedSettings.maxDailyTrades)
+         return true;
+      if(MathAbs(m_draftSettings.maxDailyLoss - m_committedSettings.maxDailyLoss) > 0.0000001)
+         return true;
+      if(MathAbs(m_draftSettings.maxDailyGain - m_committedSettings.maxDailyGain) > 0.0000001)
+         return true;
+      if(m_draftSettings.enableDrawdown != m_committedSettings.enableDrawdown)
+         return true;
+      if(MathAbs(m_draftSettings.maxDrawdown - m_committedSettings.maxDrawdown) > 0.0000001)
+         return true;
+      if(m_draftSettings.enableStreak != m_committedSettings.enableStreak)
+         return true;
+      if(m_draftSettings.maxLossStreak != m_committedSettings.maxLossStreak)
+         return true;
+      if(m_draftSettings.maxWinStreak != m_committedSettings.maxWinStreak)
+         return true;
+      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+        {
+         if(m_draftSettings.newsWindows[newsIndex].enabled != m_committedSettings.newsWindows[newsIndex].enabled)
+            return true;
+         if(m_draftSettings.newsWindows[newsIndex].startHour != m_committedSettings.newsWindows[newsIndex].startHour ||
+            m_draftSettings.newsWindows[newsIndex].startMinute != m_committedSettings.newsWindows[newsIndex].startMinute ||
+            m_draftSettings.newsWindows[newsIndex].endHour != m_committedSettings.newsWindows[newsIndex].endHour ||
+            m_draftSettings.newsWindows[newsIndex].endMinute != m_committedSettings.newsWindows[newsIndex].endMinute ||
+            m_draftSettings.newsWindows[newsIndex].action != m_committedSettings.newsWindows[newsIndex].action)
+            return true;
+        }
 
       return false;
      }
@@ -582,7 +575,6 @@ private:
       if(!m_configTabCreated)
         {
          outSettings.fixedLot = m_draftSettings.fixedLot;
-         outSettings.maxSpreadPoints = m_draftSettings.maxSpreadPoints;
          outSettings.magicNumber = m_draftSettings.magicNumber;
          m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0);
          outStatus = m_configInputsValid ? "Configuracao pronta." : "Perfil invalido.";
@@ -591,12 +583,12 @@ private:
         }
 
       bool lotValid = false;
-      bool spreadValid = false;
+      bool protectionValid = true;
       bool magicValid = false;
       bool magicUnique = false;
       string magicConflictProfile = "";
+      string protectionError = "";
       double parsedLot = 0.0;
-      int parsedSpread = 0;
       int parsedMagic = 0;
 
       string lotText = m_configRiskCreated ? FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit))
@@ -613,41 +605,28 @@ private:
             lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
         }
 
-      string spreadText = m_configRiskCreated ? FusionTrimCopy(LiveEditText(m_cfgRiskSpreadEdit))
-                                              : IntegerToString(m_draftSettings.maxSpreadPoints);
-      if(FusionIsIntegerText(spreadText, true))
-        {
-         parsedSpread = (int)StringToInteger(spreadText);
-         spreadValid = (parsedSpread >= 0);
-        }
-
       magicValid = ParsedDraftMagicNumber(parsedMagic);
       if(magicValid)
          magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
 
       bool editable = CanEditSettings();
       if(m_configRiskCreated)
-        {
          FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
-         FusionApplyEditStyle(m_cfgRiskSpreadEdit, spreadValid, editable);
-        }
       if(m_configSystemCreated)
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
+      if(m_configProtectionCreated)
+         protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
 
       SyncHeaderProfile(profileValid ? outProfileName : "");
       if(m_configRiskCreated)
-        {
          m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_cfgRiskSpreadLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-        }
       if(m_configSystemCreated)
          m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
 
-      m_configInputsValid = profileValid && lotValid && spreadValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && protectionValid && magicValid && magicUnique;
       if(m_configInputsValid)
         {
          outSettings.fixedLot = parsedLot;
-         outSettings.maxSpreadPoints = parsedSpread;
          outSettings.magicNumber = parsedMagic;
         }
 
@@ -671,6 +650,8 @@ private:
         {
          if(magicValid && !magicUnique)
             outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+         else if(protectionError != "")
+            outStatus = protectionError;
          else
             outStatus = "Corrija os campos em rosa antes de salvar.";
          m_cfgStatus.Color(FUSION_CLR_BAD);
@@ -698,6 +679,8 @@ private:
    void                       RefreshTheme(void)
      {
       RefreshHeaderTheme();
+      if(m_configProtectionCreated)
+         RefreshProtectionTheme();
       if(m_configSystemCreated)
         {
          if(CanEditSettings())
@@ -723,6 +706,9 @@ private:
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
             FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
+         if(m_configProtectionCreated)
+            for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
+               FusionApplyPrimaryButtonStyle(m_protectTabs[p], p == (int)m_protectPage);
          if(m_configSystemCreated)
             m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
         }
@@ -795,7 +781,7 @@ private:
    void                       UpdateConfigReadOnly(void)
      {
       if(m_configProtectionCreated)
-         m_cfgProtectionPositionVal.Text(m_snapshot.hasPosition ? "SIM" : "NAO");
+         RefreshProtectionTheme();
      }
 
    void                       SetConfigVisible(const bool visible)
@@ -818,17 +804,13 @@ private:
          SetVisible(m_cfgRiskHdr, riskVisible);
          SetVisible(m_cfgRiskLotLbl, riskVisible);
          SetVisible(m_cfgRiskLotEdit, riskVisible);
-         SetVisible(m_cfgRiskSpreadLbl, riskVisible);
-         SetVisible(m_cfgRiskSpreadEdit, riskVisible);
         }
 
       if(m_configProtectionCreated)
         {
-         SetVisible(m_cfgProtectionHdr, protectionVisible);
-         SetVisible(m_cfgProtectionStartedLbl, protectionVisible);
-         SetVisible(m_cfgProtectionStartedBtn, protectionVisible);
-         SetVisible(m_cfgProtectionPositionLbl, protectionVisible);
-         SetVisible(m_cfgProtectionPositionVal, protectionVisible);
+         for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
+            SetVisible(m_protectTabs[p], protectionVisible);
+         SetProtectionControlsVisible(m_protectPage, protectionVisible);
         }
 
       if(m_configSystemCreated)
@@ -885,7 +867,7 @@ private:
             return false;
          x += 124;
         }
-      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 360, 470, 388, "", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 576, 520, 600, "", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -936,16 +918,6 @@ private:
             RefreshTheme();
          return true;
         }
-      if(objectName == m_cfgProtectionStartedBtn.Name())
-        {
-         ReleaseButton(m_cfgProtectionStartedBtn);
-         if(CanPause())
-            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         else if(CanStart())
-            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         RefreshTheme();
-         return true;
-        }
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
@@ -959,6 +931,8 @@ private:
          UpdateTabStyles();
          return true;
         }
+      if(HandleProtectionClick(objectName))
+         return true;
 
       for(int t = 0; t < FUSION_TAB_COUNT; ++t)
         {
@@ -1260,6 +1234,7 @@ public:
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
       m_configPage      = FUSION_CFG_RISK;
+      m_protectPage     = FUSION_PROTECT_GENERAL;
       m_statusPageCreated = false;
       m_resultsPageCreated = false;
       m_strategyTabCreated = false;
@@ -1325,7 +1300,13 @@ public:
       m_snapshot.useRSIFilter = false;
       m_snapshot.runtimeBlocked = false;
       m_snapshot.runtimeBlockReason = "";
+      m_snapshot.startBlockedReason = "";
       m_snapshot.runtimeNotice = "";
+      m_snapshot.dailyTradeCount = 0;
+      m_snapshot.dailyClosedProfit = 0.0;
+      m_snapshot.lossStreak = 0;
+      m_snapshot.winStreak = 0;
+      m_snapshot.drawdownProtectionActive = false;
       ClearPendingCommand();
      }
 
@@ -1451,9 +1432,20 @@ public:
          return;
 
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
+      bool redrawNeeded = runtimeStateChanged ||
+                          snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
+                          snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
+                          snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                          snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
+                          MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
+                          snapshot.lossStreak != m_snapshot.lossStreak ||
+                          snapshot.winStreak != m_snapshot.winStreak ||
+                          snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive;
       m_snapshot = snapshot;
       UpdateHeaderButtons();
       UpdateActiveTabContent(runtimeStateChanged);
+      if(redrawNeeded)
+         ChartRedraw();
      }
 
    void                       MouseProtection(const int x,const int y)

@@ -76,11 +76,23 @@ Bloqueia entradas ou forca saidas com base em regras de seguranca:
 
 - spread;
 - janela de sessao;
+- janelas internas de news;
 - limites diarios;
 - drawdown;
 - streak de ganho ou perda.
 
-O modulo deve evoluir para expor motivos de bloqueio de forma estruturada para a GUI.
+O `ProtectionManager` e o orquestrador. A direcao do projeto e manter cada protecao em seu proprio modulo, para que regras diferentes evoluam sem virar um unico arquivo monolitico.
+
+Nesta fase, a camada de `Protection` passou a ser organizada em submodulos:
+
+- `SpreadProtection`
+- `SessionProtection`
+- `NewsProtection`
+- `DailyLimitsProtection`
+- `DrawdownProtection`
+- `StreakProtection`
+
+`Drawdown` tem dependencia funcional de `DAY.maxDailyGain`: ele deve ser armado a partir da meta diaria, nao desde qualquer pico minimo de lucro. Isso evita travas por oscilacoes irrelevantes do dia.
 
 ### `Execution`
 
@@ -128,6 +140,7 @@ A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusi
 - `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
 - `UIPanelSignalTabs.mqh`: abas de estrategias e filtros.
 - `UIPanelProfiles.mqh`: administracao de perfis.
+- `UIPanelProtectionTabs.mqh`: estrutura e validacao da subaba `PROTECT`.
 - `Platform/FolderLauncher.mqh`: integracao opcional com shell do Windows, mantida fora do core operacional.
 
 Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo metodo `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoracao.

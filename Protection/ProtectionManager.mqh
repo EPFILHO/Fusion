@@ -3,86 +3,73 @@
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"
+#include "Modules/SpreadProtection.mqh"
+#include "Modules/SessionProtection.mqh"
+#include "Modules/NewsProtection.mqh"
+#include "Modules/DailyLimitsProtection.mqh"
+#include "Modules/DrawdownProtection.mqh"
+#include "Modules/StreakProtection.mqh"
+#include "Modules/ProtectionTimeUtils.mqh"
 
 class CProtectionManager
   {
 private:
-   CLogger     *m_logger;
-   SEASettings  m_settings;
-   int          m_dayKey;
-   int          m_dailyTradeCount;
-   double       m_dailyClosedProfit;
-   int          m_lossStreak;
-   int          m_winStreak;
-   bool         m_lossStreakBlocked;
-   bool         m_winStreakBlocked;
+   CLogger                 *m_logger;
+   SEASettings              m_settings;
+   CSpreadProtection        m_spreadProtection;
+   CSessionProtection       m_sessionProtection;
+   CNewsProtection          m_newsProtection;
+   CDailyLimitsProtection   m_dailyLimitsProtection;
+   CDrawdownProtection      m_drawdownProtection;
+   CStreakProtection        m_streakProtection;
 
-   int          CurrentDayKey(const datetime value) const
+   void              ResetIfNewDay(SPositionRuntimeState &state)
      {
-      MqlDateTime parts;
-      TimeToStruct(value, parts);
-      return (parts.year * 1000) + parts.day_of_year;
+      if(!m_dailyLimitsProtection.ResetIfNewDay())
+         return;
+
+      m_streakProtection.ResetDaily();
+      m_drawdownProtection.ResetDaily();
+      state.dayPeakProjectedProfit = 0.0;
      }
 
-   bool         IsInsideSession(const datetime now) const
+   void              TryActivateDrawdown(const double projectedProfit,SPositionRuntimeState &state)
      {
-      if(!m_settings.enableSessionFilter)
-         return true;
-
-      MqlDateTime parts;
-      TimeToStruct(now, parts);
-
-      int currentMinutes = (parts.hour * 60) + parts.min;
-      int startMinutes   = (m_settings.sessionStartHour * 60) + m_settings.sessionStartMinute;
-      int endMinutes     = (m_settings.sessionEndHour * 60) + m_settings.sessionEndMinute;
-
-      if(startMinutes <= endMinutes)
-         return (currentMinutes >= startMinutes && currentMinutes <= endMinutes);
-
-      return (currentMinutes >= startMinutes || currentMinutes <= endMinutes);
+      m_drawdownProtection.Activate(projectedProfit);
+      if(m_drawdownProtection.IsProtectionActive())
+         state.dayPeakProjectedProfit = projectedProfit;
      }
 
 public:
                      CProtectionManager(void)
      {
-      m_logger             = NULL;
+      m_logger = NULL;
       SetDefaultSettings(m_settings);
-      m_dayKey             = 0;
-      m_dailyTradeCount    = 0;
-      m_dailyClosedProfit  = 0.0;
-      m_lossStreak         = 0;
-      m_winStreak          = 0;
-      m_lossStreakBlocked  = false;
-      m_winStreakBlocked   = false;
      }
 
    bool              Init(CLogger *logger,const SEASettings &settings)
      {
       m_logger = logger;
       m_settings = settings;
-      m_dayKey = CurrentDayKey(TimeCurrent());
+      m_spreadProtection.Init(settings);
+      m_sessionProtection.Init(settings);
+      m_newsProtection.Init(settings);
+      m_dailyLimitsProtection.Init(settings);
+      m_drawdownProtection.Init(settings);
+      m_streakProtection.Init(settings);
       return true;
      }
 
    bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
       m_settings = settings;
+      m_spreadProtection.Reload(settings, scope);
+      m_sessionProtection.Reload(settings, scope);
+      m_newsProtection.Reload(settings, scope);
+      m_dailyLimitsProtection.Reload(settings, scope);
+      m_drawdownProtection.Reload(settings, scope);
+      m_streakProtection.Reload(settings, scope);
       return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
-     }
-
-   void              ResetIfNewDay(void)
-     {
-      int currentKey = CurrentDayKey(TimeCurrent());
-      if(currentKey == m_dayKey)
-         return;
-
-      m_dayKey            = currentKey;
-      m_dailyTradeCount   = 0;
-      m_dailyClosedProfit = 0.0;
-      m_lossStreak        = 0;
-      m_winStreak         = 0;
-      m_lossStreakBlocked = false;
-      m_winStreakBlocked  = false;
      }
 
    bool              IsDirectionAllowed(const ENUM_SIGNAL_TYPE signal,string &reason) const
@@ -93,13 +80,13 @@ public:
 
       if(signal == SIGNAL_BUY && m_settings.tradeDirection == DIRECTION_SELL_ONLY)
         {
-         reason = "BUY disabled by direction rule";
+         reason = "BUY bloqueado pela direcao.";
          return false;
         }
 
       if(signal == SIGNAL_SELL && m_settings.tradeDirection == DIRECTION_BUY_ONLY)
         {
-         reason = "SELL disabled by direction rule";
+         reason = "SELL bloqueado pela direcao.";
          return false;
         }
 
@@ -108,57 +95,28 @@ public:
 
    bool              CanOpen(const string symbol,string &reason)
      {
-      ResetIfNewDay();
+      SPositionRuntimeState emptyState;
+      ResetPositionRuntimeState(emptyState);
+      ResetIfNewDay(emptyState);
       reason = "";
 
-      if(m_lossStreakBlocked)
-        {
-         reason = "Loss streak block active";
+      if(!m_streakProtection.CanOpen(reason))
          return false;
-        }
-
-      if(m_winStreakBlocked)
-        {
-         reason = "Win streak block active";
+      if(!m_sessionProtection.CanOpen(reason))
          return false;
-        }
-
-      if(m_settings.enableDailyLimits)
-        {
-         if(m_settings.maxDailyTrades > 0 && m_dailyTradeCount >= m_settings.maxDailyTrades)
-           {
-            reason = "Daily trade limit reached";
-            return false;
-           }
-
-         if(m_settings.maxDailyLoss > 0.0 && m_dailyClosedProfit <= -m_settings.maxDailyLoss)
-           {
-            reason = "Daily loss limit reached";
-            return false;
-           }
-
-         if(m_settings.maxDailyGain > 0.0 && m_dailyClosedProfit >= m_settings.maxDailyGain)
-           {
-            reason = "Daily gain limit reached";
-            return false;
-           }
-        }
-
-      if(!IsInsideSession(TimeCurrent()))
-        {
-         reason = "Outside session window";
+      if(!m_newsProtection.CanOpen(reason))
          return false;
-        }
+      if(!m_spreadProtection.CanOpen(symbol, reason))
+         return false;
 
-      if(m_settings.maxSpreadPoints > 0)
-        {
-         long spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
-         if(spread > m_settings.maxSpreadPoints)
-           {
-            reason = "Spread above limit";
-            return false;
-           }
-        }
+      bool activateDrawdown = false;
+      if(!m_dailyLimitsProtection.CanOpen(reason, activateDrawdown))
+         return false;
+      if(activateDrawdown)
+         m_drawdownProtection.Activate(m_dailyLimitsProtection.DailyClosedProfit());
+
+      if(!m_drawdownProtection.CanOpen(reason))
+         return false;
 
       return true;
      }
@@ -166,86 +124,61 @@ public:
    bool              ShouldForceClose(SPositionRuntimeState &state,const double floatingProfit,string &reason)
      {
       reason = "";
-      ResetIfNewDay();
+      ResetIfNewDay(state);
 
-      double projectedProfit = m_dailyClosedProfit + floatingProfit;
-      if(projectedProfit > state.dayPeakProjectedProfit)
-         state.dayPeakProjectedProfit = projectedProfit;
-
-      if(m_settings.enableDailyLimits)
-        {
-         if(m_settings.maxDailyLoss > 0.0 && projectedProfit <= -m_settings.maxDailyLoss)
-           {
-            reason = "Projected daily loss limit reached";
-            return true;
-           }
-
-         if(m_settings.maxDailyGain > 0.0 && projectedProfit >= m_settings.maxDailyGain)
-           {
-            reason = "Projected daily gain limit reached";
-            return true;
-           }
-        }
-
-      if(m_settings.enableDrawdown && m_settings.maxDrawdown > 0.0)
-        {
-         double drawdown = state.dayPeakProjectedProfit - projectedProfit;
-         if(drawdown >= m_settings.maxDrawdown)
-           {
-            reason = "Drawdown limit reached";
-            return true;
-           }
-        }
-
-      if(m_settings.enableSessionFilter && m_settings.closeOnSessionEnd && !IsInsideSession(TimeCurrent()))
-        {
-         reason = "Session closed";
+      bool activateDrawdown = false;
+      double projectedProfit = 0.0;
+      if(m_dailyLimitsProtection.ShouldForceClose(floatingProfit, reason, activateDrawdown, projectedProfit))
          return true;
-        }
+      if(activateDrawdown)
+         TryActivateDrawdown(projectedProfit, state);
+
+      if(m_drawdownProtection.ShouldForceClose(m_dailyLimitsProtection.DailyClosedProfit(), floatingProfit, reason))
+         return true;
+
+      if(m_sessionProtection.ShouldForceClose(reason))
+         return true;
+
+      if(m_newsProtection.ShouldForceClose(reason))
+         return true;
 
       return false;
      }
 
    void              OnPartialRealized(const double profit)
      {
-      m_dailyClosedProfit += profit;
+      m_dailyLimitsProtection.OnPartialRealized(profit);
      }
 
    void              OnPositionClosed(const double totalPositionProfit,const double realizedPartialProfit)
      {
-      double finalPortion = totalPositionProfit - realizedPartialProfit;
-      m_dailyClosedProfit += finalPortion;
-      m_dailyTradeCount++;
-
-      if(totalPositionProfit > 0.0)
-        {
-         m_winStreak++;
-         m_lossStreak = 0;
-        }
-      else if(totalPositionProfit < 0.0)
-        {
-         m_lossStreak++;
-         m_winStreak = 0;
-        }
-
-      if(m_settings.enableStreak)
-        {
-         if(m_settings.maxLossStreak > 0 && m_lossStreak >= m_settings.maxLossStreak)
-            m_lossStreakBlocked = true;
-
-         if(m_settings.maxWinStreak > 0 && m_winStreak >= m_settings.maxWinStreak)
-            m_winStreakBlocked = true;
-        }
+      m_dailyLimitsProtection.OnPositionClosed(totalPositionProfit, realizedPartialProfit);
+      m_streakProtection.OnPositionClosed(totalPositionProfit);
      }
 
    int               DailyTradeCount(void) const
      {
-      return m_dailyTradeCount;
+      return m_dailyLimitsProtection.DailyTradeCount();
      }
 
    double            DailyClosedProfit(void) const
      {
-      return m_dailyClosedProfit;
+      return m_dailyLimitsProtection.DailyClosedProfit();
+     }
+
+   int               LossStreak(void) const
+     {
+      return m_streakProtection.LossStreak();
+     }
+
+   int               WinStreak(void) const
+     {
+      return m_streakProtection.WinStreak();
+     }
+
+   bool              IsDrawdownProtectionActive(void) const
+     {
+      return m_drawdownProtection.IsProtectionActive();
      }
   };
 
