@@ -77,20 +77,23 @@
 
    bool                       CreateStrategyOverview(void)
      {
+      CFusionHitGroup *previous = PushBuildTarget(m_strategyOverviewGroup);
+      bool ok = true;
       if(!AddLabel(m_strategyOverviewHdr, "Fusion_strat_overview_hdr", 22, 156, 260, 176, "Visao Geral das Estrategias", FUSION_CLR_VALUE, 9))
-         return false;
+         ok = false;
 
       int y = 194;
-      for(int i = 0; i < 3; ++i)
+      for(int i = 0; ok && i < 3; ++i)
         {
          if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
-            return false;
+            ok = false;
          if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
+            ok = false;
          y += 34;
         }
 
-      return true;
+      PopBuildTarget(previous);
+      return ok;
      }
 
    bool                       EnsureStrategyOverviewCreated(void)
@@ -101,25 +104,28 @@
          return false;
       m_strategyOverviewCreated = true;
       UpdateStrategyOverview();
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       CreateFilterOverview(void)
      {
+      CFusionHitGroup *previous = PushBuildTarget(m_filterOverviewGroup);
+      bool ok = true;
       if(!AddLabel(m_filterOverviewHdr, "Fusion_filter_overview_hdr", 22, 156, 260, 176, "Visao Geral dos Filtros", FUSION_CLR_VALUE, 9))
-         return false;
+         ok = false;
 
       int y = 194;
-      for(int i = 0; i < 2; ++i)
+      for(int i = 0; ok && i < 2; ++i)
         {
          if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
-            return false;
+            ok = false;
          if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
-            return false;
+            ok = false;
          y += 34;
         }
 
-      return true;
+      PopBuildTarget(previous);
+      return ok;
      }
 
    bool                       EnsureFilterOverviewCreated(void)
@@ -130,7 +136,7 @@
          return false;
       m_filterOverviewCreated = true;
       UpdateFilterOverview();
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       CreateStrategyPanel(const int index)
@@ -139,12 +145,7 @@
          return false;
 
       if(index == 0)
-         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_MA,
-                                                               StrategyPanelTitle(index),
-                                                               StrategyPanelKey(index),
-                                                               "Cruza medias rapida e lenta com TFs independentes.",
-                                                               StrategyPanelCommand(index),
-                                                               true);
+         m_strategyPanels[index] = new CMACrossPanel();
       else if(index == 1)
          m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_RSI,
                                                                StrategyPanelTitle(index),
@@ -163,7 +164,10 @@
       if(m_strategyPanels[index] == NULL)
          return false;
 
-      if(!m_strategyPanels[index].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360))
+      CFusionHitGroup *previous = PushBuildTarget(m_strategyPanelGroups[index]);
+      bool created = m_strategyPanels[index].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360);
+      PopBuildTarget(previous);
+      if(!created)
          return false;
 
       return true;
@@ -180,7 +184,7 @@
       m_strategyPanelCreated[index] = true;
       if(m_strategyPanels[index] != NULL)
          m_strategyPanels[index].Sync(m_draftSettings, CanEditSettings());
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       CreateFilterPanel(const int index)
@@ -204,7 +208,10 @@
       if(m_filterPanels[index] == NULL)
          return false;
 
-      if(!m_filterPanels[index].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360))
+      CFusionHitGroup *previous = PushBuildTarget(m_filterPanelGroups[index]);
+      bool created = m_filterPanels[index].Create(GetPointer(this), m_chartId, m_subWindow, 24, 164, 500, 360);
+      PopBuildTarget(previous);
+      if(!created)
          return false;
 
       return true;
@@ -221,21 +228,7 @@
       m_filterPanelCreated[index] = true;
       if(m_filterPanels[index] != NULL)
          m_filterPanels[index].Sync(m_draftSettings, CanEditSettings());
-      return RebindControlIdsIfRunning();
-     }
-
-   bool                       EnsureActiveStrategyContentCreated(void)
-     {
-      if(m_strategyPage == FUSION_STRAT_OVERVIEW)
-         return EnsureStrategyOverviewCreated();
-      return EnsureStrategyPanelCreated((int)m_strategyPage - 1);
-     }
-
-   bool                       EnsureActiveFilterContentCreated(void)
-     {
-      if(m_filterPage == FUSION_FILTER_OVERVIEW)
-         return EnsureFilterOverviewCreated();
-      return EnsureFilterPanelCreated((int)m_filterPage - 1);
+      return true;
      }
 
    void                       UpdateStrategyOverview(void)
@@ -272,19 +265,18 @@
 
    void                       SetStrategiesVisible(const bool visible)
      {
+      SetVisible(m_strategyGroup, visible);
       for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
          SetVisible(m_strategyTabs[i], visible);
       SetVisible(m_strategyTabsSeparator, visible);
       SetVisible(m_strategyContentFrame, visible);
-
-      if(visible)
-         EnsureActiveStrategyContentCreated();
 
       bool overviewVisible = visible && m_strategyPage == FUSION_STRAT_OVERVIEW;
       if(overviewVisible)
          UpdateStrategyOverview();
       if(m_strategyOverviewCreated)
         {
+         SetVisible(m_strategyOverviewGroup, overviewVisible);
          SetVisible(m_strategyOverviewHdr, overviewVisible);
          for(int j = 0; j < 3; ++j)
            {
@@ -298,27 +290,32 @@
          if(!m_strategyPanelCreated[p] || m_strategyPanels[p] == NULL)
             continue;
          if(visible && m_strategyPage == (ENUM_FUSION_STRATEGY_PAGE)(p + 1))
+           {
+            SetVisible(m_strategyPanelGroups[p], true);
             m_strategyPanels[p].Show();
+           }
          else
+           {
             m_strategyPanels[p].Hide();
+            SetVisible(m_strategyPanelGroups[p], false);
+           }
         }
      }
 
    void                       SetFiltersVisible(const bool visible)
      {
+      SetVisible(m_filterGroup, visible);
       for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
          SetVisible(m_filterTabs[i], visible);
       SetVisible(m_filterTabsSeparator, visible);
       SetVisible(m_filterContentFrame, visible);
-
-      if(visible)
-         EnsureActiveFilterContentCreated();
 
       bool overviewVisible = visible && m_filterPage == FUSION_FILTER_OVERVIEW;
       if(overviewVisible)
          UpdateFilterOverview();
       if(m_filterOverviewCreated)
         {
+         SetVisible(m_filterOverviewGroup, overviewVisible);
          SetVisible(m_filterOverviewHdr, overviewVisible);
          for(int j = 0; j < 2; ++j)
            {
@@ -332,9 +329,15 @@
          if(!m_filterPanelCreated[p] || m_filterPanels[p] == NULL)
             continue;
          if(visible && m_filterPage == (ENUM_FUSION_FILTER_PAGE)(p + 1))
+           {
+            SetVisible(m_filterPanelGroups[p], true);
             m_filterPanels[p].Show();
+           }
          else
+           {
             m_filterPanels[p].Hide();
+            SetVisible(m_filterPanelGroups[p], false);
+           }
         }
      }
 

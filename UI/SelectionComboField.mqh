@@ -1,5 +1,5 @@
-#ifndef __FUSION_TIMEFRAME_COMBO_FIELD_MQH__
-#define __FUSION_TIMEFRAME_COMBO_FIELD_MQH__
+#ifndef __FUSION_SELECTION_COMBO_FIELD_MQH__
+#define __FUSION_SELECTION_COMBO_FIELD_MQH__
 
 #include <Controls\Label.mqh>
 #include <Controls\ComboBox.mqh>
@@ -7,19 +7,40 @@
 
 class CFusionPanel;
 
-class CTimeframeComboField
+enum ENUM_FUSION_SELECTION_COMBO_KIND
+  {
+   FUSION_SELECTION_MA_METHOD = 0,
+   FUSION_SELECTION_APPLIED_PRICE,
+   FUSION_SELECTION_ENTRY_MODE,
+   FUSION_SELECTION_EXIT_MODE
+  };
+
+class CSelectionComboField
   {
 private:
-   bool      m_created;
-   long      m_chartId;
-   CLabel    m_label;
-   CComboBox m_combo;
+   bool                            m_created;
+   long                            m_chartId;
+   ENUM_FUSION_SELECTION_COMBO_KIND m_kind;
+   CLabel                          m_label;
+   CComboBox                       m_combo;
+
+   bool              Populate(void)
+     {
+      if(m_kind == FUSION_SELECTION_MA_METHOD)
+         return FusionPopulateMAMethodCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_APPLIED_PRICE)
+         return FusionPopulateAppliedPriceCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_ENTRY_MODE)
+         return FusionPopulateEntryModeCombo(m_combo);
+      return FusionPopulateExitModeCombo(m_combo);
+     }
 
 public:
-                     CTimeframeComboField(void)
+                     CSelectionComboField(void)
      {
       m_created = false;
       m_chartId = 0;
+      m_kind = FUSION_SELECTION_MA_METHOD;
      }
 
    bool              Create(CFusionPanel *parent,
@@ -27,6 +48,7 @@ public:
                             const int subwin,
                             const string namePrefix,
                             const string labelText,
+                            const ENUM_FUSION_SELECTION_COMBO_KIND kind,
                             const int labelX1,
                             const int labelY1,
                             const int labelX2,
@@ -37,6 +59,7 @@ public:
                             const int comboY2)
      {
       m_chartId = chartId;
+      m_kind = kind;
 
       if(!m_label.Create(chartId, namePrefix + "Lbl", subwin, labelX1, labelY1, labelX2, labelY2))
          return false;
@@ -48,7 +71,7 @@ public:
 
       if(!m_combo.Create(chartId, namePrefix + "Combo", subwin, comboX1, comboY1, comboX2, comboY2))
          return false;
-      if(!FusionPopulateTimeframeCombo(m_combo))
+      if(!Populate())
          return false;
       if(!parent.AddControl(m_combo))
          return false;
@@ -96,17 +119,13 @@ public:
       FusionRaiseComboRuntimeObjects(m_chartId, m_combo.Name(), zorder);
      }
 
-   void              Sync(const ENUM_TIMEFRAMES timeframe,const bool editable)
+   void              Sync(const long selectedValue,const bool editable)
      {
       if(!m_created)
          return;
 
-      long targetValue = (long)timeframe;
-      if(targetValue <= 0)
-         targetValue = (long)FUSION_DEFAULT_TIMEFRAME;
-
-      if(m_combo.Value() != targetValue)
-         m_combo.SelectByValue(targetValue);
+      if(m_combo.Value() != selectedValue)
+         m_combo.SelectByValue(selectedValue);
 
       FusionApplyLabelEnabled(m_label, editable);
      }
@@ -116,12 +135,9 @@ public:
       return (m_created && objectName == m_combo.Name());
      }
 
-   ENUM_TIMEFRAMES   Value(void)
+   long              Value(void)
      {
-      long value = m_combo.Value();
-      if(value <= 0)
-         return FUSION_DEFAULT_TIMEFRAME;
-      return (ENUM_TIMEFRAMES)value;
+      return m_combo.Value();
      }
   };
 

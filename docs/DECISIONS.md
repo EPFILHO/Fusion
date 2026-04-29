@@ -170,11 +170,25 @@ Toda mudanca relevante deve entrar no `CHANGELOG.md`.
 
 O historico ajuda humanos e IAs a entender por que o projeto esta como esta, especialmente quando decisoes anteriores sao revertidas ou refinadas.
 
-## 13. GUI Pesada Deve Nascer Sob Demanda
+## 13. GUI Pesada Deve Ser Isolada por Grupos de Hit-Test
 
-Quando o custo de inicializacao ou de eventos crescer, a preferencia estrutural e mover abas pesadas para criacao lazy ou on-demand, em vez de manter todos os controles vivos desde o boot.
+A investigacao da regressao dos `CComboBox` em `STRATS > MA` mostrou que a Standard Library do MT5 nao trata `Hide()` de controles simples como isolamento suficiente de mouse quando esses controles sao filhos diretos de um container visivel.
 
-O shell da aba pode nascer antes, mas o conteudo interno deve preferir subpaginas independentes. Isso reduz carga de eventos, evita uma GUI monolitica e facilita encaixar novos blocos sem refatorar tudo.
+O que nao resolveu de forma confiavel:
+
+- chamar `SyncStrategyPanels()` imediatamente apos `ON_CHANGE`;
+- alternar `Enable()` e `Disable()` nos wrappers de `CComboBox`;
+- criar todos os controles diretamente no `CAppDialog` e apenas esconder os inativos;
+- depender de z-order, redraw ou eventos sinteticos como solucao principal.
+
+O que resolveu na versao `1.046`:
+
+- pre-criar paginas e subpaginas antes de `CAppDialog::Run()`;
+- adicionar cada pagina/subpagina a um `CFusionHitGroup`, derivado de `CWndContainer`;
+- fazer o grupo invisivel retornar `false` no roteamento de mouse antes de consultar seus filhos;
+- manter `STRATS > MA`, `RSI`, `BB`, `CONFIG > PROTECT` e demais blocos em grupos separados.
+
+Regra de manutencao: novos blocos de conteudo da GUI nao devem ser adicionados diretamente ao `CAppDialog`. Eles devem entrar no grupo logico da pagina/subpagina correspondente. Se um controle estiver escondido visualmente, ele tambem precisa estar isolado por um container invisivel para nao interceptar cliques.
 
 ## 14. Integracao com o Sistema Operacional Deve Ficar Fora do Core
 

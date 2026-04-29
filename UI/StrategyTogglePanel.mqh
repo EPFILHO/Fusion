@@ -92,6 +92,21 @@ public:
      {
       return false;
      }
+
+   bool              IsDeferredEdit(const string objectName) const
+     {
+      return false;
+     }
+
+   void              NormalizeDeferredEdit(const string objectName)
+     {
+     }
+
+   bool              Validate(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      return true;
+     }
   };
 
 #endif

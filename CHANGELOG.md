@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.046 - 2026-04-29
+- Reestruturado o lifecycle da GUI para pre-criar paginas e subpaginas dentro de grupos logicos de hit-test, evitando que controles escondidos interceptem eventos de mouse.
+- Corrigida a regressao em que os `CComboBox` da subaba `STRATS > MA` travavam depois de navegar por outras abas/subabas.
+- Documentado o aprendizado: esconder controles diretos com `Hide()` nao basta para isola-los do roteamento de mouse da Standard Library; o isolamento precisa ocorrer no nivel de `CWndContainer`.
+- Adicionada build identificavel para a investigacao dos `CComboBox` da aba `STRATS > MA`.
+
+## 1.045 - 2026-04-26
+- A estrategia `MA Cross` passou a ter parametros independentes por media no modelo de dados, inputs e persistencia: periodo, timeframe, metodo e preco aplicado para rapida e lenta.
+- O motor da `MA Cross` ganhou `tipo de entrada` (`1o candle apos cruzamento` ou `2o candle/E2C`) sem misturar essa regra com a logica de saida.
+- A saida por `cruzamento oposto` passou a usar a deteccao de cruzamento diretamente, sem depender do modo de entrada configurado.
+- A subaba `MA` em `STRATS` deixou de usar o painel simplificado e ganhou pagina propria com validacao de periodos, combos de metodo/preco/entrada/saida e integracao completa com `SALVAR`, `CANCELAR` e `INICIAR`.
+
+## 1.044 - 2026-04-26
+- A correcao de minimizar/restaurar da GUI foi movida para `Minimize()` e `Maximize()`, em vez de ficar presa ao clique do botao da biblioteca padrao.
+- Ao minimizar, o Fusion agora esconde explicitamente o shell e o conteudo das abas para evitar textos e controles soltos no grafico.
+- Ao restaurar, o Fusion reconstrui apenas a visibilidade da aba ativa, reduzindo o risco de sobreposicao depois do restore.
+
+## 1.043 - 2026-04-26
+- O Fusion passou a reaplicar sua propria logica de visibilidade de abas apos minimizar/restaurar a janela da GUI, evitando sobreposicao de controles de paginas inativas.
+- Eventos `CHARTEVENT_CHART_CHANGE` tambem passaram a reafirmar a visibilidade correta da aba ativa quando a GUI nao estiver minimizada.
+
 ## 1.042 - 2026-04-26
 - A protecao de `SPREAD` passou a funcionar ponta a ponta no runtime: quando o limite e excedido, o Fusion bloqueia novas entradas, registra aviso operacional no `STATUS` e faz log com rate-limit para evitar ruido excessivo.
 - O aviso operacional de protecao agora e limpo automaticamente quando a condicao deixa de bloquear o EA, sem deixar mensagem stale no painel.

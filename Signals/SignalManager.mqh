@@ -184,6 +184,24 @@ public:
       return SIGNAL_NONE;
      }
 
+   bool              GetStrategyReferenceTimeframe(const string strategyId,ENUM_TIMEFRAMES &timeframe) const
+     {
+      timeframe = FUSION_DEFAULT_TIMEFRAME;
+
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+        {
+         if(m_strategies[i] == NULL)
+            continue;
+         if(m_strategies[i].Id() != strategyId)
+            continue;
+
+         timeframe = m_strategies[i].ReferenceTimeframe();
+         return true;
+        }
+
+      return false;
+     }
+
    int               ActiveStrategyCount(void) const
      {
       int count = 0;

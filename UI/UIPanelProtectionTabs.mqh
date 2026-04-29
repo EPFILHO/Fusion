@@ -533,11 +533,17 @@
      {
       if(m_configProtectionCreated)
          return true;
+      CFusionHitGroup *previous = PushBuildTarget(m_configProtectionGroup);
       if(!BuildConfigProtectionPage())
+        {
+         PopBuildTarget(previous);
          return false;
+        }
+      PopBuildTarget(previous);
       m_configProtectionCreated = true;
+      SetProtectionControlsVisible(m_protectPage, false);
       SyncProtectionControls();
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       HandleProtectionClick(const string objectName)
@@ -551,6 +557,7 @@
             continue;
 
          ReleaseButton(m_protectTabs[tabIndex]);
+         ResetDialogMouseRouting();
          m_protectPage = (ENUM_FUSION_PROTECT_PAGE)tabIndex;
          ApplyVisibility();
          RefreshConfigValidation();

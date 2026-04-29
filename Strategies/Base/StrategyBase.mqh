@@ -58,6 +58,7 @@ public:
    bool              Enabled(void) const     { return m_enabled; }
    void              SetEnabled(const bool value) { m_enabled = value; }
    bool              IsInitialized(void) const { return m_initialized; }
+   virtual ENUM_TIMEFRAMES ReferenceTimeframe(void) const { return m_timeframe; }
   };
 
 #endif

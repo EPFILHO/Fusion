@@ -159,18 +159,16 @@ O timer da GUI deve atualizar somente a aba ativa e os controles globais indispe
 
 No bootstrap da GUI, o painel deve nascer com um unico pass de hidratacao. O estado completo necessario para criar o painel deve vir no `SUIPanelSnapshot`, evitando uma segunda carga manual logo apos `CreatePanel()`. Isso reduz repaint desnecessario e ajuda a preservar a fluidez em trocas de timeframe ou recriacao do EA.
 
-As abas principais devem preferir criacao lazy ou on-demand. No estado atual, o painel nasce com `STATUS` e com a estrutura global minima; `RESULTS`, `STRATS`, `FILTERS`, `PERFIS` e `CONFIG` passam a ser materializadas na primeira abertura. Isso reduz custo de reinicializacao em troca de timeframe e deixa o crescimento da GUI mais previsivel.
+Desde a versao `1.046`, a GUI usa pre-criacao controlada de paginas e subpaginas dentro de `CFusionHitGroup`. Esse grupo e um `CWndContainer` logico, sem desenho proprio, que participa do roteamento de mouse somente quando esta visivel. A regra e: controles de paginas diferentes nao devem ser filhos diretos do `CAppDialog`; eles devem ficar dentro do grupo da pagina ou subpagina dona.
 
-Ao criar controles apos o `Run()` da `CAppDialog`, o painel deve reatribuir IDs dos controles antes de aceitar novos cliques. Sem isso, a biblioteca padrao pode rotear eventos para handlers errados.
+Esse desenho substitui a criacao lazy dos blocos principais porque evita dois problemas da Standard Library do MT5:
 
-Depois da criacao lazy por aba, o proximo nivel correto e a criacao lazy por subpagina ou secao:
+- controles criados depois de `CAppDialog::Run()` podem exigir rebinding de IDs e aumentar risco de roteamento incorreto;
+- controles simples escondidos com `Hide()` ainda podem receber `OnMouseEvent()` quando estao como filhos diretos de um container visivel.
 
-- `STRATS`: shell da aba primeiro; overview e cada painel de estrategia nascem quando abertos.
-- `FILTERS`: shell da aba primeiro; overview e cada painel de filtro nascem quando abertos.
-- `CONFIG`: shell e status geral primeiro; `RISK`, `PROTECT` e `SYSTEM` nascem separadamente.
-- `PERFIS`: shell e navegacao browse primeiro; editor de novo ou duplicar nasce somente em modo de edicao.
+O ponto critico para os `CComboBox` foi isolar `STRATS`, `FILTERS`, `CONFIG`, `PERFIS`, `STATUS`, `RESULTS` e tambem suas subpaginas internas em grupos independentes. Assim, uma subaba escondida nao intercepta clique de uma subaba visivel, e os dropdowns do `CComboBox` deixam de ficar presos ao ultimo combo usado.
 
-Esse desenho mantem o painel responsivo e, ao mesmo tempo, prepara o codigo para crescimento modular. Para adicionar uma nova estrategia ou filtro, o objetivo e encaixar uma nova unidade de painel sem reabrir a arquitetura inteira da aba.
+Para adicionar uma nova estrategia, filtro ou subpagina, o objetivo e encaixar uma nova unidade de painel dentro do grupo logico correspondente, sem voltar a adicionar controles de conteudo diretamente no `CAppDialog`.
 
 As paginas de estrategias e filtros devem preferir campos fechados para selecao de timeframe, usando `ComboBox` com valores explicitos do MT5. Isso evita erro de digitacao, simplifica validacao e preserva a coerencia entre GUI, perfil salvo e motor operacional.
 

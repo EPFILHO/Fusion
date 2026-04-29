@@ -29,6 +29,12 @@ enum ENUM_EXIT_MODE
    EXIT_OPPOSITE_SIGNAL
   };
 
+enum ENUM_ENTRY_MODE
+  {
+   ENTRY_NEXT_CANDLE = 0,
+   ENTRY_2ND_CANDLE
+  };
+
 enum ENUM_RSI_SIGNAL_MODE
   {
    RSI_SIGNAL_CROSSOVER = 0,
@@ -149,8 +155,11 @@ struct SEASettings
    int                      maSlowPeriod;
    ENUM_TIMEFRAMES          maFastTimeframe;
    ENUM_TIMEFRAMES          maSlowTimeframe;
-   ENUM_MA_METHOD           maMethod;
-   ENUM_APPLIED_PRICE       maPrice;
+   ENUM_MA_METHOD           maFastMethod;
+   ENUM_MA_METHOD           maSlowMethod;
+   ENUM_APPLIED_PRICE       maFastPrice;
+   ENUM_APPLIED_PRICE       maSlowPrice;
+   ENUM_ENTRY_MODE          maEntryMode;
    ENUM_EXIT_MODE           maExitMode;
    bool                     useRSI;
    int                      rsiPriority;
@@ -312,7 +321,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 2;
+   settings.schemaVersion         = 3;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -370,8 +379,11 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maSlowPeriod          = 21;
    settings.maFastTimeframe       = FUSION_DEFAULT_TIMEFRAME;
    settings.maSlowTimeframe       = FUSION_DEFAULT_TIMEFRAME;
-   settings.maMethod              = MODE_EMA;
-   settings.maPrice               = PRICE_CLOSE;
+   settings.maFastMethod          = MODE_EMA;
+   settings.maSlowMethod          = MODE_EMA;
+   settings.maFastPrice           = PRICE_CLOSE;
+   settings.maSlowPrice           = PRICE_CLOSE;
+   settings.maEntryMode           = ENTRY_NEXT_CANDLE;
    settings.maExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useRSI                = false;
    settings.rsiPriority           = 8;

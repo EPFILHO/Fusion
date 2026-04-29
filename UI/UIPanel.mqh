@@ -7,10 +7,12 @@
 #include <Controls\Edit.mqh>
 #include <Controls\Panel.mqh>
 #include "PanelUtils.mqh"
+#include "HitTestGroup.mqh"
 #include "../Core/Version.mqh"
 #include "UIPanelTypes.mqh"
 #include "Pages/StatusPage.mqh"
 #include "Pages/ResultsPage.mqh"
+#include "MACrossPanel.mqh"
 #include "StrategyTimeframePanel.mqh"
 #include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
@@ -28,6 +30,7 @@ private:
    bool                       m_hasPendingCommand;
    bool                       m_configInputsValid;
    bool                       m_hasCommittedSettings;
+   CFusionHitGroup           *m_buildTarget;
    SUICommand                 m_pendingCommand;
    SUIPanelSnapshot           m_snapshot;
    SEASettings                m_committedSettings;
@@ -50,6 +53,21 @@ private:
    CPanel                     m_configContentFrame;
    CStatusPage                m_statusPage;
    CResultsPage               m_resultsPage;
+   CFusionHitGroup            m_statusGroup;
+   CFusionHitGroup            m_resultsGroup;
+   CFusionHitGroup            m_strategyGroup;
+   CFusionHitGroup            m_filterGroup;
+   CFusionHitGroup            m_profilesGroup;
+   CFusionHitGroup            m_configGroup;
+   CFusionHitGroup            m_strategyOverviewGroup;
+   CFusionHitGroup            m_strategyPanelGroups[3];
+   CFusionHitGroup            m_filterOverviewGroup;
+   CFusionHitGroup            m_filterPanelGroups[2];
+   CFusionHitGroup            m_profilesBrowseGroup;
+   CFusionHitGroup            m_profilesEditGroup;
+   CFusionHitGroup            m_configRiskGroup;
+   CFusionHitGroup            m_configProtectionGroup;
+   CFusionHitGroup            m_configSystemGroup;
    bool                       m_statusPageCreated;
    bool                       m_resultsPageCreated;
    bool                       m_strategyTabCreated;
@@ -90,17 +108,15 @@ private:
       m_hasPendingCommand = false;
      }
 
-   bool                       RebindControlIdsIfRunning(void)
-     {
-      if(!m_dialogRunning)
-         return true;
-      return CAppDialog::Run();
-     }
-
    bool                       IsDeferredRefreshEdit(const string objectName)
      {
       if(objectName == m_profileNewEdit.Name())
          return true;
+      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
+        {
+         if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
+            return true;
+        }
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
@@ -108,6 +124,49 @@ private:
       if(IsProtectionDeferredEdit(objectName))
          return true;
       return false;
+     }
+
+   bool                       HandleStrategyPanelDeferredEdit(const string objectName)
+     {
+      bool changed = false;
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
+            continue;
+         m_strategyPanels[sp].HandleChange(objectName, m_draftSettings);
+         changed = true;
+        }
+
+      if(changed)
+        {
+         UpdateOverviews();
+         SyncStrategyPanels();
+        }
+
+      return changed;
+     }
+
+   void                       NormalizeStrategyDeferredEdit(const string objectName)
+     {
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
+            continue;
+         m_strategyPanels[sp].NormalizeDeferredEdit(objectName);
+        }
+     }
+
+   bool                       ValidateStrategyPanels(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL)
+            continue;
+         if(!m_strategyPanels[sp].Validate(candidate, editable, error))
+            return false;
+        }
+      return true;
      }
 
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
@@ -131,6 +190,25 @@ private:
       button.Pressed(false);
      }
 
+   bool                       AddHitGroup(CFusionHitGroup &group,const string name)
+     {
+      if(!group.Create(m_chartId, name, m_subWindow, 0, 0, FUSION_PANEL_WIDTH, FUSION_PANEL_HEIGHT))
+         return false;
+      return AddControl(group);
+     }
+
+   CFusionHitGroup           *PushBuildTarget(CFusionHitGroup &group)
+     {
+      CFusionHitGroup *previous = m_buildTarget;
+      m_buildTarget = GetPointer(group);
+      return previous;
+     }
+
+   void                       PopBuildTarget(CFusionHitGroup *previous)
+     {
+      m_buildTarget = previous;
+     }
+
    bool                       AddLabel(CLabel &label,const string name,const int x1,const int y1,const int x2,const int y2,const string text,const color clr,const int size=8)
      {
       if(!label.Create(m_chartId, name, m_subWindow, x1, y1, x2, y2))
@@ -138,7 +216,7 @@ private:
       label.Text(text);
       label.Color(clr);
       label.FontSize(size);
-      return Add(label);
+      return AddControl(label);
      }
 
    bool                       AddButton(CButton &button,const string name,const int x1,const int y1,const int x2,const int y2,const string text,const color bg)
@@ -149,7 +227,7 @@ private:
       button.FontSize(8);
       button.Color(clrWhite);
       button.ColorBackground(bg);
-      return Add(button);
+      return AddControl(button);
      }
 
    bool                       AddEdit(CEdit &edit,const string name,const int x1,const int y1,const int x2,const int y2,const string value)
@@ -159,7 +237,7 @@ private:
       edit.Text(value);
       edit.Color(clrBlack);
       edit.ColorBackground(clrWhite);
-      return Add(edit);
+      return AddControl(edit);
      }
 
    bool                       AddPanel(CPanel &panel,const string name,const int x1,const int y1,const int x2,const int y2,const color bg,const color border,const ENUM_BORDER_TYPE borderType=BORDER_FLAT)
@@ -169,7 +247,7 @@ private:
       panel.ColorBackground(bg);
       panel.ColorBorder(border);
       panel.BorderType(borderType);
-      return Add(panel);
+      return AddControl(panel);
      }
 
    string                     LiveEditText(CEdit &edit)
@@ -192,55 +270,134 @@ private:
      {
       if(m_statusPageCreated)
          return true;
-      if(!m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow))
+      if(!AddHitGroup(m_statusGroup, "Fusion_group_status"))
+         return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_statusGroup);
+      bool created = m_statusPage.Create(GetPointer(this), m_chartId, m_subWindow);
+      PopBuildTarget(previous);
+      if(!created)
          return false;
       m_statusPageCreated = true;
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       EnsureResultsPageCreated(void)
      {
       if(m_resultsPageCreated)
          return true;
-      if(!m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow))
+      if(!AddHitGroup(m_resultsGroup, "Fusion_group_results"))
+         return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_resultsGroup);
+      bool created = m_resultsPage.Create(GetPointer(this), m_chartId, m_subWindow);
+      PopBuildTarget(previous);
+      if(!created)
          return false;
       m_resultsPageCreated = true;
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       EnsureStrategyTabCreated(void)
      {
       if(m_strategyTabCreated)
          return true;
-      if(!BuildStrategyTab())
+      if(!AddHitGroup(m_strategyGroup, "Fusion_group_strategy"))
          return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_strategyGroup);
+      if(!BuildStrategyTab())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      if(!AddHitGroup(m_strategyOverviewGroup, "Fusion_group_strategy_overview"))
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      for(int groupIndex = 0; groupIndex < 3; ++groupIndex)
+        {
+         if(!AddHitGroup(m_strategyPanelGroups[groupIndex], "Fusion_group_strategy_panel_" + IntegerToString(groupIndex)))
+           {
+            PopBuildTarget(previous);
+            return false;
+           }
+        }
+      if(!EnsureStrategyOverviewCreated())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
+         if(!EnsureStrategyPanelCreated(strategyIndex))
+           {
+            PopBuildTarget(previous);
+            return false;
+           }
+      PopBuildTarget(previous);
       m_strategyTabCreated = true;
       UpdateOverviews();
       SyncStrategyPanels();
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       EnsureFilterTabCreated(void)
      {
       if(m_filterTabCreated)
          return true;
-      if(!BuildFilterTab())
+      if(!AddHitGroup(m_filterGroup, "Fusion_group_filter"))
          return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_filterGroup);
+      if(!BuildFilterTab())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      if(!AddHitGroup(m_filterOverviewGroup, "Fusion_group_filter_overview"))
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      for(int groupIndex = 0; groupIndex < 2; ++groupIndex)
+        {
+         if(!AddHitGroup(m_filterPanelGroups[groupIndex], "Fusion_group_filter_panel_" + IntegerToString(groupIndex)))
+           {
+            PopBuildTarget(previous);
+            return false;
+           }
+        }
+      if(!EnsureFilterOverviewCreated())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      for(int filterIndex = 0; filterIndex < 2; ++filterIndex)
+         if(!EnsureFilterPanelCreated(filterIndex))
+           {
+            PopBuildTarget(previous);
+            return false;
+           }
+      PopBuildTarget(previous);
       m_filterTabCreated = true;
       UpdateOverviews();
       SyncFilterPanels();
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       EnsureProfilesTabCreated(void)
      {
       if(m_profilesTabCreated)
          return true;
-      if(!BuildProfilesTab())
+      if(!AddHitGroup(m_profilesGroup, "Fusion_group_profiles"))
          return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_profilesGroup);
+      if(!BuildProfilesTab())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      PopBuildTarget(previous);
       m_profilesTabCreated = true;
       RefreshProfileList(false);
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       BuildConfigRiskPage(void)
@@ -258,11 +415,16 @@ private:
      {
       if(m_configRiskCreated)
          return true;
+      CFusionHitGroup *previous = PushBuildTarget(m_configRiskGroup);
       if(!BuildConfigRiskPage())
+        {
+         PopBuildTarget(previous);
          return false;
+        }
+      PopBuildTarget(previous);
       m_configRiskCreated = true;
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      return RebindControlIdsIfRunning();
+      return true;
      }
 
    bool                       BuildConfigSystemPage(void)
@@ -284,22 +446,16 @@ private:
      {
       if(m_configSystemCreated)
          return true;
+      CFusionHitGroup *previous = PushBuildTarget(m_configSystemGroup);
       if(!BuildConfigSystemPage())
+        {
+         PopBuildTarget(previous);
          return false;
+        }
+      PopBuildTarget(previous);
       m_configSystemCreated = true;
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      return RebindControlIdsIfRunning();
-     }
-
-   bool                       EnsureActiveConfigPageCreated(void)
-     {
-      if(m_configPage == FUSION_CFG_RISK)
-         return EnsureConfigRiskPageCreated();
-      if(m_configPage == FUSION_CFG_PROTECTION)
-         return EnsureConfigProtectionPageCreated();
-      if(m_configPage == FUSION_CFG_SYSTEM)
-         return EnsureConfigSystemPageCreated();
       return true;
      }
 
@@ -307,35 +463,58 @@ private:
      {
       if(m_configTabCreated)
          return true;
+      if(!AddHitGroup(m_configGroup, "Fusion_group_config"))
+         return false;
+      CFusionHitGroup *previous = PushBuildTarget(m_configGroup);
       if(!BuildConfigTab())
+        {
+         PopBuildTarget(previous);
          return false;
-      m_configTabCreated = true;
+        }
+      if(!AddHitGroup(m_configRiskGroup, "Fusion_group_config_risk") ||
+         !AddHitGroup(m_configProtectionGroup, "Fusion_group_config_protection") ||
+         !AddHitGroup(m_configSystemGroup, "Fusion_group_config_system"))
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      if(!EnsureConfigRiskPageCreated())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      if(!EnsureConfigProtectionPageCreated())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
       if(!EnsureConfigSystemPageCreated())
+        {
+         PopBuildTarget(previous);
          return false;
-      if(m_configPage == FUSION_CFG_PROTECTION && !EnsureConfigProtectionPageCreated())
-         return false;
-      if(!EnsureActiveConfigPageCreated())
-         return false;
+        }
+      PopBuildTarget(previous);
+      m_configTabCreated = true;
       SyncDraftSettingsToControls();
       UpdateConfigReadOnly();
       RefreshConfigValidation();
       return true;
      }
 
-   bool                       EnsureActiveTabCreated(void)
+   bool                       BuildAllContent(void)
      {
-      if(m_activeTab == FUSION_TAB_STATUS)
-         return EnsureStatusPageCreated();
-      if(m_activeTab == FUSION_TAB_RESULTS)
-         return EnsureResultsPageCreated();
-      if(m_activeTab == FUSION_TAB_STRATEGIES)
-         return EnsureStrategyTabCreated();
-      if(m_activeTab == FUSION_TAB_FILTERS)
-         return EnsureFilterTabCreated();
-      if(m_activeTab == FUSION_TAB_PROFILES)
-         return EnsureProfilesTabCreated();
-      if(m_activeTab == FUSION_TAB_CONFIG)
-         return EnsureConfigTabCreated();
+      if(!EnsureStatusPageCreated())
+         return false;
+      if(!EnsureResultsPageCreated())
+         return false;
+      if(!EnsureStrategyTabCreated())
+         return false;
+      if(!EnsureFilterTabCreated())
+         return false;
+      if(!EnsureProfilesTabCreated())
+         return false;
+      if(!EnsureConfigTabCreated())
+         return false;
       return true;
      }
 
@@ -491,6 +670,22 @@ private:
          return true;
       if(m_draftSettings.maSlowTimeframe != m_committedSettings.maSlowTimeframe)
          return true;
+      if(m_draftSettings.maFastPeriod != m_committedSettings.maFastPeriod)
+         return true;
+      if(m_draftSettings.maSlowPeriod != m_committedSettings.maSlowPeriod)
+         return true;
+      if(m_draftSettings.maFastMethod != m_committedSettings.maFastMethod)
+         return true;
+      if(m_draftSettings.maSlowMethod != m_committedSettings.maSlowMethod)
+         return true;
+      if(m_draftSettings.maFastPrice != m_committedSettings.maFastPrice)
+         return true;
+      if(m_draftSettings.maSlowPrice != m_committedSettings.maSlowPrice)
+         return true;
+      if(m_draftSettings.maEntryMode != m_committedSettings.maEntryMode)
+         return true;
+      if(m_draftSettings.maExitMode != m_committedSettings.maExitMode)
+         return true;
       if(m_draftSettings.rsiTimeframe != m_committedSettings.rsiTimeframe)
          return true;
       if(m_draftSettings.bbTimeframe != m_committedSettings.bbTimeframe)
@@ -564,7 +759,6 @@ private:
            {
             RefreshConfigValidation();
             UpdateOverviews();
-            SyncStrategyPanels();
             return true;
            }
         }
@@ -597,18 +791,22 @@ private:
         {
          outSettings.fixedLot = m_draftSettings.fixedLot;
          outSettings.magicNumber = m_draftSettings.magicNumber;
-         m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0);
-         outStatus = m_configInputsValid ? "Configuracao pronta." : "Perfil invalido.";
+         string strategyError = "";
+         bool strategyValid = ValidateStrategyPanels(outSettings, CanEditSettings(), strategyError);
+         m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0 && strategyValid);
+         outStatus = m_configInputsValid ? "Configuracao pronta." : (strategyError != "" ? strategyError : "Perfil invalido.");
          SyncHeaderProfile(profileValid ? outProfileName : "");
          return m_configInputsValid;
         }
 
       bool lotValid = false;
       bool protectionValid = true;
+      bool strategyValid = true;
       bool magicValid = false;
       bool magicUnique = false;
       string magicConflictProfile = "";
       string protectionError = "";
+      string strategyError = "";
       double parsedLot = 0.0;
       int parsedMagic = 0;
 
@@ -637,6 +835,7 @@ private:
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
       if(m_configProtectionCreated)
          protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
+      strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
 
       SyncHeaderProfile(profileValid ? outProfileName : "");
       if(m_configRiskCreated)
@@ -644,7 +843,7 @@ private:
       if(m_configSystemCreated)
          m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
 
-      m_configInputsValid = profileValid && lotValid && protectionValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && magicValid && magicUnique;
       if(m_configInputsValid)
         {
          outSettings.fixedLot = parsedLot;
@@ -673,6 +872,8 @@ private:
             outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
          else if(protectionError != "")
             outStatus = protectionError;
+         else if(strategyError != "")
+            outStatus = strategyError;
          else
             outStatus = "Corrija os campos em rosa antes de salvar.";
          m_cfgStatus.Color(FUSION_CLR_BAD);
@@ -810,9 +1011,7 @@ private:
       if(!m_configTabCreated)
          return;
 
-      if(visible)
-         EnsureActiveConfigPageCreated();
-
+      SetVisible(m_configGroup, visible);
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
          SetVisible(m_configTabs[i], visible);
       SetVisible(m_configTabsSeparator, visible);
@@ -824,6 +1023,7 @@ private:
 
       if(m_configRiskCreated)
         {
+         SetVisible(m_configRiskGroup, riskVisible);
          SetVisible(m_cfgRiskHdr, riskVisible);
          SetVisible(m_cfgRiskLotLbl, riskVisible);
          SetVisible(m_cfgRiskLotEdit, riskVisible);
@@ -831,6 +1031,7 @@ private:
 
       if(m_configProtectionCreated)
         {
+         SetVisible(m_configProtectionGroup, protectionVisible);
          for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
             SetVisible(m_protectTabs[p], protectionVisible);
          SetProtectionControlsVisible(m_protectPage, protectionVisible);
@@ -838,6 +1039,7 @@ private:
 
       if(m_configSystemCreated)
         {
+         SetVisible(m_configSystemGroup, systemVisible);
          SetVisible(m_cfgSystemHdr, systemVisible);
          SetVisible(m_cfgSystemMagicLbl, systemVisible);
          SetVisible(m_cfgSystemMagicEdit, systemVisible);
@@ -847,15 +1049,64 @@ private:
       SetVisible(m_cfgStatus, visible);
      }
 
+   void                       SetShellVisible(const bool visible)
+     {
+      SetVisible(m_lblHeader, visible);
+      SetVisible(m_btnStart, visible);
+      SetVisible(m_btnSave, visible);
+      SetVisible(m_btnCancel, visible);
+      SetVisible(m_lblProfile, visible);
+      SetVisible(m_activeProfile, visible);
+      for(int i = 0; i < FUSION_TAB_COUNT; ++i)
+         SetVisible(m_tabs[i], visible);
+      SetVisible(m_tabsSeparator, visible);
+     }
+
+   void                       ResetDialogMouseRouting(void)
+     {
+      long dialogId = Id();
+      string dialogName = Name();
+
+      CAppDialog::ChartEvent(CHARTEVENT_CUSTOM + ON_MOUSE_FOCUS_SET, dialogId, 0.0, dialogName);
+      CAppDialog::ChartEvent(CHARTEVENT_CUSTOM + ON_BRING_TO_TOP, dialogId, 0.0, dialogName);
+     }
+
+   void                       HideManagedContent(void)
+     {
+      SetShellVisible(false);
+      if(m_statusPageCreated)
+        {
+         SetVisible(m_statusGroup, false);
+         m_statusPage.SetVisible(false);
+        }
+      if(m_resultsPageCreated)
+        {
+         SetVisible(m_resultsGroup, false);
+         m_resultsPage.SetVisible(false);
+        }
+      if(m_strategyTabCreated)
+         SetStrategiesVisible(false);
+      if(m_filterTabCreated)
+         SetFiltersVisible(false);
+      if(m_profilesTabCreated)
+         SetProfilesVisible(false);
+      SetConfigVisible(false);
+     }
+
    void                       ApplyVisibility(void)
      {
-      if(!EnsureActiveTabCreated())
-         return;
-
       if(m_statusPageCreated)
-         m_statusPage.SetVisible(m_activeTab == FUSION_TAB_STATUS);
+        {
+         bool statusVisible = (m_activeTab == FUSION_TAB_STATUS);
+         SetVisible(m_statusGroup, statusVisible);
+         m_statusPage.SetVisible(statusVisible);
+        }
       if(m_resultsPageCreated)
-         m_resultsPage.SetVisible(m_activeTab == FUSION_TAB_RESULTS);
+        {
+         bool resultsVisible = (m_activeTab == FUSION_TAB_RESULTS);
+         SetVisible(m_resultsGroup, resultsVisible);
+         m_resultsPage.SetVisible(resultsVisible);
+        }
       if(m_strategyTabCreated)
          SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
       if(m_filterTabCreated)
@@ -993,8 +1244,8 @@ private:
          if(objectName == m_tabs[t].Name())
            {
             ReleaseButton(m_tabs[t]);
+            ResetDialogMouseRouting();
             m_activeTab = (ENUM_FUSION_TAB)t;
-            EnsureActiveTabCreated();
             ApplyVisibility();
             UpdateActiveTabContent(true);
             return true;
@@ -1006,8 +1257,8 @@ private:
          if(objectName == m_strategyTabs[s].Name())
            {
             ReleaseButton(m_strategyTabs[s]);
+            ResetDialogMouseRouting();
             m_strategyPage = (ENUM_FUSION_STRATEGY_PAGE)s;
-            EnsureActiveStrategyContentCreated();
             ApplyVisibility();
             return true;
            }
@@ -1018,8 +1269,8 @@ private:
          if(objectName == m_filterTabs[f].Name())
            {
             ReleaseButton(m_filterTabs[f]);
+            ResetDialogMouseRouting();
             m_filterPage = (ENUM_FUSION_FILTER_PAGE)f;
-            EnsureActiveFilterContentCreated();
             ApplyVisibility();
             return true;
            }
@@ -1030,8 +1281,8 @@ private:
          if(objectName == m_configTabs[c].Name())
            {
             ReleaseButton(m_configTabs[c]);
+            ResetDialogMouseRouting();
             m_configPage = (ENUM_FUSION_CONFIG_PAGE)c;
-            EnsureActiveConfigPageCreated();
             ApplyVisibility();
             RefreshConfigValidation();
             return true;
@@ -1268,6 +1519,27 @@ protected:
       // cair aqui, ignoramos em vez de remover o EA do grafico.
      }
 
+   virtual void                Minimize(void)
+     {
+      if(!m_created)
+         return;
+      HideManagedContent();
+      CAppDialog::Minimize();
+      ChartRedraw();
+     }
+
+   virtual void                Maximize(void)
+     {
+      CAppDialog::Maximize();
+      if(!m_created)
+         return;
+
+      SetShellVisible(true);
+      ApplyVisibility();
+      UpdateActiveTabContent(true);
+      ChartRedraw();
+     }
+
 public:
                               CFusionPanel(void)
      {
@@ -1280,6 +1552,7 @@ public:
       m_origMouseScroll = true;
       m_configInputsValid = true;
       m_hasCommittedSettings = false;
+      m_buildTarget    = NULL;
       m_activeTab       = FUSION_TAB_STATUS;
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
       m_filterPage      = FUSION_FILTER_OVERVIEW;
@@ -1367,6 +1640,8 @@ public:
 
    bool                       AddControl(CWnd &control)
      {
+      if(m_buildTarget != NULL)
+         return m_buildTarget.Add(control);
       return Add(control);
      }
 
@@ -1387,7 +1662,8 @@ public:
 
       if(!BuildHeader())      { Destroy(REASON_REMOVE); return false; }
       if(!BuildTabs())        { Destroy(REASON_REMOVE); return false; }
-      if(!EnsureStatusPageCreated()) { Destroy(REASON_REMOVE); return false; }
+      if(!BuildAllContent())  { Destroy(REASON_REMOVE); return false; }
+      ApplyVisibility();
       LoadSettings(snapshot);
       RefreshTheme();
       Update(snapshot);
@@ -1411,6 +1687,8 @@ public:
       ChartSetInteger(m_chartId, CHART_DRAG_TRADE_LEVELS, m_origDragTrade);
       ChartSetInteger(m_chartId, CHART_MOUSE_SCROLL, m_origMouseScroll);
 
+      CAppDialog::Destroy(reason);
+
       for(int i = 0; i < 3; ++i)
         {
          if(m_strategyPanels[i] != NULL)
@@ -1429,7 +1707,6 @@ public:
            }
         }
 
-      CAppDialog::Destroy(reason);
       m_created = false;
       m_dialogRunning = false;
      }
@@ -1556,8 +1833,12 @@ public:
 
       if(refreshAfterEvent)
         {
+         HandleStrategyPanelDeferredEdit(sparam);
          if(id == CHARTEVENT_OBJECT_ENDEDIT)
+           {
+            NormalizeStrategyDeferredEdit(sparam);
             NormalizeProtectionDeferredEdit(sparam);
+           }
          RefreshConfigValidation();
          ChartRedraw();
         }

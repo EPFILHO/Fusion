@@ -52,6 +52,8 @@ private:
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
    datetime                m_lastProtectionWarning;
+   string                  m_lastClosedStrategyId;
+   datetime                m_lastClosedStrategyBarTime;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -262,6 +264,40 @@ private:
         }
      }
 
+   void                    RecordClosedStrategyBar(const string strategyId)
+     {
+      m_lastClosedStrategyId = strategyId;
+      m_lastClosedStrategyBarTime = 0;
+
+      if(strategyId == "")
+         return;
+
+      ENUM_TIMEFRAMES timeframe = FUSION_DEFAULT_TIMEFRAME;
+      if(!m_signalManager.GetStrategyReferenceTimeframe(strategyId, timeframe))
+         return;
+
+      m_lastClosedStrategyBarTime = iTime(_Symbol, timeframe, 0);
+     }
+
+   bool                    IsReentryBlockedThisBar(const string strategyId,string &reason)
+     {
+      reason = "";
+
+      if(strategyId == "" || strategyId != m_lastClosedStrategyId || m_lastClosedStrategyBarTime <= 0)
+         return false;
+
+      ENUM_TIMEFRAMES timeframe = FUSION_DEFAULT_TIMEFRAME;
+      if(!m_signalManager.GetStrategyReferenceTimeframe(strategyId, timeframe))
+         return false;
+
+      datetime currentBarTime = iTime(_Symbol, timeframe, 0);
+      if(currentBarTime != m_lastClosedStrategyBarTime)
+         return false;
+
+      reason = "Ja operou neste candle da estrategia - aguardando proximo.";
+      return true;
+     }
+
    void                    RefreshStartBlockReason(void)
      {
       m_startBlockedReason = "";
@@ -339,6 +375,8 @@ private:
 
       if(previous.hasPosition && !m_positionState.hasPosition)
         {
+         RecordClosedStrategyBar(previous.ownerStrategyId);
+
          SClosedTradeSummary summary;
          if(m_executionService.GetClosedTradeSummary(previous.positionId, summary))
            {
@@ -566,6 +604,8 @@ private:
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
       m_lastProtectionWarning  = 0;
+      m_lastClosedStrategyId   = "";
+      m_lastClosedStrategyBarTime = 0;
      }
 
    bool              Initialize(void)
@@ -774,6 +814,13 @@ private:
 
       if(decision.signal == SIGNAL_NONE)
          return;
+
+      string reentryReason = "";
+      if(IsReentryBlockedThisBar(decision.strategyId, reentryReason))
+        {
+         m_logger.Debug("BLOCKER", reentryReason);
+         return;
+        }
 
       if(!m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
          return;

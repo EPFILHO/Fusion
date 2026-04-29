@@ -117,8 +117,11 @@ private:
       WriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod));
       WriteLine(handle, "maFastTimeframe", IntegerToString((int)settings.maFastTimeframe));
       WriteLine(handle, "maSlowTimeframe", IntegerToString((int)settings.maSlowTimeframe));
-      WriteLine(handle, "maMethod", IntegerToString((int)settings.maMethod));
-      WriteLine(handle, "maPrice", IntegerToString((int)settings.maPrice));
+      WriteLine(handle, "maFastMethod", IntegerToString((int)settings.maFastMethod));
+      WriteLine(handle, "maSlowMethod", IntegerToString((int)settings.maSlowMethod));
+      WriteLine(handle, "maFastPrice", IntegerToString((int)settings.maFastPrice));
+      WriteLine(handle, "maSlowPrice", IntegerToString((int)settings.maSlowPrice));
+      WriteLine(handle, "maEntryMode", IntegerToString((int)settings.maEntryMode));
       WriteLine(handle, "maExitMode", IntegerToString((int)settings.maExitMode));
       WriteLine(handle, "useRSI", IntegerToString((int)settings.useRSI));
       WriteLine(handle, "rsiPriority", IntegerToString(settings.rsiPriority));
@@ -221,8 +224,23 @@ private:
       else if(key == "maSlowPeriod") settings.maSlowPeriod = (int)StringToInteger(value);
       else if(key == "maFastTimeframe") settings.maFastTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "maSlowTimeframe") settings.maSlowTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
-      else if(key == "maMethod") settings.maMethod = (ENUM_MA_METHOD)StringToInteger(value);
-      else if(key == "maPrice") settings.maPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "maFastMethod") settings.maFastMethod = (ENUM_MA_METHOD)StringToInteger(value);
+      else if(key == "maSlowMethod") settings.maSlowMethod = (ENUM_MA_METHOD)StringToInteger(value);
+      else if(key == "maFastPrice") settings.maFastPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "maSlowPrice") settings.maSlowPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "maEntryMode") settings.maEntryMode = (ENUM_ENTRY_MODE)StringToInteger(value);
+      else if(key == "maMethod")
+        {
+         ENUM_MA_METHOD method = (ENUM_MA_METHOD)StringToInteger(value);
+         settings.maFastMethod = method;
+         settings.maSlowMethod = method;
+        }
+      else if(key == "maPrice")
+        {
+         ENUM_APPLIED_PRICE price = (ENUM_APPLIED_PRICE)StringToInteger(value);
+         settings.maFastPrice = price;
+         settings.maSlowPrice = price;
+        }
       else if(key == "maExitMode") settings.maExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useRSI") settings.useRSI = (bool)StringToInteger(value);
       else if(key == "rsiPriority") settings.rsiPriority = (int)StringToInteger(value);

@@ -86,8 +86,11 @@ input int                inp_MAFastPeriod  = 9;
 input int                inp_MASlowPeriod  = 21;
 input ENUM_TIMEFRAMES    inp_MAFastTF      = FUSION_DEFAULT_TIMEFRAME;
 input ENUM_TIMEFRAMES    inp_MASlowTF      = FUSION_DEFAULT_TIMEFRAME;
-input ENUM_MA_METHOD     inp_MAMethod      = MODE_EMA;
-input ENUM_APPLIED_PRICE inp_MAPrice       = PRICE_CLOSE;
+input ENUM_MA_METHOD     inp_MAFastMethod  = MODE_EMA;
+input ENUM_MA_METHOD     inp_MASlowMethod  = MODE_EMA;
+input ENUM_APPLIED_PRICE inp_MAFastPrice   = PRICE_CLOSE;
+input ENUM_APPLIED_PRICE inp_MASlowPrice   = PRICE_CLOSE;
+input ENUM_ENTRY_MODE    inp_MAEntryMode   = ENTRY_NEXT_CANDLE;
 input ENUM_EXIT_MODE     inp_MAExitMode    = EXIT_OPPOSITE_SIGNAL;
 
 input group "Strategy - RSI"
@@ -197,8 +200,11 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.maSlowPeriod           = inp_MASlowPeriod;
    settings.maFastTimeframe        = inp_MAFastTF;
    settings.maSlowTimeframe        = inp_MASlowTF;
-   settings.maMethod               = inp_MAMethod;
-   settings.maPrice                = inp_MAPrice;
+   settings.maFastMethod           = inp_MAFastMethod;
+   settings.maSlowMethod           = inp_MASlowMethod;
+   settings.maFastPrice            = inp_MAFastPrice;
+   settings.maSlowPrice            = inp_MASlowPrice;
+   settings.maEntryMode            = inp_MAEntryMode;
    settings.maExitMode             = inp_MAExitMode;
    settings.useRSI                 = inp_UseRSI;
    settings.rsiPriority            = inp_RSIPriority;

@@ -35,6 +35,8 @@
 #define FUSION_CLR_SUBTAB_LINE   FUSION_CLR_NAV_ACTIVE
 #define FUSION_CLR_FRAME_BG      clrWhite
 #define FUSION_CLR_FRAME_BORDER  FUSION_CLR_NAV_ACTIVE
+#define FUSION_COMBO_LIST_ZORDER_OFFSET 1000
+#define FUSION_COMBO_LIST_ITEM_LIMIT    32
 
 string FusionTimeframeName(const ENUM_TIMEFRAMES timeframe)
   {
@@ -111,6 +113,97 @@ bool FusionPopulateTimeframeCombo(CComboBox &combo)
          return false;
      }
 
+   return true;
+  }
+
+string FusionMAMethodName(const ENUM_MA_METHOD method)
+  {
+   switch(method)
+     {
+      case MODE_SMA:  return "SMA";
+      case MODE_EMA:  return "EMA";
+      case MODE_SMMA: return "SMMA";
+      case MODE_LWMA: return "LWMA";
+     }
+   return "EMA";
+  }
+
+bool FusionPopulateMAMethodCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(6);
+   if(!combo.AddItem(FusionMAMethodName(MODE_SMA), (long)MODE_SMA))
+      return false;
+   if(!combo.AddItem(FusionMAMethodName(MODE_EMA), (long)MODE_EMA))
+      return false;
+   if(!combo.AddItem(FusionMAMethodName(MODE_SMMA), (long)MODE_SMMA))
+      return false;
+   if(!combo.AddItem(FusionMAMethodName(MODE_LWMA), (long)MODE_LWMA))
+      return false;
+   return true;
+  }
+
+string FusionAppliedPriceName(const ENUM_APPLIED_PRICE price)
+  {
+   switch(price)
+     {
+      case PRICE_CLOSE:    return "Close";
+      case PRICE_OPEN:     return "Open";
+      case PRICE_HIGH:     return "High";
+      case PRICE_LOW:      return "Low";
+      case PRICE_MEDIAN:   return "Median";
+      case PRICE_TYPICAL:  return "Typical";
+      case PRICE_WEIGHTED: return "Weighted";
+     }
+   return "Close";
+  }
+
+bool FusionPopulateAppliedPriceCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(8);
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_CLOSE), (long)PRICE_CLOSE))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_OPEN), (long)PRICE_OPEN))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_HIGH), (long)PRICE_HIGH))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_LOW), (long)PRICE_LOW))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_MEDIAN), (long)PRICE_MEDIAN))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_TYPICAL), (long)PRICE_TYPICAL))
+      return false;
+   if(!combo.AddItem(FusionAppliedPriceName(PRICE_WEIGHTED), (long)PRICE_WEIGHTED))
+      return false;
+   return true;
+  }
+
+string FusionEntryModeName(const ENUM_ENTRY_MODE mode)
+  {
+   return (mode == ENTRY_2ND_CANDLE) ? "2o candle (E2C)" : "1o candle apos cruz.";
+  }
+
+bool FusionPopulateEntryModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(4);
+   if(!combo.AddItem(FusionEntryModeName(ENTRY_NEXT_CANDLE), (long)ENTRY_NEXT_CANDLE))
+      return false;
+   if(!combo.AddItem(FusionEntryModeName(ENTRY_2ND_CANDLE), (long)ENTRY_2ND_CANDLE))
+      return false;
+   return true;
+  }
+
+string FusionExitModeName(const ENUM_EXIT_MODE mode)
+  {
+   return (mode == EXIT_TP_SL) ? "TP/SL" : "Cruz. oposto";
+  }
+
+bool FusionPopulateExitModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(4);
+   if(!combo.AddItem(FusionExitModeName(EXIT_OPPOSITE_SIGNAL), (long)EXIT_OPPOSITE_SIGNAL))
+      return false;
+   if(!combo.AddItem(FusionExitModeName(EXIT_TP_SL), (long)EXIT_TP_SL))
+      return false;
    return true;
   }
 
@@ -313,6 +406,53 @@ void FusionApplyEditStyle(CEdit &edit,const bool valid,const bool enabled=true)
 void FusionApplyLabelEnabled(CLabel &label,const bool enabled)
   {
    label.Color(enabled ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+  }
+
+void FusionSetObjectTimeframesIfExists(const long chartId,const string name,const long timeframes)
+  {
+   if(name == "" || ObjectFind(chartId, name) < 0)
+      return;
+   ObjectSetInteger(chartId, name, OBJPROP_TIMEFRAMES, timeframes);
+  }
+
+void FusionSetObjectZOrderIfExists(const long chartId,const string name,const long zorder)
+  {
+   if(name == "" || ObjectFind(chartId, name) < 0)
+      return;
+   ObjectSetInteger(chartId, name, OBJPROP_ZORDER, zorder);
+  }
+
+void FusionResetComboRuntimeObjects(const long chartId,const string comboName)
+  {
+   if(comboName == "")
+      return;
+
+   if(ObjectFind(chartId, comboName + "Drop") >= 0)
+      ObjectSetInteger(chartId, comboName + "Drop", OBJPROP_STATE, false);
+
+   FusionSetObjectTimeframesIfExists(chartId, comboName + "List", OBJ_NO_PERIODS);
+   FusionSetObjectTimeframesIfExists(chartId, comboName + "ListBack", OBJ_NO_PERIODS);
+   FusionSetObjectTimeframesIfExists(chartId, comboName + "ListVScroll", OBJ_NO_PERIODS);
+   FusionSetObjectTimeframesIfExists(chartId, comboName + "ListHScroll", OBJ_NO_PERIODS);
+   for(int i = 0; i < FUSION_COMBO_LIST_ITEM_LIMIT; ++i)
+      FusionSetObjectTimeframesIfExists(chartId, comboName + "ListItem" + IntegerToString(i), OBJ_NO_PERIODS);
+  }
+
+void FusionRaiseComboRuntimeObjects(const long chartId,const string comboName,const long zorder)
+  {
+   if(comboName == "")
+      return;
+
+   FusionSetObjectZOrderIfExists(chartId, comboName + "Edit", zorder);
+   FusionSetObjectZOrderIfExists(chartId, comboName + "Drop", zorder + 1);
+
+   long listZOrder = zorder + FUSION_COMBO_LIST_ZORDER_OFFSET;
+   FusionSetObjectZOrderIfExists(chartId, comboName + "List", listZOrder);
+   FusionSetObjectZOrderIfExists(chartId, comboName + "ListBack", listZOrder);
+   FusionSetObjectZOrderIfExists(chartId, comboName + "ListVScroll", listZOrder + 2);
+   FusionSetObjectZOrderIfExists(chartId, comboName + "ListHScroll", listZOrder + 2);
+   for(int i = 0; i < FUSION_COMBO_LIST_ITEM_LIMIT; ++i)
+      FusionSetObjectZOrderIfExists(chartId, comboName + "ListItem" + IntegerToString(i), listZOrder + 1);
   }
 
 #endif
