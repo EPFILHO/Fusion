@@ -795,6 +795,8 @@ private:
          string strategyError = "";
          bool strategyValid = ValidateStrategyPanels(outSettings, CanEditSettings(), strategyError);
          m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0 && strategyValid);
+         if(m_configInputsValid)
+            m_draftSettings = outSettings;
          outStatus = m_configInputsValid ? "Configuracao pronta." : (strategyError != "" ? strategyError : "Perfil invalido.");
          SyncHeaderProfile(profileValid ? outProfileName : "");
          return m_configInputsValid;
@@ -849,6 +851,7 @@ private:
         {
          outSettings.fixedLot = parsedLot;
          outSettings.magicNumber = parsedMagic;
+         m_draftSettings = outSettings;
         }
 
       bool dirty = HasPendingChanges();

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.048 - 2026-04-29
+- Corrigido o dirty-state de campos validados sob demanda: edits de `CONFIG > PROTECT` agora atualizam o rascunho interno e habilitam `SALVAR` quando validos.
+- A subaba `STRATS > MA` passou a reconciliar todos os combos no fluxo de validacao/salvamento, incluindo `Saida`, evitando depender apenas do evento imediato do `CComboBox`.
+- A lista de modo de saida da MA passou a seguir a ordem do enum (`TP/SL`, `Cruz. oposto`) para manter `Value()` e `SelectByValue()` mais previsiveis.
+
 ## 1.047 - 2026-04-29
 - O botao global `SALVAR` agora permanece bloqueado quando o perfil/magic atual esta em uso por outra instancia do Fusion, alinhando a regra com o bloqueio de `INICIAR`.
 - A aba `PERFIS` volta automaticamente para a lista de perfis depois que um novo perfil ou copia e salvo/carregado pela aplicacao, sem exigir trocar de aba para atualizar a tela.

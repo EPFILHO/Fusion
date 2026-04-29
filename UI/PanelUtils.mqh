@@ -200,9 +200,9 @@ string FusionExitModeName(const ENUM_EXIT_MODE mode)
 bool FusionPopulateExitModeCombo(CComboBox &combo)
   {
    combo.ListViewItems(4);
-   if(!combo.AddItem(FusionExitModeName(EXIT_OPPOSITE_SIGNAL), (long)EXIT_OPPOSITE_SIGNAL))
-      return false;
    if(!combo.AddItem(FusionExitModeName(EXIT_TP_SL), (long)EXIT_TP_SL))
+      return false;
+   if(!combo.AddItem(FusionExitModeName(EXIT_OPPOSITE_SIGNAL), (long)EXIT_OPPOSITE_SIGNAL))
       return false;
    return true;
   }

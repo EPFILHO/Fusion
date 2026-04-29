@@ -177,64 +177,48 @@ public:
       if(m_fastTimeframe.Matches(objectName))
         {
          ENUM_TIMEFRAMES value = m_fastTimeframe.Value();
-         if(settings.maFastTimeframe == value)
-            return false;
          settings.maFastTimeframe = value;
          return true;
         }
       if(m_slowTimeframe.Matches(objectName))
         {
          ENUM_TIMEFRAMES value = m_slowTimeframe.Value();
-         if(settings.maSlowTimeframe == value)
-            return false;
          settings.maSlowTimeframe = value;
          return true;
         }
       if(m_fastMethod.Matches(objectName))
         {
          ENUM_MA_METHOD value = (ENUM_MA_METHOD)m_fastMethod.Value();
-         if(settings.maFastMethod == value)
-            return false;
          settings.maFastMethod = value;
          return true;
         }
       if(m_slowMethod.Matches(objectName))
         {
          ENUM_MA_METHOD value = (ENUM_MA_METHOD)m_slowMethod.Value();
-         if(settings.maSlowMethod == value)
-            return false;
          settings.maSlowMethod = value;
          return true;
         }
       if(m_fastPrice.Matches(objectName))
         {
          ENUM_APPLIED_PRICE value = (ENUM_APPLIED_PRICE)m_fastPrice.Value();
-         if(settings.maFastPrice == value)
-            return false;
          settings.maFastPrice = value;
          return true;
         }
       if(m_slowPrice.Matches(objectName))
         {
          ENUM_APPLIED_PRICE value = (ENUM_APPLIED_PRICE)m_slowPrice.Value();
-         if(settings.maSlowPrice == value)
-            return false;
          settings.maSlowPrice = value;
          return true;
         }
       if(m_entryMode.Matches(objectName))
         {
          ENUM_ENTRY_MODE value = (ENUM_ENTRY_MODE)m_entryMode.Value();
-         if(settings.maEntryMode == value)
-            return false;
          settings.maEntryMode = value;
          return true;
         }
       if(m_exitMode.Matches(objectName))
         {
          ENUM_EXIT_MODE value = (ENUM_EXIT_MODE)m_exitMode.Value();
-         if(settings.maExitMode == value)
-            return false;
          settings.maExitMode = value;
          return true;
         }
@@ -276,6 +260,14 @@ public:
 
       candidate.maFastPeriod = m_fastPeriod.Value();
       candidate.maSlowPeriod = m_slowPeriod.Value();
+      candidate.maFastTimeframe = m_fastTimeframe.Value();
+      candidate.maSlowTimeframe = m_slowTimeframe.Value();
+      candidate.maFastMethod = (ENUM_MA_METHOD)m_fastMethod.Value();
+      candidate.maSlowMethod = (ENUM_MA_METHOD)m_slowMethod.Value();
+      candidate.maFastPrice = (ENUM_APPLIED_PRICE)m_fastPrice.Value();
+      candidate.maSlowPrice = (ENUM_APPLIED_PRICE)m_slowPrice.Value();
+      candidate.maEntryMode = (ENUM_ENTRY_MODE)m_entryMode.Value();
+      candidate.maExitMode = (ENUM_EXIT_MODE)m_exitMode.Value();
 
       bool fastValid = (candidate.maFastPeriod > 0 && candidate.maFastPeriod <= 1000);
       bool slowValid = (candidate.maSlowPeriod > 0 && candidate.maSlowPeriod <= 1000);
