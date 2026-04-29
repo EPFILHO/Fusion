@@ -216,6 +216,13 @@
         }
      }
 
+   void                       ClearProfileStatusOverride(void)
+     {
+      m_profileStatusOverride = "";
+      m_profileStatusOverrideColor = FUSION_CLR_MUTED;
+      m_profileStatusOverrideUntil = 0;
+     }
+
    void                       EnsureProfileSelectionVisible(void)
      {
       if(m_profileSelected < 0)
@@ -356,6 +363,8 @@
          SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
+      else if(m_snapshot.startBlockedReason != "" && HasPendingChanges())
+         SetProfileStatus("Perfil em uso por outra instancia: carregue ou crie outro perfil antes de salvar.", FUSION_CLR_WARN);
       else if(HasPendingChanges())
          SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
       else if(selected && selectedIsActive && selectedIsDefault)

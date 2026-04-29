@@ -367,8 +367,7 @@ void FusionApplyPrimaryButtonStyle(CButton &button,const bool active)
 
 void FusionApplyDesktopTabStyle(CButton &button,const bool active)
   {
-   button.Color(active ? clrWhite : FUSION_CLR_DISABLED_TXT);
-   button.ColorBackground(active ? FUSION_CLR_NAV_ACTIVE : FUSION_CLR_SUBTAB_IDLE);
+   FusionApplyPrimaryButtonStyle(button, active);
   }
 
 void FusionApplyToggleButtonStyle(CButton &button,const bool enabled,const bool editable=true)

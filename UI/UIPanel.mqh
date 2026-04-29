@@ -538,7 +538,8 @@ private:
 
    bool                       CanSave(void)
      {
-      return (!ProfileEditMode() && CanEditSettings() && m_configInputsValid && HasPendingChanges());
+      return (!ProfileEditMode() && CanEditSettings() && m_snapshot.startBlockedReason == "" &&
+              m_configInputsValid && HasPendingChanges());
      }
 
    bool                       CanLoad(void)
@@ -878,6 +879,11 @@ private:
             outStatus = "Corrija os campos em rosa antes de salvar.";
          m_cfgStatus.Color(FUSION_CLR_BAD);
         }
+      else if(m_snapshot.startBlockedReason != "")
+        {
+         outStatus = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
       else if(dirty)
         {
          outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
@@ -927,10 +933,10 @@ private:
       if(m_configTabCreated)
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
-            FusionApplyDesktopTabStyle(m_configTabs[i], i == (int)m_configPage);
+            FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
          if(m_configProtectionCreated)
             for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
-               FusionApplyDesktopTabStyle(m_protectTabs[p], p == (int)m_protectPage);
+               FusionApplyPrimaryButtonStyle(m_protectTabs[p], p == (int)m_protectPage);
          if(m_configSystemCreated)
             m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
         }
@@ -1746,7 +1752,12 @@ public:
       SyncDraftSettingsToControls();
       SetProfileMode(FUSION_PROFILE_BROWSE);
       if(m_profilesTabCreated)
+        {
+         ClearProfileStatusOverride();
          RefreshProfileList(false);
+         if(m_activeTab == FUSION_TAB_PROFILES)
+            SetProfilesVisible(true);
+        }
       if(m_configTabCreated)
          RefreshConfigValidation();
       else

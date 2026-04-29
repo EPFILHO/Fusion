@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.047 - 2026-04-29
+- O botao global `SALVAR` agora permanece bloqueado quando o perfil/magic atual esta em uso por outra instancia do Fusion, alinhando a regra com o bloqueio de `INICIAR`.
+- A aba `PERFIS` volta automaticamente para a lista de perfis depois que um novo perfil ou copia e salvo/carregado pela aplicacao, sem exigir trocar de aba para atualizar a tela.
+- Abas e subabas passaram a usar a mesma linguagem visual: item ativo em azul e item navegavel inativo em azul-escuro consistente.
+
 ## 1.046 - 2026-04-29
 - Reestruturado o lifecycle da GUI para pre-criar paginas e subpaginas dentro de grupos logicos de hit-test, evitando que controles escondidos interceptem eventos de mouse.
 - Corrigida a regressao em que os `CComboBox` da subaba `STRATS > MA` travavam depois de navegar por outras abas/subabas.
