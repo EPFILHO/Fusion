@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.049 - 2026-04-29
+- Iniciada a limpeza conservadora da GUI apos a estabilizacao dos `CComboBox`, mantendo intacto o modelo de hit-test que corrigiu os travamentos.
+- Removidos helper e constantes visuais de subabas que ficaram sem uso depois da padronizacao de estilos.
+- A validacao da subaba `STRATS > MA` deixou de promover valores visuais de controles para o rascunho quando a GUI esta em modo somente leitura, evitando alteracoes pendentes apos pausar/parar o EA.
+- Ao sair de modo somente leitura para editavel, a GUI agora restaura o rascunho a partir da configuracao salva antes de validar a `CONFIG`, descartando estados visuais produzidos durante a execucao.
+- Perfis bloqueados por outra instancia agora deixam apenas `PERFIS > CARREGAR` como caminho de saida; edicao, criacao, duplicacao e exclusao do perfil ativo ficam bloqueadas ate carregar outro perfil ou liberar o conflito.
+- Adicionado `docs/GUI_CLEANUP_PLAN.md` com guardrails, smoke tests e roteiro da `1.050` para continuar a limpeza sem reabrir a regressao.
+
 ## 1.048 - 2026-04-29
 - Corrigido o dirty-state de campos validados sob demanda: edits de `CONFIG > PROTECT` agora atualizam o rascunho interno e habilitam `SALVAR` quando validos.
 - A subaba `STRATS > MA` passou a reconciliar todos os combos no fluxo de validacao/salvamento, incluindo `Saida`, evitando depender apenas do evento imediato do `CComboBox`.

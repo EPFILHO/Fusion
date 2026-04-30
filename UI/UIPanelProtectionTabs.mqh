@@ -483,7 +483,7 @@
 
    void                       RefreshProtectionTheme(void)
      {
-      bool editable = CanEditSettings();
+      bool editable = CanEditActiveProfile();
 
       for(int tabIndex = 0; tabIndex < FUSION_PROTECT_COUNT; ++tabIndex)
          FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], tabIndex == (int)m_protectPage);
@@ -508,7 +508,7 @@
    void                       SyncProtectionControls(void)
      {
       RefreshProtectionTheme();
-      FusionApplyEditStyle(m_protectSpreadLimitEdit, true, CanEditSettings());
+      FusionApplyEditStyle(m_protectSpreadLimitEdit, true, CanEditActiveProfile());
       m_protectSpreadLimitEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
       m_protectSessionStartHourEdit.Text(StringFormat("%02d", m_draftSettings.sessionStartHour));
       m_protectSessionStartMinuteEdit.Text(StringFormat("%02d", m_draftSettings.sessionStartMinute));
@@ -567,7 +567,7 @@
       if(objectName == m_protectSpreadEnabledBtn.Name())
         {
          ReleaseButton(m_protectSpreadEnabledBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.enableSpreadProtection = !m_draftSettings.enableSpreadProtection;
          RefreshConfigValidation();
@@ -577,7 +577,7 @@
       if(objectName == m_protectSessionEnabledBtn.Name())
         {
          ReleaseButton(m_protectSessionEnabledBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.enableSessionFilter = !m_draftSettings.enableSessionFilter;
          RefreshConfigValidation();
@@ -587,7 +587,7 @@
       if(objectName == m_protectSessionCloseBtn.Name())
         {
          ReleaseButton(m_protectSessionCloseBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.closeOnSessionEnd = !m_draftSettings.closeOnSessionEnd;
          RefreshConfigValidation();
@@ -597,7 +597,7 @@
       if(objectName == m_protectDayEnabledBtn.Name())
         {
          ReleaseButton(m_protectDayEnabledBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.enableDailyLimits = !m_draftSettings.enableDailyLimits;
          RefreshConfigValidation();
@@ -607,7 +607,7 @@
       if(objectName == m_protectDrawdownEnabledBtn.Name())
         {
          ReleaseButton(m_protectDrawdownEnabledBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.enableDrawdown = !m_draftSettings.enableDrawdown;
          RefreshConfigValidation();
@@ -617,7 +617,7 @@
       if(objectName == m_protectStreakEnabledBtn.Name())
         {
          ReleaseButton(m_protectStreakEnabledBtn);
-         if(!CanEditSettings())
+         if(!CanEditActiveProfile())
             return true;
          m_draftSettings.enableStreak = !m_draftSettings.enableStreak;
          RefreshConfigValidation();
@@ -629,7 +629,7 @@
          if(objectName == m_protectNewsEnabledBtn[newsIndex].Name())
            {
             ReleaseButton(m_protectNewsEnabledBtn[newsIndex]);
-            if(!CanEditSettings())
+            if(!CanEditActiveProfile())
                return true;
             m_draftSettings.newsWindows[newsIndex].enabled = !m_draftSettings.newsWindows[newsIndex].enabled;
             RefreshConfigValidation();
@@ -639,7 +639,7 @@
          if(objectName == m_protectNewsModeBtn[newsIndex].Name())
            {
             ReleaseButton(m_protectNewsModeBtn[newsIndex]);
-            if(!CanEditSettings())
+            if(!CanEditActiveProfile())
                return true;
             m_draftSettings.newsWindows[newsIndex].action =
                (m_draftSettings.newsWindows[newsIndex].action == NEWS_ACTION_BLOCK_ENTRIES)

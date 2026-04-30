@@ -30,8 +30,6 @@
 #define FUSION_CLR_FIELD_DISABLED C'220,224,230'
 #define FUSION_CLR_FIELD_BORDER  C'166,181,204'
 #define FUSION_CLR_FIELD_ERROR   C'255,233,233'
-#define FUSION_CLR_SUBTAB_IDLE   C'106,114,126'
-#define FUSION_CLR_SUBTAB_BORDER C'137,145,156'
 #define FUSION_CLR_SUBTAB_LINE   FUSION_CLR_NAV_ACTIVE
 #define FUSION_CLR_FRAME_BG      clrWhite
 #define FUSION_CLR_FRAME_BORDER  FUSION_CLR_NAV_ACTIVE
@@ -363,11 +361,6 @@ void FusionApplyBlockedButtonStyle(CButton &button)
 void FusionApplyPrimaryButtonStyle(CButton &button,const bool active)
   {
    FusionApplyActionButtonStyle(button, active ? FUSION_CLR_NAV_ACTIVE : FUSION_CLR_NAV_IDLE, true);
-  }
-
-void FusionApplyDesktopTabStyle(CButton &button,const bool active)
-  {
-   FusionApplyPrimaryButtonStyle(button, active);
   }
 
 void FusionApplyToggleButtonStyle(CButton &button,const bool enabled,const bool editable=true)

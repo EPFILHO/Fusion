@@ -128,6 +128,13 @@ private:
 
    bool                       HandleStrategyPanelDeferredEdit(const string objectName)
      {
+      if(!CanEditActiveProfile())
+        {
+         SyncStrategyPanels();
+         RefreshTheme();
+         return false;
+        }
+
       bool changed = false;
       for(int sp = 0; sp < 3; ++sp)
         {
@@ -523,6 +530,11 @@ private:
       return (!m_snapshot.started && !m_snapshot.hasPosition && !m_snapshot.runtimeBlocked);
      }
 
+   bool                       CanEditActiveProfile(void)
+     {
+      return (CanEditSettings() && m_snapshot.startBlockedReason == "");
+     }
+
    bool                       CanPause(void)
      {
       return (m_snapshot.started && !m_snapshot.hasPosition);
@@ -538,8 +550,7 @@ private:
 
    bool                       CanSave(void)
      {
-      return (!ProfileEditMode() && CanEditSettings() && m_snapshot.startBlockedReason == "" &&
-              m_configInputsValid && HasPendingChanges());
+      return (!ProfileEditMode() && CanEditActiveProfile() && m_configInputsValid && HasPendingChanges());
      }
 
    bool                       CanLoad(void)
@@ -549,7 +560,7 @@ private:
 
    bool                       CanAdminProfiles(void)
      {
-      return (!ProfileEditMode() && CanEditSettings() && !HasPendingChanges());
+      return (!ProfileEditMode() && CanEditActiveProfile() && !HasPendingChanges());
      }
 
    bool                       ParsedDraftMagicNumber(int &magicNumber)
@@ -746,7 +757,7 @@ private:
       if(id != CHARTEVENT_CUSTOM + ON_CHANGE)
          return false;
 
-      if(!CanEditSettings())
+      if(!CanEditActiveProfile())
         {
          RefreshTheme();
          return false;
@@ -787,15 +798,16 @@ private:
       string profileForMagicCheck = (targetProfileName == "") ? outProfileName : targetProfileName;
 
       bool profileValid = !FusionIsBlank(outProfileName);
+      bool editable = CanEditActiveProfile();
 
       if(!m_configTabCreated)
         {
          outSettings.fixedLot = m_draftSettings.fixedLot;
          outSettings.magicNumber = m_draftSettings.magicNumber;
          string strategyError = "";
-         bool strategyValid = ValidateStrategyPanels(outSettings, CanEditSettings(), strategyError);
+         bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
          m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0 && strategyValid);
-         if(m_configInputsValid)
+         if(m_configInputsValid && editable)
             m_draftSettings = outSettings;
          outStatus = m_configInputsValid ? "Configuracao pronta." : (strategyError != "" ? strategyError : "Perfil invalido.");
          SyncHeaderProfile(profileValid ? outProfileName : "");
@@ -813,8 +825,8 @@ private:
       double parsedLot = 0.0;
       int parsedMagic = 0;
 
-      string lotText = m_configRiskCreated ? FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit))
-                                           : FusionNormalizeDecimalText(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      string lotText = (editable && m_configRiskCreated) ? FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit))
+                                                         : FusionNormalizeDecimalText(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
       if(FusionIsDecimalText(lotText, false))
         {
          parsedLot = StringToDouble(lotText);
@@ -827,18 +839,41 @@ private:
             lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
         }
 
-      magicValid = ParsedDraftMagicNumber(parsedMagic);
-      if(magicValid)
+      if(editable)
+         magicValid = ParsedDraftMagicNumber(parsedMagic);
+      else
+        {
+         parsedMagic = m_draftSettings.magicNumber;
+         magicValid = (parsedMagic > 0);
+        }
+      if(magicValid && editable)
          magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
+      else
+         magicUnique = magicValid;
 
-      bool editable = CanEditSettings();
       if(m_configRiskCreated)
          FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
       if(m_configSystemCreated)
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
       if(m_configProtectionCreated)
-         protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
-      strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
+        {
+         if(editable)
+            protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
+         else
+           {
+            SEASettings ignoredProtection = outSettings;
+            string ignoredProtectionError = "";
+            ValidateProtectionSettings(ignoredProtection, false, ignoredProtectionError);
+           }
+        }
+      if(editable)
+         strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
+      else
+        {
+         SEASettings ignoredStrategy = outSettings;
+         string ignoredStrategyError = "";
+         ValidateStrategyPanels(ignoredStrategy, false, ignoredStrategyError);
+        }
 
       SyncHeaderProfile(profileValid ? outProfileName : "");
       if(m_configRiskCreated)
@@ -847,7 +882,7 @@ private:
          m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
 
       m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && magicValid && magicUnique;
-      if(m_configInputsValid)
+      if(m_configInputsValid && editable)
         {
          outSettings.fixedLot = parsedLot;
          outSettings.magicNumber = parsedMagic;
@@ -914,7 +949,7 @@ private:
          RefreshProtectionTheme();
       if(m_configSystemCreated)
         {
-         if(CanEditSettings())
+         if(CanEditActiveProfile())
             FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
          else
             FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
@@ -959,14 +994,14 @@ private:
      {
       for(int i = 0; i < 3; ++i)
          if(m_strategyPanels[i] != NULL)
-            m_strategyPanels[i].Sync(m_draftSettings, CanEditSettings());
+             m_strategyPanels[i].Sync(m_draftSettings, CanEditActiveProfile());
      }
 
    void                       SyncFilterPanels(void)
      {
       for(int j = 0; j < 2; ++j)
          if(m_filterPanels[j] != NULL)
-            m_filterPanels[j].Sync(m_draftSettings, CanEditSettings());
+             m_filterPanels[j].Sync(m_draftSettings, CanEditActiveProfile());
      }
 
    void                       UpdateActiveTabContent(const bool runtimeStateChanged)
@@ -1235,10 +1270,10 @@ private:
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
-         if(!CanEditSettings())
-           {
-            RefreshTheme();
-            return true;
+          if(!CanEditActiveProfile())
+            {
+             RefreshTheme();
+             return true;
            }
          m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
          RefreshConfigValidation();
@@ -1389,7 +1424,7 @@ private:
             string ignoredProfile = "";
             string status = "";
             bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status, newProfileName);
-            if(CanEditSettings() && valid && newProfileName != "")
+            if(CanEditActiveProfile() && valid && newProfileName != "")
               {
                ResetCommand(m_pendingCommand);
                m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
@@ -1480,11 +1515,11 @@ private:
          ResetCommand(tempCommand);
          if(m_strategyPanels[sp].HandleClick(objectName, tempCommand))
            {
-            if(!CanEditSettings())
-              {
-               RefreshTheme();
-               return true;
-              }
+             if(!CanEditActiveProfile())
+               {
+                RefreshTheme();
+                return true;
+               }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
@@ -1500,11 +1535,11 @@ private:
          ResetCommand(tempCommand);
          if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
            {
-            if(!CanEditSettings())
-              {
-               RefreshTheme();
-               return true;
-              }
+             if(!CanEditActiveProfile())
+               {
+                RefreshTheme();
+                return true;
+               }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             UpdateOverviews();
@@ -1772,19 +1807,25 @@ public:
       if(!m_created || m_minimized)
          return;
 
+      bool wasEditBlocked = !CanEditActiveProfile();
+      bool nowCanEditActiveProfile = (!snapshot.started && !snapshot.hasPosition && !snapshot.runtimeBlocked &&
+                                      snapshot.startBlockedReason == "");
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
+      bool editBlockExited = (wasEditBlocked && nowCanEditActiveProfile && m_hasCommittedSettings);
       bool redrawNeeded = runtimeStateChanged ||
-                          snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
-                          snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
-                          snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
-                          snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
-                          MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
-                          snapshot.lossStreak != m_snapshot.lossStreak ||
-                          snapshot.winStreak != m_snapshot.winStreak ||
-                          snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive;
+                           snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
+                           snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
+                           snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                           snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
+                           MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
+                           snapshot.lossStreak != m_snapshot.lossStreak ||
+                           snapshot.winStreak != m_snapshot.winStreak ||
+                           snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive;
       m_snapshot = snapshot;
+      if(editBlockExited)
+         RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
-      UpdateActiveTabContent(runtimeStateChanged);
+      UpdateActiveTabContent(runtimeStateChanged || editBlockExited);
       if(redrawNeeded)
          ChartRedraw();
      }

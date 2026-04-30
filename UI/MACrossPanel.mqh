@@ -258,16 +258,19 @@ public:
      {
       error = "";
 
-      candidate.maFastPeriod = m_fastPeriod.Value();
-      candidate.maSlowPeriod = m_slowPeriod.Value();
-      candidate.maFastTimeframe = m_fastTimeframe.Value();
-      candidate.maSlowTimeframe = m_slowTimeframe.Value();
-      candidate.maFastMethod = (ENUM_MA_METHOD)m_fastMethod.Value();
-      candidate.maSlowMethod = (ENUM_MA_METHOD)m_slowMethod.Value();
-      candidate.maFastPrice = (ENUM_APPLIED_PRICE)m_fastPrice.Value();
-      candidate.maSlowPrice = (ENUM_APPLIED_PRICE)m_slowPrice.Value();
-      candidate.maEntryMode = (ENUM_ENTRY_MODE)m_entryMode.Value();
-      candidate.maExitMode = (ENUM_EXIT_MODE)m_exitMode.Value();
+      if(editable)
+        {
+         candidate.maFastPeriod = m_fastPeriod.Value();
+         candidate.maSlowPeriod = m_slowPeriod.Value();
+         candidate.maFastTimeframe = m_fastTimeframe.Value();
+         candidate.maSlowTimeframe = m_slowTimeframe.Value();
+         candidate.maFastMethod = (ENUM_MA_METHOD)m_fastMethod.Value();
+         candidate.maSlowMethod = (ENUM_MA_METHOD)m_slowMethod.Value();
+         candidate.maFastPrice = (ENUM_APPLIED_PRICE)m_fastPrice.Value();
+         candidate.maSlowPrice = (ENUM_APPLIED_PRICE)m_slowPrice.Value();
+         candidate.maEntryMode = (ENUM_ENTRY_MODE)m_entryMode.Value();
+         candidate.maExitMode = (ENUM_EXIT_MODE)m_exitMode.Value();
+        }
 
       bool fastValid = (candidate.maFastPeriod > 0 && candidate.maFastPeriod <= 1000);
       bool slowValid = (candidate.maSlowPeriod > 0 && candidate.maSlowPeriod <= 1000);
