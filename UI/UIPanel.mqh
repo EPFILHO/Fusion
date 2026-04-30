@@ -17,6 +17,7 @@
 #include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
 #include "../Core/InstanceRegistry.mqh"
+#include "../Core/ActiveProfileRegistry.mqh"
 
 class CFusionPanel : public CAppDialog
   {
@@ -175,6 +176,20 @@ private:
             return false;
         }
       return true;
+     }
+
+   void                       ValidateProtectionStyleOnly(const SEASettings &baseSettings)
+     {
+      SEASettings styleSettings = baseSettings;
+      string ignoredError = "";
+      ValidateProtectionSettings(styleSettings, false, ignoredError);
+     }
+
+   void                       ValidateStrategyPanelsStyleOnly(const SEASettings &baseSettings)
+     {
+      SEASettings styleSettings = baseSettings;
+      string ignoredError = "";
+      ValidateStrategyPanels(styleSettings, false, ignoredError);
      }
 
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
@@ -526,48 +541,137 @@ private:
       return true;
      }
 
+   bool                       HasLocalPositionLock(const SUIPanelSnapshot &snapshot) const
+     {
+      return snapshot.hasPosition;
+     }
+
+   bool                       HasPeerProfileLock(const SUIPanelSnapshot &snapshot) const
+     {
+      return (snapshot.startBlockedReason != "" || snapshot.activeProfileBlockedReason != "");
+     }
+
+   bool                       RuntimeEditable(const SUIPanelSnapshot &snapshot) const
+     {
+      return (!snapshot.started && !HasLocalPositionLock(snapshot) && !snapshot.runtimeBlocked);
+     }
+
+   bool                       RuntimeEditable(void) const
+     {
+      return RuntimeEditable(m_snapshot);
+     }
+
+   bool                       ActiveProfileEditable(const SUIPanelSnapshot &snapshot) const
+     {
+      return (RuntimeEditable(snapshot) && !HasPeerProfileLock(snapshot));
+     }
+
+   void                       ResetAccessState(SUIAccessState &access) const
+     {
+      access.hasLocalPositionLock = false;
+      access.hasPeerProfileLock = false;
+      access.profileEditMode = false;
+      access.hasPendingChanges = false;
+      access.configInputsValid = false;
+      access.runtimeEditable = false;
+      access.activeProfileEditable = false;
+      access.profileLoadAllowed = false;
+      access.profileAdminAllowed = false;
+      access.canPause = false;
+      access.canStart = false;
+      access.canSave = false;
+      access.canCancel = false;
+     }
+
+   SUIAccessState             BuildAccessState(const SUIPanelSnapshot &snapshot,
+                                                const bool profileEditMode,
+                                                const bool hasPendingChanges,
+                                                const bool configInputsValid) const
+     {
+      SUIAccessState access;
+      ResetAccessState(access);
+
+      access.hasLocalPositionLock = HasLocalPositionLock(snapshot);
+      access.hasPeerProfileLock = HasPeerProfileLock(snapshot);
+      access.profileEditMode = profileEditMode;
+      access.hasPendingChanges = hasPendingChanges;
+      access.configInputsValid = configInputsValid;
+      access.runtimeEditable = RuntimeEditable(snapshot);
+      access.activeProfileEditable = access.runtimeEditable && !access.hasPeerProfileLock;
+      access.canPause = (snapshot.started && !access.hasLocalPositionLock);
+      access.canStart = (!profileEditMode && access.activeProfileEditable && configInputsValid && !hasPendingChanges);
+      access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid && hasPendingChanges);
+      access.canCancel = (!profileEditMode && access.runtimeEditable && hasPendingChanges);
+
+      if(!profileEditMode && !snapshot.runtimeBlocked && !snapshot.started)
+        {
+         if(access.hasPeerProfileLock)
+            access.profileLoadAllowed = true;
+         else if(!access.hasLocalPositionLock)
+            access.profileLoadAllowed = !hasPendingChanges;
+        }
+
+      access.profileAdminAllowed = (!profileEditMode && access.activeProfileEditable && !hasPendingChanges);
+      return access;
+     }
+
+   SUIAccessState             CurrentAccessState(void)
+     {
+      return BuildAccessState(m_snapshot, ProfileEditMode(), HasPendingChanges(), m_configInputsValid);
+     }
+
+   bool                       ActiveProfileEditable(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return access.activeProfileEditable;
+     }
+
+   bool                       ProfileLoadAllowed(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return access.profileLoadAllowed;
+     }
+
+   bool                       ProfileAdminAllowed(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return access.profileAdminAllowed;
+     }
+
    bool                       CanEditSettings(void)
      {
-      return (!m_snapshot.started && !m_snapshot.hasPosition && !m_snapshot.runtimeBlocked);
+      SUIAccessState access = CurrentAccessState();
+      return access.runtimeEditable;
      }
 
    bool                       CanEditActiveProfile(void)
      {
-      return (CanEditSettings() && m_snapshot.startBlockedReason == "");
+      SUIAccessState access = CurrentAccessState();
+      return access.activeProfileEditable;
      }
 
    bool                       CanPause(void)
      {
-      return (m_snapshot.started && !m_snapshot.hasPosition);
+      SUIAccessState access = CurrentAccessState();
+      return access.canPause;
      }
 
    bool                       CanStart(void)
      {
-      return (!ProfileEditMode() && !m_snapshot.runtimeBlocked &&
-              !m_snapshot.started && !m_snapshot.hasPosition &&
-              m_snapshot.startBlockedReason == "" &&
-              m_configInputsValid && !HasPendingChanges());
+      SUIAccessState access = CurrentAccessState();
+      return access.canStart;
      }
 
    bool                       CanSave(void)
      {
-      return (!ProfileEditMode() && CanEditActiveProfile() && m_configInputsValid && HasPendingChanges());
+      SUIAccessState access = CurrentAccessState();
+      return access.canSave;
      }
 
-   bool                       CanLoad(void)
+   bool                       CanCancel(void)
      {
-      if(ProfileEditMode() || m_snapshot.runtimeBlocked || m_snapshot.started)
-         return false;
-      if(m_snapshot.startBlockedReason != "")
-         return true;
-      if(m_snapshot.hasPosition)
-         return false;
-      return !HasPendingChanges();
-     }
-
-   bool                       CanAdminProfiles(void)
-     {
-      return (!ProfileEditMode() && CanEditActiveProfile() && !HasPendingChanges());
+      SUIAccessState access = CurrentAccessState();
+      return access.canCancel;
      }
 
    bool                       ParsedDraftMagicNumber(int &magicNumber)
@@ -798,6 +902,71 @@ private:
       return false;
      }
 
+   void                       ApplyConfigStatus(const bool configInputsValid,
+                                                const bool magicValid,
+                                                const bool magicUnique,
+                                                const string magicConflictProfile,
+                                                const string protectionError,
+                                                const string strategyError,
+                                                const bool dirty,
+                                                string &outStatus)
+     {
+      if(m_snapshot.runtimeBlocked)
+        {
+         outStatus = m_snapshot.runtimeBlockReason;
+         m_cfgStatus.Color(FUSION_CLR_BAD);
+        }
+      else if(m_snapshot.hasPosition)
+        {
+         outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(m_snapshot.started)
+        {
+         outStatus = "EA rodando: pause antes de editar configuracoes.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(!configInputsValid)
+        {
+         if(magicValid && !magicUnique)
+            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+         else if(protectionError != "")
+            outStatus = protectionError;
+         else if(strategyError != "")
+            outStatus = strategyError;
+         else
+            outStatus = "Corrija os campos em rosa antes de salvar.";
+         m_cfgStatus.Color(FUSION_CLR_BAD);
+        }
+      else if(m_snapshot.startBlockedReason != "")
+        {
+         outStatus = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(m_snapshot.activeProfileBlockedReason != "")
+        {
+         outStatus = "Perfil carregado em outra instancia. Carregue outro perfil antes de salvar.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else if(dirty)
+        {
+         outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
+         m_cfgStatus.Color(FUSION_CLR_GOOD);
+        }
+      else if(m_snapshot.started)
+        {
+         outStatus = "EA em execucao com configuracao salva.";
+         m_cfgStatus.Color(FUSION_CLR_WARN);
+        }
+      else
+        {
+         outStatus = "Configuracao salva e pronta para iniciar.";
+         m_cfgStatus.Color(FUSION_CLR_MUTED);
+        }
+
+      m_cfgStatus.Text(outStatus);
+     }
+
    bool                       BuildPendingSettings(SEASettings &outSettings,string &outProfileName,string &outStatus,const string targetProfileName="")
      {
       outSettings = m_draftSettings;
@@ -867,20 +1036,12 @@ private:
          if(editable)
             protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
          else
-           {
-            SEASettings ignoredProtection = outSettings;
-            string ignoredProtectionError = "";
-            ValidateProtectionSettings(ignoredProtection, false, ignoredProtectionError);
-           }
+            ValidateProtectionStyleOnly(outSettings);
         }
       if(editable)
          strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       else
-        {
-         SEASettings ignoredStrategy = outSettings;
-         string ignoredStrategyError = "";
-         ValidateStrategyPanels(ignoredStrategy, false, ignoredStrategyError);
-        }
+         ValidateStrategyPanelsStyleOnly(outSettings);
 
       SyncHeaderProfile(profileValid ? outProfileName : "");
       if(m_configRiskCreated)
@@ -897,55 +1058,14 @@ private:
         }
 
       bool dirty = HasPendingChanges();
-      if(m_snapshot.runtimeBlocked)
-        {
-         outStatus = m_snapshot.runtimeBlockReason;
-         m_cfgStatus.Color(FUSION_CLR_BAD);
-        }
-      else if(m_snapshot.hasPosition)
-        {
-         outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(m_snapshot.started)
-        {
-         outStatus = "EA rodando: pause antes de editar configuracoes.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(!m_configInputsValid)
-        {
-         if(magicValid && !magicUnique)
-            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
-         else if(protectionError != "")
-            outStatus = protectionError;
-         else if(strategyError != "")
-            outStatus = strategyError;
-         else
-            outStatus = "Corrija os campos em rosa antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_BAD);
-        }
-      else if(m_snapshot.startBlockedReason != "")
-        {
-         outStatus = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(dirty)
-        {
-         outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
-         m_cfgStatus.Color(FUSION_CLR_GOOD);
-        }
-      else if(m_snapshot.started)
-        {
-         outStatus = "EA em execucao com configuracao salva.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else
-        {
-         outStatus = "Configuracao salva e pronta para iniciar.";
-         m_cfgStatus.Color(FUSION_CLR_MUTED);
-        }
-
-      m_cfgStatus.Text(outStatus);
+      ApplyConfigStatus(m_configInputsValid,
+                        magicValid,
+                        magicUnique,
+                        magicConflictProfile,
+                        protectionError,
+                        strategyError,
+                        dirty,
+                        outStatus);
       return m_configInputsValid;
      }
 
@@ -1263,7 +1383,7 @@ private:
       if(objectName == m_btnCancel.Name())
         {
          ReleaseButton(m_btnCancel);
-         if(!ProfileEditMode() && CanEditSettings() && HasPendingChanges())
+         if(CanCancel())
            {
             RestoreCommittedDraftToControls();
             RefreshConfigValidation();
@@ -1402,16 +1522,16 @@ private:
         {
          ReleaseButton(m_profileLoadBtn);
          string selectedProfile = SelectedProfileName();
-         string selectedPeerReason = "";
-         if(SelectedProfileHasLivePeer(selectedPeerReason))
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canLoad)
            {
-            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else
+               UpdateProfileListView();
             return true;
            }
-         if(!ProfileEditMode() && CanLoad() && selectedProfile != "")
-            QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
-         else
-            UpdateProfileListView();
+         QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
          return true;
         }
 
@@ -1437,7 +1557,7 @@ private:
             string ignoredProfile = "";
             string status = "";
             bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status, newProfileName);
-            if(CanEditActiveProfile() && valid && newProfileName != "")
+            if(ActiveProfileEditable() && valid && newProfileName != "")
               {
                ResetCommand(m_pendingCommand);
                m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
@@ -1464,30 +1584,28 @@ private:
       if(objectName == m_profileDuplicateBtn.Name())
         {
          ReleaseButton(m_profileDuplicateBtn);
-         string selectedPeerReason = "";
-         if(SelectedProfileHasLivePeer(selectedPeerReason))
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canDuplicate)
            {
-            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else
+               UpdateProfileListView();
             return true;
            }
-         if(CanStartDuplicateProfile())
+         string selectedProfile = SelectedProfileName();
+         SEASettings sourceSettings;
+         if(m_profileStore.LoadProfile(selectedProfile, sourceSettings))
            {
-            string selectedProfile = SelectedProfileName();
-            SEASettings sourceSettings;
-            if(m_profileStore.LoadProfile(selectedProfile, sourceSettings))
-              {
-               m_draftSettings = sourceSettings;
-               SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
-               SyncDraftSettingsToControls();
-               RefreshConfigValidation();
-               ApplyVisibility();
-               SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
-              }
-            else
-               SetProfileStatus("Nao foi possivel ler o perfil selecionado.", FUSION_CLR_BAD, true);
+            m_draftSettings = sourceSettings;
+            SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
+            SyncDraftSettingsToControls();
+            RefreshConfigValidation();
+            ApplyVisibility();
+            SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
            }
          else
-            UpdateProfileListView();
+            SetProfileStatus("Nao foi possivel ler o perfil selecionado.", FUSION_CLR_BAD, true);
          return true;
         }
 
@@ -1505,30 +1623,24 @@ private:
         {
          ReleaseButton(m_profileDeleteBtn);
          string selectedProfile = SelectedProfileName();
-         string selectedPeerReason = "";
-         if(SelectedProfileHasLivePeer(selectedPeerReason))
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canDelete)
            {
-            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
-            return true;
-           }
-         if(IsDefaultProfileName(selectedProfile))
-           {
-            SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
-            return true;
-           }
-         if(!ProfileEditMode() && CanAdminProfiles() && selectedProfile != "" &&
-            m_profileStore.SanitizeProfileName(selectedProfile) != m_profileStore.SanitizeProfileName(m_committedProfileName))
-           {
-            if(m_profileStore.DeleteProfile(selectedProfile))
-              {
-               RefreshProfileList(false);
-               SetProfileStatus("Perfil excluido: " + selectedProfile + ".", FUSION_CLR_GOOD, true);
-              }
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else if(profileActions.selectedIsDefault)
+               SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
             else
-               SetProfileStatus("Nao foi possivel excluir o perfil.", FUSION_CLR_BAD, true);
+               UpdateProfileListView();
+            return true;
+           }
+         if(m_profileStore.DeleteProfile(selectedProfile))
+           {
+            RefreshProfileList(false);
+            SetProfileStatus("Perfil excluido: " + selectedProfile + ".", FUSION_CLR_GOOD, true);
            }
          else
-            UpdateProfileListView();
+            SetProfileStatus("Nao foi possivel excluir o perfil.", FUSION_CLR_BAD, true);
          return true;
         }
 
@@ -1693,6 +1805,7 @@ public:
       m_snapshot.runtimeBlocked = false;
       m_snapshot.runtimeBlockReason = "";
       m_snapshot.startBlockedReason = "";
+      m_snapshot.activeProfileBlockedReason = "";
       m_snapshot.runtimeNotice = "";
       m_snapshot.dailyTradeCount = 0;
       m_snapshot.dailyClosedProfit = 0.0;
@@ -1832,14 +1945,18 @@ public:
       if(!m_created || m_minimized)
          return;
 
-      bool wasEditBlocked = !CanEditActiveProfile();
-      bool nowCanEditActiveProfile = (!snapshot.started && !snapshot.hasPosition && !snapshot.runtimeBlocked &&
-                                      snapshot.startBlockedReason == "");
+      bool wasEditBlocked = !ActiveProfileEditable();
+      bool nowCanEditActiveProfile = ActiveProfileEditable(snapshot);
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
+      bool permissionStateChanged = runtimeStateChanged ||
+                                    snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
+                                    snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
+                                    snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason;
       bool editBlockExited = (wasEditBlocked && nowCanEditActiveProfile && m_hasCommittedSettings);
       bool redrawNeeded = runtimeStateChanged ||
                            snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                            snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
+                           snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
                            snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
                            snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
                            MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
@@ -1850,7 +1967,7 @@ public:
       if(editBlockExited)
          RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
-      UpdateActiveTabContent(runtimeStateChanged || editBlockExited);
+      UpdateActiveTabContent(permissionStateChanged || editBlockExited);
       if(redrawNeeded)
          ChartRedraw();
      }

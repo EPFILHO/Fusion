@@ -139,6 +139,12 @@ public:
          noticeText = snapshot.startBlockedReason;
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.activeProfileBlockedReason != "")
+        {
+         noticeTitle = "PERFIL BLOQUEADO";
+         noticeText = snapshot.activeProfileBlockedReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.runtimeNotice != "")
         {
          noticeTitle = snapshot.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";

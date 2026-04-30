@@ -53,6 +53,7 @@
 
    void                       UpdateHeaderButtons(void)
      {
+      SUIAccessState access = CurrentAccessState();
       if(m_snapshot.runtimeBlocked)
         {
          m_btnStart.Text("BLOQUEADO");
@@ -63,7 +64,7 @@
       if(m_snapshot.started)
         {
          m_btnStart.Text(m_snapshot.hasPosition ? "OPERANDO" : "PAUSAR");
-         if(CanPause())
+         if(access.canPause)
             FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_WARN, true);
          else
             FusionApplyNeutralButtonStyle(m_btnStart);
@@ -71,7 +72,7 @@
         }
 
       m_btnStart.Text("INICIAR");
-      if(CanStart())
+      if(access.canStart)
          FusionApplyActionButtonStyle(m_btnStart, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnStart);
@@ -79,14 +80,15 @@
 
    void                       RefreshHeaderTheme(void)
      {
-      if(!CanEditSettings() || !HasPendingChanges())
+      SUIAccessState access = CurrentAccessState();
+      if(!access.runtimeEditable || !access.hasPendingChanges)
          FusionApplyNeutralButtonStyle(m_btnSave);
-      else if(CanSave())
+      else if(access.canSave)
          FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
       else
          FusionApplyBlockedButtonStyle(m_btnSave);
 
-      if(!ProfileEditMode() && CanEditSettings() && HasPendingChanges())
+      if(access.canCancel)
          FusionApplyActionButtonStyle(m_btnCancel, FUSION_CLR_WARN, true);
       else
          FusionApplyNeutralButtonStyle(m_btnCancel);

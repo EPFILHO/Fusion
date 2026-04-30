@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.050 - 2026-04-30
+- Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
+- Adicionado um access-state unico para as decisoes globais da GUI, usado pelo header, handlers e pela aba `PERFIS` para reduzir verdades paralelas.
+- A lista de `PERFIS` passou a usar um caminho unico para decidir se o perfil selecionado esta travado por outra instancia antes de habilitar `CARREGAR`, `DUPLICAR` ou `EXCLUIR`.
+- O core agora tambem recusa `LOAD_PROFILE` para perfil cujo magic ja esteja ativo em outro grafico, protegendo contra comandos obsoletos ou caminhos que escapem da GUI.
+- Adicionado um registry leve de perfil carregado para bloquear `CARREGAR`, `DUPLICAR`, `EXCLUIR`, `SALVAR` e `INICIAR` quando o mesmo perfil ja esta ativo/carregado em outro grafico, mantendo `CARREGAR` outro perfil como rota de saida.
+- Mudancas de lock causadas por outra instancia agora refrescam imediatamente a aba ativa, entao `PERFIS` atualiza `NOVO`, `CARREGAR`, `DUPLICAR` e `EXCLUIR` assim que outro EA inicia no mesmo perfil.
+- A validacao em modo somente leitura agora usa helpers explicitos de validacao visual, evitando que campos de `PROTECT` ou `STRATS` promovam estado visual para o rascunho.
+- O status visual da `CONFIG` foi separado de `BuildPendingSettings()`, iniciando a divisao entre validacao, pintura/status e mutacao do rascunho.
+- Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
+
 ## 1.049 - 2026-04-29
 - Iniciada a limpeza conservadora da GUI apos a estabilizacao dos `CComboBox`, mantendo intacto o modelo de hit-test que corrigiu os travamentos.
 - Removidos helper e constantes visuais de subabas que ficaram sem uso depois da padronizacao de estilos.

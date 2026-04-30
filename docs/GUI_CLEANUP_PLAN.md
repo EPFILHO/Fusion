@@ -31,6 +31,20 @@ This plan keeps the ComboBox stabilization work protected while we remove small 
 
 Goal: make the GUI simpler, not simplistic. Reduce duplicated permission checks, validation side effects, and lifecycle coupling without changing behavior.
 
+Progress in `fusion-1.050-gui-lifecycle`:
+
+- Done: extracted named helpers for runtime editability, active-profile editability, profile loading, and profile administration.
+- Done: introduced a single access-state object for global GUI permissions and shared it with header/profile rendering.
+- Done: centralized selected-profile runtime locks behind one helper path used by `CARREGAR`, `DUPLICAR`, and `EXCLUIR`.
+- Done: peer-lock/runtime-block transitions now refresh the active tab so profile buttons update as soon as another instance starts on the same magic/profile.
+- Done: replaced temporary read-only validation copies with explicit style-only validation helpers.
+- Done: added a core-side guard so `UI_COMMAND_LOAD_PROFILE` refuses a destination profile whose magic is already active in another chart, even if a stale GUI command slips through.
+- Done: added a separate active-profile registry for "profile loaded in another chart", keeping it distinct from the running-instance registry and feeding the same access-state decisions.
+- Done: `CARREGAR`, `DUPLICAR`, `EXCLUIR`, `SALVAR`, and `INICIAR` now respect the loaded-profile peer lock while still allowing profile-load recovery to a different free profile.
+- Done: extracted `CONFIG` status/color application from `BuildPendingSettings()` as the first split between validation, visual status, and draft mutation.
+- Next: continue splitting `BuildPendingSettings()` into smaller steps for control reads, validation, visual styling, and draft mutation.
+- Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
+
 Recommended order:
 
 - Extract the editability model into clearly named helpers: runtime editable, active-profile editable, profile-load allowed, profile-admin allowed.
@@ -58,5 +72,6 @@ Manual smoke tests after each cleanup step:
 - Changing MA `Saida` while stopped enables `SALVAR` and persists in the profile.
 - Changing ComboBoxes while running, then stopping from `CONFIG`, does not enable `SALVAR`.
 - Two EAs on the same profile: blocked instance can load another profile, but cannot edit/save/new/duplicate/delete the active conflicting profile.
+- Two stopped EAs: if one already has a profile loaded/active, another chart cannot load, duplicate, delete, save over, or start with that same profile; it should load a different free profile instead.
 - After loading a free profile in the passive EA, selecting a profile that is still running elsewhere keeps `CARREGAR`, `DUPLICAR`, and `EXCLUIR` disabled.
 - `CONFIG > PROTECT` edit fields still enable `SALVAR` when editable.

@@ -289,6 +289,7 @@ struct SUIPanelSnapshot
    bool   runtimeBlocked;
    string runtimeBlockReason;
    string startBlockedReason;
+   string activeProfileBlockedReason;
    string runtimeNotice;
    int    dailyTradeCount;
    double dailyClosedProfit;

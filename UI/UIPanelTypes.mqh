@@ -62,4 +62,34 @@ enum ENUM_FUSION_PROFILE_MODE
    FUSION_PROFILE_DUPLICATE
   };
 
+struct SUIAccessState
+  {
+   bool hasLocalPositionLock;
+   bool hasPeerProfileLock;
+   bool profileEditMode;
+   bool hasPendingChanges;
+   bool configInputsValid;
+   bool runtimeEditable;
+   bool activeProfileEditable;
+   bool profileLoadAllowed;
+   bool profileAdminAllowed;
+   bool canPause;
+   bool canStart;
+   bool canSave;
+   bool canCancel;
+  };
+
+struct SUIProfileActionState
+  {
+   bool   selected;
+   bool   selectedIsActive;
+   bool   selectedIsDefault;
+   bool   selectedRuntimeLocked;
+   bool   selectedActiveProfileLocked;
+   bool   canLoad;
+   bool   canDuplicate;
+   bool   canDelete;
+   string blockedReason;
+  };
+
 #endif

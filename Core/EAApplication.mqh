@@ -4,6 +4,7 @@
 #include "Inputs.mqh"
 #include "Logger.mqh"
 #include "InstanceRegistry.mqh"
+#include "ActiveProfileRegistry.mqh"
 #include "../Signals/SignalManager.mqh"
 #include "../Signals/Resolvers/PriorityConflictResolver.mqh"
 #include "../Signals/Resolvers/CancelConflictResolver.mqh"
@@ -38,6 +39,7 @@ private:
    CExecutionService       m_executionService;
    CSettingsStore          m_settingsStore;
    CInstanceRegistry       m_instanceRegistry;
+   CActiveProfileRegistry  m_activeProfileRegistry;
    CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
@@ -48,6 +50,7 @@ private:
    bool                    m_runtimeBlocked;
    string                  m_runtimeBlockReason;
    string                  m_startBlockedReason;
+   string                  m_activeProfileBlockedReason;
    string                  m_runtimeNotice;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
@@ -185,6 +188,7 @@ private:
       snapshot.runtimeBlocked   = m_runtimeBlocked;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
+      snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
@@ -310,6 +314,83 @@ private:
       string reason = "";
       if(m_instanceRegistry.HasActiveConflict(m_settings.magicNumber, ChartID(), reason))
          m_startBlockedReason = reason + " Carregue outro perfil antes de iniciar.";
+     }
+
+   void                    RefreshActiveProfileRegistration(void)
+     {
+      if(m_settings.isTester || m_activeProfileName == "")
+        {
+         m_activeProfileRegistry.Unregister();
+         return;
+        }
+
+      m_activeProfileRegistry.Register(m_activeProfileName, ChartID());
+     }
+
+   void                    RefreshActiveProfileBlockReason(void)
+     {
+      m_activeProfileBlockedReason = "";
+      if(m_settings.isTester || m_activeProfileName == "")
+         return;
+
+      if(m_started || m_positionState.hasPosition)
+         return;
+
+      string reason = "";
+      if(m_activeProfileRegistry.HasActiveProfilePeer(m_activeProfileName, ChartID(), reason))
+         m_activeProfileBlockedReason = reason + " Carregue outro perfil salvo para continuar.";
+     }
+
+   void                    RefreshProfileBlockReasons(void)
+     {
+      RefreshActiveProfileRegistration();
+      RefreshStartBlockReason();
+      RefreshActiveProfileBlockReason();
+     }
+
+   bool                    StartBlockedByProfilePeer(void) const
+     {
+      return (m_startBlockedReason != "" || m_activeProfileBlockedReason != "");
+     }
+
+   bool                    ProfileBlockedByActiveProfilePeer(const string profileName,string &reason)
+     {
+      reason = "";
+      if(m_settings.isTester || profileName == "")
+         return false;
+
+      return m_activeProfileRegistry.HasActiveProfilePeer(profileName, ChartID(), reason);
+     }
+
+   bool                    ProfileLoadBlockedByActiveProfile(const string profileName)
+     {
+      string reason = "";
+      if(!ProfileBlockedByActiveProfilePeer(profileName, reason))
+         return false;
+      m_logger.Error("PROFILE", "Perfil " + profileName + " nao carregado: " + reason);
+      return true;
+     }
+
+   bool                    ProfileSaveBlockedByActiveProfile(const string profileName)
+     {
+      string reason = "";
+      if(!ProfileBlockedByActiveProfilePeer(profileName, reason))
+         return false;
+      m_logger.Error("PROFILE", "Perfil " + profileName + " nao salvo: " + reason);
+      return true;
+     }
+
+   bool                    ProfileLoadBlockedByActiveInstance(const string profileName,const SEASettings &settings)
+     {
+      if(settings.isTester)
+         return false;
+
+      string reason = "";
+      if(!m_instanceRegistry.HasActiveConflict(settings.magicNumber, ChartID(), reason))
+         return false;
+
+      m_logger.Error("PROFILE", "Perfil " + profileName + " nao carregado: " + reason);
+      return true;
      }
 
    ENUM_TIMEFRAMES         OperationalFallbackTimeframe(void) const
@@ -496,7 +577,7 @@ private:
         {
          if(m_runtimeBlocked)
             return;
-         RefreshStartBlockReason();
+         RefreshProfileBlockReasons();
 
          if(m_started)
            {
@@ -507,7 +588,7 @@ private:
            }
          else
            {
-            if(m_startBlockedReason != "")
+            if(StartBlockedByProfilePeer())
               {
                if(ShouldShowPanel())
                   m_panel.Update(BuildPanelSnapshot());
@@ -517,7 +598,7 @@ private:
                return;
             m_started = true;
            }
-         RefreshStartBlockReason();
+         RefreshProfileBlockReasons();
          m_panel.Update(BuildPanelSnapshot());
          PersistChartState();
          return;
@@ -535,6 +616,9 @@ private:
          settingsToSave.isTester = m_settings.isTester;
          ResolveOperationalTimeframes(settingsToSave, OperationalFallbackTimeframe());
 
+         if(ProfileSaveBlockedByActiveProfile(profileName))
+            return;
+
          if(!CanPersistProfile(profileName, settingsToSave))
             return;
 
@@ -543,7 +627,7 @@ private:
 
          if(m_settingsStore.SaveProfile(profileName, m_settings))
             m_activeProfileName = profileName;
-         RefreshStartBlockReason();
+         RefreshProfileBlockReasons();
 
          if(ShouldShowPanel())
            {
@@ -566,10 +650,14 @@ private:
            {
             loadedSettings.isTester = m_settings.isTester;
             ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
+            if(ProfileLoadBlockedByActiveProfile(profileName))
+               return;
+            if(ProfileLoadBlockedByActiveInstance(profileName, loadedSettings))
+               return;
             if(!ApplySettings(loadedSettings, RELOAD_COLD))
                return;
             m_activeProfileName = profileName;
-            RefreshStartBlockReason();
+            RefreshProfileBlockReasons();
 
             if(ShouldShowPanel())
               {
@@ -600,6 +688,7 @@ private:
       m_runtimeBlocked      = false;
       m_runtimeBlockReason  = "";
       m_startBlockedReason  = "";
+      m_activeProfileBlockedReason = "";
       m_runtimeNotice       = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
@@ -620,6 +709,7 @@ private:
       m_runtimeBlocked = false;
       m_runtimeBlockReason = "";
       m_startBlockedReason = "";
+      m_activeProfileBlockedReason = "";
       m_runtimeNotice = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
@@ -688,7 +778,7 @@ private:
 
       if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
          ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " nao foi encontrado. O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
-      RefreshStartBlockReason();
+      RefreshProfileBlockReasons();
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
@@ -759,6 +849,7 @@ private:
       EventKillTimer();
       PersistChartState(reason);
       ReleaseRunningInstance();
+      m_activeProfileRegistry.Unregister();
       m_panel.Destroy(reason);
       m_signalManager.Shutdown();
      }
@@ -842,7 +933,7 @@ private:
       if((m_started || m_positionState.hasPosition) && !m_settings.isTester)
          m_instanceRegistry.Refresh();
 
-      RefreshStartBlockReason();
+      RefreshProfileBlockReasons();
 
       if(ShouldShowPanel())
          m_panel.Update(BuildPanelSnapshot());

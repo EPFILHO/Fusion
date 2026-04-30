@@ -179,16 +179,28 @@
       return !m_profileStore.FindProfileByMagicNumber(magicNumber, profileName, conflictProfile);
      }
 
-   bool                       SelectedProfileHasLivePeer(string &reason)
+   void                       ResetProfileActionState(SUIProfileActionState &state)
+     {
+      state.selected = false;
+      state.selectedIsActive = false;
+      state.selectedIsDefault = false;
+      state.selectedRuntimeLocked = false;
+      state.selectedActiveProfileLocked = false;
+      state.canLoad = false;
+      state.canDuplicate = false;
+      state.canDelete = false;
+      state.blockedReason = "";
+     }
+
+   bool                       ProfileRuntimeLocked(const string profileName,string &reason)
      {
       reason = "";
 
-      string selectedProfile = SelectedProfileName();
-      if(selectedProfile == "")
+      if(profileName == "")
          return false;
 
       SEASettings selectedSettings;
-      if(!m_profileStore.LoadProfile(selectedProfile, selectedSettings))
+      if(!m_profileStore.LoadProfile(profileName, selectedSettings))
         {
          reason = "Nao foi possivel ler o perfil selecionado. Atualize a lista.";
          return true;
@@ -198,14 +210,67 @@
       return registry.HasActiveConflict(selectedSettings.magicNumber, m_chartId, reason);
      }
 
-   bool                       CanStartNewProfile(void)
+   bool                       ProfileActiveLocked(const string profileName,string &reason)
      {
-      return (!ProfileEditMode() && CanEditActiveProfile());
+      reason = "";
+
+      if(profileName == "")
+         return false;
+
+      CActiveProfileRegistry registry;
+      return registry.HasActiveProfilePeer(profileName, m_chartId, reason);
      }
 
-   bool                       CanStartDuplicateProfile(void)
+   bool                       SelectedProfileRuntimeLocked(string &reason)
      {
-      return (CanAdminProfiles() && SelectedProfileName() != "");
+      return ProfileRuntimeLocked(SelectedProfileName(), reason);
+     }
+
+   SUIProfileActionState      BuildProfileActionState(const SUIAccessState &access)
+     {
+      SUIProfileActionState state;
+      ResetProfileActionState(state);
+
+      string selectedProfile = SelectedProfileName();
+      if(selectedProfile == "")
+         return state;
+
+      string selectedKey = m_profileStore.SanitizeProfileName(selectedProfile);
+      string activeKey = m_profileStore.SanitizeProfileName(m_committedProfileName);
+
+      state.selected = true;
+      state.selectedIsActive = (selectedKey == activeKey);
+      state.selectedIsDefault = IsDefaultProfileName(selectedProfile);
+      string runtimeReason = "";
+      string activeProfileReason = "";
+      state.selectedRuntimeLocked = ProfileRuntimeLocked(selectedProfile, runtimeReason);
+      state.selectedActiveProfileLocked = ProfileActiveLocked(selectedProfile, activeProfileReason);
+      if(state.selectedRuntimeLocked)
+         state.blockedReason = runtimeReason;
+      else if(state.selectedActiveProfileLocked)
+         state.blockedReason = activeProfileReason;
+
+      bool selectedLocked = (state.selectedRuntimeLocked || state.selectedActiveProfileLocked);
+      state.canLoad = (!selectedLocked && access.profileLoadAllowed);
+      state.canDuplicate = (!selectedLocked && access.profileAdminAllowed);
+      state.canDelete = (!selectedLocked &&
+                         !state.selectedIsActive &&
+                         !state.selectedIsDefault &&
+                         access.profileAdminAllowed);
+
+      return state;
+     }
+
+   SUIProfileActionState      CurrentProfileActionState(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return BuildProfileActionState(access);
+     }
+
+   bool                       CanStartNewProfile(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return (!access.profileEditMode && access.activeProfileEditable);
      }
 
    void                       SetProfileStatus(const string text,const color clr,const bool persist=false)
@@ -311,12 +376,15 @@
 
       FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
 
+      SUIAccessState access = CurrentAccessState();
+      SUIProfileActionState profileActions = BuildProfileActionState(access);
       bool validName = HasValidProfileDraftName();
-      bool selected = (SelectedProfileName() != "");
-      bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
-      bool selectedIsDefault = IsDefaultProfileName(SelectedProfileName());
-      string selectedPeerReason = "";
-      bool selectedHasLivePeer = SelectedProfileHasLivePeer(selectedPeerReason);
+      bool selected = profileActions.selected;
+      bool selectedIsActive = profileActions.selectedIsActive;
+      bool selectedIsDefault = profileActions.selectedIsDefault;
+      bool selectedRuntimeLocked = profileActions.selectedRuntimeLocked;
+      bool selectedActiveProfileLocked = profileActions.selectedActiveProfileLocked;
+      string selectedPeerReason = profileActions.blockedReason;
       bool draftExists = (m_profilesEditCreated && validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
       bool duplicateMode = ProfileDuplicateMode();
@@ -330,34 +398,34 @@
         {
          m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
          m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
-         FusionApplyEditStyle(m_profileNewEdit, true, editMode && CanEditActiveProfile());
-         m_profileNewLbl.Color((editMode && CanEditActiveProfile()) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+         FusionApplyEditStyle(m_profileNewEdit, true, editMode && access.activeProfileEditable);
+         m_profileNewLbl.Color((editMode && access.activeProfileEditable) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
       }
 
-      if(CanStartNewProfile())
+      if(!access.profileEditMode && access.activeProfileEditable)
          FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileNewBtn);
 
-      if(CanLoad() && selected && !editMode && !selectedHasLivePeer)
+      if(profileActions.canLoad)
          FusionApplyActionButtonStyle(m_profileLoadBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileLoadBtn);
 
       if(m_profilesEditCreated)
         {
-         if(editMode && CanEditActiveProfile() && m_configInputsValid && validName && !draftExists && magicAvailableForDraft)
+         if(editMode && access.activeProfileEditable && access.configInputsValid && validName && !draftExists && magicAvailableForDraft)
             FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
          else
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
         }
 
-      if(CanStartDuplicateProfile() && !selectedHasLivePeer)
+      if(profileActions.canDuplicate)
          FusionApplyActionButtonStyle(m_profileDuplicateBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
 
-      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive && !selectedIsDefault && !selectedHasLivePeer)
+      if(profileActions.canDelete)
          FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
@@ -372,7 +440,9 @@
 
       if(m_snapshot.startBlockedReason != "")
          SetProfileStatus("Perfil em uso por outra instancia: carregue outro perfil salvo para continuar.", FUSION_CLR_WARN);
-      else if(!CanEditSettings())
+      else if(m_snapshot.activeProfileBlockedReason != "")
+         SetProfileStatus("Perfil ativo em outro grafico: carregue outro perfil salvo para continuar.", FUSION_CLR_WARN);
+      else if(!access.runtimeEditable)
          SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
       else if(editMode && !validName)
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
@@ -386,13 +456,13 @@
          SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
-      else if(HasPendingChanges())
+      else if(access.hasPendingChanges)
          SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
       else if(selected && selectedIsActive && selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil reservado: nao apague o perfil default.", FUSION_CLR_MUTED);
       else if(selected && selectedIsActive)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
-      else if(selected && selectedHasLivePeer)
+      else if(selected && (selectedRuntimeLocked || selectedActiveProfileLocked))
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". " + selectedPeerReason, FUSION_CLR_WARN);
       else if(selected && selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil reservado: nao apague o perfil default.", FUSION_CLR_WARN);
