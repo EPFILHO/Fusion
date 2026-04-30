@@ -179,6 +179,25 @@
       return !m_profileStore.FindProfileByMagicNumber(magicNumber, profileName, conflictProfile);
      }
 
+   bool                       SelectedProfileHasLivePeer(string &reason)
+     {
+      reason = "";
+
+      string selectedProfile = SelectedProfileName();
+      if(selectedProfile == "")
+         return false;
+
+      SEASettings selectedSettings;
+      if(!m_profileStore.LoadProfile(selectedProfile, selectedSettings))
+        {
+         reason = "Nao foi possivel ler o perfil selecionado. Atualize a lista.";
+         return true;
+        }
+
+      CInstanceRegistry registry;
+      return registry.HasActiveConflict(selectedSettings.magicNumber, m_chartId, reason);
+     }
+
    bool                       CanStartNewProfile(void)
      {
       return (!ProfileEditMode() && CanEditActiveProfile());
@@ -296,6 +315,8 @@
       bool selected = (SelectedProfileName() != "");
       bool selectedIsActive = (m_profileStore.SanitizeProfileName(SelectedProfileName()) == activeKey);
       bool selectedIsDefault = IsDefaultProfileName(SelectedProfileName());
+      string selectedPeerReason = "";
+      bool selectedHasLivePeer = SelectedProfileHasLivePeer(selectedPeerReason);
       bool draftExists = (m_profilesEditCreated && validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
       bool duplicateMode = ProfileDuplicateMode();
@@ -318,7 +339,7 @@
       else
          FusionApplyNeutralButtonStyle(m_profileNewBtn);
 
-      if(CanLoad() && selected && !editMode)
+      if(CanLoad() && selected && !editMode && !selectedHasLivePeer)
          FusionApplyActionButtonStyle(m_profileLoadBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileLoadBtn);
@@ -331,12 +352,12 @@
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
         }
 
-      if(CanStartDuplicateProfile())
+      if(CanStartDuplicateProfile() && !selectedHasLivePeer)
          FusionApplyActionButtonStyle(m_profileDuplicateBtn, FUSION_CLR_ACTION_LOAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDuplicateBtn);
 
-      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive && !selectedIsDefault)
+      if(CanAdminProfiles() && selected && !editMode && !selectedIsActive && !selectedIsDefault && !selectedHasLivePeer)
          FusionApplyActionButtonStyle(m_profileDeleteBtn, FUSION_CLR_BAD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileDeleteBtn);
@@ -371,6 +392,8 @@
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil reservado: nao apague o perfil default.", FUSION_CLR_MUTED);
       else if(selected && selectedIsActive)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
+      else if(selected && selectedHasLivePeer)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". " + selectedPeerReason, FUSION_CLR_WARN);
       else if(selected && selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil reservado: nao apague o perfil default.", FUSION_CLR_WARN);
       else if(selected)

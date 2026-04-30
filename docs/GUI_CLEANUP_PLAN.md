@@ -1,7 +1,7 @@
 # Fusion GUI Cleanup Plan
 
 Baseline before this document: version 1.048, commit `b5549e5`, pushed to `origin/main`.
-Current stable candidate: version 1.049, pending commit/push after manual validation.
+Current stable line: version 1.049.
 
 This plan keeps the ComboBox stabilization work protected while we remove small GUI scars left by the investigation. If the session context is compacted, resume from this file before making further GUI changes.
 
@@ -24,6 +24,7 @@ This plan keeps the ComboBox stabilization work protected while we remove small 
 - Keep ComboBox wrappers free of `Enable()` and `Disable()` calls.
 - Keep active-profile editing blocked when another Fusion instance is using the same profile/magic.
 - In profile conflict mode, allow only profile navigation/loading as the escape path.
+- Treat profiles selected in the list as runtime-locked when their magic is used by another live instance; do not allow loading, duplicating, or deleting them from a passive panel.
 - Confirm `STRATS > MA` ComboBoxes do not freeze after navigation through other tabs/subtabs.
 
 ## 1.050 - Cleanup Intent
@@ -34,7 +35,9 @@ Recommended order:
 
 - Extract the editability model into clearly named helpers: runtime editable, active-profile editable, profile-load allowed, profile-admin allowed.
 - Make profile permissions explicit and non-overlapping: loading a profile is a recovery action, while editing/administering the active profile is a mutation.
+- Centralize selected-profile runtime locks so row selection, load, duplicate, and delete cannot drift into separate rules.
 - Separate "has position locally" from "sees a same-magic position owned by another active instance"; the latter must allow profile-load recovery without allowing edits.
+- Treat the profile file on disk as canonical when a profile name is reused after manual deletion/recreation; reload from disk before resuming editable state instead of trusting stale in-memory settings.
 - Split validation from mutation where practical, especially around `BuildPendingSettings()`, protection validation, and strategy validation.
 - Replace temporary validation copies such as `ignoredProtection` / `ignoredStrategy` with an explicit "style-only validation" path if it can be done with a small diff.
 - Audit `RefreshConfigValidation()`, `SyncStrategyPanels()`, `SyncFilterPanels()`, and `ApplyVisibility()` call sites, but remove only proven duplicates.
@@ -55,4 +58,5 @@ Manual smoke tests after each cleanup step:
 - Changing MA `Saida` while stopped enables `SALVAR` and persists in the profile.
 - Changing ComboBoxes while running, then stopping from `CONFIG`, does not enable `SALVAR`.
 - Two EAs on the same profile: blocked instance can load another profile, but cannot edit/save/new/duplicate/delete the active conflicting profile.
+- After loading a free profile in the passive EA, selecting a profile that is still running elsewhere keeps `CARREGAR`, `DUPLICAR`, and `EXCLUIR` disabled.
 - `CONFIG > PROTECT` edit fields still enable `SALVAR` when editable.

@@ -16,6 +16,7 @@
 #include "StrategyTimeframePanel.mqh"
 #include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
+#include "../Core/InstanceRegistry.mqh"
 
 class CFusionPanel : public CAppDialog
   {
@@ -1401,6 +1402,12 @@ private:
         {
          ReleaseButton(m_profileLoadBtn);
          string selectedProfile = SelectedProfileName();
+         string selectedPeerReason = "";
+         if(SelectedProfileHasLivePeer(selectedPeerReason))
+           {
+            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
+            return true;
+           }
          if(!ProfileEditMode() && CanLoad() && selectedProfile != "")
             QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
          else
@@ -1457,6 +1464,12 @@ private:
       if(objectName == m_profileDuplicateBtn.Name())
         {
          ReleaseButton(m_profileDuplicateBtn);
+         string selectedPeerReason = "";
+         if(SelectedProfileHasLivePeer(selectedPeerReason))
+           {
+            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
+            return true;
+           }
          if(CanStartDuplicateProfile())
            {
             string selectedProfile = SelectedProfileName();
@@ -1492,6 +1505,12 @@ private:
         {
          ReleaseButton(m_profileDeleteBtn);
          string selectedProfile = SelectedProfileName();
+         string selectedPeerReason = "";
+         if(SelectedProfileHasLivePeer(selectedPeerReason))
+           {
+            SetProfileStatus(selectedPeerReason, FUSION_CLR_WARN, true);
+            return true;
+           }
          if(IsDefaultProfileName(selectedProfile))
            {
             SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
