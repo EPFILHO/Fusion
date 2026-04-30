@@ -6,6 +6,8 @@
 - A validacao da subaba `STRATS > MA` deixou de promover valores visuais de controles para o rascunho quando a GUI esta em modo somente leitura, evitando alteracoes pendentes apos pausar/parar o EA.
 - Ao sair de modo somente leitura para editavel, a GUI agora restaura o rascunho a partir da configuracao salva antes de validar a `CONFIG`, descartando estados visuais produzidos durante a execucao.
 - Perfis bloqueados por outra instancia agora deixam apenas `PERFIS > CARREGAR` como caminho de saida; edicao, criacao, duplicacao e exclusao do perfil ativo ficam bloqueadas ate carregar outro perfil ou liberar o conflito.
+- `PERFIS > CARREGAR` permanece habilitado como escape quando o perfil ativo esta bloqueado por outra instancia, mesmo se houver estado visual pendente descartavel.
+- O conflito de perfil continua sendo detectado mesmo quando a instancia passiva enxerga uma posicao do mesmo magic, permitindo carregar outro perfil sem liberar edicao.
 - Adicionado `docs/GUI_CLEANUP_PLAN.md` com guardrails, smoke tests e roteiro da `1.050` para continuar a limpeza sem reabrir a regressao.
 
 ## 1.048 - 2026-04-29

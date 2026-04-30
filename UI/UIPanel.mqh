@@ -555,7 +555,13 @@ private:
 
    bool                       CanLoad(void)
      {
-      return (!ProfileEditMode() && CanEditSettings() && !HasPendingChanges());
+      if(ProfileEditMode() || m_snapshot.runtimeBlocked || m_snapshot.started)
+         return false;
+      if(m_snapshot.startBlockedReason != "")
+         return true;
+      if(m_snapshot.hasPosition)
+         return false;
+      return !HasPendingChanges();
      }
 
    bool                       CanAdminProfiles(void)

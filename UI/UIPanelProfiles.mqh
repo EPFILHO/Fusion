@@ -349,10 +349,10 @@
             FusionApplyNeutralButtonStyle(m_profileCancelBtn);
         }
 
-      if(!CanEditSettings())
-         SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
-      else if(m_snapshot.startBlockedReason != "")
+      if(m_snapshot.startBlockedReason != "")
          SetProfileStatus("Perfil em uso por outra instancia: carregue outro perfil salvo para continuar.", FUSION_CLR_WARN);
+      else if(!CanEditSettings())
+         SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
       else if(editMode && !validName)
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
       else if(editMode && draftExists)

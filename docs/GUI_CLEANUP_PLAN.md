@@ -33,6 +33,8 @@ Goal: make the GUI simpler, not simplistic. Reduce duplicated permission checks,
 Recommended order:
 
 - Extract the editability model into clearly named helpers: runtime editable, active-profile editable, profile-load allowed, profile-admin allowed.
+- Make profile permissions explicit and non-overlapping: loading a profile is a recovery action, while editing/administering the active profile is a mutation.
+- Separate "has position locally" from "sees a same-magic position owned by another active instance"; the latter must allow profile-load recovery without allowing edits.
 - Split validation from mutation where practical, especially around `BuildPendingSettings()`, protection validation, and strategy validation.
 - Replace temporary validation copies such as `ignoredProtection` / `ignoredStrategy` with an explicit "style-only validation" path if it can be done with a small diff.
 - Audit `RefreshConfigValidation()`, `SyncStrategyPanels()`, `SyncFilterPanels()`, and `ApplyVisibility()` call sites, but remove only proven duplicates.

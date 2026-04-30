@@ -304,7 +304,7 @@ private:
       if(m_settings.isTester)
          return;
 
-      if(m_started || m_positionState.hasPosition)
+      if(m_started)
          return;
 
       string reason = "";
