@@ -195,6 +195,19 @@ private:
       m_hasPendingCommand = true;
      }
 
+   void                       QueueSaveProfileCommand(const string profileName,
+                                                      const SEASettings &settings,
+                                                      const ENUM_RELOAD_SCOPE reloadScope)
+     {
+      ResetCommand(m_pendingCommand);
+      m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
+      m_pendingCommand.text = profileName;
+      m_pendingCommand.hasSettings = true;
+      m_pendingCommand.settings = settings;
+      m_pendingCommand.reloadScope = reloadScope;
+      m_hasPendingCommand = true;
+     }
+
    void                       ReleaseButton(CButton &button)
      {
       button.Pressed(false);
@@ -1189,52 +1202,13 @@ private:
       return true;
      }
 
+#include "UIPanelTopActions.mqh"
+
    bool                       HandlePanelClick(const string objectName)
      {
-      if(objectName == m_btnStart.Name())
-        {
-         ReleaseButton(m_btnStart);
-         if(CanPause())
-            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         else if(CanStart())
-            QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-         RefreshTheme();
+      if(HandleTopActionClick(objectName))
          return true;
-        }
-      if(objectName == m_btnSave.Name())
-        {
-         ReleaseButton(m_btnSave);
-         SEASettings pendingSettings;
-         string profileName = "";
-         string status = "";
-         bool valid = BuildPendingSettings(pendingSettings, profileName, status);
-         if(valid && CanSave())
-           {
-            ResetCommand(m_pendingCommand);
-            m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
-            m_pendingCommand.text = profileName;
-            m_pendingCommand.hasSettings = true;
-            m_pendingCommand.settings = pendingSettings;
-            m_pendingCommand.reloadScope = RELOAD_COLD;
-            m_hasPendingCommand = true;
-           }
-         RefreshTheme();
-         return true;
-        }
-      if(objectName == m_btnCancel.Name())
-        {
-         ReleaseButton(m_btnCancel);
-         if(CanCancel())
-           {
-            RestoreCommittedDraftToControls();
-            RefreshConfigValidation();
-            if(m_profilesTabCreated && m_activeTab == FUSION_TAB_PROFILES)
-               SetProfileStatus("Alteracoes descartadas. Perfil salvo restaurado.", FUSION_CLR_GOOD, true);
-           }
-         else
-            RefreshTheme();
-         return true;
-        }
+
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
@@ -1398,13 +1372,7 @@ private:
             bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status, newProfileName);
             if(ActiveProfileEditable() && valid && newProfileName != "")
               {
-               ResetCommand(m_pendingCommand);
-               m_pendingCommand.type = UI_COMMAND_SAVE_PROFILE;
-               m_pendingCommand.text = newProfileName;
-               m_pendingCommand.hasSettings = true;
-               m_pendingCommand.settings = pendingSettings;
-               m_pendingCommand.reloadScope = RELOAD_COLD;
-               m_hasPendingCommand = true;
+               QueueSaveProfileCommand(newProfileName, pendingSettings, RELOAD_COLD);
                SetProfileStatus("Solicitado salvamento do perfil " + newProfileName + ".", FUSION_CLR_GOOD, true);
               }
             else
