@@ -1324,7 +1324,7 @@ private:
            {
             SetProfileMode(FUSION_PROFILE_NEW);
             RefreshConfigValidation();
-            ApplyVisibility();
+            ApplyVisibility(false);
            }
          else
             UpdateProfileListView();
@@ -1408,7 +1408,7 @@ private:
             SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
             SyncDraftSettingsToControls();
             RefreshConfigValidation();
-            ApplyVisibility();
+            ApplyVisibility(false);
             SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
            }
          else
@@ -1422,7 +1422,7 @@ private:
          SetProfileMode(FUSION_PROFILE_BROWSE);
          RestoreCommittedDraftToControls();
          RefreshConfigValidation();
-         ApplyVisibility();
+         ApplyVisibility(false);
          return true;
         }
 

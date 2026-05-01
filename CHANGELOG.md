@@ -17,6 +17,7 @@
 - Tentativas de editar o perfil ativo em caminhos bloqueados de `STRATS`, `FILTERS` e `SYSTEM` agora passam por um helper unico antes de refrescar o tema.
 - As acoes globais `INICIAR`, `SALVAR` e `CANCELAR` foram movidas para um partial dedicado, e o enfileiramento de salvamento de perfil passou por um helper unico.
 - Ao restaurar o estado do grafico sem posicao aberta, o Fusion passa a recarregar o perfil ativo do arquivo salvo quando disponivel, evitando usar uma copia antiga do chart state como fonte principal.
+- Transicoes `PERFIS > NOVO`, `DUPLICAR` e `CANCELAR` agora reaplicam a visibilidade sem repetir o refresh de tema que a validacao ja executou.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
