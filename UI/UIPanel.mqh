@@ -112,59 +112,7 @@ private:
       m_hasPendingCommand = false;
      }
 
-   bool                       IsDeferredRefreshEdit(const string objectName)
-     {
-      if(objectName == m_profileNewEdit.Name())
-         return true;
-      if(objectName == m_profileMagicEdit.Name())
-         return true;
-      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
-        {
-         if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
-            return true;
-        }
-      if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
-         return true;
-      if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
-         return true;
-      if(IsProtectionDeferredEdit(objectName))
-         return true;
-      return false;
-     }
-
-   bool                       HandleStrategyPanelDeferredEdit(const string objectName)
-     {
-      if(!TryBeginActiveProfileEdit(false))
-        {
-         SyncStrategyPanels();
-         RefreshTheme();
-         return false;
-        }
-
-      bool changed = false;
-      for(int sp = 0; sp < 3; ++sp)
-        {
-         if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
-            continue;
-         m_strategyPanels[sp].HandleChange(objectName, m_draftSettings);
-         changed = true;
-        }
-
-      if(changed)
-         RefreshSignalDraftViews(true, false);
-
-      return changed;
-     }
-
-   void                       NormalizeStrategyDeferredEdit(const string objectName)
-     {
-      for(int sp = 0; sp < 3; ++sp)
-        {
-         if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
-            continue;
-         m_strategyPanels[sp].NormalizeDeferredEdit(objectName);
-        }
-     }
+#include "UIPanelDeferredEdits.mqh"
 
    bool                       ValidateStrategyPanels(SEASettings &candidate,const bool editable,string &error)
      {
@@ -1821,21 +1769,8 @@ public:
 
       CAppDialog::ChartEvent(id, lparam, dparam, sparam);
 
-      bool refreshAfterEvent = false;
-      if((id == CHARTEVENT_OBJECT_ENDEDIT || id == CHARTEVENT_OBJECT_CHANGE) && IsDeferredRefreshEdit(sparam))
-         refreshAfterEvent = true;
-
-      if(refreshAfterEvent)
-        {
-         HandleStrategyPanelDeferredEdit(sparam);
-         if(id == CHARTEVENT_OBJECT_ENDEDIT)
-           {
-            NormalizeStrategyDeferredEdit(sparam);
-            NormalizeProtectionDeferredEdit(sparam);
-           }
-         RefreshConfigValidation();
-         ChartRedraw();
-        }
+      if(IsDeferredRefreshEvent(id, sparam))
+         HandleDeferredRefreshEvent(id, sparam);
      }
 
    virtual bool               OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam)

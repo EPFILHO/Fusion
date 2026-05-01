@@ -18,6 +18,8 @@
 - As acoes globais `INICIAR`, `SALVAR` e `CANCELAR` foram movidas para um partial dedicado, e o enfileiramento de salvamento de perfil passou por um helper unico.
 - Ao restaurar o estado do grafico sem posicao aberta, o Fusion passa a recarregar o perfil ativo do arquivo salvo quando disponivel, evitando usar uma copia antiga do chart state como fonte principal.
 - Transicoes `PERFIS > NOVO`, `DUPLICAR` e `CANCELAR` agora reaplicam a visibilidade sem repetir o refresh de tema que a validacao ja executou.
+- O lifecycle de edits deferidos (`ENDEDIT`/`CHANGE`) foi movido para `UI/UIPanelDeferredEdits.mqh`, mantendo a ordem de normalizacao, validacao e redraw em um ponto nomeado.
+- `SALVAR` e `CANCELAR` do header agora nascem neutros durante a criacao do painel, evitando o flash inicial de botao ativo antes do primeiro snapshot da GUI.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

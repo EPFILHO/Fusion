@@ -39,10 +39,12 @@
          return false;
       if(!AddButton(m_btnStart, "Fusion_btnStart", startX1, 4, startX2, 28, "INICIAR", FUSION_CLR_GOOD))
          return false;
-      if(!AddButton(m_btnSave, "Fusion_btnSave", saveX1, 4, saveX2, 28, "SALVAR", FUSION_CLR_ACTION_SAVE))
+      if(!AddButton(m_btnSave, "Fusion_btnSave", saveX1, 4, saveX2, 28, "SALVAR", FUSION_CLR_DISABLED))
          return false;
-      if(!AddButton(m_btnCancel, "Fusion_btnCancel", cancelX1, 4, cancelX2, 28, "CANCELAR", FUSION_CLR_WARN))
+      FusionApplyNeutralButtonStyle(m_btnSave);
+      if(!AddButton(m_btnCancel, "Fusion_btnCancel", cancelX1, 4, cancelX2, 28, "CANCELAR", FUSION_CLR_DISABLED))
          return false;
+      FusionApplyNeutralButtonStyle(m_btnCancel);
       if(!AddLabel(m_lblProfile, "Fusion_lblProfile", 10, 36, 124, 54, "Perfil carregado:", FUSION_CLR_MUTED))
          return false;
       if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 126, 36, right - 12, 56, "--", FUSION_CLR_GOOD, 9))
