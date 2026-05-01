@@ -49,8 +49,9 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `CONFIG` and `PROTECT` subtab switches now skip the intermediate theme refresh inside `ApplyVisibility()` when `RefreshConfigValidation()` immediately follows.
 - Done: non-editable draft mutations in `STRATS`, `FILTERS`, signal changes, and the `SYSTEM` conflict toggle now enter through one active-profile edit guard before repainting.
 - Done: top-level `INICIAR`/`SALVAR`/`CANCELAR` handlers moved into `UI/UIPanelTopActions.mqh`, with profile-save command assembly shared by header save and profile save-as.
-- Next: continue auditing disk-profile canonical reloads and any duplicate refreshes that remain after extracting top-level actions.
-- Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
+- Done: chart-state restore now reloads the active profile from disk when no position is restored, keeping saved profiles canonical for editable startup while preserving chart-state settings for open-position recovery.
+- Next: continue auditing duplicate refreshes that remain after extracting top-level actions.
+- Pending: keep auditing duplicate refresh calls in smaller compiled steps.
 
 Recommended order:
 

@@ -400,7 +400,9 @@ private:
       return FUSION_DEFAULT_TIMEFRAME;
      }
 
-   bool                    TryLoadProfileForBoot(const string profileName,SEASettings &settingsOut)
+   bool                    TryLoadProfileFromDisk(const string profileName,
+                                                  const ENUM_TIMEFRAMES fallbackTimeframe,
+                                                  SEASettings &settingsOut)
      {
       if(m_settings.isTester || profileName == "")
          return false;
@@ -410,7 +412,7 @@ private:
          return false;
 
       loadedSettings.isTester = m_settings.isTester;
-      ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
+      ResolveOperationalTimeframes(loadedSettings, fallbackTimeframe);
       settingsOut = loadedSettings;
       return true;
      }
@@ -727,7 +729,7 @@ private:
 
       bool defaultProfileLoaded = false;
       SEASettings bootSettings = m_settings;
-      if(TryLoadProfileForBoot(m_settings.defaultProfileName, bootSettings))
+      if(TryLoadProfileFromDisk(m_settings.defaultProfileName, OperationalFallbackTimeframe(), bootSettings))
         {
          m_settings = bootSettings;
          m_activeProfileName = m_settings.defaultProfileName;
@@ -753,6 +755,13 @@ private:
                                               ? (ENUM_TIMEFRAMES)restoredContext.periodValue
                                               : OperationalFallbackTimeframe();
             ResolveOperationalTimeframes(restoredSettings, restoreFallback);
+            string restoredActiveProfile = (restoredProfile == "") ? restoredSettings.defaultProfileName : restoredProfile;
+            if(!restoredState.hasPosition)
+              {
+               SEASettings canonicalProfileSettings;
+               if(TryLoadProfileFromDisk(restoredActiveProfile, restoreFallback, canonicalProfileSettings))
+                  restoredSettings = canonicalProfileSettings;
+              }
             m_settings = restoredSettings;
             if(restoredContext.symbol != "")
                m_chartContext.symbol = restoredContext.symbol;
@@ -761,7 +770,7 @@ private:
             if(restoredContext.periodValue > 0)
                m_chartContext.periodValue = restoredContext.periodValue;
             m_chartContext.deinitReason = restoredContext.deinitReason;
-            m_activeProfileName = (restoredProfile == "") ? m_settings.defaultProfileName : restoredProfile;
+            m_activeProfileName = restoredActiveProfile;
             m_positionState = restoredState;
 
             if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
