@@ -42,7 +42,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: added a separate active-profile registry for "profile loaded in another chart", keeping it distinct from the running-instance registry and feeding the same access-state decisions.
 - Done: `CARREGAR`, `DUPLICAR`, `EXCLUIR`, `SALVAR`, and `INICIAR` now respect the loaded-profile peer lock while still allowing profile-load recovery to a different free profile.
 - Done: extracted `CONFIG` status/color application from `BuildPendingSettings()` as the first split between validation, visual status, and draft mutation.
-- Next: continue splitting `BuildPendingSettings()` into smaller steps for control reads, validation, visual styling, and draft mutation.
+- Done: moved `CONFIG` validation into `UI/UIPanelConfigValidation.mqh` and split `BuildPendingSettings()` into smaller helpers for scalar reads, section validation, visual styling, status text, and draft commit.
+- Next: audit duplicated refresh calls around `RefreshConfigValidation()`, `SyncStrategyPanels()`, `SyncFilterPanels()`, and `ApplyVisibility()` in small compiled steps.
 - Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
 
 Recommended order:

@@ -96,6 +96,8 @@ private:
    CButton                    m_cfgSystemConflictBtn;
    CLabel                     m_cfgStatus;
 
+#include "UIPanelConfigValidation.mqh"
+
    void                       ResetCommand(SUICommand &command)
      {
       command.type        = UI_COMMAND_NONE;
@@ -174,22 +176,8 @@ private:
             continue;
          if(!m_strategyPanels[sp].Validate(candidate, editable, error))
             return false;
-        }
+       }
       return true;
-     }
-
-   void                       ValidateProtectionStyleOnly(const SEASettings &baseSettings)
-     {
-      SEASettings styleSettings = baseSettings;
-      string ignoredError = "";
-      ValidateProtectionSettings(styleSettings, false, ignoredError);
-     }
-
-   void                       ValidateStrategyPanelsStyleOnly(const SEASettings &baseSettings)
-     {
-      SEASettings styleSettings = baseSettings;
-      string ignoredError = "";
-      ValidateStrategyPanels(styleSettings, false, ignoredError);
      }
 
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
@@ -900,173 +888,6 @@ private:
         }
 
       return false;
-     }
-
-   void                       ApplyConfigStatus(const bool configInputsValid,
-                                                const bool magicValid,
-                                                const bool magicUnique,
-                                                const string magicConflictProfile,
-                                                const string protectionError,
-                                                const string strategyError,
-                                                const bool dirty,
-                                                string &outStatus)
-     {
-      if(m_snapshot.runtimeBlocked)
-        {
-         outStatus = m_snapshot.runtimeBlockReason;
-         m_cfgStatus.Color(FUSION_CLR_BAD);
-        }
-      else if(m_snapshot.hasPosition)
-        {
-         outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(m_snapshot.started)
-        {
-         outStatus = "EA rodando: pause antes de editar configuracoes.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(!configInputsValid)
-        {
-         if(magicValid && !magicUnique)
-            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
-         else if(protectionError != "")
-            outStatus = protectionError;
-         else if(strategyError != "")
-            outStatus = strategyError;
-         else
-            outStatus = "Corrija os campos em rosa antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_BAD);
-        }
-      else if(m_snapshot.startBlockedReason != "")
-        {
-         outStatus = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(m_snapshot.activeProfileBlockedReason != "")
-        {
-         outStatus = "Perfil carregado em outra instancia. Carregue outro perfil antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else if(dirty)
-        {
-         outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
-         m_cfgStatus.Color(FUSION_CLR_GOOD);
-        }
-      else if(m_snapshot.started)
-        {
-         outStatus = "EA em execucao com configuracao salva.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
-        }
-      else
-        {
-         outStatus = "Configuracao salva e pronta para iniciar.";
-         m_cfgStatus.Color(FUSION_CLR_MUTED);
-        }
-
-      m_cfgStatus.Text(outStatus);
-     }
-
-   bool                       BuildPendingSettings(SEASettings &outSettings,string &outProfileName,string &outStatus,const string targetProfileName="")
-     {
-      outSettings = m_draftSettings;
-      outProfileName = DraftProfileName();
-      string profileForMagicCheck = (targetProfileName == "") ? outProfileName : targetProfileName;
-
-      bool profileValid = !FusionIsBlank(outProfileName);
-      bool editable = CanEditActiveProfile();
-
-      if(!m_configTabCreated)
-        {
-         outSettings.fixedLot = m_draftSettings.fixedLot;
-         outSettings.magicNumber = m_draftSettings.magicNumber;
-         string strategyError = "";
-         bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
-         m_configInputsValid = (profileValid && outSettings.fixedLot > 0.0 && outSettings.magicNumber > 0 && strategyValid);
-         if(m_configInputsValid && editable)
-            m_draftSettings = outSettings;
-         outStatus = m_configInputsValid ? "Configuracao pronta." : (strategyError != "" ? strategyError : "Perfil invalido.");
-         SyncHeaderProfile(profileValid ? outProfileName : "");
-         return m_configInputsValid;
-        }
-
-      bool lotValid = false;
-      bool protectionValid = true;
-      bool strategyValid = true;
-      bool magicValid = false;
-      bool magicUnique = false;
-      string magicConflictProfile = "";
-      string protectionError = "";
-      string strategyError = "";
-      double parsedLot = 0.0;
-      int parsedMagic = 0;
-
-      string lotText = (editable && m_configRiskCreated) ? FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit))
-                                                         : FusionNormalizeDecimalText(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      if(FusionIsDecimalText(lotText, false))
-        {
-         parsedLot = StringToDouble(lotText);
-         lotValid = (parsedLot > 0.0);
-         if(lotValid && m_snapshot.symbolSpec.volumeMin > 0.0)
-            lotValid = (parsedLot >= (m_snapshot.symbolSpec.volumeMin - 0.0000001));
-         if(lotValid && m_snapshot.symbolSpec.volumeMax > 0.0)
-            lotValid = (parsedLot <= (m_snapshot.symbolSpec.volumeMax + 0.0000001));
-         if(lotValid)
-            lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
-        }
-
-      if(editable)
-         magicValid = ParsedDraftMagicNumber(parsedMagic);
-      else
-        {
-         parsedMagic = m_draftSettings.magicNumber;
-         magicValid = (parsedMagic > 0);
-        }
-      if(magicValid && editable)
-         magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
-      else
-         magicUnique = magicValid;
-
-      if(m_configRiskCreated)
-         FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
-      if(m_configSystemCreated)
-         FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
-      if(m_configProtectionCreated)
-        {
-         if(editable)
-            protectionValid = ValidateProtectionSettings(outSettings, editable, protectionError);
-         else
-            ValidateProtectionStyleOnly(outSettings);
-        }
-      if(editable)
-         strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
-      else
-         ValidateStrategyPanelsStyleOnly(outSettings);
-
-      SyncHeaderProfile(profileValid ? outProfileName : "");
-      if(m_configRiskCreated)
-         m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-      if(m_configSystemCreated)
-         m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-
-      m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && magicValid && magicUnique;
-      if(m_configInputsValid && editable)
-        {
-         outSettings.fixedLot = parsedLot;
-         outSettings.magicNumber = parsedMagic;
-         m_draftSettings = outSettings;
-        }
-
-      bool dirty = HasPendingChanges();
-      ApplyConfigStatus(m_configInputsValid,
-                        magicValid,
-                        magicUnique,
-                        magicConflictProfile,
-                        protectionError,
-                        strategyError,
-                        dirty,
-                        outStatus);
-      return m_configInputsValid;
      }
 
    void                       RefreshTheme(void)
