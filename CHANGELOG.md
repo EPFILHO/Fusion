@@ -10,6 +10,7 @@
 - A validacao em modo somente leitura agora usa helpers explicitos de validacao visual, evitando que campos de `PROTECT` ou `STRATS` promovam estado visual para o rascunho.
 - O status visual da `CONFIG` foi separado de `BuildPendingSettings()`, iniciando a divisao entre validacao, pintura/status e mutacao do rascunho.
 - A validacao da `CONFIG` foi movida para `UI/UIPanelConfigValidation.mqh`, separando leitura de escalares, validacao de secoes, pintura visual/status e commit do rascunho em helpers menores.
+- A tela `PERFIS > NOVO/DUPLICAR` ganhou campo `Magic`, usando a mesma validacao central de `CONFIG > SYSTEM` para facilitar criar copias sem navegar para outra aba.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

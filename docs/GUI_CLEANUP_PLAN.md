@@ -43,6 +43,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `CARREGAR`, `DUPLICAR`, `EXCLUIR`, `SALVAR`, and `INICIAR` now respect the loaded-profile peer lock while still allowing profile-load recovery to a different free profile.
 - Done: extracted `CONFIG` status/color application from `BuildPendingSettings()` as the first split between validation, visual status, and draft mutation.
 - Done: moved `CONFIG` validation into `UI/UIPanelConfigValidation.mqh` and split `BuildPendingSettings()` into smaller helpers for scalar reads, section validation, visual styling, status text, and draft commit.
+- Done: exposed `Magic` in `PERFIS > NOVO/DUPLICAR` as a convenience field backed by the same draft/validation path as `CONFIG > SYSTEM`.
 - Next: audit duplicated refresh calls around `RefreshConfigValidation()`, `SyncStrategyPanels()`, `SyncFilterPanels()`, and `ApplyVisibility()` in small compiled steps.
 - Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
 
@@ -75,4 +76,5 @@ Manual smoke tests after each cleanup step:
 - Two EAs on the same profile: blocked instance can load another profile, but cannot edit/save/new/duplicate/delete the active conflicting profile.
 - Two stopped EAs: if one already has a profile loaded/active, another chart cannot load, duplicate, delete, save over, or start with that same profile; it should load a different free profile instead.
 - After loading a free profile in the passive EA, selecting a profile that is still running elsewhere keeps `CARREGAR`, `DUPLICAR`, and `EXCLUIR` disabled.
+- `PERFIS > NOVO/DUPLICAR`: changing `Magic` in the local edit field should validate uniqueness, enable `SALVAR` only with a free positive integer, and save the new profile with that magic.
 - `CONFIG > PROTECT` edit fields still enable `SALVAR` when editable.

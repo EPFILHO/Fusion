@@ -18,21 +18,45 @@
    bool                       BuildPendingSettingsWithoutConfigTab(SEASettings &outSettings,
                                                                    const bool profileValid,
                                                                    const bool editable,
+                                                                   const string profileForMagicCheck,
                                                                    string &outStatus)
      {
       outSettings.fixedLot = m_draftSettings.fixedLot;
       outSettings.magicNumber = m_draftSettings.magicNumber;
 
+      int parsedMagic = outSettings.magicNumber;
+      bool magicValid = true;
+      bool magicUnique = true;
+      string magicConflictProfile = "";
+      if(editable)
+        {
+         magicValid = ParsedDraftMagicNumber(parsedMagic);
+         if(magicValid)
+           {
+            outSettings.magicNumber = parsedMagic;
+            magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
+           }
+        }
+
       string strategyError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       m_configInputsValid = (profileValid &&
                              outSettings.fixedLot > 0.0 &&
+                             magicValid &&
+                             magicUnique &&
                              outSettings.magicNumber > 0 &&
                              strategyValid);
       if(m_configInputsValid && editable)
          m_draftSettings = outSettings;
 
-      outStatus = m_configInputsValid ? "Configuracao pronta." : (strategyError != "" ? strategyError : "Perfil invalido.");
+      if(m_configInputsValid)
+         outStatus = "Configuracao pronta.";
+      else if(!magicValid)
+         outStatus = "Magic invalido. Informe um numero inteiro positivo.";
+      else if(!magicUnique)
+         outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+      else
+         outStatus = (strategyError != "" ? strategyError : "Perfil invalido.");
       return m_configInputsValid;
      }
 
@@ -213,7 +237,7 @@
       SyncHeaderProfile(profileValid ? outProfileName : "");
 
       if(!m_configTabCreated)
-         return BuildPendingSettingsWithoutConfigTab(outSettings, profileValid, editable, outStatus);
+         return BuildPendingSettingsWithoutConfigTab(outSettings, profileValid, editable, profileForMagicCheck, outStatus);
 
       bool lotValid = false;
       bool protectionValid = true;

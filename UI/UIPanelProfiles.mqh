@@ -25,6 +25,8 @@
    CButton                    m_profileNewBtn;
    CLabel                     m_profileNewLbl;
    CEdit                      m_profileNewEdit;
+   CLabel                     m_profileMagicLbl;
+   CEdit                      m_profileMagicEdit;
    CButton                    m_profileLoadBtn;
    CButton                    m_profileSaveAsBtn;
    CButton                    m_profileDuplicateBtn;
@@ -92,9 +94,13 @@
          ok = false;
       if(ok && !AddEdit(m_profileNewEdit, "Fusion_profile_new_edit", 390, 258, 520, 282, ""))
          ok = false;
-      if(ok && !AddButton(m_profileSaveAsBtn, "Fusion_profile_save_as", 390, 298, 520, 324, "SALVAR", FUSION_CLR_GOOD))
+      if(ok && !AddLabel(m_profileMagicLbl, "Fusion_profile_magic_lbl", 390, 292, 520, 310, "Magic", FUSION_CLR_LABEL, 8))
          ok = false;
-      if(ok && !AddButton(m_profileCancelBtn, "Fusion_profile_cancel", 390, 330, 520, 356, "CANCELAR", FUSION_CLR_WARN))
+      if(ok && !AddEdit(m_profileMagicEdit, "Fusion_profile_magic_edit", 390, 314, 520, 338, IntegerToString(m_draftSettings.magicNumber)))
+         ok = false;
+      if(ok && !AddButton(m_profileSaveAsBtn, "Fusion_profile_save_as", 390, 354, 520, 380, "SALVAR", FUSION_CLR_GOOD))
+         ok = false;
+      if(ok && !AddButton(m_profileCancelBtn, "Fusion_profile_cancel", 390, 386, 520, 412, "CANCELAR", FUSION_CLR_WARN))
          ok = false;
       PopBuildTarget(previous);
       if(!ok)
@@ -102,6 +108,7 @@
 
       m_profilesEditCreated = true;
       m_profileNewEdit.Text(m_profileStore.SanitizeProfileName(m_profileEditSourceName == "" ? "" : m_profileEditSourceName));
+      m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       UpdateProfileListView();
       return true;
      }
@@ -112,7 +119,10 @@
       m_profileEditSourceName = sourceName;
 
       if(m_profilesEditCreated)
+        {
          m_profileNewEdit.Text(draft);
+         m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
+        }
      }
 
    string                     SuggestedDuplicateName(const string sourceName)
@@ -390,16 +400,24 @@
       bool duplicateMode = ProfileDuplicateMode();
       int draftMagic = 0;
       string magicConflictProfile = "";
+      bool draftMagicValid = true;
       bool magicAvailableForDraft = true;
-      if(editMode && validName && ParsedDraftMagicNumber(draftMagic))
-         magicAvailableForDraft = MagicAvailableForProfile(draftMagic, ProfileDraftName(), magicConflictProfile);
+      if(editMode)
+        {
+         draftMagicValid = ParsedDraftMagicNumber(draftMagic);
+         if(validName && draftMagicValid)
+            magicAvailableForDraft = MagicAvailableForProfile(draftMagic, ProfileDraftName(), magicConflictProfile);
+        }
 
       if(m_profilesEditCreated)
         {
          m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
+         m_profileMagicLbl.Text("Magic");
          m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
          FusionApplyEditStyle(m_profileNewEdit, true, editMode && access.activeProfileEditable);
+         FusionApplyEditStyle(m_profileMagicEdit, draftMagicValid && magicAvailableForDraft, editMode && access.activeProfileEditable);
          m_profileNewLbl.Color((editMode && access.activeProfileEditable) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+         m_profileMagicLbl.Color(!editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : ((draftMagicValid && magicAvailableForDraft) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       }
 
       if(!access.profileEditMode && access.activeProfileEditable)
@@ -414,7 +432,7 @@
 
       if(m_profilesEditCreated)
         {
-         if(editMode && access.activeProfileEditable && access.configInputsValid && validName && !draftExists && magicAvailableForDraft)
+         if(editMode && access.activeProfileEditable && access.configInputsValid && validName && !draftExists && draftMagicValid && magicAvailableForDraft)
             FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
          else
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
@@ -448,6 +466,8 @@
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
       else if(editMode && draftExists)
          SetProfileStatus("Nome ja existe. Escolha outro nome ou cancele.", FUSION_CLR_WARN);
+      else if(editMode && !draftMagicValid)
+         SetProfileStatus("Magic invalido. Informe um numero inteiro positivo.", FUSION_CLR_WARN);
       else if(editMode && !magicAvailableForDraft)
          SetProfileStatus("Magic ja usado pelo perfil " + magicConflictProfile + ".", FUSION_CLR_WARN);
       else if(editMode && duplicateMode)
@@ -530,6 +550,8 @@
          SetVisible(m_profilesEditGroup, editVisible);
          SetVisible(m_profileNewLbl, editVisible);
          SetVisible(m_profileNewEdit, editVisible);
+         SetVisible(m_profileMagicLbl, editVisible);
+         SetVisible(m_profileMagicEdit, editVisible);
          SetVisible(m_profileSaveAsBtn, editVisible);
          SetVisible(m_profileCancelBtn, editVisible);
         }

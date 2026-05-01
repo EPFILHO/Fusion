@@ -116,6 +116,8 @@ private:
      {
       if(objectName == m_profileNewEdit.Name())
          return true;
+      if(objectName == m_profileMagicEdit.Name())
+         return true;
       for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
         {
          if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
@@ -665,6 +667,16 @@ private:
    bool                       ParsedDraftMagicNumber(int &magicNumber)
      {
       magicNumber = 0;
+      if(ProfileEditMode() && m_profilesEditCreated)
+        {
+         string profileMagicText = FusionTrimCopy(LiveEditText(m_profileMagicEdit));
+         if(!FusionIsIntegerText(profileMagicText, false))
+            return false;
+
+         magicNumber = (int)StringToInteger(profileMagicText);
+         return (magicNumber > 0);
+        }
+
       if(!m_configSystemCreated)
         {
          magicNumber = m_draftSettings.magicNumber;
@@ -713,6 +725,8 @@ private:
          m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
          m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
         }
+      if(m_profilesEditCreated)
+         m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       if(m_strategyTabCreated || m_filterTabCreated)
          UpdateOverviews();
       if(m_strategyTabCreated)
@@ -1332,6 +1346,7 @@ private:
          if(CanStartNewProfile())
            {
             SetProfileMode(FUSION_PROFILE_NEW);
+            RefreshConfigValidation();
             ApplyVisibility();
            }
          else
