@@ -45,7 +45,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved `CONFIG` validation into `UI/UIPanelConfigValidation.mqh` and split `BuildPendingSettings()` into smaller helpers for scalar reads, section validation, visual styling, status text, and draft commit.
 - Done: exposed `Magic` in `PERFIS > NOVO/DUPLICAR` as a convenience field backed by the same draft/validation path as `CONFIG > SYSTEM`.
 - Done: centralized repeated overview/sync refresh groups for `STRATS` and `FILTERS` behind one helper while preserving call-specific sync flags.
-- Next: audit `ApplyVisibility()` call sites in small compiled steps; only remove a call when the surrounding flow already guarantees equivalent visibility refresh.
+- Done: removed redundant boot-time `ApplyVisibility()`/`RefreshTheme()` before the final post-snapshot visibility refresh.
+- Next: continue auditing `ApplyVisibility()` call sites in small compiled steps; only remove a call when the surrounding flow already guarantees equivalent visibility refresh.
 - Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
 
 Recommended order:

@@ -1678,9 +1678,7 @@ public:
       if(!BuildHeader())      { Destroy(REASON_REMOVE); return false; }
       if(!BuildTabs())        { Destroy(REASON_REMOVE); return false; }
       if(!BuildAllContent())  { Destroy(REASON_REMOVE); return false; }
-      ApplyVisibility();
       LoadSettings(snapshot);
-      RefreshTheme();
       Update(snapshot);
       ApplyVisibility();
       return true;
