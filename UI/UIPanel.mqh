@@ -151,10 +151,7 @@ private:
         }
 
       if(changed)
-        {
-         UpdateOverviews();
-         SyncStrategyPanels();
-        }
+         RefreshSignalDraftViews(true, false);
 
       return changed;
      }
@@ -347,8 +344,7 @@ private:
            }
       PopBuildTarget(previous);
       m_strategyTabCreated = true;
-      UpdateOverviews();
-      SyncStrategyPanels();
+      RefreshSignalDraftViews(true, false);
       return true;
      }
 
@@ -390,8 +386,7 @@ private:
            }
       PopBuildTarget(previous);
       m_filterTabCreated = true;
-      UpdateOverviews();
-      SyncFilterPanels();
+      RefreshSignalDraftViews(false, true);
       return true;
      }
 
@@ -727,12 +722,7 @@ private:
         }
       if(m_profilesEditCreated)
          m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
-      if(m_strategyTabCreated || m_filterTabCreated)
-         UpdateOverviews();
-      if(m_strategyTabCreated)
-         SyncStrategyPanels();
-      if(m_filterTabCreated)
-         SyncFilterPanels();
+      RefreshSignalDraftViews(true, true);
       if(m_profilesTabCreated)
          UpdateProfileListView();
      }
@@ -883,7 +873,7 @@ private:
          if(m_strategyPanels[sp].HandleChange(objectName, m_draftSettings))
            {
             RefreshConfigValidation();
-            UpdateOverviews();
+            RefreshSignalDraftViews(false, false);
             return true;
            }
         }
@@ -895,8 +885,7 @@ private:
          if(m_filterPanels[fp].HandleChange(objectName, m_draftSettings))
            {
             RefreshConfigValidation();
-            UpdateOverviews();
-            SyncFilterPanels();
+            RefreshSignalDraftViews(false, true);
             return true;
            }
         }
@@ -964,6 +953,16 @@ private:
       for(int j = 0; j < 2; ++j)
          if(m_filterPanels[j] != NULL)
              m_filterPanels[j].Sync(m_draftSettings, CanEditActiveProfile());
+     }
+
+   void                       RefreshSignalDraftViews(const bool syncStrategies,const bool syncFilters)
+     {
+      if(m_strategyTabCreated || m_filterTabCreated)
+         UpdateOverviews();
+      if(syncStrategies && m_strategyTabCreated)
+         SyncStrategyPanels();
+      if(syncFilters && m_filterTabCreated)
+         SyncFilterPanels();
      }
 
    void                       UpdateActiveTabContent(const bool runtimeStateChanged)
@@ -1495,8 +1494,7 @@ private:
                }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
-            UpdateOverviews();
-            SyncStrategyPanels();
+            RefreshSignalDraftViews(true, false);
             return true;
            }
         }
@@ -1515,8 +1513,7 @@ private:
                }
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
-            UpdateOverviews();
-            SyncFilterPanels();
+            RefreshSignalDraftViews(false, true);
             return true;
            }
         }
