@@ -1098,7 +1098,7 @@ private:
       SetConfigVisible(false);
      }
 
-   void                       ApplyVisibility(void)
+   void                       ApplyVisibility(const bool refreshTheme=true)
      {
       if(m_statusPageCreated)
         {
@@ -1119,7 +1119,8 @@ private:
       if(m_profilesTabCreated)
          SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
-      RefreshTheme();
+      if(refreshTheme)
+         RefreshTheme();
       UpdateTabStyles();
      }
 
@@ -1288,7 +1289,7 @@ private:
             ReleaseButton(m_configTabs[c]);
             ResetDialogMouseRouting();
             m_configPage = (ENUM_FUSION_CONFIG_PAGE)c;
-            ApplyVisibility();
+            ApplyVisibility(false);
             RefreshConfigValidation();
             return true;
            }

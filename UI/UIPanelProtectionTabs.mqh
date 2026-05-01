@@ -559,7 +559,7 @@
          ReleaseButton(m_protectTabs[tabIndex]);
          ResetDialogMouseRouting();
          m_protectPage = (ENUM_FUSION_PROTECT_PAGE)tabIndex;
-         ApplyVisibility();
+         ApplyVisibility(false);
          RefreshConfigValidation();
          return true;
         }
