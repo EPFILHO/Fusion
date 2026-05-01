@@ -134,7 +134,7 @@ private:
 
    bool                       HandleStrategyPanelDeferredEdit(const string objectName)
      {
-      if(!CanEditActiveProfile())
+      if(!TryBeginActiveProfileEdit(false))
         {
          SyncStrategyPanels();
          RefreshTheme();
@@ -635,6 +635,15 @@ private:
       return access.activeProfileEditable;
      }
 
+   bool                       TryBeginActiveProfileEdit(const bool refreshWhenBlocked=true)
+     {
+      if(CanEditActiveProfile())
+         return true;
+      if(refreshWhenBlocked)
+         RefreshTheme();
+      return false;
+     }
+
    bool                       CanPause(void)
      {
       SUIAccessState access = CurrentAccessState();
@@ -860,11 +869,8 @@ private:
       if(id != CHARTEVENT_CUSTOM + ON_CHANGE)
          return false;
 
-      if(!CanEditActiveProfile())
-        {
-         RefreshTheme();
+      if(!TryBeginActiveProfileEdit())
          return false;
-        }
 
       for(int sp = 0; sp < 3; ++sp)
         {
@@ -1232,11 +1238,8 @@ private:
       if(objectName == m_cfgSystemConflictBtn.Name())
         {
          ReleaseButton(m_cfgSystemConflictBtn);
-          if(!CanEditActiveProfile())
-            {
-             RefreshTheme();
-             return true;
-           }
+         if(!TryBeginActiveProfileEdit())
+            return true;
          m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
          RefreshConfigValidation();
          UpdateTabStyles();
@@ -1488,11 +1491,8 @@ private:
          ResetCommand(tempCommand);
          if(m_strategyPanels[sp].HandleClick(objectName, tempCommand))
            {
-             if(!CanEditActiveProfile())
-               {
-                RefreshTheme();
-                return true;
-               }
+            if(!TryBeginActiveProfileEdit())
+               return true;
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             RefreshSignalDraftViews(true, false);
@@ -1507,11 +1507,8 @@ private:
          ResetCommand(tempCommand);
          if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
            {
-             if(!CanEditActiveProfile())
-               {
-                RefreshTheme();
-                return true;
-               }
+            if(!TryBeginActiveProfileEdit())
+               return true;
             ToggleDraftFlag(tempCommand.type);
             RefreshConfigValidation();
             RefreshSignalDraftViews(false, true);

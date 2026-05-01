@@ -47,7 +47,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: centralized repeated overview/sync refresh groups for `STRATS` and `FILTERS` behind one helper while preserving call-specific sync flags.
 - Done: removed redundant boot-time `ApplyVisibility()`/`RefreshTheme()` before the final post-snapshot visibility refresh.
 - Done: `CONFIG` and `PROTECT` subtab switches now skip the intermediate theme refresh inside `ApplyVisibility()` when `RefreshConfigValidation()` immediately follows.
-- Next: continue auditing small refresh/theme call sites, especially no-op button handlers and non-editable paths.
+- Done: non-editable draft mutations in `STRATS`, `FILTERS`, signal changes, and the `SYSTEM` conflict toggle now enter through one active-profile edit guard before repainting.
+- Next: continue auditing small refresh/theme call sites, especially top-level button no-op paths and disk-profile canonical reloads.
 - Pending: keep auditing disk-profile canonical reloads and duplicate refresh calls in smaller compiled steps.
 
 Recommended order:

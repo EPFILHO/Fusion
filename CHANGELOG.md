@@ -14,6 +14,7 @@
 - Refreshes de overview/sync em `STRATS` e `FILTERS` passaram por um helper unico, reduzindo chamadas duplicadas sem mudar o fluxo de validacao.
 - Removidos refreshes redundantes de visibilidade/tema durante a criacao inicial do painel; o boot agora aplica a visibilidade final uma unica vez depois de carregar e atualizar o snapshot.
 - Trocas de subabas em `CONFIG`/`PROTECT` agora evitam refresh de tema intermediario quando a validacao subsequente ja fara o refresh final.
+- Tentativas de editar o perfil ativo em caminhos bloqueados de `STRATS`, `FILTERS` e `SYSTEM` agora passam por um helper unico antes de refrescar o tema.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
