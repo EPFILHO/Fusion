@@ -23,6 +23,8 @@
 - O status de validacao da `CONFIG` foi movido para a faixa superior do painel e agora mostra falhas especificas de perfil, lote, protecao, magic ou estrategias em vez de cair direto na mensagem generica.
 - Mensagens de status da aba `PERFIS` ficaram mais curtas e ganharam mais largura no rodape do quadro para evitar corte em locks/selecoes.
 - O ultimo status da `CONFIG` agora fica guardado no estado do painel e e reaplicado quando a aba volta a ficar visivel.
+- A validacao da `STRATS > MA` agora informa separadamente periodo rapido, periodo lento ou ordem invalida entre as medias, e o sync da aba preserva a pintura de erro ao voltar de outras abas.
+- Mensagens de validacao de `PROTECT` ficaram mais especificas para spread, limites diarios, drawdown e streak.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

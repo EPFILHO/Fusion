@@ -150,12 +150,16 @@ public:
       FusionApplyLabelEnabled(m_fastHeader, editable);
       FusionApplyLabelEnabled(m_slowHeader, editable);
 
-      m_fastPeriod.Sync(settings.maFastPeriod, editable, true);
+      bool fastValid = (settings.maFastPeriod > 0 && settings.maFastPeriod <= 1000);
+      bool slowValid = (settings.maSlowPeriod > 0 && settings.maSlowPeriod <= 1000);
+      bool orderValid = (fastValid && slowValid && settings.maFastPeriod < settings.maSlowPeriod);
+
+      m_fastPeriod.Sync(settings.maFastPeriod, editable, fastValid && orderValid);
       m_fastTimeframe.Sync(settings.maFastTimeframe, editable);
       m_fastMethod.Sync((long)settings.maFastMethod, editable);
       m_fastPrice.Sync((long)settings.maFastPrice, editable);
 
-      m_slowPeriod.Sync(settings.maSlowPeriod, editable, true);
+      m_slowPeriod.Sync(settings.maSlowPeriod, editable, slowValid && orderValid);
       m_slowTimeframe.Sync(settings.maSlowTimeframe, editable);
       m_slowMethod.Sync((long)settings.maSlowMethod, editable);
       m_slowPrice.Sync((long)settings.maSlowPrice, editable);
@@ -281,7 +285,12 @@ public:
 
       if(!fastValid || !slowValid || !orderValid)
         {
-         error = "Parametros da estrategia MA invalidos.";
+         if(!fastValid)
+            error = "MA Rapida: use periodo de 1 a 1000.";
+         else if(!slowValid)
+            error = "MA Lenta: use periodo de 1 a 1000.";
+         else
+            error = "MA Rapida deve ser menor que MA Lenta.";
          return false;
         }
 

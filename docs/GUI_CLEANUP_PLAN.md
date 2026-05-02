@@ -56,7 +56,9 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `CONFIG` validation status now appears in the upper panel band and reports the first specific failing domain instead of defaulting to generic pink-field guidance.
 - Done: `PERFIS` status messages were shortened and the footer status label was widened to avoid clipping selected-profile lock messages.
 - Done: `CONFIG` status text/color now have explicit panel state and are restored when the config area becomes visible again.
-- Next: continue refining validation/status messaging in small steps, especially more specific validation copy where needed.
+- Done: `STRATS > MA` validation now reports whether the fast period, slow period, or fast/slow ordering is invalid, and panel sync preserves invalid edit styling after tab navigation.
+- Done: `PROTECT` validation copy now names the invalid field for spread, daily limits, drawdown, and streak.
+- Next: audit duplicate refresh calls in smaller compiled steps.
 - Pending: keep auditing duplicate refresh calls in smaller compiled steps.
 - Pending: review top-level no-op actions and blocked edit paths after the validation/status pass.
 

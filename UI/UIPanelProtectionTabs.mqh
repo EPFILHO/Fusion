@@ -353,7 +353,7 @@
          return false;
       if(!AddEdit(m_protectDrawdownValueEdit, "Fusion_protect_dd_value_edit", 200, 286, 310, 310, "0.00"))
          return false;
-      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 330, 520, 366, "Requer DAY ativo com Max Ganho maior que zero.", FUSION_CLR_WARN, 8))
+      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 330, 520, 366, "Requer DAY ativo com Max Ganho > 0.", FUSION_CLR_WARN, 8))
          return false;
 
       if(!AddLabel(m_protectStreakHdr, "Fusion_protect_streak_hdr", 22, 188, 280, 206, "Protecao de Streak", FUSION_CLR_VALUE, 9))
@@ -704,7 +704,7 @@
       FusionApplyEditStyle(m_protectSpreadLimitEdit, spreadValid, editable);
       m_protectSpreadLimitLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       if(!spreadValid)
-         error = "Max Spread invalido.";
+         error = outSettings.enableSpreadProtection ? "Max Spread deve ser > 0 quando ativo." : "Max Spread deve ser zero ou inteiro positivo.";
       outSettings.maxSpreadPoints = parsedSpread;
 
       int sessionStartHour = 0, sessionStartMinute = 0, sessionEndHour = 0, sessionEndMinute = 0;
@@ -771,8 +771,12 @@
       FusionApplyEditStyle(m_protectDayTradesEdit, dayTradesValid, editable);
       FusionApplyEditStyle(m_protectDayLossEdit, dayLossValid, editable);
       FusionApplyEditStyle(m_protectDayGainEdit, dayGainValid, editable);
-      if(error == "" && (!dayTradesValid || !dayLossValid || !dayGainValid))
-         error = "Limites diarios invalidos.";
+      if(error == "" && !dayTradesValid)
+         error = "Max Trades deve ser zero ou inteiro positivo.";
+      if(error == "" && !dayLossValid)
+         error = "Max Perda diario invalido.";
+      if(error == "" && !dayGainValid)
+         error = "Max Ganho diario invalido.";
       outSettings.maxDailyTrades = dayTradesValid ? (int)StringToInteger(dayTradesText) : 0;
 
       string ddText = FusionNormalizeDecimalText(LiveEditText(m_protectDrawdownValueEdit));
@@ -784,9 +788,9 @@
       FusionApplyEditStyle(m_protectDrawdownValueEdit, ddValueValid && ddDependencyValid, editable);
       m_protectDrawdownNote.Color(ddDependencyValid ? FUSION_CLR_WARN : FUSION_CLR_BAD);
       if(error == "" && !ddValueValid)
-         error = "Valor de drawdown invalido.";
+         error = outSettings.enableDrawdown ? "Max DD deve ser > 0 quando ativo." : "Max DD deve ser zero ou valor positivo.";
       if(error == "" && !ddDependencyValid)
-         error = "Drawdown requer DAY ativo com Max Ganho maior que zero.";
+         error = "Drawdown requer DAY ativo com Max Ganho > 0.";
 
       string streakLossText = FusionTrimCopy(LiveEditText(m_protectStreakLossEdit));
       string streakWinText = FusionTrimCopy(LiveEditText(m_protectStreakWinEdit));
@@ -794,8 +798,10 @@
       bool streakWinValid = FusionIsIntegerText(streakWinText, true) && (int)StringToInteger(streakWinText) >= 0;
       FusionApplyEditStyle(m_protectStreakLossEdit, streakLossValid, editable);
       FusionApplyEditStyle(m_protectStreakWinEdit, streakWinValid, editable);
-      if(error == "" && (!streakLossValid || !streakWinValid))
-         error = "Limites de streak invalidos.";
+      if(error == "" && !streakLossValid)
+         error = "Max Loss deve ser zero ou inteiro positivo.";
+      if(error == "" && !streakWinValid)
+         error = "Max Win deve ser zero ou inteiro positivo.";
       outSettings.maxLossStreak = streakLossValid ? (int)StringToInteger(streakLossText) : 0;
       outSettings.maxWinStreak = streakWinValid ? (int)StringToInteger(streakWinText) : 0;
 
