@@ -123,7 +123,13 @@ private:
      {
       error = "";
       bool allValid = true;
-      m_strategyPageValid[(int)FUSION_STRAT_OVERVIEW] = true;
+      bool hasSelectedStrategy = HasSelectedStrategy(candidate);
+      m_strategyPageValid[(int)FUSION_STRAT_OVERVIEW] = hasSelectedStrategy;
+      if(!hasSelectedStrategy)
+        {
+         allValid = false;
+         error = "Selecione ao menos uma estrategia.";
+        }
       for(int sp = 0; sp < 3; ++sp)
         {
          bool panelValid = true;
@@ -141,6 +147,31 @@ private:
                error = panelError;
            }
        }
+      return allValid;
+     }
+
+   bool                       ValidateFilterPanels(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      bool allValid = true;
+      m_filterPageValid[(int)FUSION_FILTER_OVERVIEW] = true;
+      for(int fp = 0; fp < 2; ++fp)
+        {
+         bool panelValid = true;
+         string panelError = "";
+         if(m_filterPanels[fp] == NULL)
+            panelValid = true;
+         else
+            panelValid = m_filterPanels[fp].Validate(candidate, editable, panelError);
+
+         m_filterPageValid[fp + 1] = panelValid;
+         if(!panelValid)
+           {
+            allValid = false;
+            if(error == "")
+               error = panelError;
+           }
+        }
       return allValid;
      }
 
@@ -909,6 +940,48 @@ private:
       return (!m_cfgRiskValid || !m_cfgProtectionValid || !m_cfgSystemValid);
      }
 
+   bool                       HasParentTabError(void) const
+     {
+      return (HasStrategyTabError() || HasFilterTabError() || HasConfigTabError());
+     }
+
+   bool                       UsesSharedParentStatus(void) const
+     {
+      return (m_activeTab == FUSION_TAB_STATUS ||
+              m_activeTab == FUSION_TAB_RESULTS ||
+              m_activeTab == FUSION_TAB_PROFILES);
+     }
+
+   void                       SetSharedParentStatus(const string text,const color clr)
+     {
+      m_parentStatusText = text;
+      m_parentStatusColor = clr;
+      m_parentStatus.Text(text);
+      m_parentStatus.Color(clr);
+     }
+
+   void                       ApplySharedParentStatus(void)
+     {
+      if(HasParentTabError())
+         SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
+      else if(m_configInputsValid &&
+              !m_snapshot.runtimeBlocked &&
+              !m_snapshot.started &&
+              !m_snapshot.hasPosition &&
+              m_snapshot.startBlockedReason == "" &&
+              m_snapshot.activeProfileBlockedReason == "")
+         SetSharedParentStatus("EA pronto para operar.", FUSION_CLR_GOOD);
+      else
+         SetSharedParentStatus("", FUSION_CLR_MUTED);
+     }
+
+   void                       RefreshSharedParentStatusVisibility(void)
+     {
+      m_parentStatus.Text(m_parentStatusText);
+      m_parentStatus.Color(m_parentStatusColor);
+      SetVisible(m_parentStatus, UsesSharedParentStatus() && m_parentStatusText != "");
+     }
+
    void                       UpdateTabStyles(void)
      {
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
@@ -916,6 +989,8 @@ private:
          if(i == (int)m_activeTab)
             FusionApplyPrimaryButtonStyle(m_tabs[i], true);
          else if(i == (int)FUSION_TAB_STRATEGIES && HasStrategyTabError())
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
+         else if(i == (int)FUSION_TAB_FILTERS && HasFilterTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
@@ -925,8 +1000,7 @@ private:
       if(m_strategyTabCreated)
          ApplyStrategyTabStyles();
       if(m_filterTabCreated)
-         for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
-            FusionApplyPrimaryButtonStyle(m_filterTabs[i], i == (int)m_filterPage);
+         ApplyFilterTabStyles();
       if(m_configTabCreated)
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
@@ -951,6 +1025,8 @@ private:
       string profileName = "";
       string status = "";
       bool valid = BuildPendingSettings(candidate, profileName, status);
+      ApplySharedParentStatus();
+      RefreshSharedParentStatusVisibility();
       RefreshTheme();
       UpdateTabStyles();
       return valid;
@@ -1079,6 +1155,8 @@ private:
       SetVisible(m_btnCancel, visible);
       SetVisible(m_lblProfile, visible);
       SetVisible(m_activeProfile, visible);
+      if(!visible)
+         SetVisible(m_parentStatus, false);
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
          SetVisible(m_tabs[i], visible);
       SetVisible(m_tabsSeparator, visible);
@@ -1136,6 +1214,7 @@ private:
       if(m_profilesTabCreated)
          SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
+      RefreshSharedParentStatusVisibility();
       if(refreshTheme)
          RefreshTheme();
       UpdateTabStyles();
@@ -1537,6 +1616,12 @@ public:
       m_hasCommittedSettings = false;
       m_cfgStatusText = "";
       m_cfgStatusColor = FUSION_CLR_MUTED;
+      m_parentStatusText = "";
+      m_parentStatusColor = FUSION_CLR_MUTED;
+      m_strategyStatusText = "";
+      m_filterStatusText = "";
+      m_strategyStatusColor = FUSION_CLR_MUTED;
+      m_filterStatusColor = FUSION_CLR_MUTED;
       m_buildTarget    = NULL;
       m_activeTab       = FUSION_TAB_STATUS;
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
@@ -1557,6 +1642,8 @@ public:
          m_protectPageValid[protectIndex] = true;
       for(int strategyIndex = 0; strategyIndex < FUSION_STRAT_COUNT; ++strategyIndex)
          m_strategyPageValid[strategyIndex] = true;
+      for(int filterIndex = 0; filterIndex < FUSION_FILTER_COUNT; ++filterIndex)
+         m_filterPageValid[filterIndex] = true;
       m_committedProfileName = "";
       ArrayResize(m_profileNames, 0);
       m_profileCount = 0;

@@ -7,6 +7,9 @@
    CLabel                     m_activeProfile;
    CLabel                     m_lblProfile;
    CLabel                     m_lblHeader;
+   CLabel                     m_parentStatus;
+   string                     m_parentStatusText;
+   color                      m_parentStatusColor;
 
    void                       SyncHeaderProfile(const string profileName)
      {
@@ -50,6 +53,9 @@
       if(!AddLabel(m_activeProfile, "Fusion_activeProfile", 126, 36, right - 12, 56, "--", FUSION_CLR_GOOD, 9))
          return false;
       m_activeProfile.Font("Arial Bold");
+      if(!AddLabel(m_parentStatus, "Fusion_parent_status", 290, 36, right - 14, 56, "", FUSION_CLR_MUTED, 8))
+         return false;
+      m_parentStatus.Hide();
       return true;
      }
 

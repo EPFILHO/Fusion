@@ -149,6 +149,12 @@ public:
       settings.rsiFilterTimeframe = timeframe;
       return true;
      }
+
+   bool              Validate(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      return true;
+     }
   };
 
 #endif

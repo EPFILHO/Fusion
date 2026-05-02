@@ -31,6 +31,11 @@
 - `CONFIG` e suas subtabs `RISK`, `PROTECT` e `SYSTEM` agora marcam erros de validacao em vermelho quando nao estao selecionadas.
 - As subtabs internas de `PROTECT` agora tambem marcam seus proprios erros de validacao em vermelho quando nao estao selecionadas.
 - `STRATS` ganhou mapa de validade por estrategia; `MA` ja marca erros em vermelho na aba principal e na subtab inativa, preparado para futuras estrategias.
+- `FILTERS` ganhou o mesmo contrato modular de validacao por filtro, pronto para marcar erros por subtab quando os filtros tiverem parametros proprios.
+- `STRATS` e `FILTERS` agora possuem status superior proprio; `CONFIG` deixou de exibir mensagens de erro pertencentes a estrategias ou filtros.
+- Quando a aba atual esta valida mas outra aba mae tem erro, o status superior mostra um aviso generico para corrigir as abas em vermelho.
+- `STATUS`, `RESULTS` e `PERFIS` tambem exibem o aviso superior generico quando alguma aba mae possui erro marcado em vermelho.
+- `STRATS` agora exige ao menos uma estrategia selecionada e as mensagens de pronto foram alinhadas para indicar quando o EA esta pronto para operar.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

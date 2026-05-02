@@ -65,6 +65,11 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `CONFIG`, `RISK`, `PROTECT`, and `SYSTEM` use red inactive-tab markers when their own validation domain has an error.
 - Done: internal `PROTECT` subtabs now use red inactive-tab markers when their own validation domain has an error.
 - Done: `STRATS` now has per-strategy validation state; `MA` marks inactive `STRATS`/`MA` tabs red when its period validation fails, and the structure can receive future RSI/BB validations.
+- Done: `FILTERS` now has the same per-filter validation contract and inactive-tab marker structure, ready for future filter-specific parameters.
+- Done: `STRATS` and `FILTERS` now own their upper status summaries; `CONFIG` no longer displays strategy/filter validation errors as config messages.
+- Done: parent-tab status summaries now show a generic "fix red tabs" warning when the active parent tab is valid but another parent tab has validation errors.
+- Done: `STATUS`, `RESULTS`, and `PERFIS` share the same upper generic warning when any parent tab has validation errors.
+- Done: `STRATS` requires at least one selected strategy; ready messages now say when the EA is ready to operate.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
@@ -73,8 +78,8 @@ Validation marker direction:
 - Prefer a modular validation map over one global message string: each domain records its own validity, message, tab, and subtab.
 - Show the detailed message in the owning page/subpage when it is open.
 - Mark tabs/subtabs with validation errors in a warning color while preserving the active-tab visual language.
-- Keep the current top `CONFIG` status as a summary until local status surfaces exist for `STRATS` and `FILTERS`.
-- First slices are active for `CONFIG`, internal `PROTECT` subtabs, and `STRATS > MA`; extend later to `FILTERS` and new strategy pages.
+- Parent tabs own their upper summary messages: `CONFIG`, `STRATS`, and `FILTERS` each keep local status/state, while red markers show issues outside the active view.
+- First slices are active for `CONFIG`, internal `PROTECT` subtabs, `STRATS > MA`, and the reusable `FILTERS` marker structure; extend later as new strategy/filter pages gain editable validation.
 
 Validation/status messaging plan:
 

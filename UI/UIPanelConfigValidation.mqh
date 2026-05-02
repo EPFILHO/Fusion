@@ -15,6 +15,13 @@
       ValidateStrategyPanels(styleSettings, false, ignoredError);
      }
 
+   void                       ValidateFilterPanelsStyleOnly(const SEASettings &baseSettings)
+     {
+      SEASettings styleSettings = baseSettings;
+      string ignoredError = "";
+      ValidateFilterPanels(styleSettings, false, ignoredError);
+     }
+
    bool                       BuildPendingSettingsWithoutConfigTab(SEASettings &outSettings,
                                                                    const bool profileValid,
                                                                    const bool editable,
@@ -39,7 +46,9 @@
         }
 
       string strategyError = "";
+      string filterError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
+      bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
       m_cfgRiskValid = (outSettings.fixedLot > 0.0);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
@@ -48,7 +57,10 @@
                              magicValid &&
                              magicUnique &&
                              outSettings.magicNumber > 0 &&
-                             strategyValid);
+                             strategyValid &&
+                             filterValid);
+      ApplyStrategyStatus(strategyValid, strategyError);
+      ApplyFilterStatus(filterValid, filterError);
       if(m_configInputsValid && editable)
          m_draftSettings = outSettings;
 
@@ -59,7 +71,7 @@
       else if(!magicUnique)
          outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
       else
-         outStatus = (strategyError != "" ? strategyError : "Perfil invalido.");
+         outStatus = (strategyError != "" ? strategyError : (filterError != "" ? filterError : "Perfil invalido."));
       return m_configInputsValid;
      }
 
@@ -130,12 +142,16 @@
                                                      bool &protectionValid,
                                                      string &protectionError,
                                                      bool &strategyValid,
-                                                     string &strategyError)
+                                                     string &strategyError,
+                                                     bool &filterValid,
+                                                     string &filterError)
      {
       protectionValid = true;
       protectionError = "";
       strategyValid = true;
       strategyError = "";
+      filterValid = true;
+      filterError = "";
 
       if(m_configProtectionCreated)
         {
@@ -149,6 +165,11 @@
          strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       else
          ValidateStrategyPanelsStyleOnly(outSettings);
+
+      if(editable)
+         filterValid = ValidateFilterPanels(outSettings, editable, filterError);
+      else
+         ValidateFilterPanelsStyleOnly(outSettings);
      }
 
    void                       CommitValidConfigDraft(SEASettings &outSettings,
@@ -184,14 +205,13 @@
       m_cfgStatus.Color(m_cfgStatusColor);
      }
 
-   void                       ApplyConfigStatus(const bool configInputsValid,
+   void                       ApplyConfigStatus(const bool configStatusValid,
                                                  const bool profileValid,
                                                  const bool lotValid,
                                                  const bool magicValid,
                                                  const bool magicUnique,
                                                  const string magicConflictProfile,
                                                  const string protectionError,
-                                                 const string strategyError,
                                                  const bool dirty,
                                                  string &outStatus)
      {
@@ -212,7 +232,7 @@
          status = "EA rodando: pause antes de editar configuracoes.";
          statusColor = FUSION_CLR_WARN;
         }
-      else if(!configInputsValid)
+      else if(!configStatusValid)
         {
          if(!profileValid)
             status = "Perfil invalido. Carregue ou crie outro.";
@@ -224,8 +244,6 @@
             status = "Magic invalido. Informe um numero inteiro positivo.";
          else if(!magicUnique)
             status = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
-         else if(strategyError != "")
-            status = strategyError;
          else
             status = "Corrija os campos em rosa antes de salvar.";
          statusColor = FUSION_CLR_BAD;
@@ -240,10 +258,15 @@
          status = "Perfil carregado em outra instancia. Carregue outro.";
          statusColor = FUSION_CLR_WARN;
         }
-      else if(dirty)
+      else if(dirty && m_configInputsValid)
         {
          status = "Alteracoes pendentes. Salve para aplicar no EA.";
          statusColor = FUSION_CLR_GOOD;
+        }
+      else if(!m_configInputsValid)
+        {
+         status = "Corrija aba(s) em vermelho.";
+         statusColor = FUSION_CLR_BAD;
         }
       else if(m_snapshot.started)
         {
@@ -252,8 +275,8 @@
         }
       else
         {
-         status = "Configuracao salva e pronta para iniciar.";
-         statusColor = FUSION_CLR_MUTED;
+         status = "Configuracoes OK. EA pronto para operar.";
+         statusColor = FUSION_CLR_GOOD;
         }
 
       SetConfigStatus(status, statusColor, outStatus);
@@ -275,11 +298,13 @@
       bool lotValid = false;
       bool protectionValid = true;
       bool strategyValid = true;
+      bool filterValid = true;
       bool magicValid = false;
       bool magicUnique = false;
       string magicConflictProfile = "";
       string protectionError = "";
       string strategyError = "";
+      string filterError = "";
       double parsedLot = 0.0;
       int parsedMagic = 0;
 
@@ -297,23 +322,27 @@
                              protectionValid,
                              protectionError,
                              strategyValid,
-                             strategyError);
+                             strategyError,
+                             filterValid,
+                             filterError);
 
       m_cfgRiskValid = lotValid;
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
       CommitValidConfigDraft(outSettings, editable, parsedLot, parsedMagic);
+      ApplyStrategyStatus(strategyValid, strategyError);
+      ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      ApplyConfigStatus(m_configInputsValid,
+      bool configStatusValid = profileValid && lotValid && protectionValid && magicValid && magicUnique;
+      ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,
                         magicValid,
                         magicUnique,
                         magicConflictProfile,
                         protectionError,
-                        strategyError,
                         dirty,
                         outStatus);
       return m_configInputsValid;
