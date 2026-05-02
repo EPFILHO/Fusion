@@ -394,7 +394,6 @@
       bool selectedIsDefault = profileActions.selectedIsDefault;
       bool selectedRuntimeLocked = profileActions.selectedRuntimeLocked;
       bool selectedActiveProfileLocked = profileActions.selectedActiveProfileLocked;
-      string selectedPeerReason = profileActions.blockedReason;
       bool draftExists = (m_profilesEditCreated && validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
       bool duplicateMode = ProfileDuplicateMode();
@@ -457,11 +456,11 @@
         }
 
       if(m_snapshot.startBlockedReason != "")
-         SetProfileStatus("Perfil em uso por outra instancia: carregue outro perfil salvo para continuar.", FUSION_CLR_WARN);
+         SetProfileStatus("Perfil em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else if(m_snapshot.activeProfileBlockedReason != "")
-         SetProfileStatus("Perfil ativo em outro grafico: carregue outro perfil salvo para continuar.", FUSION_CLR_WARN);
+         SetProfileStatus("Perfil ativo em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else if(!access.runtimeEditable)
-         SetProfileStatus("Perfis bloqueados enquanto o EA roda ou gerencia posicao.", FUSION_CLR_WARN);
+         SetProfileStatus("Perfis bloqueados enquanto o EA roda/gerencia posicao.", FUSION_CLR_WARN);
       else if(editMode && !validName)
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
       else if(editMode && draftExists)
@@ -471,21 +470,23 @@
       else if(editMode && !magicAvailableForDraft)
          SetProfileStatus("Magic ja usado pelo perfil " + magicConflictProfile + ".", FUSION_CLR_WARN);
       else if(editMode && duplicateMode)
-         SetProfileStatus("Copia de " + m_profileEditSourceName + " como " + ProfileDraftName() + ". Altere o Magic se necessario e salve.", FUSION_CLR_MUTED);
+         SetProfileStatus("Copia: " + ProfileDraftName() + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
       else if(editMode)
          SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(access.hasPendingChanges)
-         SetProfileStatus("Alteracoes pendentes: use SALVAR no perfil atual ou NOVO para criar outro.", FUSION_CLR_WARN);
+         SetProfileStatus("Alteracoes pendentes. Use SALVAR ou crie NOVO perfil.", FUSION_CLR_WARN);
       else if(selected && selectedIsActive && selectedIsDefault)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil reservado: nao apague o perfil default.", FUSION_CLR_MUTED);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
       else if(selected && selectedIsActive)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro perfil.", FUSION_CLR_MUTED);
-      else if(selected && (selectedRuntimeLocked || selectedActiveProfileLocked))
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". " + selectedPeerReason, FUSION_CLR_WARN);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro.", FUSION_CLR_MUTED);
+      else if(selected && selectedRuntimeLocked)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Magic em uso em outro grafico.", FUSION_CLR_WARN);
+      else if(selected && selectedActiveProfileLocked)
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil ativo em outro grafico.", FUSION_CLR_WARN);
       else if(selected && selectedIsDefault)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil reservado: nao apague o perfil default.", FUSION_CLR_WARN);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Default reservado.", FUSION_CLR_WARN);
       else if(selected)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
       else
@@ -574,7 +575,7 @@
                    FUSION_CLR_FRAME_BG,
                    FUSION_CLR_FRAME_BORDER))
          return false;
-      if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, 520, 456, "", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, FUSION_PANEL_WIDTH - 18, 456, "", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddHitGroup(m_profilesBrowseGroup, "Fusion_group_profiles_browse"))

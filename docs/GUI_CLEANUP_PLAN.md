@@ -54,7 +54,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: deferred edit events now route through `UI/UIPanelDeferredEdits.mqh`, centralizing `ENDEDIT`/`CHANGE` refresh, normalization, validation, and redraw sequencing.
 - Done: header `SALVAR`/`CANCELAR` controls now start neutral before the first access-state snapshot is applied.
 - Done: `CONFIG` validation status now appears in the upper panel band and reports the first specific failing domain instead of defaulting to generic pink-field guidance.
-- Next: continue refining validation/status messaging in small steps, especially clipped `PERFIS` messages and more specific validation copy where needed.
+- Done: `PERFIS` status messages were shortened and the footer status label was widened to avoid clipping selected-profile lock messages.
+- Next: continue refining validation/status messaging in small steps, especially persistence of visible status across tab changes and more specific validation copy where needed.
 - Pending: keep auditing duplicate refresh calls in smaller compiled steps.
 - Pending: review top-level no-op actions and blocked edit paths after the validation/status pass.
 

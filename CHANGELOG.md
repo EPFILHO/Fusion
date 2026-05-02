@@ -21,6 +21,7 @@
 - O lifecycle de edits deferidos (`ENDEDIT`/`CHANGE`) foi movido para `UI/UIPanelDeferredEdits.mqh`, mantendo a ordem de normalizacao, validacao e redraw em um ponto nomeado.
 - `SALVAR` e `CANCELAR` do header agora nascem neutros durante a criacao do painel, evitando o flash inicial de botao ativo antes do primeiro snapshot da GUI.
 - O status de validacao da `CONFIG` foi movido para a faixa superior do painel e agora mostra falhas especificas de perfil, lote, protecao, magic ou estrategias em vez de cair direto na mensagem generica.
+- Mensagens de status da aba `PERFIS` ficaram mais curtas e ganharam mais largura no rodape do quadro para evitar corte em locks/selecoes.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
