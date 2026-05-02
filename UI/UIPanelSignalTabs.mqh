@@ -14,6 +14,7 @@
    bool                       m_filterOverviewCreated;
    bool                       m_strategyPanelCreated[3];
    bool                       m_filterPanelCreated[2];
+   bool                       m_strategyPageValid[FUSION_STRAT_COUNT];
 
    string                     StrategyDisplayName(const int index) const
      {
@@ -261,6 +262,34 @@
      {
       UpdateStrategyOverview();
       UpdateFilterOverview();
+     }
+
+   bool                       StrategySubtabHasError(const ENUM_FUSION_STRATEGY_PAGE page) const
+     {
+      if(page == FUSION_STRAT_OVERVIEW)
+         return false;
+      return !m_strategyPageValid[(int)page];
+     }
+
+   bool                       HasStrategyTabError(void) const
+     {
+      for(int i = 1; i < FUSION_STRAT_COUNT; ++i)
+         if(!m_strategyPageValid[i])
+            return true;
+      return false;
+     }
+
+   void                       ApplyStrategyTabStyles(void)
+     {
+      for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
+        {
+         if(i == (int)m_strategyPage)
+            FusionApplyPrimaryButtonStyle(m_strategyTabs[i], true);
+         else if(StrategySubtabHasError((ENUM_FUSION_STRATEGY_PAGE)i))
+            FusionApplyActionButtonStyle(m_strategyTabs[i], FUSION_CLR_BAD, true);
+         else
+            FusionApplyPrimaryButtonStyle(m_strategyTabs[i], false);
+        }
      }
 
    void                       SetStrategiesVisible(const bool visible)

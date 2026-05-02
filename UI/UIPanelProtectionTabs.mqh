@@ -1,5 +1,6 @@
    ENUM_FUSION_PROTECT_PAGE   m_protectPage;
    CButton                    m_protectTabs[FUSION_PROTECT_COUNT];
+   bool                       m_protectPageValid[FUSION_PROTECT_COUNT];
    CPanel                     m_protectTabsSeparator;
    CPanel                     m_protectContentFrame;
 
@@ -81,6 +82,26 @@
          FusionApplyNeutralButtonStyle(button);
       else
          FusionApplyActionButtonStyle(button, action == NEWS_ACTION_CLOSE_AND_BLOCK ? FUSION_CLR_WARN : FUSION_CLR_ACTION_LOAD, true);
+     }
+
+   bool                       ProtectSubtabHasError(const ENUM_FUSION_PROTECT_PAGE page) const
+     {
+      if(page == FUSION_PROTECT_GENERAL)
+         return false;
+      return !m_protectPageValid[(int)page];
+     }
+
+   void                       ApplyProtectionTabStyles(void)
+     {
+      for(int tabIndex = 0; tabIndex < FUSION_PROTECT_COUNT; ++tabIndex)
+        {
+         if(tabIndex == (int)m_protectPage)
+            FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], true);
+         else if(ProtectSubtabHasError((ENUM_FUSION_PROTECT_PAGE)tabIndex))
+            FusionApplyActionButtonStyle(m_protectTabs[tabIndex], FUSION_CLR_BAD, true);
+         else
+            FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], false);
+        }
      }
 
    bool                       AddTimeEdit(CEdit &edit,const string name,const int x1,const int y1,const string value)
@@ -485,8 +506,7 @@
      {
       bool editable = CanEditActiveProfile();
 
-      for(int tabIndex = 0; tabIndex < FUSION_PROTECT_COUNT; ++tabIndex)
-         FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], tabIndex == (int)m_protectPage);
+      ApplyProtectionTabStyles();
 
       SyncProtectionOverview();
 
@@ -733,6 +753,7 @@
       outSettings.sessionEndHour = sessionEndHour;
       outSettings.sessionEndMinute = sessionEndMinute;
 
+      bool newsValid = true;
       for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
         {
          int startHour = 0, startMinute = 0, endHour = 0, endMinute = 0;
@@ -752,6 +773,7 @@
          FusionApplyEditStyle(m_protectNewsStartMinuteEdit[newsIndex], newsFieldsValid, editable);
          FusionApplyEditStyle(m_protectNewsEndHourEdit[newsIndex], newsFieldsValid, editable);
          FusionApplyEditStyle(m_protectNewsEndMinuteEdit[newsIndex], newsFieldsValid, editable);
+         newsValid = newsValid && newsFieldsValid;
          if(error == "" && (!startHourValid || !startMinuteValid || !endHourValid || !endMinuteValid))
             error = "Horario da News " + IntegerToString(newsIndex + 1) + " invalido.";
          if(error == "" && !newsOrderValid)
@@ -804,6 +826,14 @@
          error = "Max Win deve ser zero ou inteiro positivo.";
       outSettings.maxLossStreak = streakLossValid ? (int)StringToInteger(streakLossText) : 0;
       outSettings.maxWinStreak = streakWinValid ? (int)StringToInteger(streakWinText) : 0;
+
+      m_protectPageValid[(int)FUSION_PROTECT_GENERAL] = true;
+      m_protectPageValid[(int)FUSION_PROTECT_SPREAD] = spreadValid;
+      m_protectPageValid[(int)FUSION_PROTECT_SESSION] = sessionFieldsValid;
+      m_protectPageValid[(int)FUSION_PROTECT_NEWS] = newsValid;
+      m_protectPageValid[(int)FUSION_PROTECT_DAY] = (dayTradesValid && dayLossValid && dayGainValid);
+      m_protectPageValid[(int)FUSION_PROTECT_DRAWDOWN] = (ddValueValid && ddDependencyValid);
+      m_protectPageValid[(int)FUSION_PROTECT_STREAK] = (streakLossValid && streakWinValid);
 
       return (error == "");
      }

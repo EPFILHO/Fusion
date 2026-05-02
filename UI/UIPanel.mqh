@@ -122,14 +122,26 @@ private:
    bool                       ValidateStrategyPanels(SEASettings &candidate,const bool editable,string &error)
      {
       error = "";
+      bool allValid = true;
+      m_strategyPageValid[(int)FUSION_STRAT_OVERVIEW] = true;
       for(int sp = 0; sp < 3; ++sp)
         {
+         bool panelValid = true;
+         string panelError = "";
          if(m_strategyPanels[sp] == NULL)
-            continue;
-         if(!m_strategyPanels[sp].Validate(candidate, editable, error))
-            return false;
+            panelValid = true;
+         else
+            panelValid = m_strategyPanels[sp].Validate(candidate, editable, panelError);
+
+         m_strategyPageValid[sp + 1] = panelValid;
+         if(!panelValid)
+           {
+            allValid = false;
+            if(error == "")
+               error = panelError;
+           }
        }
-      return true;
+      return allValid;
      }
 
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
@@ -903,14 +915,15 @@ private:
         {
          if(i == (int)m_activeTab)
             FusionApplyPrimaryButtonStyle(m_tabs[i], true);
+         else if(i == (int)FUSION_TAB_STRATEGIES && HasStrategyTabError())
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else
             FusionApplyPrimaryButtonStyle(m_tabs[i], false);
         }
       if(m_strategyTabCreated)
-         for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
-            FusionApplyPrimaryButtonStyle(m_strategyTabs[i], i == (int)m_strategyPage);
+         ApplyStrategyTabStyles();
       if(m_filterTabCreated)
          for(int i = 0; i < FUSION_FILTER_COUNT; ++i)
             FusionApplyPrimaryButtonStyle(m_filterTabs[i], i == (int)m_filterPage);
@@ -926,8 +939,7 @@ private:
                FusionApplyPrimaryButtonStyle(m_configTabs[i], false);
            }
          if(m_configProtectionCreated)
-            for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
-               FusionApplyPrimaryButtonStyle(m_protectTabs[p], p == (int)m_protectPage);
+            ApplyProtectionTabStyles();
          if(m_configSystemCreated)
             m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
         }
@@ -1541,6 +1553,10 @@ public:
       m_configProtectionCreated = false;
       m_configSystemCreated = false;
       m_profileMode     = FUSION_PROFILE_BROWSE;
+      for(int protectIndex = 0; protectIndex < FUSION_PROTECT_COUNT; ++protectIndex)
+         m_protectPageValid[protectIndex] = true;
+      for(int strategyIndex = 0; strategyIndex < FUSION_STRAT_COUNT; ++strategyIndex)
+         m_strategyPageValid[strategyIndex] = true;
       m_committedProfileName = "";
       ArrayResize(m_profileNames, 0);
       m_profileCount = 0;
