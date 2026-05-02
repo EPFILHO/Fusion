@@ -31,6 +31,9 @@ private:
    bool                       m_origMouseScroll;
    bool                       m_hasPendingCommand;
    bool                       m_configInputsValid;
+   bool                       m_cfgRiskValid;
+   bool                       m_cfgProtectionValid;
+   bool                       m_cfgSystemValid;
    bool                       m_hasCommittedSettings;
    string                     m_cfgStatusText;
    color                      m_cfgStatusColor;
@@ -878,10 +881,33 @@ private:
          UpdateProfileListView();
      }
 
+   bool                       ConfigSubtabHasError(const ENUM_FUSION_CONFIG_PAGE page) const
+     {
+      if(page == FUSION_CFG_RISK)
+         return !m_cfgRiskValid;
+      if(page == FUSION_CFG_PROTECTION)
+         return !m_cfgProtectionValid;
+      if(page == FUSION_CFG_SYSTEM)
+         return !m_cfgSystemValid;
+      return false;
+     }
+
+   bool                       HasConfigTabError(void) const
+     {
+      return (!m_cfgRiskValid || !m_cfgProtectionValid || !m_cfgSystemValid);
+     }
+
    void                       UpdateTabStyles(void)
      {
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
-         FusionApplyPrimaryButtonStyle(m_tabs[i], i == (int)m_activeTab);
+        {
+         if(i == (int)m_activeTab)
+            FusionApplyPrimaryButtonStyle(m_tabs[i], true);
+         else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabError())
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
+         else
+            FusionApplyPrimaryButtonStyle(m_tabs[i], false);
+        }
       if(m_strategyTabCreated)
          for(int i = 0; i < FUSION_STRAT_COUNT; ++i)
             FusionApplyPrimaryButtonStyle(m_strategyTabs[i], i == (int)m_strategyPage);
@@ -891,7 +917,14 @@ private:
       if(m_configTabCreated)
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
-            FusionApplyPrimaryButtonStyle(m_configTabs[i], i == (int)m_configPage);
+           {
+            if(i == (int)m_configPage)
+               FusionApplyPrimaryButtonStyle(m_configTabs[i], true);
+            else if(ConfigSubtabHasError((ENUM_FUSION_CONFIG_PAGE)i))
+               FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_BAD, true);
+            else
+               FusionApplyPrimaryButtonStyle(m_configTabs[i], false);
+           }
          if(m_configProtectionCreated)
             for(int p = 0; p < FUSION_PROTECT_COUNT; ++p)
                FusionApplyPrimaryButtonStyle(m_protectTabs[p], p == (int)m_protectPage);
@@ -907,6 +940,7 @@ private:
       string status = "";
       bool valid = BuildPendingSettings(candidate, profileName, status);
       RefreshTheme();
+      UpdateTabStyles();
       return valid;
      }
 
@@ -1485,6 +1519,9 @@ public:
       m_origDragTrade   = true;
       m_origMouseScroll = true;
       m_configInputsValid = true;
+      m_cfgRiskValid = true;
+      m_cfgProtectionValid = true;
+      m_cfgSystemValid = true;
       m_hasCommittedSettings = false;
       m_cfgStatusText = "";
       m_cfgStatusColor = FUSION_CLR_MUTED;

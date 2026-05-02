@@ -40,8 +40,11 @@
 
       string strategyError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0);
+      m_cfgProtectionValid = true;
+      m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
-                             outSettings.fixedLot > 0.0 &&
+                             m_cfgRiskValid &&
                              magicValid &&
                              magicUnique &&
                              outSettings.magicNumber > 0 &&
@@ -296,6 +299,9 @@
                              strategyValid,
                              strategyError);
 
+      m_cfgRiskValid = lotValid;
+      m_cfgProtectionValid = protectionValid;
+      m_cfgSystemValid = (magicValid && magicUnique);
       m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && magicValid && magicUnique;
       CommitValidConfigDraft(outSettings, editable, parsedLot, parsedMagic);
 
