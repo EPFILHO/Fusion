@@ -61,8 +61,16 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: main-tab navigation into `CONFIG` skips the intermediate theme refresh and relies on the validation refresh as the final repaint.
 - Done: top-level `INICIAR`, `SALVAR`, and `CANCELAR` return early when no action is allowed, avoiding unnecessary command assembly or theme refresh.
 - Done: `PERFIS` list up/down controls return early at scroll limits instead of rebuilding the same list state.
+- Done: manual `PERFIS` scrolling now clamps the offset without forcing the selected row back into view, so up/down navigation works even when the active/selected profile starts at the first or last row.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
+
+Validation marker direction:
+
+- Prefer a modular validation map over one global message string: each domain records its own validity, message, tab, and subtab.
+- Show the detailed message in the owning page/subpage when it is open.
+- Mark tabs/subtabs with validation errors in a warning color while preserving the active-tab visual language.
+- Keep the current top `CONFIG` status as a summary until local status surfaces exist for `STRATS` and `FILTERS`.
 
 Validation/status messaging plan:
 

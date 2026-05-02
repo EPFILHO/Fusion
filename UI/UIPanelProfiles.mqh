@@ -317,11 +317,23 @@
       m_profileStatusOverrideUntil = 0;
      }
 
+   void                       ClampProfileOffset(void)
+     {
+      int maxOffset = m_profileCount - FUSION_PROFILE_VISIBLE_ROWS;
+      if(maxOffset < 0)
+         maxOffset = 0;
+
+      if(m_profileOffset > maxOffset)
+         m_profileOffset = maxOffset;
+      if(m_profileOffset < 0)
+         m_profileOffset = 0;
+     }
+
    void                       EnsureProfileSelectionVisible(void)
      {
       if(m_profileSelected < 0)
         {
-         m_profileOffset = 0;
+         ClampProfileOffset();
          return;
         }
 
@@ -331,21 +343,18 @@
       if(m_profileSelected >= m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS)
          m_profileOffset = m_profileSelected - FUSION_PROFILE_VISIBLE_ROWS + 1;
 
-      int maxOffset = m_profileCount - FUSION_PROFILE_VISIBLE_ROWS;
-      if(maxOffset < 0)
-         maxOffset = 0;
-      if(m_profileOffset > maxOffset)
-         m_profileOffset = maxOffset;
-      if(m_profileOffset < 0)
-         m_profileOffset = 0;
+      ClampProfileOffset();
      }
 
-   void                       UpdateProfileListView(void)
+   void                       UpdateProfileListView(const bool keepSelectionVisible=true)
      {
       if(!m_profilesTabCreated || !m_profilesBrowseCreated)
          return;
 
-      EnsureProfileSelectionVisible();
+      if(keepSelectionVisible)
+         EnsureProfileSelectionVisible();
+      else
+         ClampProfileOffset();
 
       string activeName = m_committedProfileName;
       string activeKey = m_profileStore.SanitizeProfileName(activeName);

@@ -1249,7 +1249,7 @@ private:
          if(m_profileOffset <= 0)
             return true;
          m_profileOffset--;
-         UpdateProfileListView();
+         UpdateProfileListView(false);
          return true;
         }
 
@@ -1259,7 +1259,7 @@ private:
          if(m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS >= m_profileCount)
             return true;
          m_profileOffset++;
-         UpdateProfileListView();
+         UpdateProfileListView(false);
          return true;
         }
 

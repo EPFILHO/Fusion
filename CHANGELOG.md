@@ -27,6 +27,7 @@
 - Mensagens de validacao de `PROTECT` ficaram mais especificas para spread, limites diarios, drawdown e streak.
 - A troca para a aba `CONFIG` deixou de fazer refresh de tema intermediario antes da validacao final, e botoes globais sem acao retornam cedo sem recalcular estado pesado.
 - Botoes de rolagem da lista de `PERFIS` agora retornam cedo quando ja estao no limite, evitando reconstruir a lista sem mudanca visual.
+- A rolagem manual de `PERFIS` deixou de ser puxada de volta pela linha selecionada; as setas preservam o offset dentro dos limites da lista.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
