@@ -162,6 +162,8 @@
      }
 
    void                       ApplyConfigStatus(const bool configInputsValid,
+                                                const bool profileValid,
+                                                const bool lotValid,
                                                 const bool magicValid,
                                                 const bool magicUnique,
                                                 const string magicConflictProfile,
@@ -187,10 +189,16 @@
         }
       else if(!configInputsValid)
         {
-         if(magicValid && !magicUnique)
-            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+         if(!profileValid)
+            outStatus = "Perfil invalido. Carregue ou crie outro.";
+         else if(!lotValid)
+            outStatus = "Lote Fixo invalido. Ajuste o volume.";
          else if(protectionError != "")
             outStatus = protectionError;
+         else if(!magicValid)
+            outStatus = "Magic invalido. Informe um numero inteiro positivo.";
+         else if(!magicUnique)
+            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
          else if(strategyError != "")
             outStatus = strategyError;
          else
@@ -271,6 +279,8 @@
 
       bool dirty = HasPendingChanges();
       ApplyConfigStatus(m_configInputsValid,
+                        profileValid,
+                        lotValid,
                         magicValid,
                         magicUnique,
                         magicConflictProfile,

@@ -53,8 +53,20 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: profile edit-mode transitions now reuse validation's theme refresh and call `ApplyVisibility(false)` only to rebuild the browse/edit visibility.
 - Done: deferred edit events now route through `UI/UIPanelDeferredEdits.mqh`, centralizing `ENDEDIT`/`CHANGE` refresh, normalization, validation, and redraw sequencing.
 - Done: header `SALVAR`/`CANCELAR` controls now start neutral before the first access-state snapshot is applied.
-- Next: continue auditing duplicate refreshes that remain in top-level no-op actions and blocked edit paths.
+- Done: `CONFIG` validation status now appears in the upper panel band and reports the first specific failing domain instead of defaulting to generic pink-field guidance.
+- Next: continue refining validation/status messaging in small steps, especially clipped `PERFIS` messages and more specific validation copy where needed.
 - Pending: keep auditing duplicate refresh calls in smaller compiled steps.
+- Pending: review top-level no-op actions and blocked edit paths after the validation/status pass.
+
+Validation/status messaging plan:
+
+- Keep status ownership local by domain: `CONFIG` validation messages belong to the config area; `PERFIS` selection/load/admin messages belong to the profiles area.
+- Move `CONFIG` validation feedback from the bottom edge to a more visible top-of-content position, just below subtabs and above the current subpage body, if the layout can fit without clipping.
+- Replace generic validation text such as "Corrija os campos em rosa antes de salvar." with the first specific failing rule, for example "Fim da News 2 deve ser maior que o inicio.".
+- Show one validation error at a time, ordered by the UI navigation order: `RISK`, `PROTECT/Geral`, `Spread`, `Session`, `News`, `Day`, `Drawdown`, `Streak`, `SYSTEM`, then strategy/filter validations if they share the same save path.
+- After the first error is fixed, show the next error in that same order; avoid dumping a combined list into the panel.
+- For `PERFIS`, keep messages in the profiles page, but adjust placement/width so selected-profile lock messages are not clipped.
+- Use the same visual language for status text where practical, but do not create a single global status bus unless repeated local handling becomes harder to maintain.
 
 Recommended order:
 
@@ -66,6 +78,7 @@ Recommended order:
 - Split validation from mutation where practical, especially around `BuildPendingSettings()`, protection validation, and strategy validation.
 - Replace temporary validation copies such as `ignoredProtection` / `ignoredStrategy` with an explicit "style-only validation" path if it can be done with a small diff.
 - Audit `RefreshConfigValidation()`, `SyncStrategyPanels()`, `SyncFilterPanels()`, and `ApplyVisibility()` call sites, but remove only proven duplicates.
+- Improve validation/status copy and placement in small UI-only steps: first `CONFIG`, then `PERFIS`, preserving tab-specific ownership of messages.
 - Keep ComboBox runtime helpers (`FusionResetComboRuntimeObjects()` / `FusionRaiseComboRuntimeObjects()`) until a dedicated experiment proves they are unnecessary.
 - Review `UIPanel.mqh` responsibilities and move small cohesive pieces into existing partial files only when it lowers risk and improves readability.
 
@@ -87,3 +100,5 @@ Manual smoke tests after each cleanup step:
 - After loading a free profile in the passive EA, selecting a profile that is still running elsewhere keeps `CARREGAR`, `DUPLICAR`, and `EXCLUIR` disabled.
 - `PERFIS > NOVO/DUPLICAR`: changing `Magic` in the local edit field should validate uniqueness, enable `SALVAR` only with a free positive integer, and save the new profile with that magic.
 - `CONFIG > PROTECT` edit fields still enable `SALVAR` when editable.
+- `CONFIG` invalid fields show one specific message at a time in the expected tab/subtab order, and the message is fully visible.
+- `PERFIS` status messages such as selected-profile locks are fully visible and stay in the profiles context.

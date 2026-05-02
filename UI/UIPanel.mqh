@@ -1145,7 +1145,7 @@ private:
                    FUSION_CLR_FRAME_BG,
                    FUSION_CLR_FRAME_BORDER))
          return false;
-      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 22, 576, FUSION_PANEL_WIDTH - 22, 600, "", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgStatus, "Fusion_cfg_status", 290, 36, FUSION_PANEL_WIDTH - 24, 56, "", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
