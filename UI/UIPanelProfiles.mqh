@@ -599,4 +599,185 @@
       return true;
      }
 
+   bool                       HandleProfilesClick(const string objectName)
+     {
+      for(int pr = 0; pr < FUSION_PROFILE_VISIBLE_ROWS; ++pr)
+        {
+         if(objectName == m_profileRows[pr].Name())
+           {
+            ReleaseButton(m_profileRows[pr]);
+            if(ProfileEditMode())
+               return true;
+
+            int idx = m_profileOffset + pr;
+            if(idx >= 0 && idx < m_profileCount)
+              {
+               m_profileSelected = idx;
+               SetProfileMode(FUSION_PROFILE_BROWSE);
+               UpdateProfileListView();
+              }
+            return true;
+           }
+        }
+
+      if(objectName == m_profileUpBtn.Name())
+        {
+         ReleaseButton(m_profileUpBtn);
+         if(m_profileOffset <= 0)
+            return true;
+         m_profileOffset--;
+         UpdateProfileListView(false);
+         return true;
+        }
+
+      if(objectName == m_profileDownBtn.Name())
+        {
+         ReleaseButton(m_profileDownBtn);
+         if(m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS >= m_profileCount)
+            return true;
+         m_profileOffset++;
+         UpdateProfileListView(false);
+         return true;
+        }
+
+      if(objectName == m_profileRefreshBtn.Name())
+        {
+         ReleaseButton(m_profileRefreshBtn);
+         RefreshProfileList(true);
+         SetProfileStatus("Lista de perfis atualizada.", FUSION_CLR_GOOD, true);
+         return true;
+        }
+
+      if(objectName == m_profileNewBtn.Name())
+        {
+         ReleaseButton(m_profileNewBtn);
+         if(CanStartNewProfile())
+           {
+            SetProfileMode(FUSION_PROFILE_NEW);
+            RefreshConfigValidation();
+            ApplyVisibility(false);
+           }
+         else
+            UpdateProfileListView();
+         return true;
+        }
+
+      if(objectName == m_profileLoadBtn.Name())
+        {
+         ReleaseButton(m_profileLoadBtn);
+         string selectedProfile = SelectedProfileName();
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canLoad)
+           {
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else
+               UpdateProfileListView();
+            return true;
+           }
+         QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
+         return true;
+        }
+
+      if(objectName == m_profileSaveAsBtn.Name())
+        {
+         ReleaseButton(m_profileSaveAsBtn);
+         string newProfileName = ProfileDraftName();
+         if(!ProfileEditMode())
+           {
+            UpdateProfileListView();
+            return true;
+           }
+
+         if(newProfileName != "" && m_profileStore.ProfileExists(newProfileName))
+           {
+            SetProfileStatus("Perfil ja existe. Escolha outro nome.", FUSION_CLR_WARN, true);
+            return true;
+           }
+
+         SEASettings pendingSettings;
+         string ignoredProfile = "";
+         string status = "";
+         bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status, newProfileName);
+         if(ActiveProfileEditable() && valid && newProfileName != "")
+           {
+            QueueSaveProfileCommand(newProfileName, pendingSettings, RELOAD_COLD);
+            SetProfileStatus("Solicitado salvamento do perfil " + newProfileName + ".", FUSION_CLR_GOOD, true);
+           }
+         else
+           {
+            if(status != "")
+               SetProfileStatus(status, FUSION_CLR_BAD, true);
+            else
+               UpdateProfileListView();
+           }
+         return true;
+        }
+
+      if(objectName == m_profileDuplicateBtn.Name())
+        {
+         ReleaseButton(m_profileDuplicateBtn);
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canDuplicate)
+           {
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else
+               UpdateProfileListView();
+            return true;
+           }
+         string selectedProfile = SelectedProfileName();
+         SEASettings sourceSettings;
+         if(m_profileStore.LoadProfile(selectedProfile, sourceSettings))
+           {
+            m_draftSettings = sourceSettings;
+            SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
+            SyncDraftSettingsToControls();
+            RefreshConfigValidation();
+            ApplyVisibility(false);
+            SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
+           }
+         else
+            SetProfileStatus("Nao foi possivel ler o perfil selecionado.", FUSION_CLR_BAD, true);
+         return true;
+        }
+
+      if(objectName == m_profileCancelBtn.Name())
+        {
+         ReleaseButton(m_profileCancelBtn);
+         SetProfileMode(FUSION_PROFILE_BROWSE);
+         RestoreCommittedDraftToControls();
+         RefreshConfigValidation();
+         ApplyVisibility(false);
+         return true;
+        }
+
+      if(objectName == m_profileDeleteBtn.Name())
+        {
+         ReleaseButton(m_profileDeleteBtn);
+         string selectedProfile = SelectedProfileName();
+         SUIProfileActionState profileActions = CurrentProfileActionState();
+         if(!profileActions.canDelete)
+           {
+            if(profileActions.blockedReason != "")
+               SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+            else if(profileActions.selectedIsDefault)
+               SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
+            else
+               UpdateProfileListView();
+            return true;
+           }
+         if(m_profileStore.DeleteProfile(selectedProfile))
+           {
+            RefreshProfileList(false);
+            SetProfileStatus("Perfil excluido: " + selectedProfile + ".", FUSION_CLR_GOOD, true);
+           }
+         else
+            SetProfileStatus("Nao foi possivel excluir o perfil.", FUSION_CLR_BAD, true);
+         return true;
+        }
+
+      return false;
+     }
+
 #endif

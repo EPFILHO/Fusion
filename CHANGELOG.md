@@ -39,6 +39,10 @@
 - Removido um redraw redundante de abas apos validar `CONFIG > SYSTEM`; validacao e sync de `STRATS`/`FILTERS` foram movidos para o partial de abas de sinais.
 - O status superior da `CONFIG` agora prioriza o erro da subaba visivel e usa um aviso generico quando o problema esta em outra subaba marcada em vermelho.
 - Edits invalidos em `CONFIG > PROTECT` agora contam como alteracao pendente visual, mantendo `SALVAR` bloqueado e `CANCELAR` disponivel como em `RISK`, `SYSTEM` e `STRATS`.
+- O roteamento de cliques da aba `PERFIS` foi movido para `UI/UIPanelProfiles.mqh`, reduzindo o papel do `UIPanel.mqh` sem alterar permissoes ou fluxo.
+- O roteamento de cliques e mudancas de `STRATS`/`FILTERS` foi concentrado em `UI/UIPanelSignalTabs.mqh`.
+- Restore apos troca de timeframe preserva o estado iniciado quando o ativo continua igual; troca de ativo segue bloqueando o runtime por seguranca.
+- O botao global `INICIAR/PAUSAR` agora nasce neutro durante a criacao da GUI e so recebe cor operacional apos o primeiro refresh de estado.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

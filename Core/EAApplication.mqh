@@ -779,8 +779,8 @@ private:
               }
             else
               {
-               // Regra de seguranca: em grafico real/demo o start exige clique manual.
-               m_started = m_settings.isTester;
+               // Troca de timeframe deve preservar o estado operacional; outros restores em real/demo exigem clique manual.
+               m_started = (m_settings.isTester || (restoredContext.deinitReason == REASON_CHARTCHANGE && restoredStarted));
               }
            }
         }

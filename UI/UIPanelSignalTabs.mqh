@@ -356,6 +356,79 @@
          SyncFilterPanels();
      }
 
+   bool                       HandleSignalPanelClick(const string objectName)
+     {
+      SUICommand tempCommand;
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL)
+            continue;
+         ResetCommand(tempCommand);
+         if(m_strategyPanels[sp].HandleClick(objectName, tempCommand))
+           {
+            if(!TryBeginActiveProfileEdit())
+               return true;
+            ToggleDraftFlag(tempCommand.type);
+            RefreshConfigValidation();
+            RefreshSignalDraftViews(true, false);
+            return true;
+           }
+        }
+
+      for(int fp = 0; fp < 2; ++fp)
+        {
+         if(m_filterPanels[fp] == NULL)
+            continue;
+         ResetCommand(tempCommand);
+         if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
+           {
+            if(!TryBeginActiveProfileEdit())
+               return true;
+            ToggleDraftFlag(tempCommand.type);
+            RefreshConfigValidation();
+            RefreshSignalDraftViews(false, true);
+            return true;
+           }
+        }
+
+      return false;
+     }
+
+   bool                       HandleSignalPanelChange(const int id,const string objectName)
+     {
+      if(id != CHARTEVENT_CUSTOM + ON_CHANGE)
+         return false;
+
+      if(!TryBeginActiveProfileEdit())
+         return false;
+
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         if(m_strategyPanels[sp] == NULL)
+            continue;
+         if(m_strategyPanels[sp].HandleChange(objectName, m_draftSettings))
+           {
+            RefreshConfigValidation();
+            RefreshSignalDraftViews(false, false);
+            return true;
+           }
+        }
+
+      for(int fp = 0; fp < 2; ++fp)
+        {
+         if(m_filterPanels[fp] == NULL)
+            continue;
+         if(m_filterPanels[fp].HandleChange(objectName, m_draftSettings))
+           {
+            RefreshConfigValidation();
+            RefreshSignalDraftViews(false, true);
+            return true;
+           }
+        }
+
+      return false;
+     }
+
    bool                       StrategySubtabHasError(const ENUM_FUSION_STRATEGY_PAGE page) const
      {
       return !m_strategyPageValid[(int)page];

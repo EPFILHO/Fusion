@@ -40,8 +40,9 @@
 
       if(!AddLabel(m_lblHeader, "Fusion_hdr", 10, 6, startX1 - 12, 26, FusionHeaderTitle(), FUSION_CLR_TITLE, 10))
          return false;
-      if(!AddButton(m_btnStart, "Fusion_btnStart", startX1, 4, startX2, 28, "INICIAR", FUSION_CLR_GOOD))
+      if(!AddButton(m_btnStart, "Fusion_btnStart", startX1, 4, startX2, 28, "INICIAR", FUSION_CLR_DISABLED))
          return false;
+      FusionApplyNeutralButtonStyle(m_btnStart);
       if(!AddButton(m_btnSave, "Fusion_btnSave", saveX1, 4, saveX2, 28, "SALVAR", FUSION_CLR_DISABLED))
          return false;
       FusionApplyNeutralButtonStyle(m_btnSave);

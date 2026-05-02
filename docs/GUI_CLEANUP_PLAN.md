@@ -73,6 +73,10 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: removed one redundant tab-style redraw after `CONFIG > SYSTEM` validation and moved signal-tab validation/sync helpers into `UI/UIPanelSignalTabs.mqh`.
 - Done: `CONFIG` status now reports the visible config/protection subpage error first and uses a generic red-subtab warning for errors outside the current view.
 - Done: invalid live edits in `CONFIG > PROTECT` now participate in pending-change detection without promoting invalid values into the draft.
+- Done: moved `PERFIS` click handling into `UI/UIPanelProfiles.mqh`, keeping profile permissions close to profile rendering/state.
+- Done: moved signal panel click/change routing into `UI/UIPanelSignalTabs.mqh`, keeping STRATS/FILTERS lifecycle in the signal partial.
+- Done: same-symbol chart changes preserve the started state on restore, while symbol changes still trigger the runtime safety block.
+- Done: global `INICIAR/PAUSAR` starts visually neutral during panel creation and receives its operational color only after state refresh.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
