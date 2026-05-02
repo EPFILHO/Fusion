@@ -43,6 +43,7 @@
 - O roteamento de cliques e mudancas de `STRATS`/`FILTERS` foi concentrado em `UI/UIPanelSignalTabs.mqh`.
 - Restore apos troca de timeframe preserva o estado iniciado quando o ativo continua igual; troca de ativo segue bloqueando o runtime por seguranca.
 - O botao global `INICIAR/PAUSAR` agora nasce neutro durante a criacao da GUI e so recebe cor operacional apos o primeiro refresh de estado.
+- O aviso superior de perfil bloqueado por outra instancia agora aparece tambem em `STATUS`, `RESULTS`, `PERFIS`, `STRATS` e `FILTERS`, evitando mensagens de pronto durante lock.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

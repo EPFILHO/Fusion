@@ -530,6 +530,11 @@
          status = m_snapshot.runtimeBlockReason;
          statusColor = FUSION_CLR_BAD;
         }
+      else if(ProfileBlockStatusText() != "")
+        {
+         status = ProfileBlockStatusText();
+         statusColor = FUSION_CLR_WARN;
+        }
       else if(m_snapshot.hasPosition)
         {
          status = "Posicao aberta: estrategias somente leitura.";
@@ -567,6 +572,11 @@
         {
          status = m_snapshot.runtimeBlockReason;
          statusColor = FUSION_CLR_BAD;
+        }
+      else if(ProfileBlockStatusText() != "")
+        {
+         status = ProfileBlockStatusText();
+         statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.hasPosition)
         {

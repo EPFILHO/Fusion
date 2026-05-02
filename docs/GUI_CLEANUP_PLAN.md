@@ -77,6 +77,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved signal panel click/change routing into `UI/UIPanelSignalTabs.mqh`, keeping STRATS/FILTERS lifecycle in the signal partial.
 - Done: same-symbol chart changes preserve the started state on restore, while symbol changes still trigger the runtime safety block.
 - Done: global `INICIAR/PAUSAR` starts visually neutral during panel creation and receives its operational color only after state refresh.
+- Done: parent/profile-lock status now has one helper and is shown outside `CONFIG`, including STRATS/FILTERS status summaries.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 

@@ -489,6 +489,15 @@ private:
       return (snapshot.startBlockedReason != "" || snapshot.activeProfileBlockedReason != "");
      }
 
+   string                     ProfileBlockStatusText(void) const
+     {
+      if(m_snapshot.startBlockedReason != "")
+         return "Perfil em uso por outra instancia. Carregue outro.";
+      if(m_snapshot.activeProfileBlockedReason != "")
+         return "Perfil carregado em outra instancia. Carregue outro.";
+      return "";
+     }
+
    bool                       RuntimeEditable(const SUIPanelSnapshot &snapshot) const
      {
       return (!snapshot.started && !HasLocalPositionLock(snapshot) && !snapshot.runtimeBlocked);
@@ -873,7 +882,10 @@ private:
 
    void                       ApplySharedParentStatus(void)
      {
-      if(HasParentTabError())
+      string profileBlockStatus = ProfileBlockStatusText();
+      if(profileBlockStatus != "")
+         SetSharedParentStatus(profileBlockStatus, FUSION_CLR_WARN);
+      else if(HasParentTabError())
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
       else if(m_configInputsValid &&
               !m_snapshot.runtimeBlocked &&

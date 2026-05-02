@@ -280,12 +280,12 @@
         }
       else if(m_snapshot.startBlockedReason != "")
         {
-         status = "Perfil em uso por outra instancia. Carregue outro.";
+         status = ProfileBlockStatusText();
          statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.activeProfileBlockedReason != "")
         {
-         status = "Perfil carregado em outra instancia. Carregue outro.";
+         status = ProfileBlockStatusText();
          statusColor = FUSION_CLR_WARN;
         }
       else if(dirty && m_configInputsValid)
