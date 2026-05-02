@@ -149,9 +149,9 @@
      }
 
    void                       CommitValidConfigDraft(SEASettings &outSettings,
-                                                     const bool editable,
-                                                     const double parsedLot,
-                                                     const int parsedMagic)
+                                                      const bool editable,
+                                                      const double parsedLot,
+                                                      const int parsedMagic)
      {
       if(!m_configInputsValid || !editable)
          return;
@@ -161,77 +161,99 @@
       m_draftSettings = outSettings;
      }
 
-   void                       ApplyConfigStatus(const bool configInputsValid,
-                                                const bool profileValid,
-                                                const bool lotValid,
-                                                const bool magicValid,
-                                                const bool magicUnique,
-                                                const string magicConflictProfile,
-                                                const string protectionError,
-                                                const string strategyError,
-                                                const bool dirty,
-                                                string &outStatus)
+   void                       SetConfigStatus(const string text,const color clr,string &outStatus)
      {
+      outStatus = text;
+      m_cfgStatusText = text;
+      m_cfgStatusColor = clr;
+      if(m_configTabCreated)
+        {
+         m_cfgStatus.Text(text);
+         m_cfgStatus.Color(clr);
+        }
+     }
+
+   void                       RestoreConfigStatus(void)
+     {
+      if(!m_configTabCreated)
+         return;
+      m_cfgStatus.Text(m_cfgStatusText);
+      m_cfgStatus.Color(m_cfgStatusColor);
+     }
+
+   void                       ApplyConfigStatus(const bool configInputsValid,
+                                                 const bool profileValid,
+                                                 const bool lotValid,
+                                                 const bool magicValid,
+                                                 const bool magicUnique,
+                                                 const string magicConflictProfile,
+                                                 const string protectionError,
+                                                 const string strategyError,
+                                                 const bool dirty,
+                                                 string &outStatus)
+     {
+      string status = "";
+      color statusColor = FUSION_CLR_MUTED;
       if(m_snapshot.runtimeBlocked)
         {
-         outStatus = m_snapshot.runtimeBlockReason;
-         m_cfgStatus.Color(FUSION_CLR_BAD);
+         status = m_snapshot.runtimeBlockReason;
+         statusColor = FUSION_CLR_BAD;
         }
       else if(m_snapshot.hasPosition)
         {
-         outStatus = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
+         status = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
+         statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.started)
         {
-         outStatus = "EA rodando: pause antes de editar configuracoes.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
+         status = "EA rodando: pause antes de editar configuracoes.";
+         statusColor = FUSION_CLR_WARN;
         }
       else if(!configInputsValid)
         {
          if(!profileValid)
-            outStatus = "Perfil invalido. Carregue ou crie outro.";
+            status = "Perfil invalido. Carregue ou crie outro.";
          else if(!lotValid)
-            outStatus = "Lote Fixo invalido. Ajuste o volume.";
+            status = "Lote Fixo invalido. Ajuste o volume.";
          else if(protectionError != "")
-            outStatus = protectionError;
+            status = protectionError;
          else if(!magicValid)
-            outStatus = "Magic invalido. Informe um numero inteiro positivo.";
+            status = "Magic invalido. Informe um numero inteiro positivo.";
          else if(!magicUnique)
-            outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+            status = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
          else if(strategyError != "")
-            outStatus = strategyError;
+            status = strategyError;
          else
-            outStatus = "Corrija os campos em rosa antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_BAD);
+            status = "Corrija os campos em rosa antes de salvar.";
+         statusColor = FUSION_CLR_BAD;
         }
       else if(m_snapshot.startBlockedReason != "")
         {
-         outStatus = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
+         status = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
+         statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.activeProfileBlockedReason != "")
         {
-         outStatus = "Perfil carregado em outra instancia. Carregue outro perfil antes de salvar.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
+         status = "Perfil carregado em outra instancia. Carregue outro perfil antes de salvar.";
+         statusColor = FUSION_CLR_WARN;
         }
       else if(dirty)
         {
-         outStatus = "Alteracoes pendentes. Salve para aplicar no EA.";
-         m_cfgStatus.Color(FUSION_CLR_GOOD);
+         status = "Alteracoes pendentes. Salve para aplicar no EA.";
+         statusColor = FUSION_CLR_GOOD;
         }
       else if(m_snapshot.started)
         {
-         outStatus = "EA em execucao com configuracao salva.";
-         m_cfgStatus.Color(FUSION_CLR_WARN);
+         status = "EA em execucao com configuracao salva.";
+         statusColor = FUSION_CLR_WARN;
         }
       else
         {
-         outStatus = "Configuracao salva e pronta para iniciar.";
-         m_cfgStatus.Color(FUSION_CLR_MUTED);
+         status = "Configuracao salva e pronta para iniciar.";
+         statusColor = FUSION_CLR_MUTED;
         }
 
-      m_cfgStatus.Text(outStatus);
+      SetConfigStatus(status, statusColor, outStatus);
      }
 
    bool                       BuildPendingSettings(SEASettings &outSettings,string &outProfileName,string &outStatus,const string targetProfileName="")

@@ -32,6 +32,8 @@ private:
    bool                       m_hasPendingCommand;
    bool                       m_configInputsValid;
    bool                       m_hasCommittedSettings;
+   string                     m_cfgStatusText;
+   color                      m_cfgStatusColor;
    CFusionHitGroup           *m_buildTarget;
    SUICommand                 m_pendingCommand;
    SUIPanelSnapshot           m_snapshot;
@@ -1018,6 +1020,8 @@ private:
          SetVisible(m_cfgSystemConflictLbl, systemVisible);
          SetVisible(m_cfgSystemConflictBtn, systemVisible);
         }
+      if(visible)
+         RestoreConfigStatus();
       SetVisible(m_cfgStatus, visible);
      }
 
@@ -1480,6 +1484,8 @@ public:
       m_origMouseScroll = true;
       m_configInputsValid = true;
       m_hasCommittedSettings = false;
+      m_cfgStatusText = "";
+      m_cfgStatusColor = FUSION_CLR_MUTED;
       m_buildTarget    = NULL;
       m_activeTab       = FUSION_TAB_STATUS;
       m_strategyPage    = FUSION_STRAT_OVERVIEW;
