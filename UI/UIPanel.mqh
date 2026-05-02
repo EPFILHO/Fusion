@@ -1181,7 +1181,7 @@ private:
             ReleaseButton(m_tabs[t]);
             ResetDialogMouseRouting();
             m_activeTab = (ENUM_FUSION_TAB)t;
-            ApplyVisibility();
+            ApplyVisibility(m_activeTab != FUSION_TAB_CONFIG);
             UpdateActiveTabContent(true);
             return true;
            }
@@ -1246,8 +1246,9 @@ private:
       if(objectName == m_profileUpBtn.Name())
         {
          ReleaseButton(m_profileUpBtn);
-         if(m_profileOffset > 0)
-            m_profileOffset--;
+         if(m_profileOffset <= 0)
+            return true;
+         m_profileOffset--;
          UpdateProfileListView();
          return true;
         }
@@ -1255,8 +1256,9 @@ private:
       if(objectName == m_profileDownBtn.Name())
         {
          ReleaseButton(m_profileDownBtn);
-         if(m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS < m_profileCount)
-            m_profileOffset++;
+         if(m_profileOffset + FUSION_PROFILE_VISIBLE_ROWS >= m_profileCount)
+            return true;
+         m_profileOffset++;
          UpdateProfileListView();
          return true;
         }

@@ -58,9 +58,11 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `CONFIG` status text/color now have explicit panel state and are restored when the config area becomes visible again.
 - Done: `STRATS > MA` validation now reports whether the fast period, slow period, or fast/slow ordering is invalid, and panel sync preserves invalid edit styling after tab navigation.
 - Done: `PROTECT` validation copy now names the invalid field for spread, daily limits, drawdown, and streak.
-- Next: audit duplicate refresh calls in smaller compiled steps.
-- Pending: keep auditing duplicate refresh calls in smaller compiled steps.
-- Pending: review top-level no-op actions and blocked edit paths after the validation/status pass.
+- Done: main-tab navigation into `CONFIG` skips the intermediate theme refresh and relies on the validation refresh as the final repaint.
+- Done: top-level `INICIAR`, `SALVAR`, and `CANCELAR` return early when no action is allowed, avoiding unnecessary command assembly or theme refresh.
+- Done: `PERFIS` list up/down controls return early at scroll limits instead of rebuilding the same list state.
+- Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
+- Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
 Validation/status messaging plan:
 

@@ -11,6 +11,8 @@
          QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
       else if(CanStart())
          QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
+      else
+         return true;
       RefreshTheme();
       return true;
      }
@@ -21,11 +23,14 @@
          return false;
 
       ReleaseButton(m_btnSave);
+      if(!CanSave())
+         return true;
+
       SEASettings pendingSettings;
       string profileName = "";
       string status = "";
       bool valid = BuildPendingSettings(pendingSettings, profileName, status);
-      if(valid && CanSave())
+      if(valid)
          QueueSaveProfileCommand(profileName, pendingSettings, RELOAD_COLD);
       RefreshTheme();
       return true;
@@ -45,7 +50,7 @@
             SetProfileStatus("Alteracoes descartadas. Perfil salvo restaurado.", FUSION_CLR_GOOD, true);
         }
       else
-         RefreshTheme();
+         return true;
       return true;
      }
 

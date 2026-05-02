@@ -25,6 +25,8 @@
 - O ultimo status da `CONFIG` agora fica guardado no estado do painel e e reaplicado quando a aba volta a ficar visivel.
 - A validacao da `STRATS > MA` agora informa separadamente periodo rapido, periodo lento ou ordem invalida entre as medias, e o sync da aba preserva a pintura de erro ao voltar de outras abas.
 - Mensagens de validacao de `PROTECT` ficaram mais especificas para spread, limites diarios, drawdown e streak.
+- A troca para a aba `CONFIG` deixou de fazer refresh de tema intermediario antes da validacao final, e botoes globais sem acao retornam cedo sem recalcular estado pesado.
+- Botoes de rolagem da lista de `PERFIS` agora retornam cedo quando ja estao no limite, evitando reconstruir a lista sem mudanca visual.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

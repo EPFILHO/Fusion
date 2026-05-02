@@ -229,12 +229,12 @@
         }
       else if(m_snapshot.startBlockedReason != "")
         {
-         status = "Perfil em uso por outra instancia. Carregue ou crie outro perfil antes de salvar.";
+         status = "Perfil em uso por outra instancia. Carregue outro.";
          statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.activeProfileBlockedReason != "")
         {
-         status = "Perfil carregado em outra instancia. Carregue outro perfil antes de salvar.";
+         status = "Perfil carregado em outra instancia. Carregue outro.";
          statusColor = FUSION_CLR_WARN;
         }
       else if(dirty)
