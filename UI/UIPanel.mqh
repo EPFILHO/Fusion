@@ -119,62 +119,6 @@ private:
 
 #include "UIPanelDeferredEdits.mqh"
 
-   bool                       ValidateStrategyPanels(SEASettings &candidate,const bool editable,string &error)
-     {
-      error = "";
-      bool allValid = true;
-      bool hasSelectedStrategy = HasSelectedStrategy(candidate);
-      m_strategyPageValid[(int)FUSION_STRAT_OVERVIEW] = hasSelectedStrategy;
-      if(!hasSelectedStrategy)
-        {
-         allValid = false;
-         error = "Selecione ao menos uma estrategia.";
-        }
-      for(int sp = 0; sp < 3; ++sp)
-        {
-         bool panelValid = true;
-         string panelError = "";
-         if(m_strategyPanels[sp] == NULL)
-            panelValid = true;
-         else
-            panelValid = m_strategyPanels[sp].Validate(candidate, editable, panelError);
-
-         m_strategyPageValid[sp + 1] = panelValid;
-         if(!panelValid)
-           {
-            allValid = false;
-            if(error == "")
-               error = panelError;
-           }
-       }
-      return allValid;
-     }
-
-   bool                       ValidateFilterPanels(SEASettings &candidate,const bool editable,string &error)
-     {
-      error = "";
-      bool allValid = true;
-      m_filterPageValid[(int)FUSION_FILTER_OVERVIEW] = true;
-      for(int fp = 0; fp < 2; ++fp)
-        {
-         bool panelValid = true;
-         string panelError = "";
-         if(m_filterPanels[fp] == NULL)
-            panelValid = true;
-         else
-            panelValid = m_filterPanels[fp].Validate(candidate, editable, panelError);
-
-         m_filterPageValid[fp + 1] = panelValid;
-         if(!panelValid)
-           {
-            allValid = false;
-            if(error == "")
-               error = panelError;
-           }
-        }
-      return allValid;
-     }
-
    void                       QueueSimpleCommand(const ENUM_UI_COMMAND type)
      {
       ResetCommand(m_pendingCommand);
@@ -799,6 +743,8 @@ private:
          return true;
       if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
          return true;
+      if(HasProtectionPendingChanges())
+         return true;
       if(m_draftSettings.maFastTimeframe != m_committedSettings.maFastTimeframe)
          return true;
       if(m_draftSettings.maSlowTimeframe != m_committedSettings.maSlowTimeframe)
@@ -1030,30 +976,6 @@ private:
       RefreshTheme();
       UpdateTabStyles();
       return valid;
-     }
-
-   void                       SyncStrategyPanels(void)
-     {
-      for(int i = 0; i < 3; ++i)
-         if(m_strategyPanels[i] != NULL)
-             m_strategyPanels[i].Sync(m_draftSettings, CanEditActiveProfile());
-     }
-
-   void                       SyncFilterPanels(void)
-     {
-      for(int j = 0; j < 2; ++j)
-         if(m_filterPanels[j] != NULL)
-             m_filterPanels[j].Sync(m_draftSettings, CanEditActiveProfile());
-     }
-
-   void                       RefreshSignalDraftViews(const bool syncStrategies,const bool syncFilters)
-     {
-      if(m_strategyTabCreated || m_filterTabCreated)
-         UpdateOverviews();
-      if(syncStrategies && m_strategyTabCreated)
-         SyncStrategyPanels();
-      if(syncFilters && m_filterTabCreated)
-         SyncFilterPanels();
      }
 
    void                       UpdateActiveTabContent(const bool runtimeStateChanged)
@@ -1293,7 +1215,6 @@ private:
             return true;
          m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
          RefreshConfigValidation();
-         UpdateTabStyles();
          return true;
         }
       if(HandleProtectionClick(objectName))
@@ -1639,7 +1560,10 @@ public:
       m_configSystemCreated = false;
       m_profileMode     = FUSION_PROFILE_BROWSE;
       for(int protectIndex = 0; protectIndex < FUSION_PROTECT_COUNT; ++protectIndex)
+        {
          m_protectPageValid[protectIndex] = true;
+         m_protectPageError[protectIndex] = "";
+        }
       for(int strategyIndex = 0; strategyIndex < FUSION_STRAT_COUNT; ++strategyIndex)
          m_strategyPageValid[strategyIndex] = true;
       for(int filterIndex = 0; filterIndex < FUSION_FILTER_COUNT; ++filterIndex)

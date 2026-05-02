@@ -205,13 +205,44 @@
       m_cfgStatus.Color(m_cfgStatusColor);
      }
 
+   string                     CurrentConfigPageError(const bool lotValid,
+                                                     const bool magicValid,
+                                                     const bool magicUnique,
+                                                     const string magicConflictProfile)
+     {
+      if(m_configPage == FUSION_CFG_RISK)
+        {
+         if(!lotValid)
+            return "Lote Fixo invalido. Ajuste o volume.";
+         return "";
+        }
+
+      if(m_configPage == FUSION_CFG_PROTECTION)
+        {
+         string protectError = ProtectSubtabError(m_protectPage);
+         if(protectError != "")
+            return protectError;
+         return "";
+        }
+
+      if(m_configPage == FUSION_CFG_SYSTEM)
+        {
+         if(!magicValid)
+            return "Magic invalido. Informe um numero inteiro positivo.";
+         if(!magicUnique)
+            return "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+         return "";
+        }
+
+      return "";
+     }
+
    void                       ApplyConfigStatus(const bool configStatusValid,
                                                  const bool profileValid,
                                                  const bool lotValid,
                                                  const bool magicValid,
                                                  const bool magicUnique,
                                                  const string magicConflictProfile,
-                                                 const string protectionError,
                                                  const bool dirty,
                                                  string &outStatus)
      {
@@ -236,16 +267,15 @@
         {
          if(!profileValid)
             status = "Perfil invalido. Carregue ou crie outro.";
-         else if(!lotValid)
-            status = "Lote Fixo invalido. Ajuste o volume.";
-         else if(protectionError != "")
-            status = protectionError;
-         else if(!magicValid)
-            status = "Magic invalido. Informe um numero inteiro positivo.";
-         else if(!magicUnique)
-            status = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
          else
-            status = "Corrija os campos em rosa antes de salvar.";
+           {
+            status = CurrentConfigPageError(lotValid,
+                                            magicValid,
+                                            magicUnique,
+                                            magicConflictProfile);
+            if(status == "")
+               status = "Corrija subaba(s) em vermelho.";
+           }
          statusColor = FUSION_CLR_BAD;
         }
       else if(m_snapshot.startBlockedReason != "")
@@ -342,7 +372,6 @@
                         magicValid,
                         magicUnique,
                         magicConflictProfile,
-                        protectionError,
                         dirty,
                         outStatus);
       return m_configInputsValid;

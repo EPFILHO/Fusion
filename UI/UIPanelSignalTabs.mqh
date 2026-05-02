@@ -276,6 +276,86 @@
       return (settings.useMACross || settings.useRSI || settings.useBollinger);
      }
 
+   bool                       ValidateStrategyPanels(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      bool allValid = true;
+      bool hasSelectedStrategy = HasSelectedStrategy(candidate);
+      m_strategyPageValid[(int)FUSION_STRAT_OVERVIEW] = hasSelectedStrategy;
+      if(!hasSelectedStrategy)
+        {
+         allValid = false;
+         error = "Selecione ao menos uma estrategia.";
+        }
+      for(int sp = 0; sp < 3; ++sp)
+        {
+         bool panelValid = true;
+         string panelError = "";
+         if(m_strategyPanels[sp] == NULL)
+            panelValid = true;
+         else
+            panelValid = m_strategyPanels[sp].Validate(candidate, editable, panelError);
+
+         m_strategyPageValid[sp + 1] = panelValid;
+         if(!panelValid)
+           {
+            allValid = false;
+            if(error == "")
+               error = panelError;
+           }
+       }
+      return allValid;
+     }
+
+   bool                       ValidateFilterPanels(SEASettings &candidate,const bool editable,string &error)
+     {
+      error = "";
+      bool allValid = true;
+      m_filterPageValid[(int)FUSION_FILTER_OVERVIEW] = true;
+      for(int fp = 0; fp < 2; ++fp)
+        {
+         bool panelValid = true;
+         string panelError = "";
+         if(m_filterPanels[fp] == NULL)
+            panelValid = true;
+         else
+            panelValid = m_filterPanels[fp].Validate(candidate, editable, panelError);
+
+         m_filterPageValid[fp + 1] = panelValid;
+         if(!panelValid)
+           {
+            allValid = false;
+            if(error == "")
+               error = panelError;
+           }
+        }
+      return allValid;
+     }
+
+   void                       SyncStrategyPanels(void)
+     {
+      for(int i = 0; i < 3; ++i)
+         if(m_strategyPanels[i] != NULL)
+             m_strategyPanels[i].Sync(m_draftSettings, CanEditActiveProfile());
+     }
+
+   void                       SyncFilterPanels(void)
+     {
+      for(int j = 0; j < 2; ++j)
+         if(m_filterPanels[j] != NULL)
+             m_filterPanels[j].Sync(m_draftSettings, CanEditActiveProfile());
+     }
+
+   void                       RefreshSignalDraftViews(const bool syncStrategies,const bool syncFilters)
+     {
+      if(m_strategyTabCreated || m_filterTabCreated)
+         UpdateOverviews();
+      if(syncStrategies && m_strategyTabCreated)
+         SyncStrategyPanels();
+      if(syncFilters && m_filterTabCreated)
+         SyncFilterPanels();
+     }
+
    bool                       StrategySubtabHasError(const ENUM_FUSION_STRATEGY_PAGE page) const
      {
       return !m_strategyPageValid[(int)page];

@@ -36,6 +36,9 @@
 - Quando a aba atual esta valida mas outra aba mae tem erro, o status superior mostra um aviso generico para corrigir as abas em vermelho.
 - `STATUS`, `RESULTS` e `PERFIS` tambem exibem o aviso superior generico quando alguma aba mae possui erro marcado em vermelho.
 - `STRATS` agora exige ao menos uma estrategia selecionada e as mensagens de pronto foram alinhadas para indicar quando o EA esta pronto para operar.
+- Removido um redraw redundante de abas apos validar `CONFIG > SYSTEM`; validacao e sync de `STRATS`/`FILTERS` foram movidos para o partial de abas de sinais.
+- O status superior da `CONFIG` agora prioriza o erro da subaba visivel e usa um aviso generico quando o problema esta em outra subaba marcada em vermelho.
+- Edits invalidos em `CONFIG > PROTECT` agora contam como alteracao pendente visual, mantendo `SALVAR` bloqueado e `CANCELAR` disponivel como em `RISK`, `SYSTEM` e `STRATS`.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
