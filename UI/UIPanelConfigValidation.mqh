@@ -37,7 +37,7 @@
       string magicConflictProfile = "";
       if(editable)
         {
-         magicValid = ParsedDraftMagicNumber(parsedMagic);
+         magicValid = ParsedConfigMagicNumber(parsedMagic);
          if(magicValid)
            {
             outSettings.magicNumber = parsedMagic;
@@ -106,7 +106,7 @@
         }
 
       if(editable)
-         magicValid = ParsedDraftMagicNumber(parsedMagic);
+         magicValid = ParsedConfigMagicNumber(parsedMagic);
       else
         {
          parsedMagic = m_draftSettings.magicNumber;
@@ -286,6 +286,16 @@
       else if(m_snapshot.activeProfileBlockedReason != "")
         {
          status = ProfileBlockStatusText();
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(HasProfileTabError())
+        {
+         status = "Corrija aba(s) em vermelho.";
+         statusColor = FUSION_CLR_BAD;
+        }
+      else if(ProfileEditMode())
+        {
+         status = "Conclua ou cancele PERFIS.";
          statusColor = FUSION_CLR_WARN;
         }
       else if(dirty && m_configInputsValid)

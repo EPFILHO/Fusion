@@ -14,6 +14,8 @@
    ENUM_FUSION_PROFILE_MODE   m_profileMode;
    bool                       m_profilesBrowseCreated;
    bool                       m_profilesEditCreated;
+   bool                       m_profileTabValid;
+   string                     m_profileTabError;
 
    CLabel                     m_profilesHdr;
    CLabel                     m_profilesHint;
@@ -187,6 +189,72 @@
       if(magicNumber <= 0)
          return false;
       return !m_profileStore.FindProfileByMagicNumber(magicNumber, profileName, conflictProfile);
+     }
+
+   bool                       ProfileEditDraftState(string &draftName,
+                                                    int &draftMagic,
+                                                    bool &validName,
+                                                    bool &nameAvailable,
+                                                    bool &magicValid,
+                                                    bool &magicAvailable,
+                                                    string &magicConflictProfile,
+                                                    string &error)
+     {
+      draftName = ProfileDraftName();
+      draftMagic = 0;
+      validName = !FusionIsBlank(draftName);
+      nameAvailable = validName && !m_profileStore.ProfileExists(draftName);
+      magicValid = ParsedProfileMagicNumber(draftMagic);
+      magicAvailable = magicValid;
+      magicConflictProfile = "";
+      error = "";
+
+      if(validName && magicValid)
+         magicAvailable = MagicAvailableForProfile(draftMagic, draftName, magicConflictProfile);
+
+      if(validName && !nameAvailable)
+         error = "Nome ja existe. Escolha outro nome.";
+      else if(validName && !magicValid)
+         error = "Magic invalido. Informe um numero inteiro positivo.";
+      else if(validName && !magicAvailable)
+         error = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+
+      return (validName && nameAvailable && magicValid && magicAvailable);
+     }
+
+   void                       RefreshProfileValidationState(void)
+     {
+      m_profileTabValid = true;
+      m_profileTabError = "";
+      if(!ProfileEditMode() || !m_profilesEditCreated)
+         return;
+
+      string draftName = "";
+      int draftMagic = 0;
+      bool validName = false;
+      bool nameAvailable = false;
+      bool magicValid = false;
+      bool magicAvailable = false;
+      string magicConflictProfile = "";
+      string error = "";
+      ProfileEditDraftState(draftName,
+                            draftMagic,
+                            validName,
+                            nameAvailable,
+                            magicValid,
+                            magicAvailable,
+                            magicConflictProfile,
+                            error);
+      if(error != "")
+        {
+         m_profileTabValid = false;
+         m_profileTabError = error;
+        }
+     }
+
+   bool                       HasProfileTabError(void) const
+     {
+      return !m_profileTabValid;
      }
 
    void                       ResetProfileActionState(SUIProfileActionState &state)
@@ -397,25 +465,39 @@
 
       SUIAccessState access = CurrentAccessState();
       SUIProfileActionState profileActions = BuildProfileActionState(access);
-      bool validName = HasValidProfileDraftName();
       bool selected = profileActions.selected;
       bool selectedIsActive = profileActions.selectedIsActive;
       bool selectedIsDefault = profileActions.selectedIsDefault;
       bool selectedRuntimeLocked = profileActions.selectedRuntimeLocked;
       bool selectedActiveProfileLocked = profileActions.selectedActiveProfileLocked;
-      bool draftExists = (m_profilesEditCreated && validName && m_profileStore.ProfileExists(ProfileDraftName()));
       bool editMode = ProfileEditMode();
       bool duplicateMode = ProfileDuplicateMode();
       int draftMagic = 0;
+      string draftName = "";
       string magicConflictProfile = "";
-      bool draftMagicValid = true;
-      bool magicAvailableForDraft = true;
+      string profileDraftError = "";
+      bool validName = false;
+      bool nameAvailable = false;
+      bool draftMagicValid = false;
+      bool magicAvailableForDraft = false;
+      bool profileDraftReady = false;
       if(editMode)
+         profileDraftReady = ProfileEditDraftState(draftName,
+                                                   draftMagic,
+                                                   validName,
+                                                   nameAvailable,
+                                                   draftMagicValid,
+                                                   magicAvailableForDraft,
+                                                   magicConflictProfile,
+                                                   profileDraftError);
+      else
         {
-         draftMagicValid = ParsedDraftMagicNumber(draftMagic);
-         if(validName && draftMagicValid)
-            magicAvailableForDraft = MagicAvailableForProfile(draftMagic, ProfileDraftName(), magicConflictProfile);
+         validName = HasValidProfileDraftName();
+         nameAvailable = true;
+         draftMagicValid = true;
+         magicAvailableForDraft = true;
         }
+      RefreshProfileValidationState();
 
       if(m_profilesEditCreated)
         {
@@ -440,7 +522,7 @@
 
       if(m_profilesEditCreated)
         {
-         if(editMode && access.activeProfileEditable && access.configInputsValid && validName && !draftExists && draftMagicValid && magicAvailableForDraft)
+         if(editMode && access.activeProfileEditable && access.configInputsValid && profileDraftReady)
             FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
          else
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
@@ -472,16 +554,16 @@
          SetProfileStatus("Perfis bloqueados enquanto o EA roda/gerencia posicao.", FUSION_CLR_WARN);
       else if(editMode && !validName)
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
-      else if(editMode && draftExists)
-         SetProfileStatus("Nome ja existe. Escolha outro nome ou cancele.", FUSION_CLR_WARN);
+      else if(editMode && !nameAvailable)
+         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
       else if(editMode && !draftMagicValid)
-         SetProfileStatus("Magic invalido. Informe um numero inteiro positivo.", FUSION_CLR_WARN);
+         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
       else if(editMode && !magicAvailableForDraft)
-         SetProfileStatus("Magic ja usado pelo perfil " + magicConflictProfile + ".", FUSION_CLR_WARN);
+         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
       else if(editMode && duplicateMode)
-         SetProfileStatus("Copia: " + ProfileDraftName() + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
+         SetProfileStatus("Copia: " + draftName + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
       else if(editMode)
-         SetProfileStatus("Novo perfil: " + ProfileDraftName() + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
+         SetProfileStatus("Novo perfil: " + draftName + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(access.hasPendingChanges)
@@ -689,16 +771,38 @@
             return true;
            }
 
-         if(newProfileName != "" && m_profileStore.ProfileExists(newProfileName))
+         int draftMagic = 0;
+         string draftName = "";
+         string magicConflictProfile = "";
+         string profileDraftError = "";
+         bool validName = false;
+         bool nameAvailable = false;
+         bool draftMagicValid = false;
+         bool magicAvailableForDraft = false;
+         bool profileDraftReady = ProfileEditDraftState(draftName,
+                                                        draftMagic,
+                                                        validName,
+                                                        nameAvailable,
+                                                        draftMagicValid,
+                                                        magicAvailableForDraft,
+                                                        magicConflictProfile,
+                                                        profileDraftError);
+         RefreshProfileValidationState();
+         if(!profileDraftReady)
            {
-            SetProfileStatus("Perfil ja existe. Escolha outro nome.", FUSION_CLR_WARN, true);
+            if(profileDraftError != "")
+               SetProfileStatus(profileDraftError, FUSION_CLR_BAD, true);
+            else
+               UpdateProfileListView();
+            RefreshConfigValidation();
             return true;
            }
 
          SEASettings pendingSettings;
          string ignoredProfile = "";
          string status = "";
-         bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status, newProfileName);
+         bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status);
+         pendingSettings.magicNumber = draftMagic;
          if(ActiveProfileEditable() && valid && newProfileName != "")
            {
             QueueSaveProfileCommand(newProfileName, pendingSettings, RELOAD_COLD);

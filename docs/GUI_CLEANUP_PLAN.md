@@ -78,6 +78,10 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: same-symbol chart changes preserve the started state on restore, while symbol changes still trigger the runtime safety block.
 - Done: global `INICIAR/PAUSAR` starts visually neutral during panel creation and receives its operational color only after state refresh.
 - Done: parent/profile-lock status now has one helper and is shown outside `CONFIG`, including STRATS/FILTERS status summaries.
+- Done: moved `PROTECT` validation and pending-change helpers into `UI/UIPanelProtectionValidation.mqh`, leaving `UI/UIPanelProtectionTabs.mqh` focused on layout, visibility, sync, and clicks.
+- Done: `PERFIS > NOVO/DUPLICAR` now owns its Magic validation state and red parent-tab marker instead of marking `CONFIG > SYSTEM`.
+- Done: header action buttons remain neutral through panel construction and receive operational colors only after the first settled snapshot refresh.
+- Done: shared parent status is recalculated during tab visibility changes, so profile-specific errors stay local to `PERFIS` while other tabs show only the generic red-tab warning.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 

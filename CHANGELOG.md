@@ -44,6 +44,10 @@
 - Restore apos troca de timeframe preserva o estado iniciado quando o ativo continua igual; troca de ativo segue bloqueando o runtime por seguranca.
 - O botao global `INICIAR/PAUSAR` agora nasce neutro durante a criacao da GUI e so recebe cor operacional apos o primeiro refresh de estado.
 - O aviso superior de perfil bloqueado por outra instancia agora aparece tambem em `STATUS`, `RESULTS`, `PERFIS`, `STRATS` e `FILTERS`, evitando mensagens de pronto durante lock.
+- A validacao e deteccao de alteracoes pendentes de `PROTECT` foram movidas para `UI/UIPanelProtectionValidation.mqh`, deixando o partial principal de protecao mais focado em layout, visibilidade e cliques.
+- O `Magic` editado em `PERFIS > NOVO/DUPLICAR` passou a pertencer ao estado de validacao da aba `PERFIS`, sem marcar `CONFIG > SYSTEM`; outras abas mostram o aviso generico quando `PERFIS` tem erro.
+- Os botoes globais permanecem neutros durante a criacao inicial da GUI e so recebem cor operacional apos o primeiro snapshot/refresh final.
+- A mensagem superior compartilhada agora e recalculada na troca de abas, evitando vazamento do erro especifico de `PERFIS` para `STATUS`/`RESULTS` e restaurando o detalhe ao voltar para `PERFIS`.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

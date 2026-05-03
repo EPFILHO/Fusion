@@ -10,6 +10,7 @@
    CLabel                     m_parentStatus;
    string                     m_parentStatusText;
    color                      m_parentStatusColor;
+   bool                       m_headerButtonsReady;
 
    void                       SyncHeaderProfile(const string profileName)
      {
@@ -62,6 +63,13 @@
 
    void                       UpdateHeaderButtons(void)
      {
+      if(!m_headerButtonsReady)
+        {
+         m_btnStart.Text("INICIAR");
+         FusionApplyNeutralButtonStyle(m_btnStart);
+         return;
+        }
+
       SUIAccessState access = CurrentAccessState();
       if(m_snapshot.runtimeBlocked)
         {
@@ -89,6 +97,15 @@
 
    void                       RefreshHeaderTheme(void)
      {
+      if(!m_headerButtonsReady)
+        {
+         FusionApplyNeutralButtonStyle(m_btnStart);
+         FusionApplyNeutralButtonStyle(m_btnSave);
+         FusionApplyNeutralButtonStyle(m_btnCancel);
+         SyncHeaderProfile(DraftProfileName());
+         return;
+        }
+
       SUIAccessState access = CurrentAccessState();
       if(!access.runtimeEditable || !access.hasPendingChanges)
          FusionApplyNeutralButtonStyle(m_btnSave);

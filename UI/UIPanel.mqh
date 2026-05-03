@@ -630,19 +630,23 @@ private:
       return access.canCancel;
      }
 
-   bool                       ParsedDraftMagicNumber(int &magicNumber)
+   bool                       ParsedProfileMagicNumber(int &magicNumber)
      {
       magicNumber = 0;
-      if(ProfileEditMode() && m_profilesEditCreated)
-        {
-         string profileMagicText = FusionTrimCopy(LiveEditText(m_profileMagicEdit));
-         if(!FusionIsIntegerText(profileMagicText, false))
-            return false;
+      if(!m_profilesEditCreated)
+         return false;
 
-         magicNumber = (int)StringToInteger(profileMagicText);
-         return (magicNumber > 0);
-        }
+      string profileMagicText = FusionTrimCopy(LiveEditText(m_profileMagicEdit));
+      if(!FusionIsIntegerText(profileMagicText, false))
+         return false;
 
+      magicNumber = (int)StringToInteger(profileMagicText);
+      return (magicNumber > 0);
+     }
+
+   bool                       ParsedConfigMagicNumber(int &magicNumber)
+     {
+      magicNumber = 0;
       if(!m_configSystemCreated)
         {
          magicNumber = m_draftSettings.magicNumber;
@@ -862,7 +866,7 @@ private:
 
    bool                       HasParentTabError(void) const
      {
-      return (HasStrategyTabError() || HasFilterTabError() || HasConfigTabError());
+      return (HasStrategyTabError() || HasFilterTabError() || HasProfileTabError() || HasConfigTabError());
      }
 
    bool                       UsesSharedParentStatus(void) const
@@ -885,8 +889,12 @@ private:
       string profileBlockStatus = ProfileBlockStatusText();
       if(profileBlockStatus != "")
          SetSharedParentStatus(profileBlockStatus, FUSION_CLR_WARN);
+      else if(m_activeTab == FUSION_TAB_PROFILES && HasProfileTabError())
+         SetSharedParentStatus(m_profileTabError, FUSION_CLR_BAD);
       else if(HasParentTabError())
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
+      else if(ProfileEditMode())
+         SetSharedParentStatus("Conclua ou cancele PERFIS.", FUSION_CLR_WARN);
       else if(m_configInputsValid &&
               !m_snapshot.runtimeBlocked &&
               !m_snapshot.started &&
@@ -914,6 +922,8 @@ private:
          else if(i == (int)FUSION_TAB_STRATEGIES && HasStrategyTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else if(i == (int)FUSION_TAB_FILTERS && HasFilterTabError())
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
+         else if(i == (int)FUSION_TAB_PROFILES && HasProfileTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
@@ -947,6 +957,7 @@ private:
       SEASettings candidate;
       string profileName = "";
       string status = "";
+      RefreshProfileValidationState();
       bool valid = BuildPendingSettings(candidate, profileName, status);
       ApplySharedParentStatus();
       RefreshSharedParentStatusVisibility();
@@ -1113,6 +1124,7 @@ private:
       if(m_profilesTabCreated)
          SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
+      ApplySharedParentStatus();
       RefreshSharedParentStatusVisibility();
       if(refreshTheme)
          RefreshTheme();
@@ -1306,6 +1318,7 @@ public:
       m_cfgStatusColor = FUSION_CLR_MUTED;
       m_parentStatusText = "";
       m_parentStatusColor = FUSION_CLR_MUTED;
+      m_headerButtonsReady = false;
       m_strategyStatusText = "";
       m_filterStatusText = "";
       m_strategyStatusColor = FUSION_CLR_MUTED;
@@ -1342,6 +1355,8 @@ public:
       m_profileSelected = -1;
       m_profilesBrowseCreated = false;
       m_profilesEditCreated = false;
+      m_profileTabValid = true;
+      m_profileTabError = "";
       m_profileStatusOverride = "";
       m_profileStatusOverrideColor = FUSION_CLR_MUTED;
       m_profileStatusOverrideUntil = 0;
@@ -1433,6 +1448,7 @@ public:
       if(!BuildAllContent())  { Destroy(REASON_REMOVE); return false; }
       LoadSettings(snapshot);
       Update(snapshot);
+      m_headerButtonsReady = true;
       ApplyVisibility();
       return true;
      }

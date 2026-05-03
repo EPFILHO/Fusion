@@ -550,10 +550,15 @@
          status = (strategyError != "" ? strategyError : "Corrija os campos de estrategias.");
          statusColor = FUSION_CLR_BAD;
         }
-      else if(HasConfigTabError() || HasFilterTabError())
+      else if(HasConfigTabError() || HasFilterTabError() || HasProfileTabError())
         {
          status = "Corrija aba(s) em vermelho.";
          statusColor = FUSION_CLR_BAD;
+        }
+      else if(ProfileEditMode())
+        {
+         status = "Conclua ou cancele PERFIS.";
+         statusColor = FUSION_CLR_WARN;
         }
       else
         {
@@ -593,10 +598,15 @@
          status = (filterError != "" ? filterError : "Corrija os campos de filtros.");
          statusColor = FUSION_CLR_BAD;
         }
-      else if(HasConfigTabError() || HasStrategyTabError())
+      else if(HasConfigTabError() || HasStrategyTabError() || HasProfileTabError())
         {
          status = "Corrija aba(s) em vermelho.";
          statusColor = FUSION_CLR_BAD;
+        }
+      else if(ProfileEditMode())
+        {
+         status = "Conclua ou cancele PERFIS.";
+         statusColor = FUSION_CLR_WARN;
         }
       else
         {
