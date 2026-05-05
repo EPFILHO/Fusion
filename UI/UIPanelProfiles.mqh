@@ -147,18 +147,6 @@
       return baseName + "_copy_" + IntegerToString((int)GetTickCount());
      }
 
-   string                     ProfileDraftName(void)
-     {
-      if(!m_profilesEditCreated)
-         return "";
-      return m_profileStore.SanitizeProfileName(FusionTrimCopy(LiveEditText(m_profileNewEdit)));
-     }
-
-   bool                       HasValidProfileDraftName(void)
-     {
-      return !FusionIsBlank(ProfileDraftName());
-     }
-
    string                     SelectedProfileName(void)
      {
       if(m_profileSelected < 0 || m_profileSelected >= m_profileCount)
@@ -183,79 +171,7 @@
       return (sanitized != "" && defaultKey != "" && sanitized == defaultKey);
      }
 
-   bool                       MagicAvailableForProfile(const int magicNumber,const string profileName,string &conflictProfile)
-     {
-      conflictProfile = "";
-      if(magicNumber <= 0)
-         return false;
-      return !m_profileStore.FindProfileByMagicNumber(magicNumber, profileName, conflictProfile);
-     }
-
-   bool                       ProfileEditDraftState(string &draftName,
-                                                    int &draftMagic,
-                                                    bool &validName,
-                                                    bool &nameAvailable,
-                                                    bool &magicValid,
-                                                    bool &magicAvailable,
-                                                    string &magicConflictProfile,
-                                                    string &error)
-     {
-      draftName = ProfileDraftName();
-      draftMagic = 0;
-      validName = !FusionIsBlank(draftName);
-      nameAvailable = validName && !m_profileStore.ProfileExists(draftName);
-      magicValid = ParsedProfileMagicNumber(draftMagic);
-      magicAvailable = magicValid;
-      magicConflictProfile = "";
-      error = "";
-
-      if(validName && magicValid)
-         magicAvailable = MagicAvailableForProfile(draftMagic, draftName, magicConflictProfile);
-
-      if(validName && !nameAvailable)
-         error = "Nome ja existe. Escolha outro nome.";
-      else if(validName && !magicValid)
-         error = "Magic invalido. Informe um numero inteiro positivo.";
-      else if(validName && !magicAvailable)
-         error = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
-
-      return (validName && nameAvailable && magicValid && magicAvailable);
-     }
-
-   void                       RefreshProfileValidationState(void)
-     {
-      m_profileTabValid = true;
-      m_profileTabError = "";
-      if(!ProfileEditMode() || !m_profilesEditCreated)
-         return;
-
-      string draftName = "";
-      int draftMagic = 0;
-      bool validName = false;
-      bool nameAvailable = false;
-      bool magicValid = false;
-      bool magicAvailable = false;
-      string magicConflictProfile = "";
-      string error = "";
-      ProfileEditDraftState(draftName,
-                            draftMagic,
-                            validName,
-                            nameAvailable,
-                            magicValid,
-                            magicAvailable,
-                            magicConflictProfile,
-                            error);
-      if(error != "")
-        {
-         m_profileTabValid = false;
-         m_profileTabError = error;
-        }
-     }
-
-   bool                       HasProfileTabError(void) const
-     {
-      return !m_profileTabValid;
-     }
+#include "UIPanelProfileValidation.mqh"
 
    void                       ResetProfileActionState(SUIProfileActionState &state)
      {
@@ -504,11 +420,12 @@
          m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
          m_profileMagicLbl.Text("Magic");
          m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
-         FusionApplyEditStyle(m_profileNewEdit, true, editMode && access.activeProfileEditable);
+         bool nameStyleValid = (!editMode || !validName || nameAvailable);
+         FusionApplyEditStyle(m_profileNewEdit, nameStyleValid, editMode && access.activeProfileEditable);
          FusionApplyEditStyle(m_profileMagicEdit, draftMagicValid && magicAvailableForDraft, editMode && access.activeProfileEditable);
-         m_profileNewLbl.Color((editMode && access.activeProfileEditable) ? FUSION_CLR_LABEL : FUSION_CLR_MUTED);
+         m_profileNewLbl.Color(!editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : (nameStyleValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
          m_profileMagicLbl.Color(!editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : ((draftMagicValid && magicAvailableForDraft) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-      }
+        }
 
       if(!access.profileEditMode && access.activeProfileEditable)
          FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);

@@ -82,6 +82,9 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: `PERFIS > NOVO/DUPLICAR` now owns its Magic validation state and red parent-tab marker instead of marking `CONFIG > SYSTEM`.
 - Done: header action buttons remain neutral through panel construction and receive operational colors only after the first settled snapshot refresh.
 - Done: shared parent status is recalculated during tab visibility changes, so profile-specific errors stay local to `PERFIS` while other tabs show only the generic red-tab warning.
+- Done: profile edit-mode validation now paints duplicate names and treats Magic as unavailable when it belongs to any saved profile, including the source profile in duplicate mode.
+- Done: moved `PERFIS > NOVO/DUPLICAR` validation helpers into `UI/UIPanelProfileValidation.mqh`, keeping `UI/UIPanelProfiles.mqh` focused on layout, list state, visibility, and click routing.
+- Done: moved GUI permission/access-state helpers into `UI/UIPanelAccessState.mqh`, keeping lifecycle editability decisions named but out of the central panel file.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 

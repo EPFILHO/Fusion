@@ -48,6 +48,9 @@
 - O `Magic` editado em `PERFIS > NOVO/DUPLICAR` passou a pertencer ao estado de validacao da aba `PERFIS`, sem marcar `CONFIG > SYSTEM`; outras abas mostram o aviso generico quando `PERFIS` tem erro.
 - Os botoes globais permanecem neutros durante a criacao inicial da GUI e so recebem cor operacional apos o primeiro snapshot/refresh final.
 - A mensagem superior compartilhada agora e recalculada na troca de abas, evitando vazamento do erro especifico de `PERFIS` para `STATUS`/`RESULTS` e restaurando o detalhe ao voltar para `PERFIS`.
+- `PERFIS > NOVO/DUPLICAR` agora pinta o campo de nome quando o perfil ja existe e continua pintando `Magic` quando o numero pertence a qualquer perfil salvo.
+- A validacao do editor de `PERFIS` foi movida para `UI/UIPanelProfileValidation.mqh`, evitando que `UI/UIPanelProfiles.mqh` concentre lista, cliques e regras de nome/magic no mesmo bloco.
+- O modelo de permissoes/access-state da GUI foi movido para `UI/UIPanelAccessState.mqh`, reduzindo o papel do `UIPanel.mqh` como concentrador de regras de lifecycle.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
