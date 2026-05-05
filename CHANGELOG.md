@@ -51,6 +51,7 @@
 - `PERFIS > NOVO/DUPLICAR` agora pinta o campo de nome quando o perfil ja existe e continua pintando `Magic` quando o numero pertence a qualquer perfil salvo.
 - A validacao do editor de `PERFIS` foi movida para `UI/UIPanelProfileValidation.mqh`, evitando que `UI/UIPanelProfiles.mqh` concentre lista, cliques e regras de nome/magic no mesmo bloco.
 - O modelo de permissoes/access-state da GUI foi movido para `UI/UIPanelAccessState.mqh`, reduzindo o papel do `UIPanel.mqh` como concentrador de regras de lifecycle.
+- O status superior compartilhado e a pintura de abas/subabas foram movidos para `UI/UIPanelTabStatus.mqh`, isolando a linguagem visual de validacao das rotas de criacao/visibilidade.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

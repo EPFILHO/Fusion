@@ -85,6 +85,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: profile edit-mode validation now paints duplicate names and treats Magic as unavailable when it belongs to any saved profile, including the source profile in duplicate mode.
 - Done: moved `PERFIS > NOVO/DUPLICAR` validation helpers into `UI/UIPanelProfileValidation.mqh`, keeping `UI/UIPanelProfiles.mqh` focused on layout, list state, visibility, and click routing.
 - Done: moved GUI permission/access-state helpers into `UI/UIPanelAccessState.mqh`, keeping lifecycle editability decisions named but out of the central panel file.
+- Done: moved shared parent status and tab/subtab styling into `UI/UIPanelTabStatus.mqh`, separating validation visual language from central panel visibility/routing.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
