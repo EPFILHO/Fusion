@@ -58,6 +58,7 @@
 - Modo, status temporario e sugestao de copia de `PERFIS` foram movidos para `UI/UIPanelProfileState.mqh`; trocas de modo limpam avisos persistentes antigos para evitar vazamento visual entre criar/duplicar/cancelar.
 - Toggles de `CONFIG > PROTECT` passaram por helpers comuns, preservando o no-op barato em modo bloqueado e removendo repeticao de release/permissao/validacao.
 - Cliques globais em `INICIAR`, `SALVAR` e `CANCELAR` agora usam um unico snapshot de access-state por acao, evitando recalcular permissoes em rotas bloqueadas.
+- O roteamento de navegacao de abas principais/subabas foi movido para `UI/UIPanelNavigation.mqh`, deixando `HandlePanelClick()` focado em orquestrar handlers.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

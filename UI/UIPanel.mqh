@@ -926,6 +926,7 @@ private:
      }
 
 #include "UIPanelTopActions.mqh"
+#include "UIPanelNavigation.mqh"
 
    bool                       HandlePanelClick(const string objectName)
      {
@@ -947,56 +948,8 @@ private:
          return true;
       if(HandleSignalPanelClick(objectName))
          return true;
-
-      for(int t = 0; t < FUSION_TAB_COUNT; ++t)
-        {
-         if(objectName == m_tabs[t].Name())
-           {
-            ReleaseButton(m_tabs[t]);
-            ResetDialogMouseRouting();
-            m_activeTab = (ENUM_FUSION_TAB)t;
-            ApplyVisibility(m_activeTab != FUSION_TAB_CONFIG);
-            UpdateActiveTabContent(true);
-            return true;
-           }
-        }
-
-      for(int s = 0; s < FUSION_STRAT_COUNT; ++s)
-        {
-         if(objectName == m_strategyTabs[s].Name())
-           {
-            ReleaseButton(m_strategyTabs[s]);
-            ResetDialogMouseRouting();
-            m_strategyPage = (ENUM_FUSION_STRATEGY_PAGE)s;
-            ApplyVisibility();
-            return true;
-           }
-        }
-
-      for(int f = 0; f < FUSION_FILTER_COUNT; ++f)
-        {
-         if(objectName == m_filterTabs[f].Name())
-           {
-            ReleaseButton(m_filterTabs[f]);
-            ResetDialogMouseRouting();
-            m_filterPage = (ENUM_FUSION_FILTER_PAGE)f;
-            ApplyVisibility();
-            return true;
-           }
-        }
-
-      for(int c = 0; c < FUSION_CFG_COUNT; ++c)
-        {
-         if(objectName == m_configTabs[c].Name())
-           {
-            ReleaseButton(m_configTabs[c]);
-            ResetDialogMouseRouting();
-            m_configPage = (ENUM_FUSION_CONFIG_PAGE)c;
-            ApplyVisibility(false);
-            RefreshConfigValidation();
-            return true;
-           }
-        }
+      if(HandleTabNavigationClick(objectName))
+         return true;
 
       return false;
      }
