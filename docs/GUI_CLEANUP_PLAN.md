@@ -90,6 +90,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved `STRATS`/`FILTERS` validation, red markers, and local status text into `UI/UIPanelSignalValidation.mqh`, keeping signal-tab creation/sync/event routing separate.
 - Done: moved `PERFIS` selected-profile locks and action-state permissions into `UI/UIPanelProfileActions.mqh`, and removed the unused selected-profile runtime-lock helper.
 - Done: moved `PERFIS` mode/status helpers into `UI/UIPanelProfileState.mqh`; mode changes now clear stale temporary status overrides before repainting browse/new/duplicate state.
+- Done: centralized `CONFIG > PROTECT` toggle handling so blocked clicks return without validation work and editable toggles share one release/permission/refresh path.
+- Done: top action clicks now reuse one access-state snapshot per click instead of recalculating `CanPause`/`CanStart`/`CanSave`/`CanCancel` decisions on the same route.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 

@@ -573,6 +573,37 @@
       return true;
      }
 
+   bool                       HandleProtectionBooleanToggle(const string objectName,CButton &button,bool &target)
+     {
+      if(objectName != button.Name())
+         return false;
+
+      ReleaseButton(button);
+      if(!CanEditActiveProfile())
+         return true;
+
+      target = !target;
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleProtectionNewsModeToggle(const string objectName,const int newsIndex)
+     {
+      if(objectName != m_protectNewsModeBtn[newsIndex].Name())
+         return false;
+
+      ReleaseButton(m_protectNewsModeBtn[newsIndex]);
+      if(!CanEditActiveProfile())
+         return true;
+
+      m_draftSettings.newsWindows[newsIndex].action =
+         (m_draftSettings.newsWindows[newsIndex].action == NEWS_ACTION_BLOCK_ENTRIES)
+         ? NEWS_ACTION_CLOSE_AND_BLOCK
+         : NEWS_ACTION_BLOCK_ENTRIES;
+      RefreshConfigValidation();
+      return true;
+     }
+
    bool                       HandleProtectionClick(const string objectName)
      {
       if(!m_configProtectionCreated)
@@ -591,90 +622,31 @@
          return true;
         }
 
-      if(objectName == m_protectSpreadEnabledBtn.Name())
-        {
-         ReleaseButton(m_protectSpreadEnabledBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.enableSpreadProtection = !m_draftSettings.enableSpreadProtection;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectSpreadEnabledBtn, m_draftSettings.enableSpreadProtection))
          return true;
-        }
 
-      if(objectName == m_protectSessionEnabledBtn.Name())
-        {
-         ReleaseButton(m_protectSessionEnabledBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.enableSessionFilter = !m_draftSettings.enableSessionFilter;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter))
          return true;
-        }
 
-      if(objectName == m_protectSessionCloseBtn.Name())
-        {
-         ReleaseButton(m_protectSessionCloseBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.closeOnSessionEnd = !m_draftSettings.closeOnSessionEnd;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectSessionCloseBtn, m_draftSettings.closeOnSessionEnd))
          return true;
-        }
 
-      if(objectName == m_protectDayEnabledBtn.Name())
-        {
-         ReleaseButton(m_protectDayEnabledBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.enableDailyLimits = !m_draftSettings.enableDailyLimits;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectDayEnabledBtn, m_draftSettings.enableDailyLimits))
          return true;
-        }
 
-      if(objectName == m_protectDrawdownEnabledBtn.Name())
-        {
-         ReleaseButton(m_protectDrawdownEnabledBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.enableDrawdown = !m_draftSettings.enableDrawdown;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectDrawdownEnabledBtn, m_draftSettings.enableDrawdown))
          return true;
-        }
 
-      if(objectName == m_protectStreakEnabledBtn.Name())
-        {
-         ReleaseButton(m_protectStreakEnabledBtn);
-         if(!CanEditActiveProfile())
-            return true;
-         m_draftSettings.enableStreak = !m_draftSettings.enableStreak;
-         RefreshConfigValidation();
+      if(HandleProtectionBooleanToggle(objectName, m_protectStreakEnabledBtn, m_draftSettings.enableStreak))
          return true;
-        }
 
       for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
         {
-         if(objectName == m_protectNewsEnabledBtn[newsIndex].Name())
-           {
-            ReleaseButton(m_protectNewsEnabledBtn[newsIndex]);
-            if(!CanEditActiveProfile())
-               return true;
-            m_draftSettings.newsWindows[newsIndex].enabled = !m_draftSettings.newsWindows[newsIndex].enabled;
-            RefreshConfigValidation();
+         if(HandleProtectionBooleanToggle(objectName, m_protectNewsEnabledBtn[newsIndex], m_draftSettings.newsWindows[newsIndex].enabled))
             return true;
-           }
 
-         if(objectName == m_protectNewsModeBtn[newsIndex].Name())
-           {
-            ReleaseButton(m_protectNewsModeBtn[newsIndex]);
-            if(!CanEditActiveProfile())
-               return true;
-            m_draftSettings.newsWindows[newsIndex].action =
-               (m_draftSettings.newsWindows[newsIndex].action == NEWS_ACTION_BLOCK_ENTRIES)
-               ? NEWS_ACTION_CLOSE_AND_BLOCK
-               : NEWS_ACTION_BLOCK_ENTRIES;
-            RefreshConfigValidation();
+         if(HandleProtectionNewsModeToggle(objectName, newsIndex))
             return true;
-           }
         }
 
       return false;

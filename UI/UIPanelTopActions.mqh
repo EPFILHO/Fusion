@@ -7,9 +7,8 @@
          return false;
 
       ReleaseButton(m_btnStart);
-      if(CanPause())
-         QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
-      else if(CanStart())
+      SUIAccessState access = CurrentAccessState();
+      if(access.canPause || access.canStart)
          QueueSimpleCommand(UI_COMMAND_TOGGLE_RUNNING);
       else
          return true;
@@ -23,7 +22,8 @@
          return false;
 
       ReleaseButton(m_btnSave);
-      if(!CanSave())
+      SUIAccessState access = CurrentAccessState();
+      if(!access.canSave)
          return true;
 
       SEASettings pendingSettings;
@@ -42,7 +42,8 @@
          return false;
 
       ReleaseButton(m_btnCancel);
-      if(CanCancel())
+      SUIAccessState access = CurrentAccessState();
+      if(access.canCancel)
         {
          RestoreCommittedDraftToControls();
          RefreshConfigValidation();
