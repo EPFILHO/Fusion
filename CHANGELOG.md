@@ -46,6 +46,7 @@
 - O aviso superior de perfil bloqueado por outra instancia agora aparece tambem em `STATUS`, `RESULTS`, `PERFIS`, `STRATS` e `FILTERS`, evitando mensagens de pronto durante lock.
 - A validacao e deteccao de alteracoes pendentes de `PROTECT` foram movidas para `UI/UIPanelProtectionValidation.mqh`, deixando o partial principal de protecao mais focado em layout, visibilidade e cliques.
 - O `Magic` editado em `PERFIS > NOVO/DUPLICAR` passou a pertencer ao estado de validacao da aba `PERFIS`, sem marcar `CONFIG > SYSTEM`; outras abas mostram o aviso generico quando `PERFIS` tem erro.
+- Enquanto `PERFIS > NOVO/DUPLICAR` esta aberto, `CONFIG > SYSTEM` nao aplica conflito de unicidade do `Magic`; a unicidade fica sob responsabilidade do editor de `PERFIS`.
 - Os botoes globais permanecem neutros durante a criacao inicial da GUI e so recebem cor operacional apos o primeiro snapshot/refresh final.
 - A mensagem superior compartilhada agora e recalculada na troca de abas, evitando vazamento do erro especifico de `PERFIS` para `STATUS`/`RESULTS` e restaurando o detalhe ao voltar para `PERFIS`.
 - `PERFIS > NOVO/DUPLICAR` agora pinta o campo de nome quando o perfil ja existe e continua pintando `Magic` quando o numero pertence a qualquer perfil salvo.
@@ -53,6 +54,7 @@
 - O modelo de permissoes/access-state da GUI foi movido para `UI/UIPanelAccessState.mqh`, reduzindo o papel do `UIPanel.mqh` como concentrador de regras de lifecycle.
 - O status superior compartilhado e a pintura de abas/subabas foram movidos para `UI/UIPanelTabStatus.mqh`, isolando a linguagem visual de validacao das rotas de criacao/visibilidade.
 - A validacao, marcadores vermelhos e mensagens superiores de `STRATS`/`FILTERS` foram movidos para `UI/UIPanelSignalValidation.mqh`, deixando `UI/UIPanelSignalTabs.mqh` mais focado em criacao, sync, eventos e visibilidade.
+- As regras de lock e permissao de acoes da aba `PERFIS` foram movidas para `UI/UIPanelProfileActions.mqh`, removendo tambem um helper morto de lock por perfil selecionado.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

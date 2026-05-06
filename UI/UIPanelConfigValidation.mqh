@@ -41,7 +41,10 @@
          if(magicValid)
            {
             outSettings.magicNumber = parsedMagic;
-            magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
+            if(ProfileEditMode())
+               magicUnique = true;
+            else
+               magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
            }
         }
 
@@ -114,7 +117,12 @@
         }
 
       if(magicValid && editable)
-         magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
+        {
+         if(ProfileEditMode())
+            magicUnique = true;
+         else
+            magicUnique = MagicAvailableForProfile(parsedMagic, profileForMagicCheck, magicConflictProfile);
+        }
       else
          magicUnique = magicValid;
      }

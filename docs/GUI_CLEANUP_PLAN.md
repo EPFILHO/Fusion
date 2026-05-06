@@ -80,6 +80,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: parent/profile-lock status now has one helper and is shown outside `CONFIG`, including STRATS/FILTERS status summaries.
 - Done: moved `PROTECT` validation and pending-change helpers into `UI/UIPanelProtectionValidation.mqh`, leaving `UI/UIPanelProtectionTabs.mqh` focused on layout, visibility, sync, and clicks.
 - Done: `PERFIS > NOVO/DUPLICAR` now owns its Magic validation state and red parent-tab marker instead of marking `CONFIG > SYSTEM`.
+- Done: while `PERFIS > NOVO/DUPLICAR` is open, Magic uniqueness belongs to the profile editor, so `CONFIG > SYSTEM` no longer inherits duplicate-source Magic conflicts from the save-as draft.
 - Done: header action buttons remain neutral through panel construction and receive operational colors only after the first settled snapshot refresh.
 - Done: shared parent status is recalculated during tab visibility changes, so profile-specific errors stay local to `PERFIS` while other tabs show only the generic red-tab warning.
 - Done: profile edit-mode validation now paints duplicate names and treats Magic as unavailable when it belongs to any saved profile, including the source profile in duplicate mode.
@@ -87,6 +88,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved GUI permission/access-state helpers into `UI/UIPanelAccessState.mqh`, keeping lifecycle editability decisions named but out of the central panel file.
 - Done: moved shared parent status and tab/subtab styling into `UI/UIPanelTabStatus.mqh`, separating validation visual language from central panel visibility/routing.
 - Done: moved `STRATS`/`FILTERS` validation, red markers, and local status text into `UI/UIPanelSignalValidation.mqh`, keeping signal-tab creation/sync/event routing separate.
+- Done: moved `PERFIS` selected-profile locks and action-state permissions into `UI/UIPanelProfileActions.mqh`, and removed the unused selected-profile runtime-lock helper.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
