@@ -11,9 +11,9 @@
    string                     ProfileBlockStatusText(void) const
      {
       if(m_snapshot.startBlockedReason != "")
-         return "Perfil em uso por outra instancia. Carregue outro.";
+         return "Perfil em uso por outro grafico. Carregue outro.";
       if(m_snapshot.activeProfileBlockedReason != "")
-         return "Perfil carregado em outra instancia. Carregue outro.";
+         return "Perfil carregado em outro grafico. Carregue outro.";
       return "";
      }
 

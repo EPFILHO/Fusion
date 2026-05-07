@@ -37,7 +37,7 @@
    void                       ApplySharedParentStatus(void)
      {
       string profileBlockStatus = ProfileBlockStatusText();
-      if(profileBlockStatus != "")
+      if(profileBlockStatus != "" && m_activeTab != FUSION_TAB_PROFILES)
          SetSharedParentStatus(profileBlockStatus, FUSION_CLR_WARN);
       else if(m_activeTab == FUSION_TAB_PROFILES && HasProfileTabError())
          SetSharedParentStatus(m_profileTabError, FUSION_CLR_BAD);

@@ -297,11 +297,7 @@
             FusionApplyNeutralButtonStyle(m_profileCancelBtn);
         }
 
-      if(m_snapshot.startBlockedReason != "")
-         SetProfileStatus("Perfil em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(m_snapshot.activeProfileBlockedReason != "")
-         SetProfileStatus("Perfil ativo em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(!access.runtimeEditable)
+      if(!access.runtimeEditable)
          SetProfileStatus("Perfis bloqueados enquanto o EA roda/gerencia posicao.", FUSION_CLR_WARN);
       else if(editMode && !validName)
          SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
@@ -319,6 +315,10 @@
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(access.hasPendingChanges)
          SetProfileStatus("Alteracoes pendentes. Use SALVAR ou crie NOVO perfil.", FUSION_CLR_WARN);
+      else if(selected && selectedIsActive && m_snapshot.startBlockedReason != "")
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Magic em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+      else if(selected && selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else if(selected && selectedIsActive && selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
       else if(selected && selectedIsActive)
@@ -326,11 +326,15 @@
       else if(selected && selectedRuntimeLocked)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Magic em uso em outro grafico.", FUSION_CLR_WARN);
       else if(selected && selectedActiveProfileLocked)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil ativo em outro grafico.", FUSION_CLR_WARN);
+         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil carregado em outro grafico.", FUSION_CLR_WARN);
       else if(selected && selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Default reservado.", FUSION_CLR_WARN);
       else if(selected)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
+      else if(m_snapshot.startBlockedReason != "")
+         SetProfileStatus("Perfil em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+      else if(m_snapshot.activeProfileBlockedReason != "")
+         SetProfileStatus("Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else
          SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
      }

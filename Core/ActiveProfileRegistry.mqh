@@ -56,6 +56,40 @@ private:
       return prefix + StringFormat("%I64d", chartId);
      }
 
+   bool   ChartExists(const long chartId) const
+     {
+      long current = ChartFirst();
+      while(current >= 0)
+        {
+         if(current == chartId)
+            return true;
+         current = ChartNext(current);
+        }
+      return false;
+     }
+
+   bool   ChartIdFromKey(const string prefix,const string key,long &chartId) const
+     {
+      chartId = 0;
+      if(prefix == "" || StringFind(key, prefix) != 0)
+         return false;
+
+      string chartIdText = StringSubstr(key, StringLen(prefix));
+      if(chartIdText == "")
+         return false;
+
+      chartId = (long)StringToInteger(chartIdText);
+      return (chartId != 0);
+     }
+
+   bool   IsClosedChartKey(const string prefix,const string key) const
+     {
+      long chartId = 0;
+      if(!ChartIdFromKey(prefix, key, chartId))
+         return false;
+      return !ChartExists(chartId);
+     }
+
    void   PruneStale(const string prefix,const datetime now) const
      {
       if(prefix == "")
@@ -68,7 +102,7 @@ private:
             continue;
 
          datetime lastSeen = (datetime)GlobalVariableGet(name);
-         if(lastSeen <= 0 || now - lastSeen > m_ttlSeconds)
+         if(lastSeen <= 0 || now - lastSeen > m_ttlSeconds || IsClosedChartKey(prefix, name))
             GlobalVariableDel(name);
         }
      }
@@ -86,6 +120,11 @@ private:
             continue;
 
          datetime lastSeen = (datetime)GlobalVariableGet(name);
+         if(IsClosedChartKey(prefix, name))
+           {
+            GlobalVariableDel(name);
+            continue;
+           }
          if(lastSeen > 0 && now - lastSeen <= m_ttlSeconds)
            {
             peerKey = name;

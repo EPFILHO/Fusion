@@ -62,6 +62,12 @@
 - Visibilidade, refresh visual e atualizacao da aba ativa foram movidos para `UI/UIPanelVisibility.mqh`, reduzindo a responsabilidade direta do `UIPanel.mqh`.
 - O painel agora nasce alinhado a esquerda do grafico por padrao, usando uma constante de margem inicial em vez de calcular a posicao pela largura do chart.
 - Criacao/layout de `CONFIG`, `RISK` e `SYSTEM` foi movida para `UI/UIPanelConfigTabs.mqh`, deixando `UIPanel.mqh` menos concentrado em paginas especificas.
+- Criacao lazy das paginas principais e `BuildAllContent()` foram movidos para `UI/UIPanelContentLifecycle.mqh`, separando o ciclo de montagem das demais regras do painel.
+- Fila de comandos e helpers de criacao/visibilidade de controles foram extraidos para partials pequenos, reduzindo responsabilidades diretas de `UI/UIPanel.mqh`.
+- Estado do rascunho, leitura de magic e deteccao de alteracoes pendentes foram movidos para `UI/UIPanelDraftState.mqh`.
+- O registry de perfil carregado agora remove registros de graficos ja fechados antes de acusar peer lock, evitando falso aviso ao reanexar o EA.
+- Mensagens da aba `PERFIS` passaram a chamar o lock de perfil "carregado" em outro grafico, alinhando o texto com a regra real.
+- A aba `PERFIS` voltou a priorizar o status do perfil selecionado quando ele pode ser carregado, deixando o aviso de lock do perfil atual para as outras abas ou para a linha ativa bloqueada.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29
