@@ -93,6 +93,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: centralized `CONFIG > PROTECT` toggle handling so blocked clicks return without validation work and editable toggles share one release/permission/refresh path.
 - Done: top action clicks now reuse one access-state snapshot per click instead of recalculating `CanPause`/`CanStart`/`CanSave`/`CanCancel` decisions on the same route.
 - Done: moved main/subtab navigation click routing into `UI/UIPanelNavigation.mqh`, preserving handler order while shrinking `HandlePanelClick()`.
+- Done: moved panel visibility/theme refresh and active-tab content updates into `UI/UIPanelVisibility.mqh`, leaving the central panel file with less tab lifecycle code.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
