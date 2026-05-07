@@ -60,6 +60,7 @@
 - Cliques globais em `INICIAR`, `SALVAR` e `CANCELAR` agora usam um unico snapshot de access-state por acao, evitando recalcular permissoes em rotas bloqueadas.
 - O roteamento de navegacao de abas principais/subabas foi movido para `UI/UIPanelNavigation.mqh`, deixando `HandlePanelClick()` focado em orquestrar handlers.
 - Visibilidade, refresh visual e atualizacao da aba ativa foram movidos para `UI/UIPanelVisibility.mqh`, reduzindo a responsabilidade direta do `UIPanel.mqh`.
+- O painel agora nasce alinhado a esquerda do grafico por padrao, usando uma constante de margem inicial em vez de calcular a posicao pela largura do chart.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

@@ -816,10 +816,7 @@ private:
 
       if(ShouldShowPanel())
         {
-         int chartWidth = (int)ChartGetInteger(ChartID(), CHART_WIDTH_IN_PIXELS);
-         int x1 = chartWidth - FUSION_PANEL_WIDTH - 10;
-         if(x1 < 10)
-            x1 = 10;
+         int x1 = FUSION_PANEL_LEFT;
 
          if(!m_panel.CreatePanel(ChartID(),
                                   FusionWindowTitle(),
