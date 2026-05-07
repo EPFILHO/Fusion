@@ -61,6 +61,7 @@
 - O roteamento de navegacao de abas principais/subabas foi movido para `UI/UIPanelNavigation.mqh`, deixando `HandlePanelClick()` focado em orquestrar handlers.
 - Visibilidade, refresh visual e atualizacao da aba ativa foram movidos para `UI/UIPanelVisibility.mqh`, reduzindo a responsabilidade direta do `UIPanel.mqh`.
 - O painel agora nasce alinhado a esquerda do grafico por padrao, usando uma constante de margem inicial em vez de calcular a posicao pela largura do chart.
+- Criacao/layout de `CONFIG`, `RISK` e `SYSTEM` foi movida para `UI/UIPanelConfigTabs.mqh`, deixando `UIPanel.mqh` menos concentrado em paginas especificas.
 - Mantidos intactos `CFusionHitGroup` e os helpers de runtime dos `CComboBox` para preservar a estabilizacao da 1.049.
 
 ## 1.049 - 2026-04-29

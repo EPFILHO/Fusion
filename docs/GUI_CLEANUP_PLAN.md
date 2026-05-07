@@ -95,6 +95,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved main/subtab navigation click routing into `UI/UIPanelNavigation.mqh`, preserving handler order while shrinking `HandlePanelClick()`.
 - Done: moved panel visibility/theme refresh and active-tab content updates into `UI/UIPanelVisibility.mqh`, leaving the central panel file with less tab lifecycle code.
 - Done: panel creation now uses a named left margin (`FUSION_PANEL_LEFT`) so first attach opens the GUI on the left side of the chart instead of deriving a right-aligned x position.
+- Done: moved `CONFIG` shell plus `RISK`/`SYSTEM` creation into `UI/UIPanelConfigTabs.mqh`; config validation remains in `UI/UIPanelConfigValidation.mqh`.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
