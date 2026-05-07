@@ -31,6 +31,8 @@ This plan keeps the ComboBox stabilization work protected while we remove small 
 
 Goal: make the GUI simpler, not simplistic. Reduce duplicated permission checks, validation side effects, and lifecycle coupling without changing behavior.
 
+Next-session handoff: see `docs/NEXT_SESSION_HANDOFF_1050.md` before continuing after commit `108631e`.
+
 Progress in `fusion-1.050-gui-lifecycle`:
 
 - Done: extracted named helpers for runtime editability, active-profile editability, profile loading, and profile administration.
