@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.051 - 2026-05-09
+- Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.
+- Movidos os helpers de input, parsing e normalizacao de `CONFIG > PROTECT` para `UI/UIPanelProtectionInputs.mqh`, deixando `UI/UIPanelProtectionTabs.mqh` mais focado em layout, visibilidade e cliques.
+- Movida a renderizacao da lista de `PERFIS`, incluindo scroll, botoes e status da selecao, para `UI/UIPanelProfileListView.mqh`.
+- Movidos os metadados e overviews de `STRATS`/`FILTERS` para `UI/UIPanelSignalOverview.mqh`.
+
 ## 1.050 - 2026-04-30
 - Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
 - Adicionado um access-state unico para as decisoes globais da GUI, usado pelo header, handlers e pela aba `PERFIS` para reduzir verdades paralelas.

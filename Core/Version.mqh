@@ -1,7 +1,7 @@
 #ifndef __FUSION_VERSION_MQH__
 #define __FUSION_VERSION_MQH__
 
-#define FUSION_APP_VERSION "1.050"
+#define FUSION_APP_VERSION "1.051"
 
 string FusionWindowTitle(void)
   {

@@ -103,6 +103,9 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved draft-state sync, magic parsing, and pending-change detection into `UI/UIPanelDraftState.mqh`.
 - Done: active-profile registry now prunes closed-chart keys before reporting a loaded-profile peer lock.
 - Done: `PERFIS` status now prioritizes the selected profile when it is loadable; loaded-profile lock warnings stay in other parent tabs or on the blocked active row.
+- Done: started 1.051 by moving `CONFIG > PROTECT` input/parsing/normalization helpers into `UI/UIPanelProtectionInputs.mqh`, leaving protection tabs focused on layout, visibility, sync, and clicks.
+- Done: moved `PERFIS` list offset, row rendering, action button styling, and selection/status refresh into `UI/UIPanelProfileListView.mqh`.
+- Done: moved `STRATS`/`FILTERS` display metadata and overview creation/refresh into `UI/UIPanelSignalOverview.mqh`.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
