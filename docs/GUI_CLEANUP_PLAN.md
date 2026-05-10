@@ -108,6 +108,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved `STRATS`/`FILTERS` display metadata and overview creation/refresh into `UI/UIPanelSignalOverview.mqh`.
 - Done: moved the `CONFIG > SYSTEM` conflict click into `UI/UIPanelConfigTabs.mqh` and skipped strategy editability work for non-strategy deferred edits.
 - Done: moved `PERFIS` click routing into `UI/UIPanelProfileClicks.mqh`, keeping profile creation/visibility separate from profile actions.
+- Done: moved lazy `STRATS`/`FILTERS` panel construction into `UI/UIPanelSignalPanels.mqh`.
+- Done: moved `STRATS`/`FILTERS` visibility into `UI/UIPanelSignalVisibility.mqh`.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
