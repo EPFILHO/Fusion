@@ -67,7 +67,7 @@
       access.canPause = (snapshot.started && !access.hasLocalPositionLock);
       access.canStart = (!profileEditMode && access.activeProfileEditable && configInputsValid && !hasPendingChanges);
       access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid && hasPendingChanges);
-      access.canCancel = (!profileEditMode && access.runtimeEditable && hasPendingChanges);
+      access.canCancel = (profileEditMode || (access.runtimeEditable && hasPendingChanges));
 
       if(!profileEditMode && !snapshot.runtimeBlocked && !snapshot.started)
         {

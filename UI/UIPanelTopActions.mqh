@@ -43,7 +43,9 @@
 
       ReleaseButton(m_btnCancel);
       SUIAccessState access = CurrentAccessState();
-      if(access.canCancel)
+      if(access.profileEditMode)
+         CancelProfileEditMode();
+      else if(access.canCancel)
         {
          RestoreCommittedDraftToControls();
          RefreshConfigValidation();

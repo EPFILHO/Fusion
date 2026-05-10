@@ -194,11 +194,16 @@
          return false;
 
       ReleaseButton(m_profileCancelBtn);
+      CancelProfileEditMode();
+      return true;
+     }
+
+   void                       CancelProfileEditMode(void)
+     {
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RestoreCommittedDraftToControls();
       RefreshConfigValidation();
       ApplyVisibility(false);
-      return true;
      }
 
    bool                       HandleProfileDeleteClick(const string objectName)
