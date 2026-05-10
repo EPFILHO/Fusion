@@ -113,6 +113,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: header `CANCELAR` now exits `PERFIS > NOVO/DUPLICAR` by reusing the profile edit cancel path.
 - Done: moved `STRATS`/`FILTERS` sync and event routing into `UI/UIPanelSignalEvents.mqh`.
 - Done: moved the `STRATS`/`FILTERS` visual tab shell into `UI/UIPanelSignalShell.mqh`.
+- Done: moved internal `CONFIG > PROTECT` visibility into `UI/UIPanelProtectionVisibility.mqh`.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
