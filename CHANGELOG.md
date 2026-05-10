@@ -11,6 +11,7 @@
 - Movida a visibilidade de `STRATS`/`FILTERS` para `UI/UIPanelSignalVisibility.mqh`.
 - O `CANCELAR` principal agora tambem sai do modo `PERFIS > NOVO/DUPLICAR`, espelhando o cancelamento da propria aba.
 - Movidos sync e roteamento de eventos de `STRATS`/`FILTERS` para `UI/UIPanelSignalEvents.mqh`.
+- Movido o shell visual das abas `STRATS`/`FILTERS` para `UI/UIPanelSignalShell.mqh`, deixando `UIPanelSignalTabs.mqh` como composição dos partials de sinais.
 
 ## 1.050 - 2026-04-30
 - Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
