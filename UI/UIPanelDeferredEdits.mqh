@@ -1,17 +1,24 @@
 #ifndef __FUSION_UI_PANEL_DEFERRED_EDITS_MQH__
 #define __FUSION_UI_PANEL_DEFERRED_EDITS_MQH__
 
+   bool                       IsStrategyDeferredEdit(const string objectName)
+     {
+      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
+        {
+         if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
+            return true;
+        }
+      return false;
+     }
+
    bool                       IsDeferredRefreshEdit(const string objectName)
      {
       if(objectName == m_profileNewEdit.Name())
          return true;
       if(objectName == m_profileMagicEdit.Name())
          return true;
-      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
-        {
-         if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
-            return true;
-        }
+      if(IsStrategyDeferredEdit(objectName))
+         return true;
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
@@ -30,6 +37,9 @@
 
    bool                       HandleStrategyPanelDeferredEdit(const string objectName)
      {
+      if(!IsStrategyDeferredEdit(objectName))
+         return false;
+
       if(!TryBeginActiveProfileEdit(false))
         {
          SyncStrategyPanels();

@@ -95,6 +95,20 @@
       return true;
      }
 
+   bool                       HandleConfigSystemConflictClick(const string objectName)
+     {
+      if(!m_configSystemCreated || objectName != m_cfgSystemConflictBtn.Name())
+         return false;
+
+      ReleaseButton(m_cfgSystemConflictBtn);
+      if(!TryBeginActiveProfileEdit())
+         return true;
+
+      m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
+      RefreshConfigValidation();
+      return true;
+     }
+
    bool                       EnsureConfigTabCreated(void)
      {
       if(m_configTabCreated)

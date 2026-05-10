@@ -144,16 +144,8 @@ private:
      {
       if(HandleTopActionClick(objectName))
          return true;
-
-      if(objectName == m_cfgSystemConflictBtn.Name())
-        {
-         ReleaseButton(m_cfgSystemConflictBtn);
-         if(!TryBeginActiveProfileEdit())
-            return true;
-         m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
-         RefreshConfigValidation();
+      if(HandleConfigSystemConflictClick(objectName))
          return true;
-        }
       if(HandleProtectionClick(objectName))
          return true;
       if(HandleProfilesClick(objectName))
