@@ -14,7 +14,7 @@
          allValid = false;
          error = "Selecione ao menos uma estrategia.";
         }
-      for(int sp = 0; sp < 3; ++sp)
+      for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
         {
          bool panelValid = true;
          string panelError = "";
@@ -39,7 +39,7 @@
       error = "";
       bool allValid = true;
       m_filterPageValid[(int)FUSION_FILTER_OVERVIEW] = true;
-      for(int fp = 0; fp < 2; ++fp)
+      for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
         {
          bool panelValid = true;
          string panelError = "";

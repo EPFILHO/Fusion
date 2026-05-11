@@ -3,14 +3,14 @@
 
    void                       SyncStrategyPanels(void)
      {
-      for(int i = 0; i < 3; ++i)
+      for(int i = 0; i < FUSION_STRATEGY_PANEL_COUNT; ++i)
          if(m_strategyPanels[i] != NULL)
              m_strategyPanels[i].Sync(m_draftSettings, CanEditActiveProfile());
      }
 
    void                       SyncFilterPanels(void)
      {
-      for(int j = 0; j < 2; ++j)
+      for(int j = 0; j < FUSION_FILTER_PANEL_COUNT; ++j)
          if(m_filterPanels[j] != NULL)
              m_filterPanels[j].Sync(m_draftSettings, CanEditActiveProfile());
      }
@@ -28,7 +28,7 @@
    bool                       HandleSignalPanelClick(const string objectName)
      {
       SUICommand tempCommand;
-      for(int sp = 0; sp < 3; ++sp)
+      for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
         {
          if(m_strategyPanels[sp] == NULL)
             continue;
@@ -44,7 +44,7 @@
            }
         }
 
-      for(int fp = 0; fp < 2; ++fp)
+      for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
         {
          if(m_filterPanels[fp] == NULL)
             continue;
@@ -71,7 +71,7 @@
       if(!TryBeginActiveProfileEdit())
          return false;
 
-      for(int sp = 0; sp < 3; ++sp)
+      for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
         {
          if(m_strategyPanels[sp] == NULL)
             continue;
@@ -83,7 +83,7 @@
            }
         }
 
-      for(int fp = 0; fp < 2; ++fp)
+      for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
         {
          if(m_filterPanels[fp] == NULL)
             continue;

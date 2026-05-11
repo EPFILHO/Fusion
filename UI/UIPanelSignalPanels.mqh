@@ -3,7 +3,7 @@
 
    bool                       CreateStrategyPanel(const int index)
      {
-      if(index < 0 || index >= 3)
+      if(index < 0 || index >= FUSION_STRATEGY_PANEL_COUNT)
          return false;
 
       if(index == 0)
@@ -37,7 +37,7 @@
 
    bool                       EnsureStrategyPanelCreated(const int index)
      {
-      if(index < 0 || index >= 3)
+      if(index < 0 || index >= FUSION_STRATEGY_PANEL_COUNT)
          return false;
       if(m_strategyPanelCreated[index])
          return true;
@@ -51,7 +51,7 @@
 
    bool                       CreateFilterPanel(const int index)
      {
-      if(index < 0 || index >= 2)
+      if(index < 0 || index >= FUSION_FILTER_PANEL_COUNT)
          return false;
 
       if(index == 0)
@@ -81,7 +81,7 @@
 
    bool                       EnsureFilterPanelCreated(const int index)
      {
-      if(index < 0 || index >= 2)
+      if(index < 0 || index >= FUSION_FILTER_PANEL_COUNT)
          return false;
       if(m_filterPanelCreated[index])
          return true;

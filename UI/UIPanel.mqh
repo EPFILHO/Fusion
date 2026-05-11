@@ -67,9 +67,9 @@ private:
    CFusionHitGroup            m_profilesGroup;
    CFusionHitGroup            m_configGroup;
    CFusionHitGroup            m_strategyOverviewGroup;
-   CFusionHitGroup            m_strategyPanelGroups[3];
+   CFusionHitGroup            m_strategyPanelGroups[FUSION_STRATEGY_PANEL_COUNT];
    CFusionHitGroup            m_filterOverviewGroup;
-   CFusionHitGroup            m_filterPanelGroups[2];
+   CFusionHitGroup            m_filterPanelGroups[FUSION_FILTER_PANEL_COUNT];
    CFusionHitGroup            m_profilesBrowseGroup;
    CFusionHitGroup            m_profilesEditGroup;
    CFusionHitGroup            m_configRiskGroup;
@@ -257,12 +257,12 @@ public:
       SetDefaultSettings(m_draftSettings);
       m_strategyOverviewCreated = false;
       m_filterOverviewCreated = false;
-      for(int i = 0; i < 3; ++i)
+      for(int i = 0; i < FUSION_STRATEGY_PANEL_COUNT; ++i)
         {
          m_strategyPanels[i] = NULL;
          m_strategyPanelCreated[i] = false;
         }
-      for(int j = 0; j < 2; ++j)
+      for(int j = 0; j < FUSION_FILTER_PANEL_COUNT; ++j)
         {
          m_filterPanels[j] = NULL;
          m_filterPanelCreated[j] = false;
@@ -363,7 +363,7 @@ public:
 
       CAppDialog::Destroy(reason);
 
-      for(int i = 0; i < 3; ++i)
+      for(int i = 0; i < FUSION_STRATEGY_PANEL_COUNT; ++i)
         {
          if(m_strategyPanels[i] != NULL)
            {
@@ -372,7 +372,7 @@ public:
            }
         }
 
-      for(int j = 0; j < 2; ++j)
+      for(int j = 0; j < FUSION_FILTER_PANEL_COUNT; ++j)
         {
          if(m_filterPanels[j] != NULL)
            {

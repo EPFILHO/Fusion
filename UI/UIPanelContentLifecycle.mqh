@@ -48,7 +48,7 @@
          PopBuildTarget(previous);
          return false;
         }
-      for(int groupIndex = 0; groupIndex < 3; ++groupIndex)
+      for(int groupIndex = 0; groupIndex < FUSION_STRATEGY_PANEL_COUNT; ++groupIndex)
         {
          if(!AddHitGroup(m_strategyPanelGroups[groupIndex], "Fusion_group_strategy_panel_" + IntegerToString(groupIndex)))
            {
@@ -61,7 +61,7 @@
          PopBuildTarget(previous);
          return false;
         }
-      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
+      for(int strategyIndex = 0; strategyIndex < FUSION_STRATEGY_PANEL_COUNT; ++strategyIndex)
          if(!EnsureStrategyPanelCreated(strategyIndex))
            {
             PopBuildTarget(previous);
@@ -90,7 +90,7 @@
          PopBuildTarget(previous);
          return false;
         }
-      for(int groupIndex = 0; groupIndex < 2; ++groupIndex)
+      for(int groupIndex = 0; groupIndex < FUSION_FILTER_PANEL_COUNT; ++groupIndex)
         {
          if(!AddHitGroup(m_filterPanelGroups[groupIndex], "Fusion_group_filter_panel_" + IntegerToString(groupIndex)))
            {
@@ -103,7 +103,7 @@
          PopBuildTarget(previous);
          return false;
         }
-      for(int filterIndex = 0; filterIndex < 2; ++filterIndex)
+      for(int filterIndex = 0; filterIndex < FUSION_FILTER_PANEL_COUNT; ++filterIndex)
          if(!EnsureFilterPanelCreated(filterIndex))
            {
             PopBuildTarget(previous);

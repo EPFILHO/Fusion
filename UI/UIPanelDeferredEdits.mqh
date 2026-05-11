@@ -3,7 +3,7 @@
 
    bool                       IsStrategyDeferredEdit(const string objectName)
      {
-      for(int strategyIndex = 0; strategyIndex < 3; ++strategyIndex)
+      for(int strategyIndex = 0; strategyIndex < FUSION_STRATEGY_PANEL_COUNT; ++strategyIndex)
         {
          if(m_strategyPanels[strategyIndex] != NULL && m_strategyPanels[strategyIndex].IsDeferredEdit(objectName))
             return true;
@@ -48,7 +48,7 @@
         }
 
       bool changed = false;
-      for(int sp = 0; sp < 3; ++sp)
+      for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
         {
          if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
             continue;
@@ -64,7 +64,7 @@
 
    void                       NormalizeStrategyDeferredEdit(const string objectName)
      {
-      for(int sp = 0; sp < 3; ++sp)
+      for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
         {
          if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
             continue;

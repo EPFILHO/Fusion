@@ -19,14 +19,14 @@
         {
          SetVisible(m_strategyOverviewGroup, overviewVisible);
          SetVisible(m_strategyOverviewHdr, overviewVisible);
-         for(int j = 0; j < 3; ++j)
+         for(int j = 0; j < FUSION_STRATEGY_PANEL_COUNT; ++j)
            {
             SetVisible(m_strategyOverviewName[j], overviewVisible);
             SetVisible(m_strategyOverviewState[j], overviewVisible);
            }
         }
 
-      for(int p = 0; p < 3; ++p)
+      for(int p = 0; p < FUSION_STRATEGY_PANEL_COUNT; ++p)
         {
          if(!m_strategyPanelCreated[p] || m_strategyPanels[p] == NULL)
             continue;
@@ -61,14 +61,14 @@
         {
          SetVisible(m_filterOverviewGroup, overviewVisible);
          SetVisible(m_filterOverviewHdr, overviewVisible);
-         for(int j = 0; j < 2; ++j)
+         for(int j = 0; j < FUSION_FILTER_PANEL_COUNT; ++j)
            {
             SetVisible(m_filterOverviewName[j], overviewVisible);
             SetVisible(m_filterOverviewState[j], overviewVisible);
            }
         }
 
-      for(int p = 0; p < 2; ++p)
+      for(int p = 0; p < FUSION_FILTER_PANEL_COUNT; ++p)
         {
          if(!m_filterPanelCreated[p] || m_filterPanels[p] == NULL)
             continue;

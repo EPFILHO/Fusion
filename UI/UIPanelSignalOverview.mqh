@@ -69,7 +69,7 @@
          ok = false;
 
       int y = 194;
-      for(int i = 0; ok && i < 3; ++i)
+      for(int i = 0; ok && i < FUSION_STRATEGY_PANEL_COUNT; ++i)
         {
          if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             ok = false;
@@ -101,7 +101,7 @@
          ok = false;
 
       int y = 194;
-      for(int i = 0; ok && i < 2; ++i)
+      for(int i = 0; ok && i < FUSION_FILTER_PANEL_COUNT; ++i)
         {
          if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             ok = false;
@@ -130,8 +130,8 @@
       if(!m_strategyOverviewCreated)
          return;
 
-      bool strategyStates[3] = {m_draftSettings.useMACross, m_draftSettings.useRSI, m_draftSettings.useBollinger};
-      for(int i = 0; i < 3; ++i)
+      bool strategyStates[FUSION_STRATEGY_PANEL_COUNT] = {m_draftSettings.useMACross, m_draftSettings.useRSI, m_draftSettings.useBollinger};
+      for(int i = 0; i < FUSION_STRATEGY_PANEL_COUNT; ++i)
         {
          m_strategyOverviewName[i].Text(StrategyDisplayName(i));
          FusionApplyStateLabel(m_strategyOverviewState[i], strategyStates[i], "ATIVO", "OFF");
@@ -143,8 +143,8 @@
       if(!m_filterOverviewCreated)
          return;
 
-      bool filterStates[2] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter};
-      for(int i = 0; i < 2; ++i)
+      bool filterStates[FUSION_FILTER_PANEL_COUNT] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter};
+      for(int i = 0; i < FUSION_FILTER_PANEL_COUNT; ++i)
         {
          m_filterOverviewName[i].Text(FilterDisplayName(i));
          FusionApplyStateLabel(m_filterOverviewState[i], filterStates[i], "ATIVO", "OFF");
