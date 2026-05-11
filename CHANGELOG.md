@@ -17,6 +17,7 @@
 - Movidos overview, tema e sync dos controles de `CONFIG > PROTECT` para `UI/UIPanelProtectionSync.mqh`.
 - Quebrado o refresh visual da lista de `PERFIS` em helpers para linhas, editor, botoes e mensagem de status, preservando permissoes e locks existentes.
 - Substituidos contadores hardcoded dos paineis de `STRATS`/`FILTERS` por constantes nomeadas, preparando expansao sem alterar a quantidade atual.
+- Movidas as mensagens e aplicacao de status de `CONFIG` para `UI/UIPanelConfigStatus.mqh`, mantendo a validacao e mutacao do draft no fluxo original.
 
 ## 1.050 - 2026-04-30
 - Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
