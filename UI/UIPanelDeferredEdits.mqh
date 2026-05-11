@@ -43,7 +43,6 @@
       if(!TryBeginActiveProfileEdit(false))
         {
          SyncStrategyPanels();
-         RefreshTheme();
          return false;
         }
 

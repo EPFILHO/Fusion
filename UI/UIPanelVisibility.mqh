@@ -1,12 +1,17 @@
 #ifndef __FUSION_UI_PANEL_VISIBILITY_MQH__
 #define __FUSION_UI_PANEL_VISIBILITY_MQH__
 
+   bool                       IsConfigPageVisible(const ENUM_FUSION_CONFIG_PAGE page) const
+     {
+      return (m_activeTab == FUSION_TAB_CONFIG && m_configPage == page);
+     }
+
    void                       RefreshTheme(void)
      {
       RefreshHeaderTheme();
-      if(m_configProtectionCreated)
+      if(m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION))
          RefreshProtectionTheme();
-      if(m_configSystemCreated)
+      if(m_configSystemCreated && IsConfigPageVisible(FUSION_CFG_SYSTEM))
         {
          if(CanEditActiveProfile())
             FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
@@ -59,7 +64,7 @@
 
    void                       UpdateConfigReadOnly(void)
      {
-      if(m_configProtectionCreated)
+      if(m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION))
          RefreshProtectionTheme();
      }
 

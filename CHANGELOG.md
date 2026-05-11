@@ -20,6 +20,7 @@
 - Movidas as mensagens e aplicacao de status de `CONFIG` para `UI/UIPanelConfigStatus.mqh`, mantendo a validacao e mutacao do draft no fluxo original.
 - Movida a deteccao de alteracoes pendentes para `UI/UIPanelPendingChanges.mqh`, separando comparacoes de risco, sistema, sinais e protecao sem remover checks.
 - Movidas criacao/layout e visibilidade da aba `PERFIS` para `UI/UIPanelProfileBuild.mqh` e `UI/UIPanelProfileVisibility.mqh`.
+- Auditados refreshes da GUI; `RefreshTheme()` agora evita repintar controles invisiveis de `CONFIG > PROTECT/SYSTEM`, e o caminho bloqueado de edit diferido em estrategias deixou de repetir um refresh antes da validacao.
 
 ## 1.050 - 2026-04-30
 - Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
