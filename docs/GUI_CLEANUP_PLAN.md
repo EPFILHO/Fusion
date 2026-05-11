@@ -120,6 +120,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: replaced hardcoded `STRATS`/`FILTERS` panel counts with named constants to reduce expansion friction.
 - Done: moved `CONFIG` status selection and application into `UI/UIPanelConfigStatus.mqh`, keeping config validation focused on reading, validating, and committing draft settings.
 - Done: moved pending-change detection into `UI/UIPanelPendingChanges.mqh`, preserving each existing comparison while separating risk, system, signal, and protection checks.
+- Done: moved `PERFIS` creation/layout and visibility into `UI/UIPanelProfileBuild.mqh` and `UI/UIPanelProfileVisibility.mqh`.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
