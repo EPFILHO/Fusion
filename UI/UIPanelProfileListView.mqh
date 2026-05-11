@@ -30,16 +30,8 @@
       ClampProfileOffset();
      }
 
-   void                       UpdateProfileListView(const bool keepSelectionVisible=true)
+   void                       UpdateProfileRows(void)
      {
-      if(!m_profilesTabCreated || !m_profilesBrowseCreated)
-         return;
-
-      if(keepSelectionVisible)
-         EnsureProfileSelectionVisible();
-      else
-         ClampProfileOffset();
-
       string activeName = m_committedProfileName;
       string activeKey = m_profileStore.SanitizeProfileName(activeName);
       for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
@@ -78,55 +70,59 @@
          FusionApplyNeutralButtonStyle(m_profileDownBtn);
 
       FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
+     }
 
-      SUIAccessState access = CurrentAccessState();
-      SUIProfileActionState profileActions = BuildProfileActionState(access);
-      bool selected = profileActions.selected;
-      bool selectedIsActive = profileActions.selectedIsActive;
-      bool selectedIsDefault = profileActions.selectedIsDefault;
-      bool selectedRuntimeLocked = profileActions.selectedRuntimeLocked;
-      bool selectedActiveProfileLocked = profileActions.selectedActiveProfileLocked;
-      bool editMode = ProfileEditMode();
-      bool duplicateMode = ProfileDuplicateMode();
-      int draftMagic = 0;
-      string draftName = "";
-      string magicConflictProfile = "";
-      string profileDraftError = "";
-      bool validName = false;
-      bool nameAvailable = false;
-      bool draftMagicValid = false;
-      bool magicAvailableForDraft = false;
-      bool profileDraftReady = false;
-      if(editMode)
-         profileDraftReady = ProfileEditDraftState(draftName,
-                                                   draftMagic,
-                                                   validName,
-                                                   nameAvailable,
-                                                   draftMagicValid,
-                                                   magicAvailableForDraft,
-                                                   magicConflictProfile,
-                                                   profileDraftError);
+   void                       BuildProfileEditDraftViewState(SUIProfileEditDraftState &draftState)
+     {
+      draftState.editMode = ProfileEditMode();
+      draftState.duplicateMode = ProfileDuplicateMode();
+      draftState.validName = false;
+      draftState.nameAvailable = false;
+      draftState.magicValid = false;
+      draftState.magicAvailable = false;
+      draftState.ready = false;
+      draftState.draftMagic = 0;
+      draftState.draftName = "";
+      draftState.magicConflictProfile = "";
+      draftState.error = "";
+
+      if(draftState.editMode)
+         draftState.ready = ProfileEditDraftState(draftState.draftName,
+                                                  draftState.draftMagic,
+                                                  draftState.validName,
+                                                  draftState.nameAvailable,
+                                                  draftState.magicValid,
+                                                  draftState.magicAvailable,
+                                                  draftState.magicConflictProfile,
+                                                  draftState.error);
       else
         {
-         validName = HasValidProfileDraftName();
-         nameAvailable = true;
-         draftMagicValid = true;
-         magicAvailableForDraft = true;
+         draftState.validName = HasValidProfileDraftName();
+         draftState.nameAvailable = true;
+         draftState.magicValid = true;
+         draftState.magicAvailable = true;
         }
-      RefreshProfileValidationState();
+     }
 
+   void                       UpdateProfileEditControls(const SUIAccessState &access,const SUIProfileEditDraftState &draftState)
+     {
       if(m_profilesEditCreated)
         {
-         m_profileNewLbl.Text(duplicateMode ? "Duplicar como" : "Novo perfil");
+         m_profileNewLbl.Text(draftState.duplicateMode ? "Duplicar como" : "Novo perfil");
          m_profileMagicLbl.Text("Magic");
-         m_profileSaveAsBtn.Text(duplicateMode ? "SALVAR COPIA" : "SALVAR");
-         bool nameStyleValid = (!editMode || !validName || nameAvailable);
-         FusionApplyEditStyle(m_profileNewEdit, nameStyleValid, editMode && access.activeProfileEditable);
-         FusionApplyEditStyle(m_profileMagicEdit, draftMagicValid && magicAvailableForDraft, editMode && access.activeProfileEditable);
-         m_profileNewLbl.Color(!editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : (nameStyleValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_profileMagicLbl.Color(!editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : ((draftMagicValid && magicAvailableForDraft) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_profileSaveAsBtn.Text(draftState.duplicateMode ? "SALVAR COPIA" : "SALVAR");
+         bool nameStyleValid = (!draftState.editMode || !draftState.validName || draftState.nameAvailable);
+         FusionApplyEditStyle(m_profileNewEdit, nameStyleValid, draftState.editMode && access.activeProfileEditable);
+         FusionApplyEditStyle(m_profileMagicEdit, draftState.magicValid && draftState.magicAvailable, draftState.editMode && access.activeProfileEditable);
+         m_profileNewLbl.Color(!draftState.editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : (nameStyleValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_profileMagicLbl.Color(!draftState.editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : ((draftState.magicValid && draftState.magicAvailable) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
         }
+     }
 
+   void                       UpdateProfileActionButtons(const SUIAccessState &access,
+                                                         const SUIProfileActionState &profileActions,
+                                                         const SUIProfileEditDraftState &draftState)
+     {
       if(!access.profileEditMode && access.activeProfileEditable)
          FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);
       else
@@ -139,7 +135,7 @@
 
       if(m_profilesEditCreated)
         {
-         if(editMode && access.activeProfileEditable && access.configInputsValid && profileDraftReady)
+         if(draftState.editMode && access.activeProfileEditable && access.configInputsValid && draftState.ready)
             FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
          else
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
@@ -157,45 +153,50 @@
 
       if(m_profilesEditCreated)
         {
-         if(editMode)
+         if(draftState.editMode)
             FusionApplyActionButtonStyle(m_profileCancelBtn, FUSION_CLR_WARN, true);
          else
             FusionApplyNeutralButtonStyle(m_profileCancelBtn);
         }
+     }
 
+   void                       UpdateProfileStatusMessage(const SUIAccessState &access,
+                                                         const SUIProfileActionState &profileActions,
+                                                         const SUIProfileEditDraftState &draftState)
+     {
       if(!access.runtimeEditable)
          SetProfileStatus("Perfis bloqueados enquanto o EA roda/gerencia posicao.", FUSION_CLR_WARN);
-      else if(editMode && !validName)
-         SetProfileStatus((duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
-      else if(editMode && !nameAvailable)
-         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
-      else if(editMode && !draftMagicValid)
-         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
-      else if(editMode && !magicAvailableForDraft)
-         SetProfileStatus(profileDraftError, FUSION_CLR_WARN);
-      else if(editMode && duplicateMode)
-         SetProfileStatus("Copia: " + draftName + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
-      else if(editMode)
-         SetProfileStatus("Novo perfil: " + draftName + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
+      else if(draftState.editMode && !draftState.validName)
+         SetProfileStatus((draftState.duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
+      else if(draftState.editMode && !draftState.nameAvailable)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(draftState.editMode && !draftState.magicValid)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(draftState.editMode && !draftState.magicAvailable)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(draftState.editMode && draftState.duplicateMode)
+         SetProfileStatus("Copia: " + draftState.draftName + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
+      else if(draftState.editMode)
+         SetProfileStatus("Novo perfil: " + draftState.draftName + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(access.hasPendingChanges)
          SetProfileStatus("Alteracoes pendentes. Use SALVAR ou crie NOVO perfil.", FUSION_CLR_WARN);
-      else if(selected && selectedIsActive && m_snapshot.startBlockedReason != "")
+      else if(profileActions.selected && profileActions.selectedIsActive && m_snapshot.startBlockedReason != "")
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Magic em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(selected && selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
+      else if(profileActions.selected && profileActions.selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(selected && selectedIsActive && selectedIsDefault)
+      else if(profileActions.selected && profileActions.selectedIsActive && profileActions.selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
-      else if(selected && selectedIsActive)
+      else if(profileActions.selected && profileActions.selectedIsActive)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro.", FUSION_CLR_MUTED);
-      else if(selected && selectedRuntimeLocked)
+      else if(profileActions.selected && profileActions.selectedRuntimeLocked)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Magic em uso em outro grafico.", FUSION_CLR_WARN);
-      else if(selected && selectedActiveProfileLocked)
+      else if(profileActions.selected && profileActions.selectedActiveProfileLocked)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil carregado em outro grafico.", FUSION_CLR_WARN);
-      else if(selected && selectedIsDefault)
+      else if(profileActions.selected && profileActions.selectedIsDefault)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Default reservado.", FUSION_CLR_WARN);
-      else if(selected)
+      else if(profileActions.selected)
          SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
       else if(m_snapshot.startBlockedReason != "")
          SetProfileStatus("Perfil em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
@@ -203,6 +204,29 @@
          SetProfileStatus("Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else
          SetProfileStatus("Selecione um perfil ou clique NOVO para criar.", FUSION_CLR_MUTED);
+     }
+
+   void                       UpdateProfileListView(const bool keepSelectionVisible=true)
+     {
+      if(!m_profilesTabCreated || !m_profilesBrowseCreated)
+         return;
+
+      if(keepSelectionVisible)
+         EnsureProfileSelectionVisible();
+      else
+         ClampProfileOffset();
+
+      UpdateProfileRows();
+
+      SUIAccessState access = CurrentAccessState();
+      SUIProfileActionState profileActions = BuildProfileActionState(access);
+      SUIProfileEditDraftState draftState;
+      BuildProfileEditDraftViewState(draftState);
+      RefreshProfileValidationState();
+
+      UpdateProfileEditControls(access, draftState);
+      UpdateProfileActionButtons(access, profileActions, draftState);
+      UpdateProfileStatusMessage(access, profileActions, draftState);
      }
 
 #endif

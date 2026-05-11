@@ -93,4 +93,19 @@ struct SUIProfileActionState
    string blockedReason;
   };
 
+struct SUIProfileEditDraftState
+  {
+   bool   editMode;
+   bool   duplicateMode;
+   bool   validName;
+   bool   nameAvailable;
+   bool   magicValid;
+   bool   magicAvailable;
+   bool   ready;
+   int    draftMagic;
+   string draftName;
+   string magicConflictProfile;
+   string error;
+  };
+
 #endif

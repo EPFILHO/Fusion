@@ -116,6 +116,7 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved internal `CONFIG > PROTECT` visibility into `UI/UIPanelProtectionVisibility.mqh`.
 - Done: moved `CONFIG > PROTECT` control construction into `UI/UIPanelProtectionBuild.mqh`, leaving `UI/UIPanelProtectionTabs.mqh` focused on state, style, sync, and click routing.
 - Done: moved `CONFIG > PROTECT` overview/theme/control sync into `UI/UIPanelProtectionSync.mqh`.
+- Done: split `PERFIS` list view refresh into focused helpers for row painting, edit controls, action buttons, and status messaging.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
