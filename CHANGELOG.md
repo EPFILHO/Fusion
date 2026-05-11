@@ -13,6 +13,8 @@
 - Movidos sync e roteamento de eventos de `STRATS`/`FILTERS` para `UI/UIPanelSignalEvents.mqh`.
 - Movido o shell visual das abas `STRATS`/`FILTERS` para `UI/UIPanelSignalShell.mqh`, deixando `UIPanelSignalTabs.mqh` como composição dos partials de sinais.
 - Movida a visibilidade interna de `CONFIG > PROTECT` para `UI/UIPanelProtectionVisibility.mqh`.
+- Movida a construcao dos controles de `CONFIG > PROTECT` para `UI/UIPanelProtectionBuild.mqh`, reduzindo `UIPanelProtectionTabs.mqh` a estado, estilo, sync e cliques.
+- Movidos overview, tema e sync dos controles de `CONFIG > PROTECT` para `UI/UIPanelProtectionSync.mqh`.
 
 ## 1.050 - 2026-04-30
 - Centralizado o modelo de permissoes da GUI em helpers nomeados para editabilidade de runtime, editabilidade do perfil ativo, carregamento de perfis e administracao de perfis.
