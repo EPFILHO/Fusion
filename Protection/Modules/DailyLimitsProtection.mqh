@@ -1,13 +1,12 @@
 #ifndef __FUSION_DAILY_LIMITS_PROTECTION_MQH__
 #define __FUSION_DAILY_LIMITS_PROTECTION_MQH__
 
-#include "../../Core/Types.mqh"
+#include "ProtectionModuleBase.mqh"
 #include "ProtectionTimeUtils.mqh"
 
-class CDailyLimitsProtection
+class CDailyLimitsProtection : public CProtectionModuleBase
   {
 private:
-   SEASettings m_settings;
    int         m_dayKey;
    int         m_dailyTradeCount;
    double      m_dailyClosedProfit;
@@ -20,7 +19,6 @@ private:
 public:
                      CDailyLimitsProtection(void)
      {
-      SetDefaultSettings(m_settings);
       m_dayKey = 0;
       m_dailyTradeCount = 0;
       m_dailyClosedProfit = 0.0;
@@ -28,15 +26,9 @@ public:
 
    bool              Init(const SEASettings &settings)
      {
-      m_settings = settings;
+      CProtectionModuleBase::Init(settings);
       m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
       return true;
-     }
-
-   bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
-     {
-      m_settings = settings;
-      return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
      }
 
    bool              ResetIfNewDay(void)

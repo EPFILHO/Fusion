@@ -33,7 +33,7 @@
       if(ProtectionIntegerEditPending(m_protectSessionEndMinuteEdit, m_committedSettings.sessionEndMinute, true))
          return true;
 
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          if(ProtectionIntegerEditPending(m_protectNewsStartHourEdit[newsIndex], m_committedSettings.newsWindows[newsIndex].startHour, true))
             return true;
@@ -106,7 +106,7 @@
 
       bool newsValid = true;
       string newsError = "";
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          int startHour = 0, startMinute = 0, endHour = 0, endMinute = 0;
          bool startHourValid = ProtectionTimeValue(FusionTrimCopy(LiveEditText(m_protectNewsStartHourEdit[newsIndex])), 23, startHour);

@@ -15,6 +15,13 @@ protected:
    bool             m_enabled;
    bool             m_initialized;
 
+   void              ReleaseIndicatorHandle(int &handle)
+     {
+      if(handle != INVALID_HANDLE)
+         IndicatorRelease(handle);
+      handle = INVALID_HANDLE;
+     }
+
 public:
                      CFilterBase(const string id,const string name)
      {

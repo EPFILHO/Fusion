@@ -34,9 +34,9 @@
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
-      string generalLabels[6] = {"Spread", "Session", "News", "Day", "Drawdown", "Streak"};
+      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Spread", "Session", "News", "Day", "Drawdown", "Streak"};
       int generalY = 226;
-      for(int generalIndex = 0; generalIndex < 6; ++generalIndex)
+      for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
          if(!AddLabel(m_protectGeneralLabels[generalIndex], "Fusion_protect_general_lbl_" + IntegerToString(generalIndex), 22, generalY, 170, generalY + 18, generalLabels[generalIndex], FUSION_CLR_LABEL))
             return false;
@@ -88,7 +88,7 @@
       if(!AddLabel(m_protectNewsDesc, "Fusion_protect_news_desc", 22, 214, 520, 232, "Cada janela pode so bloquear entradas ou fechar posicoes abertas.", FUSION_CLR_MUTED, 8))
          return false;
       int newsY = 248;
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          string suffix = IntegerToString(newsIndex + 1);
          if(!AddLabel(m_protectNewsBlockHdr[newsIndex], "Fusion_protect_news_hdr_" + suffix, 22, newsY, 220, newsY + 18, "Janela " + suffix, FUSION_CLR_TITLE, 9))

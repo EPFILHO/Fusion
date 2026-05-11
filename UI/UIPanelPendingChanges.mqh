@@ -136,7 +136,7 @@
       if(m_draftSettings.maxWinStreak != m_committedSettings.maxWinStreak)
          return true;
 
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
          if(HasNewsWindowPendingChanges(newsIndex))
             return true;
 

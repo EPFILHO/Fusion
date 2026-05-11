@@ -1,12 +1,11 @@
 #ifndef __FUSION_STREAK_PROTECTION_MQH__
 #define __FUSION_STREAK_PROTECTION_MQH__
 
-#include "../../Core/Types.mqh"
+#include "ProtectionModuleBase.mqh"
 
-class CStreakProtection
+class CStreakProtection : public CProtectionModuleBase
   {
 private:
-   SEASettings m_settings;
    int         m_lossStreak;
    int         m_winStreak;
    bool        m_lossStreakBlocked;
@@ -15,23 +14,10 @@ private:
 public:
                      CStreakProtection(void)
      {
-      SetDefaultSettings(m_settings);
       m_lossStreak = 0;
       m_winStreak = 0;
       m_lossStreakBlocked = false;
       m_winStreakBlocked = false;
-     }
-
-   bool              Init(const SEASettings &settings)
-     {
-      m_settings = settings;
-      return true;
-     }
-
-   bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
-     {
-      m_settings = settings;
-      return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
      }
 
    void              ResetDaily(void)

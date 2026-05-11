@@ -2,6 +2,7 @@
 #define __FUSION_TYPES_MQH__
 
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
+#define FUSION_NEWS_WINDOW_COUNT 3
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -127,7 +128,7 @@ struct SEASettings
    int                      sessionEndHour;
    int                      sessionEndMinute;
    bool                     closeOnSessionEnd;
-   SNewsWindowConfig        newsWindows[3];
+   SNewsWindowConfig        newsWindows[FUSION_NEWS_WINDOW_COUNT];
    bool                     enableDailyLimits;
    int                      maxDailyTrades;
    double                   maxDailyLoss;
@@ -340,7 +341,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.sessionEndHour        = 23;
    settings.sessionEndMinute      = 59;
    settings.closeOnSessionEnd     = false;
-   for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+   for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
      {
       settings.newsWindows[newsIndex].enabled = false;
       settings.newsWindows[newsIndex].startHour = 0;

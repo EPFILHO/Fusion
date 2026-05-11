@@ -6,8 +6,8 @@
    CPanel                     m_protectContentFrame;
 
    CLabel                     m_protectGeneralHdr;
-   CLabel                     m_protectGeneralLabels[6];
-   CLabel                     m_protectGeneralValues[6];
+   CLabel                     m_protectGeneralLabels[FUSION_PROTECT_OVERVIEW_COUNT];
+   CLabel                     m_protectGeneralValues[FUSION_PROTECT_OVERVIEW_COUNT];
 
    CLabel                     m_protectSpreadHdr;
    CLabel                     m_protectSpreadDesc;
@@ -31,17 +31,17 @@
 
    CLabel                     m_protectNewsHdr;
    CLabel                     m_protectNewsDesc;
-   CLabel                     m_protectNewsBlockHdr[3];
-   CLabel                     m_protectNewsEnabledLbl[3];
-   CButton                    m_protectNewsEnabledBtn[3];
-   CLabel                     m_protectNewsStartLbl[3];
-   CEdit                      m_protectNewsStartHourEdit[3];
-   CEdit                      m_protectNewsStartMinuteEdit[3];
-   CLabel                     m_protectNewsEndLbl[3];
-   CEdit                      m_protectNewsEndHourEdit[3];
-   CEdit                      m_protectNewsEndMinuteEdit[3];
-   CLabel                     m_protectNewsModeLbl[3];
-   CButton                    m_protectNewsModeBtn[3];
+   CLabel                     m_protectNewsBlockHdr[FUSION_NEWS_WINDOW_COUNT];
+   CLabel                     m_protectNewsEnabledLbl[FUSION_NEWS_WINDOW_COUNT];
+   CButton                    m_protectNewsEnabledBtn[FUSION_NEWS_WINDOW_COUNT];
+   CLabel                     m_protectNewsStartLbl[FUSION_NEWS_WINDOW_COUNT];
+   CEdit                      m_protectNewsStartHourEdit[FUSION_NEWS_WINDOW_COUNT];
+   CEdit                      m_protectNewsStartMinuteEdit[FUSION_NEWS_WINDOW_COUNT];
+   CLabel                     m_protectNewsEndLbl[FUSION_NEWS_WINDOW_COUNT];
+   CEdit                      m_protectNewsEndHourEdit[FUSION_NEWS_WINDOW_COUNT];
+   CEdit                      m_protectNewsEndMinuteEdit[FUSION_NEWS_WINDOW_COUNT];
+   CLabel                     m_protectNewsModeLbl[FUSION_NEWS_WINDOW_COUNT];
+   CButton                    m_protectNewsModeBtn[FUSION_NEWS_WINDOW_COUNT];
 
    CLabel                     m_protectDayHdr;
    CLabel                     m_protectDayDesc;
@@ -200,7 +200,7 @@
       if(HandleProtectionBooleanToggle(objectName, m_protectStreakEnabledBtn, m_draftSettings.enableStreak))
          return true;
 
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          if(HandleProtectionBooleanToggle(objectName, m_protectNewsEnabledBtn[newsIndex], m_draftSettings.newsWindows[newsIndex].enabled))
             return true;

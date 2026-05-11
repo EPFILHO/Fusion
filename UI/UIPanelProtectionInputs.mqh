@@ -27,7 +27,7 @@
             return true;
            }
 
-         for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+         for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
            {
             if(objectName == m_protectNewsStartHourEdit[newsIndex].Name() ||
                objectName == m_protectNewsEndHourEdit[newsIndex].Name())
@@ -74,6 +74,60 @@
       edit.Text(SanitizeTimeText(LiveEditText(edit), maxValue));
      }
 
+   string                     SanitizeIntegerText(const string text,const int fallback,const bool allowZero=true,const int maxDigits=0) const
+     {
+      string trimmed = FusionTrimCopy(text);
+      string digits = "";
+      for(int i = 0; i < StringLen(trimmed); ++i)
+        {
+         ushort ch = StringGetCharacter(trimmed, i);
+         if(ch < '0' || ch > '9')
+            continue;
+         if(maxDigits > 0 && StringLen(digits) >= maxDigits)
+            break;
+         digits += StringSubstr(trimmed, i, 1);
+        }
+
+      if(digits == "")
+         return IntegerToString(fallback);
+
+      int value = (int)StringToInteger(digits);
+      if(!allowZero && value <= 0)
+         value = fallback;
+      return IntegerToString(value);
+     }
+
+   void                       NormalizeIntegerEdit(CEdit &edit,const int fallback,const bool allowZero=true,const int maxDigits=0)
+     {
+      edit.Text(SanitizeIntegerText(LiveEditText(edit), fallback, allowZero, maxDigits));
+     }
+
+   void                       NormalizeDecimalEdit(CEdit &edit,const double fallback,const int digits,const bool allowZero=true)
+     {
+      string text = FusionNormalizeDecimalText(LiveEditText(edit));
+      double value = fallback;
+      if(FusionIsDecimalText(text, allowZero))
+        {
+         value = StringToDouble(text);
+         if(!allowZero && value <= 0.0)
+            value = fallback;
+        }
+      edit.Text(DoubleToString(value, digits));
+     }
+
+   void                       NormalizeVolumeEdit(CEdit &edit,const double fallback)
+     {
+      string text = FusionNormalizeDecimalText(LiveEditText(edit));
+      double value = fallback;
+      if(FusionIsDecimalText(text, false))
+        {
+         value = StringToDouble(text);
+         if(value <= 0.0)
+            value = fallback;
+        }
+      edit.Text(FusionFormatVolume(value, m_snapshot.symbolSpec));
+     }
+
    bool                       ProtectionTimeValue(const string text,const int maxValue,int &parsed) const
      {
       parsed = 0;
@@ -111,7 +165,7 @@
             objectName == m_protectStreakWinEdit.Name())
             return true;
 
-         for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+         for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
            {
             if(objectName == m_protectNewsStartHourEdit[newsIndex].Name() ||
                objectName == m_protectNewsStartMinuteEdit[newsIndex].Name() ||
@@ -129,37 +183,75 @@
          return false;
 
       int maxValue = -1;
-      if(!IsTimeEditObject(objectName, maxValue))
-         return false;
-
-      if(objectName == m_protectSessionStartHourEdit.Name())
-         NormalizeTimeEdit(m_protectSessionStartHourEdit, maxValue);
-      else if(objectName == m_protectSessionStartMinuteEdit.Name())
-         NormalizeTimeEdit(m_protectSessionStartMinuteEdit, maxValue);
-      else if(objectName == m_protectSessionEndHourEdit.Name())
-         NormalizeTimeEdit(m_protectSessionEndHourEdit, maxValue);
-      else if(objectName == m_protectSessionEndMinuteEdit.Name())
-         NormalizeTimeEdit(m_protectSessionEndMinuteEdit, maxValue);
-      else
+      if(IsTimeEditObject(objectName, maxValue))
         {
-         for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+         if(objectName == m_protectSessionStartHourEdit.Name())
+            NormalizeTimeEdit(m_protectSessionStartHourEdit, maxValue);
+         else if(objectName == m_protectSessionStartMinuteEdit.Name())
+            NormalizeTimeEdit(m_protectSessionStartMinuteEdit, maxValue);
+         else if(objectName == m_protectSessionEndHourEdit.Name())
+            NormalizeTimeEdit(m_protectSessionEndHourEdit, maxValue);
+         else if(objectName == m_protectSessionEndMinuteEdit.Name())
+            NormalizeTimeEdit(m_protectSessionEndMinuteEdit, maxValue);
+         else
            {
-            if(objectName == m_protectNewsStartHourEdit[newsIndex].Name())
-               NormalizeTimeEdit(m_protectNewsStartHourEdit[newsIndex], maxValue);
-            else if(objectName == m_protectNewsStartMinuteEdit[newsIndex].Name())
-               NormalizeTimeEdit(m_protectNewsStartMinuteEdit[newsIndex], maxValue);
-            else if(objectName == m_protectNewsEndHourEdit[newsIndex].Name())
-               NormalizeTimeEdit(m_protectNewsEndHourEdit[newsIndex], maxValue);
-            else if(objectName == m_protectNewsEndMinuteEdit[newsIndex].Name())
-               NormalizeTimeEdit(m_protectNewsEndMinuteEdit[newsIndex], maxValue);
-            else
-               continue;
-            return true;
+            for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+              {
+               if(objectName == m_protectNewsStartHourEdit[newsIndex].Name())
+                  NormalizeTimeEdit(m_protectNewsStartHourEdit[newsIndex], maxValue);
+               else if(objectName == m_protectNewsStartMinuteEdit[newsIndex].Name())
+                  NormalizeTimeEdit(m_protectNewsStartMinuteEdit[newsIndex], maxValue);
+               else if(objectName == m_protectNewsEndHourEdit[newsIndex].Name())
+                  NormalizeTimeEdit(m_protectNewsEndHourEdit[newsIndex], maxValue);
+               else if(objectName == m_protectNewsEndMinuteEdit[newsIndex].Name())
+                  NormalizeTimeEdit(m_protectNewsEndMinuteEdit[newsIndex], maxValue);
+               else
+                  continue;
+               return true;
+              }
+            return false;
            }
-         return false;
+
+         return true;
         }
 
-      return true;
+      if(objectName == m_protectSpreadLimitEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectSpreadLimitEdit, m_draftSettings.maxSpreadPoints, true);
+         return true;
+        }
+      if(objectName == m_protectDayTradesEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectDayTradesEdit, m_draftSettings.maxDailyTrades, true);
+         return true;
+        }
+      if(objectName == m_protectDayLossEdit.Name())
+        {
+         NormalizeDecimalEdit(m_protectDayLossEdit, m_draftSettings.maxDailyLoss, 2, true);
+         return true;
+        }
+      if(objectName == m_protectDayGainEdit.Name())
+        {
+         NormalizeDecimalEdit(m_protectDayGainEdit, m_draftSettings.maxDailyGain, 2, true);
+         return true;
+        }
+      if(objectName == m_protectDrawdownValueEdit.Name())
+        {
+         NormalizeDecimalEdit(m_protectDrawdownValueEdit, m_draftSettings.maxDrawdown, 2, true);
+         return true;
+        }
+      if(objectName == m_protectStreakLossEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectStreakLossEdit, m_draftSettings.maxLossStreak, true);
+         return true;
+        }
+      if(objectName == m_protectStreakWinEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectStreakWinEdit, m_draftSettings.maxWinStreak, true);
+         return true;
+        }
+
+      return false;
      }
 
 #endif

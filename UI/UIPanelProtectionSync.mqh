@@ -12,10 +12,10 @@
                                                   m_draftSettings.sessionEndMinute));
 
       int newsEnabled = 0;
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
          if(m_draftSettings.newsWindows[newsIndex].enabled)
             newsEnabled++;
-      m_protectGeneralValues[2].Text(IntegerToString(newsEnabled) + "/3 janelas ativas");
+      m_protectGeneralValues[2].Text(IntegerToString(newsEnabled) + "/" + IntegerToString(FUSION_NEWS_WINDOW_COUNT) + " janelas ativas");
       m_protectGeneralValues[3].Text(StringFormat("Trades %d | P/L %.2f", m_snapshot.dailyTradeCount, m_snapshot.dailyClosedProfit));
       m_protectGeneralValues[4].Text(!m_draftSettings.enableDrawdown ? "OFF" :
                                      (m_snapshot.drawdownProtectionActive ? "ATIVO" : "Aguardando meta"));
@@ -34,7 +34,7 @@
       FusionApplyToggleButtonStyle(m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter, editable);
       FusionApplyToggleButtonStyle(m_protectSessionCloseBtn, m_draftSettings.closeOnSessionEnd, editable);
 
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          FusionApplyToggleButtonStyle(m_protectNewsEnabledBtn[newsIndex], m_draftSettings.newsWindows[newsIndex].enabled, editable);
          ApplyProtectModeButtonStyle(m_protectNewsModeBtn[newsIndex], m_draftSettings.newsWindows[newsIndex].action, editable);
@@ -54,7 +54,7 @@
       m_protectSessionStartMinuteEdit.Text(StringFormat("%02d", m_draftSettings.sessionStartMinute));
       m_protectSessionEndHourEdit.Text(StringFormat("%02d", m_draftSettings.sessionEndHour));
       m_protectSessionEndMinuteEdit.Text(StringFormat("%02d", m_draftSettings.sessionEndMinute));
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          m_protectNewsStartHourEdit[newsIndex].Text(StringFormat("%02d", m_draftSettings.newsWindows[newsIndex].startHour));
          m_protectNewsStartMinuteEdit[newsIndex].Text(StringFormat("%02d", m_draftSettings.newsWindows[newsIndex].startMinute));

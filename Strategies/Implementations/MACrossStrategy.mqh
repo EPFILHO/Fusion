@@ -25,12 +25,8 @@ private:
 
    void              ReleaseHandles(void)
      {
-      if(m_fastHandle != INVALID_HANDLE)
-         IndicatorRelease(m_fastHandle);
-      if(m_slowHandle != INVALID_HANDLE)
-         IndicatorRelease(m_slowHandle);
-      m_fastHandle = INVALID_HANDLE;
-      m_slowHandle = INVALID_HANDLE;
+      ReleaseIndicatorHandle(m_fastHandle);
+      ReleaseIndicatorHandle(m_slowHandle);
      }
 
    void              ResetEntryTracking(void)

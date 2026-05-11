@@ -1,6 +1,8 @@
 #ifndef __FUSION_ACTIVE_PROFILE_REGISTRY_MQH__
 #define __FUSION_ACTIVE_PROFILE_REGISTRY_MQH__
 
+#include "ProfileNameUtils.mqh"
+
 class CActiveProfileRegistry
   {
 private:
@@ -8,18 +10,6 @@ private:
    string m_prefix;
    bool   m_registered;
    int    m_ttlSeconds;
-
-   string SanitizeProfileName(const string value) const
-     {
-      string safe = value;
-      string invalid = "\\/:*?\"<>| ";
-      for(int i = 0; i < StringLen(invalid); ++i)
-        {
-         string token = StringSubstr(invalid, i, 1);
-         StringReplace(safe, token, "_");
-        }
-      return safe;
-     }
 
    uint   ProfileHash(const string value) const
      {
@@ -34,7 +24,7 @@ private:
 
    string ProfileToken(const string profileName) const
      {
-      string safe = SanitizeProfileName(profileName);
+      string safe = FusionSanitizeProfileName(profileName);
       if(safe == "")
          return "";
       return StringFormat("%08X", ProfileHash(safe));

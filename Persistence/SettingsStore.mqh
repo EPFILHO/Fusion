@@ -2,20 +2,14 @@
 #define __FUSION_SETTINGS_STORE_MQH__
 
 #include "../Core/Types.mqh"
+#include "../Core/ProfileNameUtils.mqh"
 
 class CSettingsStore
   {
 private:
    string            SanitizeName(const string value) const
      {
-      string safe = value;
-      string invalid = "\\/:*?\"<>| ";
-      for(int i = 0; i < StringLen(invalid); i++)
-        {
-         string token = StringSubstr(invalid, i, 1);
-         StringReplace(safe, token, "_");
-        }
-      return safe;
+      return FusionSanitizeProfileName(value);
      }
 
    bool              ParseLine(const string line,string &key,string &value) const
@@ -76,7 +70,7 @@ private:
       WriteLine(handle, "sessionEndHour", IntegerToString(settings.sessionEndHour));
       WriteLine(handle, "sessionEndMinute", IntegerToString(settings.sessionEndMinute));
       WriteLine(handle, "closeOnSessionEnd", IntegerToString((int)settings.closeOnSessionEnd));
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          string prefix = "news" + IntegerToString(newsIndex + 1) + ".";
          WriteLine(handle, prefix + "enabled", IntegerToString((int)settings.newsWindows[newsIndex].enabled));
@@ -155,6 +149,52 @@ private:
       return true;
      }
 
+   bool              ApplyNewsWindowSetting(const string key,const string value,SEASettings &settings) const
+     {
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+        {
+         string prefix = "news" + IntegerToString(newsIndex + 1) + ".";
+         if(StringFind(key, prefix) != 0)
+            continue;
+
+         string field = StringSubstr(key, StringLen(prefix));
+         if(field == "enabled")
+           {
+            settings.newsWindows[newsIndex].enabled = (bool)StringToInteger(value);
+            return true;
+           }
+         if(field == "startHour")
+           {
+            settings.newsWindows[newsIndex].startHour = (int)StringToInteger(value);
+            return true;
+           }
+         if(field == "startMinute")
+           {
+            settings.newsWindows[newsIndex].startMinute = (int)StringToInteger(value);
+            return true;
+           }
+         if(field == "endHour")
+           {
+            settings.newsWindows[newsIndex].endHour = (int)StringToInteger(value);
+            return true;
+           }
+         if(field == "endMinute")
+           {
+            settings.newsWindows[newsIndex].endMinute = (int)StringToInteger(value);
+            return true;
+           }
+         if(field == "action")
+           {
+            settings.newsWindows[newsIndex].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
+            return true;
+           }
+
+         return false;
+        }
+
+      return false;
+     }
+
    void              ApplySetting(const string key,const string value,SEASettings &settings) const
      {
       if(key == "schemaVersion") settings.schemaVersion = (int)StringToInteger(value);
@@ -175,24 +215,7 @@ private:
       else if(key == "sessionEndHour") settings.sessionEndHour = (int)StringToInteger(value);
       else if(key == "sessionEndMinute") settings.sessionEndMinute = (int)StringToInteger(value);
       else if(key == "closeOnSessionEnd") settings.closeOnSessionEnd = (bool)StringToInteger(value);
-      else if(key == "news1.enabled") settings.newsWindows[0].enabled = (bool)StringToInteger(value);
-      else if(key == "news1.startHour") settings.newsWindows[0].startHour = (int)StringToInteger(value);
-      else if(key == "news1.startMinute") settings.newsWindows[0].startMinute = (int)StringToInteger(value);
-      else if(key == "news1.endHour") settings.newsWindows[0].endHour = (int)StringToInteger(value);
-      else if(key == "news1.endMinute") settings.newsWindows[0].endMinute = (int)StringToInteger(value);
-      else if(key == "news1.action") settings.newsWindows[0].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
-      else if(key == "news2.enabled") settings.newsWindows[1].enabled = (bool)StringToInteger(value);
-      else if(key == "news2.startHour") settings.newsWindows[1].startHour = (int)StringToInteger(value);
-      else if(key == "news2.startMinute") settings.newsWindows[1].startMinute = (int)StringToInteger(value);
-      else if(key == "news2.endHour") settings.newsWindows[1].endHour = (int)StringToInteger(value);
-      else if(key == "news2.endMinute") settings.newsWindows[1].endMinute = (int)StringToInteger(value);
-      else if(key == "news2.action") settings.newsWindows[1].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
-      else if(key == "news3.enabled") settings.newsWindows[2].enabled = (bool)StringToInteger(value);
-      else if(key == "news3.startHour") settings.newsWindows[2].startHour = (int)StringToInteger(value);
-      else if(key == "news3.startMinute") settings.newsWindows[2].startMinute = (int)StringToInteger(value);
-      else if(key == "news3.endHour") settings.newsWindows[2].endHour = (int)StringToInteger(value);
-      else if(key == "news3.endMinute") settings.newsWindows[2].endMinute = (int)StringToInteger(value);
-      else if(key == "news3.action") settings.newsWindows[2].action = (ENUM_NEWS_WINDOW_ACTION)StringToInteger(value);
+      else if(ApplyNewsWindowSetting(key, value, settings)) return;
       else if(key == "enableDailyLimits") settings.enableDailyLimits = (bool)StringToInteger(value);
       else if(key == "maxDailyTrades") settings.maxDailyTrades = (int)StringToInteger(value);
       else if(key == "maxDailyLoss") settings.maxDailyLoss = StringToDouble(value);

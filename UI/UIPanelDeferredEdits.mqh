@@ -71,6 +71,20 @@
         }
      }
 
+   void                       NormalizeProfileDeferredEdit(const string objectName)
+     {
+      if(m_profilesEditCreated && objectName == m_profileMagicEdit.Name())
+         NormalizeIntegerEdit(m_profileMagicEdit, m_draftSettings.magicNumber, false, 10);
+     }
+
+   void                       NormalizeConfigDeferredEdit(const string objectName)
+     {
+      if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
+         NormalizeVolumeEdit(m_cfgRiskLotEdit, m_draftSettings.fixedLot);
+      else if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
+         NormalizeIntegerEdit(m_cfgSystemMagicEdit, m_draftSettings.magicNumber, false, 10);
+     }
+
    void                       HandleDeferredRefreshEvent(const int id,const string objectName)
      {
       HandleStrategyPanelDeferredEdit(objectName);
@@ -78,6 +92,8 @@
         {
          NormalizeStrategyDeferredEdit(objectName);
          NormalizeProtectionDeferredEdit(objectName);
+         NormalizeConfigDeferredEdit(objectName);
+         NormalizeProfileDeferredEdit(objectName);
         }
       RefreshConfigValidation();
       ChartRedraw();

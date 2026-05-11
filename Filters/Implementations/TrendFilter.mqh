@@ -13,9 +13,7 @@ private:
 
    void              ReleaseHandle(void)
      {
-      if(m_handle != INVALID_HANDLE)
-         IndicatorRelease(m_handle);
-      m_handle = INVALID_HANDLE;
+      ReleaseIndicatorHandle(m_handle);
      }
 
    bool              CreateHandle(void)

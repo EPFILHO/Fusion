@@ -1,17 +1,15 @@
 #ifndef __FUSION_NEWS_PROTECTION_MQH__
 #define __FUSION_NEWS_PROTECTION_MQH__
 
-#include "../../Core/Types.mqh"
+#include "ProtectionModuleBase.mqh"
 #include "ProtectionTimeUtils.mqh"
 
-class CNewsProtection
+class CNewsProtection : public CProtectionModuleBase
   {
 private:
-   SEASettings m_settings;
-
    bool              IsWindowActive(const int index,const datetime now) const
      {
-      if(index < 0 || index >= 3)
+      if(index < 0 || index >= FUSION_NEWS_WINDOW_COUNT)
          return false;
       if(!m_settings.newsWindows[index].enabled)
          return false;
@@ -24,29 +22,12 @@ private:
      }
 
 public:
-                     CNewsProtection(void)
-     {
-      SetDefaultSettings(m_settings);
-     }
-
-   bool              Init(const SEASettings &settings)
-     {
-      m_settings = settings;
-      return true;
-     }
-
-   bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
-     {
-      m_settings = settings;
-      return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
-     }
-
    bool              CanOpen(string &reason) const
      {
       reason = "";
       datetime now = TimeCurrent();
 
-      for(int index = 0; index < 3; ++index)
+      for(int index = 0; index < FUSION_NEWS_WINDOW_COUNT; ++index)
         {
          if(!IsWindowActive(index, now))
             continue;
@@ -63,7 +44,7 @@ public:
       reason = "";
       datetime now = TimeCurrent();
 
-      for(int index = 0; index < 3; ++index)
+      for(int index = 0; index < FUSION_NEWS_WINDOW_COUNT; ++index)
         {
          if(!IsWindowActive(index, now))
             continue;

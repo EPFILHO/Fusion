@@ -9,18 +9,6 @@ private:
    bool   m_registered;
    int    m_ttlSeconds;
 
-   string SanitizeToken(const string value) const
-     {
-      string safe = value;
-      string invalid = "\\/:*?\"<>| .";
-      for(int i = 0; i < StringLen(invalid); ++i)
-        {
-         string token = StringSubstr(invalid, i, 1);
-         StringReplace(safe, token, "_");
-        }
-      return safe;
-     }
-
    string Prefix(const int magicNumber) const
      {
       return "Fusion.I." + IntegerToString(magicNumber) + ".";

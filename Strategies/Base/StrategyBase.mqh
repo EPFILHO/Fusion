@@ -17,6 +17,13 @@ protected:
    bool             m_enabled;
    bool             m_initialized;
 
+   void              ReleaseIndicatorHandle(int &handle)
+     {
+      if(handle != INVALID_HANDLE)
+         IndicatorRelease(handle);
+      handle = INVALID_HANDLE;
+     }
+
 public:
                      CStrategyBase(const string id,const string name,const string shortName,const int priority)
      {

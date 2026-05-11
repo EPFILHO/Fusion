@@ -7,7 +7,7 @@
       SetVisible(m_protectTabsSeparator, visible);
       SetVisible(m_protectContentFrame, visible);
       SetVisible(m_protectGeneralHdr, showGeneral);
-      for(int generalIndex = 0; generalIndex < 6; ++generalIndex)
+      for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
          SetVisible(m_protectGeneralLabels[generalIndex], showGeneral);
          SetVisible(m_protectGeneralValues[generalIndex], showGeneral);
@@ -38,7 +38,7 @@
       bool showNews = visible && page == FUSION_PROTECT_NEWS;
       SetVisible(m_protectNewsHdr, showNews);
       SetVisible(m_protectNewsDesc, showNews);
-      for(int newsIndex = 0; newsIndex < 3; ++newsIndex)
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          SetVisible(m_protectNewsBlockHdr[newsIndex], showNews);
          SetVisible(m_protectNewsEnabledLbl[newsIndex], showNews);

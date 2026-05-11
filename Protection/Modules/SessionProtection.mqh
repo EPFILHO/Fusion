@@ -1,32 +1,12 @@
 #ifndef __FUSION_SESSION_PROTECTION_MQH__
 #define __FUSION_SESSION_PROTECTION_MQH__
 
-#include "../../Core/Types.mqh"
+#include "ProtectionModuleBase.mqh"
 #include "ProtectionTimeUtils.mqh"
 
-class CSessionProtection
+class CSessionProtection : public CProtectionModuleBase
   {
-private:
-   SEASettings m_settings;
-
 public:
-                     CSessionProtection(void)
-     {
-      SetDefaultSettings(m_settings);
-     }
-
-   bool              Init(const SEASettings &settings)
-     {
-      m_settings = settings;
-      return true;
-     }
-
-   bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
-     {
-      m_settings = settings;
-      return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
-     }
-
    bool              IsInsideSession(const datetime now) const
      {
       if(!m_settings.enableSessionFilter)

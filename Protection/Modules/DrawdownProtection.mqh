@@ -1,12 +1,11 @@
 #ifndef __FUSION_DRAWDOWN_PROTECTION_MQH__
 #define __FUSION_DRAWDOWN_PROTECTION_MQH__
 
-#include "../../Core/Types.mqh"
+#include "ProtectionModuleBase.mqh"
 
-class CDrawdownProtection
+class CDrawdownProtection : public CProtectionModuleBase
   {
 private:
-   SEASettings m_settings;
    bool        m_protectionActive;
    bool        m_limitReached;
    double      m_peakProjectedProfit;
@@ -14,22 +13,9 @@ private:
 public:
                      CDrawdownProtection(void)
      {
-      SetDefaultSettings(m_settings);
       m_protectionActive = false;
       m_limitReached = false;
       m_peakProjectedProfit = 0.0;
-     }
-
-   bool              Init(const SEASettings &settings)
-     {
-      m_settings = settings;
-      return true;
-     }
-
-   bool              Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
-     {
-      m_settings = settings;
-      return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
      }
 
    void              ResetDaily(void)
