@@ -131,8 +131,6 @@
         {
          if(profileDraftError != "")
             SetProfileStatus(profileDraftError, FUSION_CLR_BAD, true);
-         else
-            UpdateProfileListView();
          RefreshConfigValidation();
          return true;
         }

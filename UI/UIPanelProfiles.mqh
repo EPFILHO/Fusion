@@ -35,6 +35,7 @@
    CButton                    m_profileDeleteBtn;
    CButton                    m_profileCancelBtn;
    CLabel                     m_profileStatus;
+   CLabel                     m_profileStatusDetail;
 
 #include "UIPanelProfileState.mqh"
 #include "UIPanelProfileBuild.mqh"

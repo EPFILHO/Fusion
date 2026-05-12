@@ -8,16 +8,39 @@
       return (m_profileMode == FUSION_PROFILE_DUPLICATE);
      }
 
+   void                       SplitProfileStatusText(const string text,string &line1,string &line2) const
+     {
+      line1 = text;
+      line2 = "";
+
+      int splitAt = StringFind(text, ". ");
+      if(splitAt <= 0)
+         return;
+
+      line1 = StringSubstr(text, 0, splitAt + 1);
+      line2 = FusionTrimCopy(StringSubstr(text, splitAt + 2));
+     }
+
+   void                       ApplyProfileStatusLabels(const string text,const color clr)
+     {
+      if(!m_profilesTabCreated)
+         return;
+
+      string line1 = "";
+      string line2 = "";
+      SplitProfileStatusText(text, line1, line2);
+      m_profileStatus.Text(line1);
+      m_profileStatus.Color(clr);
+      m_profileStatusDetail.Text(line2);
+      m_profileStatusDetail.Color(clr);
+     }
+
    void                       SetProfileStatus(const string text,const color clr,const bool persist=false)
      {
       uint now = GetTickCount();
       if(!persist && m_profileStatusOverrideUntil > now)
         {
-         if(m_profilesTabCreated)
-           {
-            m_profileStatus.Text(m_profileStatusOverride);
-            m_profileStatus.Color(m_profileStatusOverrideColor);
-           }
+         ApplyProfileStatusLabels(m_profileStatusOverride, m_profileStatusOverrideColor);
          return;
         }
 
@@ -28,11 +51,7 @@
          m_profileStatusOverrideUntil = now + 5000;
         }
 
-      if(m_profilesTabCreated)
-        {
-         m_profileStatus.Text(text);
-         m_profileStatus.Color(clr);
-        }
+      ApplyProfileStatusLabels(text, clr);
      }
 
    void                       ClearProfileStatusOverride(void)

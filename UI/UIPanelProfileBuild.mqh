@@ -85,7 +85,9 @@
                    FUSION_CLR_FRAME_BG,
                    FUSION_CLR_FRAME_BORDER))
          return false;
-      if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 430, FUSION_PANEL_WIDTH - 18, 456, "", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_profileStatus, "Fusion_profile_status", 24, 420, FUSION_PANEL_WIDTH - 18, 438, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_profileStatusDetail, "Fusion_profile_status_detail", 24, 438, FUSION_PANEL_WIDTH - 18, 456, "", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddHitGroup(m_profilesBrowseGroup, "Fusion_group_profiles_browse"))

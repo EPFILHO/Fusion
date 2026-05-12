@@ -30,35 +30,34 @@
       ClampProfileOffset();
      }
 
-   void                       UpdateProfileRows(void)
+   string                     ProfileRowText(const int profileIndex,const string activeKey)
      {
-      string activeName = m_committedProfileName;
-      string activeKey = m_profileStore.SanitizeProfileName(activeName);
-      for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
-        {
-         int idx = m_profileOffset + i;
-         if(idx >= 0 && idx < m_profileCount)
-           {
-            string rowText = m_profileNames[idx];
-            string rowKey = m_profileStore.SanitizeProfileName(m_profileNames[idx]);
-            if(rowKey == activeKey)
-               rowText += "  [ATIVO]";
-            m_profileRows[i].Text(rowText);
+      string rowText = m_profileNames[profileIndex];
+      string rowKey = m_profileStore.SanitizeProfileName(m_profileNames[profileIndex]);
+      if(rowKey == activeKey)
+         rowText += "  [ATIVO]";
+      return rowText;
+     }
 
-            if(idx == m_profileSelected)
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_NAV_ACTIVE, true);
-            else if(rowKey == activeKey)
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_GOOD, true);
-            else
-               FusionApplyActionButtonStyle(m_profileRows[i], FUSION_CLR_NAV_IDLE, true);
-           }
-         else
-           {
-            m_profileRows[i].Text("");
-            FusionApplyNeutralButtonStyle(m_profileRows[i]);
-           }
-        }
+   void                       ApplyProfileRowStyle(CButton &button,const int profileIndex,const string activeKey)
+     {
+      string rowKey = m_profileStore.SanitizeProfileName(m_profileNames[profileIndex]);
+      if(profileIndex == m_profileSelected)
+         FusionApplyActionButtonStyle(button, FUSION_CLR_NAV_ACTIVE, true);
+      else if(rowKey == activeKey)
+         FusionApplyActionButtonStyle(button, FUSION_CLR_GOOD, true);
+      else
+         FusionApplyActionButtonStyle(button, FUSION_CLR_NAV_IDLE, true);
+     }
 
+   void                       ClearProfileRow(CButton &button)
+     {
+      button.Text("");
+      FusionApplyNeutralButtonStyle(button);
+     }
+
+   void                       UpdateProfileScrollButtons(void)
+     {
       if(m_profileOffset > 0)
          FusionApplyActionButtonStyle(m_profileUpBtn, FUSION_CLR_NAV_IDLE, true);
       else
@@ -70,6 +69,25 @@
          FusionApplyNeutralButtonStyle(m_profileDownBtn);
 
       FusionApplyActionButtonStyle(m_profileRefreshBtn, FUSION_CLR_ACTION_LOAD, true);
+     }
+
+   void                       UpdateProfileRows(void)
+     {
+      string activeName = m_committedProfileName;
+      string activeKey = m_profileStore.SanitizeProfileName(activeName);
+      for(int i = 0; i < FUSION_PROFILE_VISIBLE_ROWS; ++i)
+        {
+         int idx = m_profileOffset + i;
+         if(idx >= 0 && idx < m_profileCount)
+           {
+            m_profileRows[i].Text(ProfileRowText(idx, activeKey));
+            ApplyProfileRowStyle(m_profileRows[i], idx, activeKey);
+           }
+         else
+            ClearProfileRow(m_profileRows[i]);
+        }
+
+      UpdateProfileScrollButtons();
      }
 
    void                       BuildProfileEditDraftViewState(SUIProfileEditDraftState &draftState)
@@ -160,44 +178,67 @@
         }
      }
 
+   bool                       ApplyProfileEditStatusMessage(const SUIProfileEditDraftState &draftState)
+     {
+      if(!draftState.editMode)
+         return false;
+
+      if(!draftState.validName)
+         SetProfileStatus((draftState.duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
+      else if(!draftState.nameAvailable)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(!draftState.magicValid)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(!draftState.magicAvailable)
+         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
+      else if(draftState.duplicateMode)
+         SetProfileStatus("Copia: " + draftState.draftName + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
+      else
+         SetProfileStatus("Novo perfil: " + draftState.draftName + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
+
+      return true;
+     }
+
+   bool                       ApplySelectedProfileStatusMessage(const SUIProfileActionState &profileActions)
+     {
+      if(!profileActions.selected)
+         return false;
+
+      string selectedName = SelectedProfileName();
+      if(profileActions.selectedIsActive && m_snapshot.startBlockedReason != "")
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Magic em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+      else if(profileActions.selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+      else if(profileActions.selectedIsActive && profileActions.selectedIsDefault)
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
+      else if(profileActions.selectedIsActive)
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Use NOVO ou selecione outro.", FUSION_CLR_MUTED);
+      else if(profileActions.selectedRuntimeLocked)
+         SetProfileStatus("Selecionado: " + selectedName + ". Magic em uso em outro grafico.", FUSION_CLR_WARN);
+      else if(profileActions.selectedActiveProfileLocked)
+         SetProfileStatus("Selecionado: " + selectedName + ". Perfil carregado em outro grafico.", FUSION_CLR_WARN);
+      else if(profileActions.selectedIsDefault)
+         SetProfileStatus("Selecionado: " + selectedName + ". Default reservado.", FUSION_CLR_WARN);
+      else
+         SetProfileStatus("Selecionado: " + selectedName + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
+
+      return true;
+     }
+
    void                       UpdateProfileStatusMessage(const SUIAccessState &access,
                                                          const SUIProfileActionState &profileActions,
                                                          const SUIProfileEditDraftState &draftState)
      {
       if(!access.runtimeEditable)
          SetProfileStatus("Perfis bloqueados enquanto o EA roda/gerencia posicao.", FUSION_CLR_WARN);
-      else if(draftState.editMode && !draftState.validName)
-         SetProfileStatus((draftState.duplicateMode ? "Duplicar: " : "Novo perfil: ") + "informe um nome e clique SALVAR.", FUSION_CLR_MUTED);
-      else if(draftState.editMode && !draftState.nameAvailable)
-         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
-      else if(draftState.editMode && !draftState.magicValid)
-         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
-      else if(draftState.editMode && !draftState.magicAvailable)
-         SetProfileStatus(draftState.error, FUSION_CLR_WARN);
-      else if(draftState.editMode && draftState.duplicateMode)
-         SetProfileStatus("Copia: " + draftState.draftName + ". Ajuste Magic e salve.", FUSION_CLR_MUTED);
-      else if(draftState.editMode)
-         SetProfileStatus("Novo perfil: " + draftState.draftName + ". Clique SALVAR para criar.", FUSION_CLR_MUTED);
+      else if(ApplyProfileEditStatusMessage(draftState))
+         return;
       else if(m_profileCount == 0)
          SetProfileStatus("Nenhum perfil salvo ainda. Clique NOVO para criar.", FUSION_CLR_MUTED);
       else if(access.hasPendingChanges)
          SetProfileStatus("Alteracoes pendentes. Use SALVAR ou crie NOVO perfil.", FUSION_CLR_WARN);
-      else if(profileActions.selected && profileActions.selectedIsActive && m_snapshot.startBlockedReason != "")
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Magic em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(profileActions.selected && profileActions.selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
-      else if(profileActions.selected && profileActions.selectedIsActive && profileActions.selectedIsDefault)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
-      else if(profileActions.selected && profileActions.selectedIsActive)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + " [ATIVO]. Use NOVO ou selecione outro.", FUSION_CLR_MUTED);
-      else if(profileActions.selected && profileActions.selectedRuntimeLocked)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Magic em uso em outro grafico.", FUSION_CLR_WARN);
-      else if(profileActions.selected && profileActions.selectedActiveProfileLocked)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Perfil carregado em outro grafico.", FUSION_CLR_WARN);
-      else if(profileActions.selected && profileActions.selectedIsDefault)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Default reservado.", FUSION_CLR_WARN);
-      else if(profileActions.selected)
-         SetProfileStatus("Selecionado: " + SelectedProfileName() + ". Use Carregar, Duplicar, Novo ou Excluir.", FUSION_CLR_MUTED);
+      else if(ApplySelectedProfileStatusMessage(profileActions))
+         return;
       else if(m_snapshot.startBlockedReason != "")
          SetProfileStatus("Perfil em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
       else if(m_snapshot.activeProfileBlockedReason != "")
