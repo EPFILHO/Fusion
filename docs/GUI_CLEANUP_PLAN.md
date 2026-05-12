@@ -124,8 +124,11 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: audited GUI refresh paths and removed only proven redundant work: hidden `CONFIG > PROTECT/SYSTEM` controls no longer repaint on every theme refresh, and blocked deferred strategy edits no longer refresh twice before validation.
 - Done: extracted shared protection time-window validation for `SESSION` and `NEWS`, preserving the same messages, edit styling, and save blocking.
 - Done: split `CONFIG > PROTECT` click routing into separate helpers for protection subtabs and toggles.
-- Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
-- Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
+- Done: refined `PERFIS` status rendering with two footer lines, preserving long profile names without squeezing the label into the frame edge.
+- Done: moved panel constructor initial state into `UI/UIPanelInitialState.mqh`, keeping `UI/UIPanel.mqh` as a smaller orchestrator.
+- Done: centralized repeated blocked-action feedback in `PERFIS` click routing for `CARREGAR`, `DUPLICAR`, and `EXCLUIR`.
+- Next: close 1.051 after final smoke testing and move strategy/filter expansion plus operational hardening to a dedicated 1.052 plan.
+- Pending: avoid further `STRATS`/`FILTERS` symmetry cleanup until the next strategy/filter GUI expansion model is agreed.
 
 Validation marker direction:
 
@@ -172,6 +175,7 @@ Deferred operational hardening notes:
 - Validate entry SL/TP and breakeven/trailing stop changes against broker `stopsLevel`/`freezeLevel`; important, but it changes execution decisions and should be handled outside GUI cleanup.
 - Consider an explicit derived runtime-state enum for readability around `m_started`, `m_runtimeBlocked`, and `hasPosition`; maintenance comfort, not an operational risk.
 - Adjust protection logging for session/news windows so repeated blocking does not warn every minute. Preferred behavior: log once when a protection window/block starts and once when it clears/ends.
+- Design risk settings for global defaults plus optional per-strategy overrides before adding strategy-specific SL/TP, partial TP, breakeven, or trailing behavior.
 
 Manual smoke tests after each cleanup step:
 

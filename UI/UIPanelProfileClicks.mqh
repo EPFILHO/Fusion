@@ -1,6 +1,16 @@
 #ifndef __FUSION_UI_PANEL_PROFILE_CLICKS_MQH__
 #define __FUSION_UI_PANEL_PROFILE_CLICKS_MQH__
 
+   void                       RefreshBlockedProfileAction(const SUIProfileActionState &profileActions,const bool defaultReserved=false)
+     {
+      if(profileActions.blockedReason != "")
+         SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
+      else if(defaultReserved && profileActions.selectedIsDefault)
+         SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
+      else
+         UpdateProfileListView();
+     }
+
    bool                       HandleProfileRowClick(const string objectName)
      {
       for(int pr = 0; pr < FUSION_PROFILE_VISIBLE_ROWS; ++pr)
@@ -87,10 +97,7 @@
       SUIProfileActionState profileActions = CurrentProfileActionState();
       if(!profileActions.canLoad)
         {
-         if(profileActions.blockedReason != "")
-            SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
-         else
-            UpdateProfileListView();
+         RefreshBlockedProfileAction(profileActions);
          return true;
         }
       QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
@@ -164,10 +171,7 @@
       SUIProfileActionState profileActions = CurrentProfileActionState();
       if(!profileActions.canDuplicate)
         {
-         if(profileActions.blockedReason != "")
-            SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
-         else
-            UpdateProfileListView();
+         RefreshBlockedProfileAction(profileActions);
          return true;
         }
       string selectedProfile = SelectedProfileName();
@@ -214,12 +218,7 @@
       SUIProfileActionState profileActions = CurrentProfileActionState();
       if(!profileActions.canDelete)
         {
-         if(profileActions.blockedReason != "")
-            SetProfileStatus(profileActions.blockedReason, FUSION_CLR_WARN, true);
-         else if(profileActions.selectedIsDefault)
-            SetProfileStatus("O perfil default e reservado e nao deve ser apagado.", FUSION_CLR_WARN, true);
-         else
-            UpdateProfileListView();
+         RefreshBlockedProfileAction(profileActions, true);
          return true;
         }
       if(m_profileStore.DeleteProfile(selectedProfile))
