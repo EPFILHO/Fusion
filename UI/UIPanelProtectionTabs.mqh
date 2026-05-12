@@ -164,11 +164,8 @@
       return true;
      }
 
-   bool                       HandleProtectionClick(const string objectName)
+   bool                       HandleProtectionPageClick(const string objectName)
      {
-      if(!m_configProtectionCreated)
-         return false;
-
       for(int tabIndex = 0; tabIndex < FUSION_PROTECT_COUNT; ++tabIndex)
         {
          if(objectName != m_protectTabs[tabIndex].Name())
@@ -182,6 +179,11 @@
          return true;
         }
 
+      return false;
+     }
+
+   bool                       HandleProtectionToggleClick(const string objectName)
+     {
       if(HandleProtectionBooleanToggle(objectName, m_protectSpreadEnabledBtn, m_draftSettings.enableSpreadProtection))
          return true;
 
@@ -208,6 +210,20 @@
          if(HandleProtectionNewsModeToggle(objectName, newsIndex))
             return true;
         }
+
+      return false;
+     }
+
+   bool                       HandleProtectionClick(const string objectName)
+     {
+      if(!m_configProtectionCreated)
+         return false;
+
+      if(HandleProtectionPageClick(objectName))
+         return true;
+
+      if(HandleProtectionToggleClick(objectName))
+         return true;
 
       return false;
      }

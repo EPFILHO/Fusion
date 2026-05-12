@@ -122,6 +122,8 @@ Progress in `fusion-1.050-gui-lifecycle`:
 - Done: moved pending-change detection into `UI/UIPanelPendingChanges.mqh`, preserving each existing comparison while separating risk, system, signal, and protection checks.
 - Done: moved `PERFIS` creation/layout and visibility into `UI/UIPanelProfileBuild.mqh` and `UI/UIPanelProfileVisibility.mqh`.
 - Done: audited GUI refresh paths and removed only proven redundant work: hidden `CONFIG > PROTECT/SYSTEM` controls no longer repaint on every theme refresh, and blocked deferred strategy edits no longer refresh twice before validation.
+- Done: extracted shared protection time-window validation for `SESSION` and `NEWS`, preserving the same messages, edit styling, and save blocking.
+- Done: split `CONFIG > PROTECT` click routing into separate helpers for protection subtabs and toggles.
 - Next: continue auditing duplicate refresh calls in smaller compiled steps, especially blocked edit paths.
 - Pending: review remaining profile-level blocked actions only where the refresh does not explain state to the user.
 
@@ -164,6 +166,12 @@ Out of scope for 1.050:
 - Visual redesign.
 - Replacing Standard Library controls.
 - Large file reorganization.
+
+Deferred operational hardening notes:
+
+- Validate entry SL/TP and breakeven/trailing stop changes against broker `stopsLevel`/`freezeLevel`; important, but it changes execution decisions and should be handled outside GUI cleanup.
+- Consider an explicit derived runtime-state enum for readability around `m_started`, `m_runtimeBlocked`, and `hasPosition`; maintenance comfort, not an operational risk.
+- Adjust protection logging for session/news windows so repeated blocking does not warn every minute. Preferred behavior: log once when a protection window/block starts and once when it clears/ends.
 
 Manual smoke tests after each cleanup step:
 
