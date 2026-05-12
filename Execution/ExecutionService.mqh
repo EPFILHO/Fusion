@@ -22,6 +22,22 @@ private:
       return SymbolInfoDouble(m_symbol, SYMBOL_ASK);
      }
 
+   void               CopyRuntimeState(const SPositionRuntimeState &source,SPositionRuntimeState &target) const
+     {
+      target.ownerStrategyId       = source.ownerStrategyId;
+      target.ownerStrategyName     = source.ownerStrategyName;
+      target.tp1Executed           = source.tp1Executed;
+      target.tp2Executed           = source.tp2Executed;
+      target.breakevenActive       = source.breakevenActive;
+      target.trailingActive        = source.trailingActive;
+      target.realizedPartialProfit = source.realizedPartialProfit;
+      target.tp1Price              = source.tp1Price;
+      target.tp1Volume             = source.tp1Volume;
+      target.tp2Price              = source.tp2Price;
+      target.tp2Volume             = source.tp2Volume;
+      target.dayPeakProjectedProfit= source.dayPeakProjectedProfit;
+     }
+
 public:
                      CExecutionService(void)
      {
@@ -85,20 +101,9 @@ public:
          state.takeProfit  = PositionGetDouble(POSITION_TP);
 
          if(previous.positionId == state.positionId)
-           {
-            state.ownerStrategyId       = previous.ownerStrategyId;
-            state.ownerStrategyName     = previous.ownerStrategyName;
-            state.tp1Executed           = previous.tp1Executed;
-            state.tp2Executed           = previous.tp2Executed;
-            state.breakevenActive       = previous.breakevenActive;
-            state.trailingActive        = previous.trailingActive;
-            state.realizedPartialProfit = previous.realizedPartialProfit;
-            state.tp1Price              = previous.tp1Price;
-            state.tp1Volume             = previous.tp1Volume;
-            state.tp2Price              = previous.tp2Price;
-            state.tp2Volume             = previous.tp2Volume;
-            state.dayPeakProjectedProfit= previous.dayPeakProjectedProfit;
-           }
+            CopyRuntimeState(previous, state);
+         else if(!previous.hasPosition && previous.positionId == 0 && previous.ownerStrategyId != "")
+            CopyRuntimeState(previous, state);
 
          m_needsSync = false;
          return true;
