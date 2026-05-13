@@ -8,6 +8,32 @@ O Fusion e um EA modular para MT5. A meta e permitir que estrategias, filtros, p
 
 O projeto deve permanecer simples, mas nao simplista: cada modulo precisa ter responsabilidade clara, poucas dependencias e um ponto previsivel de integracao.
 
+## Convencao de Nomes e Organizacao
+
+A convencao principal do projeto e `Dominio + Responsabilidade`.
+
+O nome do arquivo deve ajudar alguem novo no projeto a responder duas perguntas rapidamente:
+
+- qual parte do sistema este arquivo atende;
+- qual responsabilidade concreta ele concentra.
+
+Exemplos atuais:
+
+- `UIPanelProfileListView`: UI / Perfis / renderizacao da lista, status e botoes da lista.
+- `UIPanelProfileClicks`: UI / Perfis / roteamento de cliques e feedback de acoes bloqueadas.
+- `UIPanelProfileBuild`: UI / Perfis / construcao/layout dos controles da aba.
+- `UIPanelProtectionValidation`: UI / Protecao / validacao visual e leitura do draft.
+- `UIPanelProtectionBuild`: UI / Protecao / construcao/layout dos controles.
+- `UIPanelSignalEvents`: UI / Estrategias e filtros / sync e eventos dos paineis de sinal.
+- `UIPanelSignalOverview`: UI / Estrategias e filtros / resumo visual.
+- `UIPanelInitialState`: UI / Painel / estado inicial do orquestrador.
+- `ProtectionModuleBase`: Protecao runtime / estado e reload comuns dos modulos.
+- `ProfileNameUtils`: Core / regra compartilhada para nomes de perfil.
+
+Evite criar arquivos com nomes genericos como `Helpers`, `Utils2` ou `Common` quando houver um dominio claro. Use um helper generico apenas quando a regra for realmente transversal e estavel.
+
+Arquivos novos devem nascer pequenos. Se uma tela ou modulo exigir varias responsabilidades, prefira partials com nomes explicitos em vez de crescer um arquivo unico.
+
 ## Fluxo Principal
 
 1. `Fusion.mq5` cria uma instancia de `CFusionApplication`.
@@ -138,11 +164,42 @@ A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusi
 
 - `UIPanelTypes.mqh`: dimensoes, enums e constantes da UI.
 - `UIPanelHeader.mqh`: titulo, perfil carregado e botoes globais do topo.
+- `UIPanelInitialState.mqh`: estado inicial do painel, snapshot vazio e flags de construcao.
+- `UIPanelCommandQueue.mqh`: fila interna de comandos que a UI entrega para a aplicacao.
+- `UIPanelControlHelpers.mqh`: criacao de controles, hit groups e helpers basicos de visibilidade/edicao.
+- `UIPanelContentLifecycle.mqh`: criacao lazy/controlada das abas principais e conteudo interno.
+- `UIPanelVisibility.mqh`: visibilidade de abas, refresh visual e atualizacao da aba ativa.
+- `UIPanelNavigation.mqh`: roteamento de cliques de abas principais e subtabs.
+- `UIPanelAccessState.mqh`: modelo de permissoes da GUI derivado do snapshot atual.
+- `UIPanelTabStatus.mqh`: status compartilhado de abas e marcadores de validacao.
+- `UIPanelDeferredEdits.mqh`: tratamento de `ENDEDIT`/`CHANGE` e normalizacao de edits.
+- `UIPanelDraftState.mqh`: draft settings, pending changes e sincronizacao de controles.
 - `UI/Pages/StatusPage.mqh`: componente da aba `STATUS`.
 - `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
-- `UIPanelSignalTabs.mqh`: abas de estrategias e filtros.
-- `UIPanelProfiles.mqh`: administracao de perfis.
-- `UIPanelProtectionTabs.mqh`: estrutura e validacao da subaba `PROTECT`.
+- `UIPanelSignalTabs.mqh`: estado raiz das abas de estrategias e filtros.
+- `UIPanelSignalShell.mqh`: estrutura visual das abas `STRATS` e `FILTERS`.
+- `UIPanelSignalPanels.mqh`: criacao dos paineis internos de estrategia/filtro.
+- `UIPanelSignalVisibility.mqh`: visibilidade dos paineis internos de sinal.
+- `UIPanelSignalValidation.mqh`: validacao e status locais de `STRATS`/`FILTERS`.
+- `UIPanelSignalEvents.mqh`: sync e roteamento de eventos dos paineis de sinal.
+- `UIPanelSignalOverview.mqh`: resumo visual de estrategias e filtros.
+- `UIPanelProfiles.mqh`: estado raiz da administracao de perfis.
+- `UIPanelProfileBuild.mqh`: construcao/layout da aba `PERFIS`.
+- `UIPanelProfileVisibility.mqh`: visibilidade browse/edit de `PERFIS`.
+- `UIPanelProfileState.mqh`: modo de perfil e status de rodape.
+- `UIPanelProfileActions.mqh`: permissoes de carregar/duplicar/excluir perfil.
+- `UIPanelProfileClicks.mqh`: roteamento de cliques de `PERFIS`.
+- `UIPanelProfileListView.mqh`: renderizacao da lista, botoes e mensagens de `PERFIS`.
+- `UIPanelProfileValidation.mqh`: validacao de nome/magic em `NOVO`/`DUPLICAR`.
+- `UIPanelConfigTabs.mqh`: shell de `CONFIG`, `RISK` e `SYSTEM`.
+- `UIPanelConfigValidation.mqh`: leitura, validacao e commit do draft de configuracao.
+- `UIPanelConfigStatus.mqh`: selecao e aplicacao de status da area `CONFIG`.
+- `UIPanelProtectionTabs.mqh`: estado raiz e click routing da subaba `PROTECT`.
+- `UIPanelProtectionBuild.mqh`: construcao/layout de `CONFIG > PROTECT`.
+- `UIPanelProtectionInputs.mqh`: parsing, normalizacao e helpers de inputs de protecao.
+- `UIPanelProtectionValidation.mqh`: validacao visual e draft de protecao.
+- `UIPanelProtectionVisibility.mqh`: visibilidade interna de `PROTECT`.
+- `UIPanelProtectionSync.mqh`: sync de overview, botoes e controles de protecao.
 - `Platform/FolderLauncher.mqh`: integracao opcional com shell do Windows, mantida fora do core operacional.
 
 Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo metodo `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoracao.
@@ -174,18 +231,19 @@ As paginas de estrategias e filtros devem preferir campos fechados para selecao 
 
 ## Prioridade Atual de Arquitetura
 
-O proximo salto estrutural do Fusion nao e mais a GUI. O proximo salto e consolidar o motor multi-timeframe por modulo.
+A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. O painel ficou dividido em partials com responsabilidades mais claras, sem remover os guardrails de `CFusionHitGroup` e sem reabrir a regressao dos ComboBoxes.
 
-Essa migracao ja comecou no modelo de dados, na persistencia e nos modulos existentes. Antes de novos refactors em arquivos grandes, a arquitetura deve fechar este modelo:
+O proximo salto da 1.052 deve ser expansao funcional planejada, nao novo refactor aleatorio:
 
-- cada estrategia recebe seu proprio timeframe operacional;
-- cada filtro recebe seu proprio timeframe operacional;
-- `SignalManager` deixa de agir como distribuidor de um timeframe global;
-- `PERIOD_CURRENT` e `Period()` saem da logica operacional e ficam, no maximo, restritos ao contexto visual do grafico.
+- completar a GUI e validacao das estrategias/filtros alem da MA;
+- adicionar Bollinger tambem como filtro, com settings proprios;
+- expor e validar o risco global que ja existe no core: SL, TP, TP parcial, breakeven e trailing;
+- manter risco por estrategia fora da primeira etapa da 1.052, mas desenhar a GUI e os componentes para serem reaproveitaveis depois;
+- evitar limpar "simetria" de `STRATS`/`FILTERS` antes de saber a forma final das paginas de estrategia e filtro.
 
-No estado atual, esse corte ja foi aplicado ao fluxo principal de configuracao, restore, save/load de perfil e defaults internos. O timeframe atual do grafico continua sendo lido apenas para montar o contexto visual do chart e para avisos de seguranca ao usuario.
+O modelo multi-timeframe por modulo ja foi incorporado ao fluxo principal de configuracao, restore, save/load de perfil e defaults internos. O timeframe atual do grafico continua sendo contexto visual do chart, nao regra operacional global.
 
-Refactors adicionais em `EAApplication.mqh` e `UIPanel.mqh` continuam desejaveis, mas ficam depois dessa virada. A regra e simples: primeiro fechamos o motor, depois emagrecemos o casco.
+Refactors em `EAApplication.mqh` continuam desejaveis, mas devem esperar o desenho de estrategia/filtro/risco. A regra para a 1.052 e simples: primeiro desenhar as novas responsabilidades, depois mover codigo em fatias pequenas e compiladas.
 
 ## Hot Reload
 
@@ -197,7 +255,9 @@ No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde qu
 
 ## Proximas Evolucoes Arquiteturais
 
-- Expandir o mesmo padrao modular de selecao de timeframe para novas estrategias e filtros que forem entrando no projeto.
+- Completar campos e validacoes de RSI, Bollinger strategy, Trend Filter, RSI Filter e Bollinger Filter.
+- Expor risco global completo na GUI antes de criar overrides por estrategia.
+- Criar componentes de risco reaproveitaveis para futura composicao por estrategia.
 - Criar um modelo estruturado para status de bloqueios.
 - Expor estatisticas reais para `RESULTS` e `STATS`.
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
