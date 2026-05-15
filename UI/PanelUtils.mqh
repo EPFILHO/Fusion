@@ -177,7 +177,7 @@ bool FusionPopulateAppliedPriceCombo(CComboBox &combo)
 
 string FusionEntryModeName(const ENUM_ENTRY_MODE mode)
   {
-   return (mode == ENTRY_2ND_CANDLE) ? "2o candle (E2C)" : "1o candle apos cruz.";
+   return (mode == ENTRY_2ND_CANDLE) ? "2º Candle (E2C)" : "Candle seguinte";
   }
 
 bool FusionPopulateEntryModeCombo(CComboBox &combo)
@@ -192,7 +192,15 @@ bool FusionPopulateEntryModeCombo(CComboBox &combo)
 
 string FusionExitModeName(const ENUM_EXIT_MODE mode)
   {
-   return (mode == EXIT_TP_SL) ? "TP/SL" : "Cruz. oposto";
+   switch(mode)
+     {
+      case EXIT_TP_SL:
+         return "TP/SL";
+      case EXIT_REVERSE_SIGNAL:
+         return "Virar a mão (VM)";
+      default:
+         return "Cruz. oposto (FCO)";
+     }
   }
 
 bool FusionPopulateExitModeCombo(CComboBox &combo)
@@ -201,6 +209,8 @@ bool FusionPopulateExitModeCombo(CComboBox &combo)
    if(!combo.AddItem(FusionExitModeName(EXIT_TP_SL), (long)EXIT_TP_SL))
       return false;
    if(!combo.AddItem(FusionExitModeName(EXIT_OPPOSITE_SIGNAL), (long)EXIT_OPPOSITE_SIGNAL))
+      return false;
+   if(!combo.AddItem(FusionExitModeName(EXIT_REVERSE_SIGNAL), (long)EXIT_REVERSE_SIGNAL))
       return false;
    return true;
   }

@@ -93,6 +93,10 @@ private:
    CLabel                     m_cfgRiskHdr;
    CLabel                     m_cfgRiskLotLbl;
    CEdit                      m_cfgRiskLotEdit;
+   CLabel                     m_cfgRiskSLLbl;
+   CEdit                      m_cfgRiskSLEdit;
+   CLabel                     m_cfgRiskTPLbl;
+   CEdit                      m_cfgRiskTPEdit;
 
    CLabel                     m_cfgSystemHdr;
    CLabel                     m_cfgSystemMagicLbl;
@@ -333,13 +337,17 @@ public:
       bool permissionStateChanged = runtimeStateChanged ||
                                     snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                                     snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
-                                    snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason;
+                                    snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
+                                    snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
+                                    snapshot.tradePermissionReason != m_snapshot.tradePermissionReason;
       bool editBlockExited = (wasEditBlocked && nowCanEditActiveProfile && m_hasCommittedSettings);
       bool redrawNeeded = runtimeStateChanged ||
                            snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                            snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
                            snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
                            snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                           snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
+                           snapshot.tradePermissionReason != m_snapshot.tradePermissionReason ||
                            snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
                            MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
                            snapshot.lossStreak != m_snapshot.lossStreak ||

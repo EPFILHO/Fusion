@@ -22,6 +22,8 @@
      }
 
    string                     CurrentConfigPageError(const bool lotValid,
+                                                     const bool slValid,
+                                                     const bool tpValid,
                                                      const bool magicValid,
                                                      const bool magicUnique,
                                                      const string magicConflictProfile)
@@ -30,6 +32,10 @@
         {
          if(!lotValid)
             return "Lote Fixo invalido. Ajuste o volume.";
+         if(!slValid)
+            return "SL Fixo invalido. Use 0 a 100000 pontos.";
+         if(!tpValid)
+            return "TP Fixo invalido. Use 0 a 100000 pontos.";
          return "";
         }
 
@@ -56,6 +62,8 @@
    void                       ApplyConfigStatus(const bool configStatusValid,
                                                  const bool profileValid,
                                                  const bool lotValid,
+                                                 const bool slValid,
+                                                 const bool tpValid,
                                                  const bool magicValid,
                                                  const bool magicUnique,
                                                  const string magicConflictProfile,
@@ -68,6 +76,11 @@
         {
          status = m_snapshot.runtimeBlockReason;
          statusColor = FUSION_CLR_BAD;
+        }
+      else if(m_snapshot.tradePermissionBlocked)
+        {
+         status = m_snapshot.tradePermissionReason;
+         statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.hasPosition)
         {
@@ -86,6 +99,8 @@
          else
            {
             status = CurrentConfigPageError(lotValid,
+                                            slValid,
+                                            tpValid,
                                             magicValid,
                                             magicUnique,
                                             magicConflictProfile);

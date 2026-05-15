@@ -10,6 +10,7 @@ private:
    int                 m_slowHandle;
    int                 m_fastPeriod;
    int                 m_slowPeriod;
+   int                 m_minDistancePoints;
    ENUM_TIMEFRAMES     m_fastTimeframe;
    ENUM_TIMEFRAMES     m_slowTimeframe;
    ENUM_MA_METHOD      m_fastMethod;
@@ -91,15 +92,27 @@ private:
       m_logger.Info("STRAT_MA", message);
      }
 
+   bool              HasMinimumDistance(const double diff) const
+     {
+      if(m_minDistancePoints <= 0)
+         return true;
+
+      double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
+      if(point <= 0.0)
+         return true;
+
+      return ((MathAbs(diff) / point) >= m_minDistancePoints);
+     }
+
    ENUM_SIGNAL_TYPE  DetectCross(const double &fastBuffer[],const double &slowBuffer[]) const
      {
       double previousDiff = fastBuffer[2] - slowBuffer[2];
       double currentDiff  = fastBuffer[1] - slowBuffer[1];
 
-      if(previousDiff < 0.0 && currentDiff > 0.0)
+      if(previousDiff < 0.0 && currentDiff > 0.0 && HasMinimumDistance(currentDiff))
          return SIGNAL_BUY;
 
-      if(previousDiff > 0.0 && currentDiff < 0.0)
+      if(previousDiff > 0.0 && currentDiff < 0.0 && HasMinimumDistance(currentDiff))
          return SIGNAL_SELL;
 
       return SIGNAL_NONE;
@@ -112,6 +125,7 @@ public:
       m_slowHandle        = INVALID_HANDLE;
       m_fastPeriod        = 9;
       m_slowPeriod        = 21;
+      m_minDistancePoints = 0;
       m_fastTimeframe     = FUSION_DEFAULT_TIMEFRAME;
       m_slowTimeframe     = FUSION_DEFAULT_TIMEFRAME;
       m_fastMethod        = MODE_EMA;
@@ -134,6 +148,7 @@ public:
      {
       bool coldChanged = (m_fastPeriod != settings.maFastPeriod ||
                           m_slowPeriod != settings.maSlowPeriod ||
+                          m_minDistancePoints != settings.maMinDistancePoints ||
                           m_fastTimeframe != settings.maFastTimeframe ||
                           m_slowTimeframe != settings.maSlowTimeframe ||
                           m_fastMethod != settings.maFastMethod ||
@@ -146,6 +161,7 @@ public:
       m_priority       = settings.maCrossPriority;
       m_fastPeriod     = settings.maFastPeriod;
       m_slowPeriod     = settings.maSlowPeriod;
+      m_minDistancePoints = settings.maMinDistancePoints;
       m_fastTimeframe  = settings.maFastTimeframe;
       m_slowTimeframe  = settings.maSlowTimeframe;
       m_timeframe      = m_fastTimeframe;
@@ -182,6 +198,16 @@ public:
       if(!m_enabled)
          return true;
       return CreateHandles();
+     }
+
+   virtual void      PrimeEntryState(void) override
+     {
+      ResetEntryTracking();
+      if(!m_enabled || !m_initialized)
+         return;
+
+      m_lastCrossTime = iTime(m_symbol, m_fastTimeframe, 1);
+      m_lastCheckBarTime = iTime(m_symbol, m_fastTimeframe, 0);
      }
 
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) override
@@ -238,7 +264,7 @@ public:
 
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) override
      {
-      if(m_exitMode != EXIT_OPPOSITE_SIGNAL || !m_enabled || !m_initialized)
+      if((m_exitMode != EXIT_OPPOSITE_SIGNAL && m_exitMode != EXIT_REVERSE_SIGNAL) || !m_enabled || !m_initialized)
          return SIGNAL_NONE;
 
       double fastBuffer[];
@@ -253,6 +279,11 @@ public:
          return SIGNAL_BUY;
 
       return SIGNAL_NONE;
+     }
+
+   virtual ENUM_EXIT_MODE ExitMode(void) const override
+     {
+      return m_exitMode;
      }
   };
 

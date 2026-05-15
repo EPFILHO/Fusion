@@ -6,6 +6,14 @@
       return FusionNormalizeDecimalText(FusionFormatVolume(m_committedSettings.fixedLot, m_snapshot.symbolSpec));
      }
 
+   bool                       RiskIntegerPending(CEdit &edit,const int committedValue)
+     {
+      string text = FusionTrimCopy(LiveEditText(edit));
+      if(FusionIsIntegerText(text, true))
+         return ((int)StringToInteger(text) != committedValue);
+      return (text != IntegerToString(committedValue));
+     }
+
    bool                       HasRiskPendingChanges(void)
      {
       if(m_configRiskCreated)
@@ -18,10 +26,19 @@
            }
          else if(lotText != CommittedLotText())
             return true;
+
+         if(RiskIntegerPending(m_cfgRiskSLEdit, m_committedSettings.fixedSLPoints))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskTPEdit, m_committedSettings.fixedTPPoints))
+            return true;
         }
       else
         {
          if(MathAbs(m_draftSettings.fixedLot - m_committedSettings.fixedLot) > 0.0000001)
+            return true;
+         if(m_draftSettings.fixedSLPoints != m_committedSettings.fixedSLPoints)
+            return true;
+         if(m_draftSettings.fixedTPPoints != m_committedSettings.fixedTPPoints)
             return true;
         }
 
@@ -66,9 +83,13 @@
          return true;
       if(m_draftSettings.maSlowTimeframe != m_committedSettings.maSlowTimeframe)
          return true;
+      if(m_draftSettings.maCrossPriority != m_committedSettings.maCrossPriority)
+         return true;
       if(m_draftSettings.maFastPeriod != m_committedSettings.maFastPeriod)
          return true;
       if(m_draftSettings.maSlowPeriod != m_committedSettings.maSlowPeriod)
+         return true;
+      if(m_draftSettings.maMinDistancePoints != m_committedSettings.maMinDistancePoints)
          return true;
       if(m_draftSettings.maFastMethod != m_committedSettings.maFastMethod)
          return true;

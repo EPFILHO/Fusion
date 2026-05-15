@@ -109,6 +109,13 @@ public:
       return true;
      }
 
+   void              PrimeEntryStates(void)
+     {
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+         if(m_strategies[i] != NULL && m_strategies[i].Enabled())
+            m_strategies[i].PrimeEntryState();
+     }
+
    bool              GetEntryDecision(SSignalDecision &decision)
      {
       ResetSignalDecision(decision);
@@ -182,6 +189,25 @@ public:
         }
 
       return SIGNAL_NONE;
+     }
+
+   bool              GetStrategyExitMode(const string strategyId,ENUM_EXIT_MODE &mode) const
+     {
+      mode = EXIT_TP_SL;
+
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+        {
+         if(m_strategies[i] == NULL)
+            continue;
+
+         if(m_strategies[i].Id() != strategyId)
+            continue;
+
+         mode = m_strategies[i].ExitMode();
+         return true;
+        }
+
+      return false;
      }
 
    bool              GetStrategyReferenceTimeframe(const string strategyId,ENUM_TIMEFRAMES &timeframe) const

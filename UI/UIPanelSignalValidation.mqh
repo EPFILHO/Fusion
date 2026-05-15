@@ -165,6 +165,11 @@
          status = ProfileBlockStatusText();
          statusColor = FUSION_CLR_WARN;
         }
+      else if(m_snapshot.tradePermissionBlocked)
+        {
+         status = m_snapshot.tradePermissionReason;
+         statusColor = FUSION_CLR_WARN;
+        }
       else if(m_snapshot.hasPosition)
         {
          status = "Posicao aberta: estrategias somente leitura.";
@@ -211,6 +216,11 @@
       else if(ProfileBlockStatusText() != "")
         {
          status = ProfileBlockStatusText();
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.tradePermissionBlocked)
+        {
+         status = m_snapshot.tradePermissionReason;
          statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.hasPosition)

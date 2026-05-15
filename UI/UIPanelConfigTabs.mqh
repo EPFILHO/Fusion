@@ -44,6 +44,14 @@
          return false;
       if(!AddEdit(m_cfgRiskLotEdit, "Fusion_cfg_lot_edit", 200, 196, 310, 220, "0.10"))
          return false;
+      if(!AddLabel(m_cfgRiskSLLbl, "Fusion_cfg_sl_lbl", 22, 236, 170, 254, "SL Fixo (0=off)", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskSLEdit, "Fusion_cfg_sl_edit", 200, 234, 310, 258, "0"))
+         return false;
+      if(!AddLabel(m_cfgRiskTPLbl, "Fusion_cfg_tp_lbl", 22, 274, 170, 292, "TP Fixo (0=off)", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskTPEdit, "Fusion_cfg_tp_edit", 200, 272, 310, 296, "0"))
+         return false;
       return true;
      }
 
@@ -60,6 +68,8 @@
       PopBuildTarget(previous);
       m_configRiskCreated = true;
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      m_cfgRiskSLEdit.Text(IntegerToString(m_draftSettings.fixedSLPoints));
+      m_cfgRiskTPEdit.Text(IntegerToString(m_draftSettings.fixedTPPoints));
       return true;
      }
 

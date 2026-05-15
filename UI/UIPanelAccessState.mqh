@@ -65,7 +65,11 @@
       access.runtimeEditable = RuntimeEditable(snapshot);
       access.activeProfileEditable = access.runtimeEditable && !access.hasPeerProfileLock;
       access.canPause = (snapshot.started && !access.hasLocalPositionLock);
-      access.canStart = (!profileEditMode && access.activeProfileEditable && configInputsValid && !hasPendingChanges);
+      access.canStart = (!profileEditMode &&
+                         access.activeProfileEditable &&
+                         configInputsValid &&
+                         !hasPendingChanges &&
+                         !snapshot.tradePermissionBlocked);
       access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid && hasPendingChanges);
       access.canCancel = (profileEditMode || (access.runtimeEditable && hasPendingChanges));
 

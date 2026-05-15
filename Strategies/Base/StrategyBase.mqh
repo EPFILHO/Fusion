@@ -54,8 +54,10 @@ public:
      }
 
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) = 0;
+   virtual void      PrimeEntryState(void) {}
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) = 0;
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) = 0;
+   virtual ENUM_EXIT_MODE ExitMode(void) const { return EXIT_TP_SL; }
 
    string            Id(void) const          { return m_id; }
    string            Name(void) const        { return m_name; }

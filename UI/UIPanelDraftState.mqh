@@ -53,7 +53,11 @@
    void                       SyncDraftSettingsToControls(void)
      {
       if(m_configRiskCreated)
+        {
          m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+         m_cfgRiskSLEdit.Text(IntegerToString(m_draftSettings.fixedSLPoints));
+         m_cfgRiskTPEdit.Text(IntegerToString(m_draftSettings.fixedTPPoints));
+        }
       if(m_configProtectionCreated)
          SyncProtectionControls();
       if(m_configSystemCreated)

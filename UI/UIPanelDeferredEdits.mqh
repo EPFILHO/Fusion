@@ -21,6 +21,10 @@
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskSLEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())
+         return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          return true;
       if(IsProtectionDeferredEdit(objectName))
@@ -81,6 +85,10 @@
      {
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          NormalizeVolumeEdit(m_cfgRiskLotEdit, m_draftSettings.fixedLot);
+      else if(m_configRiskCreated && objectName == m_cfgRiskSLEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskSLEdit, m_draftSettings.fixedSLPoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskTPEdit, m_draftSettings.fixedTPPoints, true, 6);
       else if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          NormalizeIntegerEdit(m_cfgSystemMagicEdit, m_draftSettings.magicNumber, false, 10);
      }

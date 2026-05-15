@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.052 - 2026-05-12
+- Criado o plano curto de expansao funcional da 1.052 em `docs/FUNCTIONAL_EXPANSION_PLAN_1052.md`, preservando os guardrails da GUI estabilizada.
+- Auditada a `MA Cross` contra os inputs MATRIX antes da expansao da RSI: prioridade ainda nao aparece na subaba, `VM` ainda nao existe como modo de saida e distancia minima entre medias ainda nao existe em settings, inputs, persistencia, runtime ou GUI.
+- A `MA Cross` ganhou prioridade editavel na subaba, distancia minima entre medias em pontos e o modo de saida `VM`, que fecha no cruzamento oposto e agenda entrada na mao oposta apos a sincronizacao do fechamento.
+- Reorganizada a subaba `MA` para separar controles globais dos campos de medias, padronizar colunas e encurtar os textos de entrada e saida.
+- O start manual agora prepara o estado de entrada das estrategias, impedindo que a `MA Cross` consuma cruzamento ja formado antes do clique em `INICIAR`.
+- Corrigido o refresh de status das abas `STRATS`/`FILTERS` apos mudanca de estado operacional, evitando mensagem antiga de posicao aberta depois do fechamento.
+- Expostos `SL Fixo` e `TP Fixo` globais em `CONFIG > RISK`, aceitando `0` como desligado e validando limite de pontos.
+- Adicionado guard de AutoTrading: o `INICIAR` fica bloqueado quando a negociacao automatica esta desabilitada, o painel avisa o usuario e o log registra a condicao uma vez por episodio.
+
 ## 1.051 - 2026-05-09
 - Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.
 - Movidos os helpers de input, parsing e normalizacao de `CONFIG > PROTECT` para `UI/UIPanelProtectionInputs.mqh`, deixando `UI/UIPanelProtectionTabs.mqh` mais focado em layout, visibilidade e cliques.

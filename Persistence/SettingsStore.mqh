@@ -109,6 +109,7 @@ private:
       WriteLine(handle, "maCrossPriority", IntegerToString(settings.maCrossPriority));
       WriteLine(handle, "maFastPeriod", IntegerToString(settings.maFastPeriod));
       WriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod));
+      WriteLine(handle, "maMinDistancePoints", IntegerToString(settings.maMinDistancePoints));
       WriteLine(handle, "maFastTimeframe", IntegerToString((int)settings.maFastTimeframe));
       WriteLine(handle, "maSlowTimeframe", IntegerToString((int)settings.maSlowTimeframe));
       WriteLine(handle, "maFastMethod", IntegerToString((int)settings.maFastMethod));
@@ -245,6 +246,7 @@ private:
       else if(key == "maCrossPriority") settings.maCrossPriority = (int)StringToInteger(value);
       else if(key == "maFastPeriod") settings.maFastPeriod = (int)StringToInteger(value);
       else if(key == "maSlowPeriod") settings.maSlowPeriod = (int)StringToInteger(value);
+      else if(key == "maMinDistancePoints") settings.maMinDistancePoints = (int)StringToInteger(value);
       else if(key == "maFastTimeframe") settings.maFastTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "maSlowTimeframe") settings.maSlowTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "maFastMethod") settings.maFastMethod = (ENUM_MA_METHOD)StringToInteger(value);

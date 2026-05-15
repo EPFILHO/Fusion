@@ -27,7 +27,8 @@ enum ENUM_TRADE_DIRECTION
 enum ENUM_EXIT_MODE
   {
    EXIT_TP_SL = 0,
-   EXIT_OPPOSITE_SIGNAL
+   EXIT_OPPOSITE_SIGNAL,
+   EXIT_REVERSE_SIGNAL
   };
 
 enum ENUM_ENTRY_MODE
@@ -154,6 +155,7 @@ struct SEASettings
    int                      maCrossPriority;
    int                      maFastPeriod;
    int                      maSlowPeriod;
+   int                      maMinDistancePoints;
    ENUM_TIMEFRAMES          maFastTimeframe;
    ENUM_TIMEFRAMES          maSlowTimeframe;
    ENUM_MA_METHOD           maFastMethod;
@@ -292,6 +294,8 @@ struct SUIPanelSnapshot
    string startBlockedReason;
    string activeProfileBlockedReason;
    string runtimeNotice;
+   bool   tradePermissionBlocked;
+   string tradePermissionReason;
    int    dailyTradeCount;
    double dailyClosedProfit;
    int    lossStreak;
@@ -379,6 +383,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maCrossPriority       = 10;
    settings.maFastPeriod          = 9;
    settings.maSlowPeriod          = 21;
+   settings.maMinDistancePoints   = 0;
    settings.maFastTimeframe       = FUSION_DEFAULT_TIMEFRAME;
    settings.maSlowTimeframe       = FUSION_DEFAULT_TIMEFRAME;
    settings.maFastMethod          = MODE_EMA;

@@ -29,6 +29,8 @@
                                                                    string &outStatus)
      {
       outSettings.fixedLot = m_draftSettings.fixedLot;
+      outSettings.fixedSLPoints = m_draftSettings.fixedSLPoints;
+      outSettings.fixedTPPoints = m_draftSettings.fixedTPPoints;
       outSettings.magicNumber = m_draftSettings.magicNumber;
 
       int parsedMagic = outSettings.magicNumber;
@@ -52,7 +54,9 @@
       string filterError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
-      m_cfgRiskValid = (outSettings.fixedLot > 0.0);
+      bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
+      bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
@@ -82,6 +86,10 @@
                                                         const string profileForMagicCheck,
                                                         bool &lotValid,
                                                         double &parsedLot,
+                                                        bool &slValid,
+                                                        int &parsedSL,
+                                                        bool &tpValid,
+                                                        int &parsedTP,
                                                         bool &magicValid,
                                                         int &parsedMagic,
                                                         bool &magicUnique,
@@ -89,6 +97,10 @@
      {
       lotValid = false;
       parsedLot = 0.0;
+      slValid = false;
+      parsedSL = 0;
+      tpValid = false;
+      parsedTP = 0;
       magicValid = false;
       parsedMagic = 0;
       magicUnique = false;
@@ -106,6 +118,22 @@
             lotValid = (parsedLot <= (m_snapshot.symbolSpec.volumeMax + 0.0000001));
          if(lotValid)
             lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
+        }
+
+      string slText = (editable && m_configRiskCreated) ? FusionTrimCopy(LiveEditText(m_cfgRiskSLEdit))
+                                                        : IntegerToString(m_draftSettings.fixedSLPoints);
+      if(FusionIsIntegerText(slText, true))
+        {
+         parsedSL = (int)StringToInteger(slText);
+         slValid = (parsedSL >= 0 && parsedSL <= 100000);
+        }
+
+      string tpText = (editable && m_configRiskCreated) ? FusionTrimCopy(LiveEditText(m_cfgRiskTPEdit))
+                                                        : IntegerToString(m_draftSettings.fixedTPPoints);
+      if(FusionIsIntegerText(tpText, true))
+        {
+         parsedTP = (int)StringToInteger(tpText);
+         tpValid = (parsedTP >= 0 && parsedTP <= 100000);
         }
 
       if(editable)
@@ -129,6 +157,8 @@
 
    void                       ApplyConfigScalarStyles(const bool editable,
                                                       const bool lotValid,
+                                                      const bool slValid,
+                                                      const bool tpValid,
                                                       const bool magicValid,
                                                       const bool magicUnique)
      {
@@ -136,6 +166,10 @@
         {
          FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
          m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         FusionApplyEditStyle(m_cfgRiskSLEdit, slValid, editable);
+         m_cfgRiskSLLbl.Color(!editable ? FUSION_CLR_MUTED : (slValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         FusionApplyEditStyle(m_cfgRiskTPEdit, tpValid, editable);
+         m_cfgRiskTPLbl.Color(!editable ? FUSION_CLR_MUTED : (tpValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
         }
 
       if(m_configSystemCreated)
@@ -183,12 +217,16 @@
    void                       CommitValidConfigDraft(SEASettings &outSettings,
                                                       const bool editable,
                                                       const double parsedLot,
+                                                      const int parsedSL,
+                                                      const int parsedTP,
                                                       const int parsedMagic)
      {
       if(!m_configInputsValid || !editable)
          return;
 
       outSettings.fixedLot = parsedLot;
+      outSettings.fixedSLPoints = parsedSL;
+      outSettings.fixedTPPoints = parsedTP;
       outSettings.magicNumber = parsedMagic;
       m_draftSettings = outSettings;
      }
@@ -209,6 +247,8 @@
          return BuildPendingSettingsWithoutConfigTab(outSettings, profileValid, editable, profileForMagicCheck, outStatus);
 
       bool lotValid = false;
+      bool slValid = false;
+      bool tpValid = false;
       bool protectionValid = true;
       bool strategyValid = true;
       bool filterValid = true;
@@ -219,17 +259,23 @@
       string strategyError = "";
       string filterError = "";
       double parsedLot = 0.0;
+      int parsedSL = 0;
+      int parsedTP = 0;
       int parsedMagic = 0;
 
       ValidateConfigScalarInputs(editable,
                                  profileForMagicCheck,
                                  lotValid,
                                  parsedLot,
+                                 slValid,
+                                 parsedSL,
+                                 tpValid,
+                                 parsedTP,
                                  magicValid,
                                  parsedMagic,
                                  magicUnique,
                                  magicConflictProfile);
-      ApplyConfigScalarStyles(editable, lotValid, magicValid, magicUnique);
+      ApplyConfigScalarStyles(editable, lotValid, slValid, tpValid, magicValid, magicUnique);
       ValidateConfigSections(outSettings,
                              editable,
                              protectionValid,
@@ -239,19 +285,21 @@
                              filterValid,
                              filterError);
 
-      m_cfgRiskValid = lotValid;
+      m_cfgRiskValid = (lotValid && slValid && tpValid);
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
-      CommitValidConfigDraft(outSettings, editable, parsedLot, parsedMagic);
+      m_configInputsValid = profileValid && lotValid && slValid && tpValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
+      CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSL, parsedTP, parsedMagic);
       ApplyStrategyStatus(strategyValid, strategyError);
       ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      bool configStatusValid = profileValid && lotValid && protectionValid && magicValid && magicUnique;
+      bool configStatusValid = profileValid && lotValid && slValid && tpValid && protectionValid && magicValid && magicUnique;
       ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,
+                        slValid,
+                        tpValid,
                         magicValid,
                         magicUnique,
                         magicConflictProfile,

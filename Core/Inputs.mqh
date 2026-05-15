@@ -84,6 +84,7 @@ input bool               inp_UseMACross    = true;
 input int                inp_MACrossPriority = 10;
 input int                inp_MAFastPeriod  = 9;
 input int                inp_MASlowPeriod  = 21;
+input int                inp_MAMinDistancePoints = 0;
 input ENUM_TIMEFRAMES    inp_MAFastTF      = FUSION_DEFAULT_TIMEFRAME;
 input ENUM_TIMEFRAMES    inp_MASlowTF      = FUSION_DEFAULT_TIMEFRAME;
 input ENUM_MA_METHOD     inp_MAFastMethod  = MODE_EMA;
@@ -198,6 +199,7 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.maCrossPriority        = inp_MACrossPriority;
    settings.maFastPeriod           = inp_MAFastPeriod;
    settings.maSlowPeriod           = inp_MASlowPeriod;
+   settings.maMinDistancePoints    = inp_MAMinDistancePoints;
    settings.maFastTimeframe        = inp_MAFastTF;
    settings.maSlowTimeframe        = inp_MASlowTF;
    settings.maFastMethod           = inp_MAFastMethod;

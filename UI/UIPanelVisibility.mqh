@@ -22,7 +22,7 @@
          UpdateProfileListView();
      }
 
-   void                       UpdateActiveTabContent(const bool runtimeStateChanged)
+   void                       UpdateActiveTabContent(const bool stateRefreshNeeded)
      {
       if(m_activeTab == FUSION_TAB_STATUS)
         {
@@ -38,28 +38,37 @@
         {
          if(m_strategyTabCreated)
             UpdateOverviews();
-         if(runtimeStateChanged && m_strategyTabCreated)
+         if(stateRefreshNeeded && m_strategyTabCreated)
+           {
             SyncStrategyPanels();
+            RefreshConfigValidation();
+           }
         }
       else if(m_activeTab == FUSION_TAB_FILTERS)
         {
          if(m_filterTabCreated)
             UpdateOverviews();
-         if(runtimeStateChanged && m_filterTabCreated)
+         if(stateRefreshNeeded && m_filterTabCreated)
+           {
             SyncFilterPanels();
+            RefreshConfigValidation();
+           }
         }
       else if(m_activeTab == FUSION_TAB_PROFILES)
         {
-         if(runtimeStateChanged && m_profilesTabCreated)
+         if(stateRefreshNeeded && m_profilesTabCreated)
             UpdateProfileListView();
         }
       else if(m_activeTab == FUSION_TAB_CONFIG)
         {
          if(m_configTabCreated)
             UpdateConfigReadOnly();
-         if(runtimeStateChanged && m_configTabCreated)
+         if(stateRefreshNeeded && m_configTabCreated)
             RefreshConfigValidation();
         }
+
+      if(stateRefreshNeeded && UsesSharedParentStatus())
+         RefreshSharedParentStatus();
      }
 
    void                       UpdateConfigReadOnly(void)
@@ -89,6 +98,10 @@
          SetVisible(m_cfgRiskHdr, riskVisible);
          SetVisible(m_cfgRiskLotLbl, riskVisible);
          SetVisible(m_cfgRiskLotEdit, riskVisible);
+         SetVisible(m_cfgRiskSLLbl, riskVisible);
+         SetVisible(m_cfgRiskSLEdit, riskVisible);
+         SetVisible(m_cfgRiskTPLbl, riskVisible);
+         SetVisible(m_cfgRiskTPEdit, riskVisible);
         }
 
       if(m_configProtectionCreated)
@@ -180,8 +193,7 @@
       if(m_profilesTabCreated)
          SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
       SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
-      ApplySharedParentStatus();
-      RefreshSharedParentStatusVisibility();
+      RefreshSharedParentStatus();
       if(refreshTheme)
          RefreshTheme();
       UpdateTabStyles();

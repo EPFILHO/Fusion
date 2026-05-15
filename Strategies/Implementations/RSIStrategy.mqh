@@ -141,7 +141,7 @@ public:
 
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) override
      {
-      if(m_exitMode != EXIT_OPPOSITE_SIGNAL)
+      if(m_exitMode != EXIT_OPPOSITE_SIGNAL && m_exitMode != EXIT_REVERSE_SIGNAL)
          return SIGNAL_NONE;
 
       ENUM_SIGNAL_TYPE signal = EvaluateSignal();
@@ -151,6 +151,11 @@ public:
          return SIGNAL_BUY;
 
       return SIGNAL_NONE;
+     }
+
+   virtual ENUM_EXIT_MODE ExitMode(void) const override
+     {
+      return m_exitMode;
      }
   };
 

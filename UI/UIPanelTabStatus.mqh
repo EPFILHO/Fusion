@@ -41,6 +41,8 @@
          SetSharedParentStatus(profileBlockStatus, FUSION_CLR_WARN);
       else if(m_activeTab == FUSION_TAB_PROFILES && HasProfileTabError())
          SetSharedParentStatus(m_profileTabError, FUSION_CLR_BAD);
+      else if(m_snapshot.tradePermissionBlocked)
+         SetSharedParentStatus(m_snapshot.tradePermissionReason, FUSION_CLR_WARN);
       else if(HasParentTabError())
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
       else if(ProfileEditMode())
@@ -61,6 +63,12 @@
       m_parentStatus.Text(m_parentStatusText);
       m_parentStatus.Color(m_parentStatusColor);
       SetVisible(m_parentStatus, UsesSharedParentStatus() && m_parentStatusText != "");
+     }
+
+   void                       RefreshSharedParentStatus(void)
+     {
+      ApplySharedParentStatus();
+      RefreshSharedParentStatusVisibility();
      }
 
    void                       UpdateTabStyles(void)
@@ -109,8 +117,7 @@
       string status = "";
       RefreshProfileValidationState();
       bool valid = BuildPendingSettings(candidate, profileName, status);
-      ApplySharedParentStatus();
-      RefreshSharedParentStatusVisibility();
+      RefreshSharedParentStatus();
       RefreshTheme();
       UpdateTabStyles();
       return valid;

@@ -145,6 +145,12 @@ public:
          noticeText = snapshot.activeProfileBlockedReason;
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.tradePermissionBlocked)
+        {
+         noticeTitle = "AUTOTRADING OFF";
+         noticeText = snapshot.tradePermissionReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.runtimeNotice != "")
         {
          noticeTitle = snapshot.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";
