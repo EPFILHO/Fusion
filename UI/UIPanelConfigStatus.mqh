@@ -72,6 +72,7 @@
      {
       string status = "";
       color statusColor = FUSION_CLR_MUTED;
+      string tpslNotice = FusionTPSLExitZeroNotice(m_draftSettings);
       if(m_snapshot.runtimeBlocked)
         {
          status = m_snapshot.runtimeBlockReason;
@@ -127,6 +128,11 @@
       else if(ProfileEditMode())
         {
          status = "Conclua ou cancele PERFIS.";
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(tpslNotice != "")
+        {
+         status = tpslNotice;
          statusColor = FUSION_CLR_WARN;
         }
       else if(dirty && m_configInputsValid)

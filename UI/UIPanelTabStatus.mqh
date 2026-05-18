@@ -37,6 +37,7 @@
    void                       ApplySharedParentStatus(void)
      {
       string profileBlockStatus = ProfileBlockStatusText();
+      string tpslNotice = FusionTPSLExitZeroNotice(m_draftSettings);
       if(profileBlockStatus != "" && m_activeTab != FUSION_TAB_PROFILES)
          SetSharedParentStatus(profileBlockStatus, FUSION_CLR_WARN);
       else if(m_activeTab == FUSION_TAB_PROFILES && HasProfileTabError())
@@ -47,6 +48,8 @@
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
       else if(ProfileEditMode())
          SetSharedParentStatus("Conclua ou cancele PERFIS.", FUSION_CLR_WARN);
+      else if(tpslNotice != "")
+         SetSharedParentStatus(tpslNotice, FUSION_CLR_WARN);
       else if(m_configInputsValid &&
               !m_snapshot.runtimeBlocked &&
               !m_snapshot.started &&

@@ -151,11 +151,27 @@ public:
          noticeText = snapshot.tradePermissionReason;
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.hasPosition && !snapshot.started)
+        {
+         noticeTitle = "INICIO BLOQUEADO";
+         noticeText = "Posicao aberta em gerenciamento. Iniciar fica bloqueado ate fechar.";
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.runtimeNotice != "")
         {
          noticeTitle = snapshot.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";
          noticeText = snapshot.runtimeNotice;
          noticeColor = FUSION_CLR_WARN;
+        }
+      else
+        {
+         string tpslNotice = FusionTPSLExitZeroNotice(snapshot.settings);
+         if(tpslNotice != "")
+           {
+            noticeTitle = "RISCO TP/SL";
+            noticeText = tpslNotice;
+            noticeColor = FUSION_CLR_WARN;
+           }
         }
 
       string lines[];

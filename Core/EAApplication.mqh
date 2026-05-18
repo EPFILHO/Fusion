@@ -58,7 +58,6 @@ private:
    string                  m_runtimeNotice;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
-   datetime                m_lastProtectionWarning;
    string                  m_lastClosedStrategyId;
    datetime                m_lastClosedStrategyBarTime;
 
@@ -260,7 +259,6 @@ private:
          return;
         }
 
-      datetime now = TimeCurrent();
       bool changed = (!m_protectionNoticeActive || m_protectionNoticeReason != notice);
 
       m_protectionNoticeActive = true;
@@ -268,10 +266,9 @@ private:
       if(!m_tradePermissionGuard.IsBlocked())
          m_runtimeNotice = notice;
 
-      if(changed || now - m_lastProtectionWarning >= 60)
+      if(changed)
         {
          m_logger.Warn("PROTECT", notice);
-         m_lastProtectionWarning = now;
         }
      }
 
@@ -815,7 +812,6 @@ private:
       m_runtimeNotice       = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_lastProtectionWarning  = 0;
       m_lastClosedStrategyId   = "";
       m_lastClosedStrategyBarTime = 0;
       m_pendingReverseExit.Reset();
@@ -837,7 +833,6 @@ private:
       m_runtimeNotice = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_lastProtectionWarning = 0;
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&

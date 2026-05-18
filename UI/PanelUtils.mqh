@@ -269,6 +269,29 @@ bool FusionPopulateRSIModeCombo(CComboBox &combo)
    return true;
   }
 
+bool FusionUsesTPSLExit(const SEASettings &settings)
+  {
+   return ((settings.useMACross && settings.maExitMode == EXIT_TP_SL) ||
+           (settings.useRSI && settings.rsiExitMode == RSI_EXIT_TP_SL) ||
+           (settings.useBollinger && settings.bbExitMode == EXIT_TP_SL));
+  }
+
+string FusionTPSLExitZeroNotice(const SEASettings &settings)
+  {
+   if(!FusionUsesTPSLExit(settings))
+      return "";
+
+   bool slZero = (settings.fixedSLPoints <= 0);
+   bool tpZero = (settings.fixedTPPoints <= 0);
+   if(slZero && tpZero)
+      return "Saida TP/SL ativa com SL e TP fixos zerados.";
+   if(slZero)
+      return "Saida TP/SL ativa com SL fixo zerado.";
+   if(tpZero)
+      return "Saida TP/SL ativa com TP fixo zerado.";
+   return "";
+  }
+
 string FusionConflictText(const ENUM_CONFLICT_RESOLUTION mode)
   {
    return (mode == CONFLICT_PRIORITY) ? "PRIORITY" : "CANCEL";

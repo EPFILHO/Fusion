@@ -22,9 +22,9 @@ bool FusionProtectionIsInsideClockWindow(const int startHour,
    int endMinutes     = (endHour * 60) + endMinute;
 
    if(startMinutes <= endMinutes)
-      return (currentMinutes >= startMinutes && currentMinutes <= endMinutes);
+      return (currentMinutes >= startMinutes && currentMinutes < endMinutes);
 
-   return (currentMinutes >= startMinutes || currentMinutes <= endMinutes);
+   return (currentMinutes >= startMinutes || currentMinutes < endMinutes);
   }
 
 #endif

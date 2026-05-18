@@ -97,6 +97,16 @@ Validacoes iniciais de GUI:
 
 `stopsLevel` e `freezeLevel` ficam fora desta primeira etapa.
 
+## Observabilidade Operacional
+
+Pendencias para tratar em uma fatia propria, sem misturar com a expansao das estrategias:
+
+- registrar transicoes de protecao, nao apenas bloqueios em tentativas de entrada;
+- logar uma vez quando uma janela de news inicia e uma vez quando ela encerra;
+- logar uma vez quando a sessao de operacao inicia, quando encerra e quando novas entradas voltam a ser permitidas;
+- logar novo dia/reset diario de contadores quando a protecao diaria virar o dia;
+- manter os logs especificos: fim de news nao deve prometer operacao liberada se outro blocker continuar ativo.
+
 ## Ordem De Trabalho
 
 1. Registrar este desenho curto.

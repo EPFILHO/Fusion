@@ -9,6 +9,11 @@
 - Corrigido o refresh de status das abas `STRATS`/`FILTERS` apos mudanca de estado operacional, evitando mensagem antiga de posicao aberta depois do fechamento.
 - Expostos `SL Fixo` e `TP Fixo` globais em `CONFIG > RISK`, aceitando `0` como desligado e validando limite de pontos.
 - Adicionado guard de AutoTrading: o `INICIAR` fica bloqueado quando a negociacao automatica esta desabilitada, o painel avisa o usuario e o log registra a condicao uma vez por episodio.
+- O `STATUS` agora explica o bloqueio de `INICIAR` quando ha posicao aberta em gerenciamento com o EA pausado, em vez de exibir "Sem alertas".
+- Saidas `TP/SL` com `SL Fixo` e/ou `TP Fixo` zerados passam a gerar aviso amarelo no painel, mantendo `0=off` como configuracao permitida.
+- As janelas de `SESSION` e `NEWS` passaram a tratar o horario final como exclusivo: o bloqueio/termino vale a partir do inicio do minuto configurado.
+- Logs de protecao como sessao fechada ou news ativa passaram a ser emitidos uma vez por episodio, voltando a logar apenas quando a condicao limpa e reaparece ou muda de motivo.
+- Registrada pendencia para uma fatia futura de observabilidade: logar transicoes de news, sessao e novo dia/reset diario sem confundir com liberacao geral de operacao.
 
 ## 1.051 - 2026-05-09
 - Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.
