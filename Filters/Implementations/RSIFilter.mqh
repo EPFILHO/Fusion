@@ -88,6 +88,7 @@ public:
 
       double buffer[];
       ArrayResize(buffer, 2);
+      ArraySetAsSeries(buffer, true);
       if(CopyBuffer(m_handle, 0, 0, 2, buffer) < 2)
          return true;
 

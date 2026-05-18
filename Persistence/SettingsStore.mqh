@@ -276,7 +276,7 @@ private:
       else if(key == "rsiMiddle") settings.rsiMiddle = (int)StringToInteger(value);
       else if(key == "rsiMode") settings.rsiMode = (ENUM_RSI_SIGNAL_MODE)StringToInteger(value);
       else if(key == "rsiPrice") settings.rsiPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
-      else if(key == "rsiExitMode") settings.rsiExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
+      else if(key == "rsiExitMode") settings.rsiExitMode = (ENUM_RSI_EXIT_MODE)StringToInteger(value);
       else if(key == "useBollinger") settings.useBollinger = (bool)StringToInteger(value);
       else if(key == "bbPriority") settings.bbPriority = (int)StringToInteger(value);
       else if(key == "bbPeriod") settings.bbPeriod = (int)StringToInteger(value);

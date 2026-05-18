@@ -12,7 +12,9 @@ enum ENUM_FUSION_SELECTION_COMBO_KIND
    FUSION_SELECTION_MA_METHOD = 0,
    FUSION_SELECTION_APPLIED_PRICE,
    FUSION_SELECTION_ENTRY_MODE,
-   FUSION_SELECTION_EXIT_MODE
+   FUSION_SELECTION_EXIT_MODE,
+   FUSION_SELECTION_RSI_MODE,
+   FUSION_SELECTION_RSI_EXIT_MODE
   };
 
 class CSelectionComboField
@@ -32,7 +34,11 @@ private:
          return FusionPopulateAppliedPriceCombo(m_combo);
       if(m_kind == FUSION_SELECTION_ENTRY_MODE)
          return FusionPopulateEntryModeCombo(m_combo);
-      return FusionPopulateExitModeCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_EXIT_MODE)
+         return FusionPopulateExitModeCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_RSI_MODE)
+         return FusionPopulateRSIModeCombo(m_combo);
+      return FusionPopulateRSIExitModeCombo(m_combo);
      }
 
 public:

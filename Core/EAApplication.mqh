@@ -3,6 +3,8 @@
 
 #include "Inputs.mqh"
 #include "Logger.mqh"
+#include "TradePermissionGuard.mqh"
+#include "PendingReverseExit.mqh"
 #include "InstanceRegistry.mqh"
 #include "ActiveProfileRegistry.mqh"
 #include "../Signals/SignalManager.mqh"
@@ -40,6 +42,8 @@ private:
    CSettingsStore          m_settingsStore;
    CInstanceRegistry       m_instanceRegistry;
    CActiveProfileRegistry  m_activeProfileRegistry;
+   CTradePermissionGuard   m_tradePermissionGuard;
+   CPendingReverseExit     m_pendingReverseExit;
    CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
@@ -54,15 +58,9 @@ private:
    string                  m_runtimeNotice;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
-   bool                    m_tradePermissionBlocked;
-   string                  m_tradePermissionReason;
    datetime                m_lastProtectionWarning;
    string                  m_lastClosedStrategyId;
    datetime                m_lastClosedStrategyBarTime;
-   ENUM_SIGNAL_TYPE        m_pendingReverseSignal;
-   string                  m_pendingReverseStrategyId;
-   string                  m_pendingReverseStrategyName;
-   string                  m_pendingReverseShortName;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -93,30 +91,6 @@ private:
      {
       if(!m_settings.isTester)
          m_instanceRegistry.Unregister();
-     }
-
-   void                    ResetPendingReverseExit(void)
-     {
-      m_pendingReverseSignal       = SIGNAL_NONE;
-      m_pendingReverseStrategyId   = "";
-      m_pendingReverseStrategyName = "";
-      m_pendingReverseShortName    = "";
-     }
-
-   bool                    HasPendingReverseExit(void) const
-     {
-      return (m_pendingReverseSignal != SIGNAL_NONE && m_pendingReverseStrategyId != "");
-     }
-
-   void                    ArmPendingReverseExit(const ENUM_SIGNAL_TYPE signal,
-                                                 const string strategyId,
-                                                 const string strategyName,
-                                                 const string shortName)
-     {
-      m_pendingReverseSignal       = signal;
-      m_pendingReverseStrategyId   = strategyId;
-      m_pendingReverseStrategyName = strategyName;
-      m_pendingReverseShortName    = shortName;
      }
 
    bool                    IsNettingAccount(void) const
@@ -220,8 +194,8 @@ private:
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
-      snapshot.tradePermissionBlocked = m_tradePermissionBlocked;
-      snapshot.tradePermissionReason = m_tradePermissionReason;
+      snapshot.tradePermissionBlocked = m_tradePermissionGuard.IsBlocked();
+      snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
       snapshot.lossStreak       = m_protectionManager.LossStreak();
@@ -275,7 +249,7 @@ private:
 
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_runtimeNotice = m_tradePermissionBlocked ? m_tradePermissionReason : "";
+      m_runtimeNotice = m_tradePermissionGuard.IsBlocked() ? m_tradePermissionGuard.Notice() : "";
      }
 
    void                    ApplyProtectionNotice(const string notice)
@@ -291,7 +265,7 @@ private:
 
       m_protectionNoticeActive = true;
       m_protectionNoticeReason = notice;
-      if(!m_tradePermissionBlocked)
+      if(!m_tradePermissionGuard.IsBlocked())
          m_runtimeNotice = notice;
 
       if(changed || now - m_lastProtectionWarning >= 60)
@@ -301,83 +275,21 @@ private:
         }
      }
 
-   bool                    TradePermissionAllowed(string &reason) const
-     {
-      reason = "";
-      if(m_settings.isTester)
-         return true;
-
-      if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED))
-        {
-         reason = "AutoTrading desabilitado no MT5.";
-         return false;
-        }
-
-      if(!MQLInfoInteger(MQL_TRADE_ALLOWED))
-        {
-         reason = "Permissao de trade do EA desabilitada.";
-         return false;
-        }
-
-      if(!AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
-        {
-         reason = "Conta nao permite negociacao.";
-         return false;
-        }
-
-      if(!AccountInfoInteger(ACCOUNT_TRADE_EXPERT))
-        {
-         reason = "Conta nao permite negociacao automatica por EA.";
-         return false;
-        }
-
-      return true;
-     }
-
-   string                  FormatTradePermissionNotice(const string reason) const
-     {
-      if(m_positionState.hasPosition)
-         return reason + " Gerenciamento da posicao interrompido. Habilite imediatamente.";
-      return reason + " Habilite para iniciar.";
-     }
-
-   void                    ClearTradePermissionNotice(void)
-     {
-      if(!m_tradePermissionBlocked)
-         return;
-
-      m_tradePermissionBlocked = false;
-      m_tradePermissionReason = "";
-      m_runtimeNotice = m_protectionNoticeActive ? m_protectionNoticeReason : "";
-     }
-
-   void                    ApplyTradePermissionNotice(const string reason)
-     {
-      string notice = FormatTradePermissionNotice(reason);
-      bool changed = (!m_tradePermissionBlocked || m_tradePermissionReason != notice);
-
-      m_tradePermissionBlocked = true;
-      m_tradePermissionReason = notice;
-      m_runtimeNotice = notice;
-
-      if(changed)
-         m_logger.Warn("AUTOTRADE", notice);
-     }
-
    bool                    RefreshTradePermissionState(void)
      {
-      string reason = "";
-      if(TradePermissionAllowed(reason))
+      bool wasBlocked = m_tradePermissionGuard.IsBlocked();
+      if(m_tradePermissionGuard.Refresh(m_positionState.hasPosition))
         {
-         ClearTradePermissionNotice();
+         if(wasBlocked)
+            m_runtimeNotice = m_protectionNoticeActive ? m_protectionNoticeReason : "";
          return true;
         }
 
-      ApplyTradePermissionNotice(reason);
+      m_runtimeNotice = m_tradePermissionGuard.Notice();
       if(m_started && !m_positionState.hasPosition)
         {
          m_started = false;
-         ResetPendingReverseExit();
+         m_pendingReverseExit.Reset();
          ReleaseRunningInstance();
         }
       return false;
@@ -615,17 +527,9 @@ private:
 
    void                    TryPlacePendingReverseExit(void)
      {
-      if(!HasPendingReverseExit())
-         return;
-
       SSignalDecision decision;
-      ResetSignalDecision(decision);
-      decision.signal       = m_pendingReverseSignal;
-      decision.strategyId   = m_pendingReverseStrategyId;
-      decision.strategyName = m_pendingReverseStrategyName;
-      decision.shortName    = m_pendingReverseShortName;
-
-      ResetPendingReverseExit();
+      if(!m_pendingReverseExit.TakeDecision(decision))
+         return;
 
       if(!m_started)
          return;
@@ -768,7 +672,7 @@ private:
            {
             m_logger.Trade("EXIT", "Signal exit from " + ownerName);
             if(reverseExit)
-               ArmPendingReverseExit(exitSignal, ownerStrategyId, ownerStrategyName, shortName);
+               m_pendingReverseExit.Arm(exitSignal, ownerStrategyId, ownerStrategyName, shortName);
            }
         }
      }
@@ -911,12 +815,10 @@ private:
       m_runtimeNotice       = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_tradePermissionBlocked = false;
-      m_tradePermissionReason = "";
       m_lastProtectionWarning  = 0;
       m_lastClosedStrategyId   = "";
       m_lastClosedStrategyBarTime = 0;
-      ResetPendingReverseExit();
+      m_pendingReverseExit.Reset();
      }
 
    bool              Initialize(void)
@@ -935,8 +837,6 @@ private:
       m_runtimeNotice = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_tradePermissionBlocked = false;
-      m_tradePermissionReason = "";
       m_lastProtectionWarning = 0;
 
       if(!m_settings.isTester &&
@@ -1013,6 +913,7 @@ private:
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
+      m_tradePermissionGuard.Init(&m_logger, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
       m_protectionManager.Init(&m_logger, m_settings);
@@ -1033,7 +934,7 @@ private:
 
       if(m_runtimeBlocked)
          m_logger.Warn("CONTEXT", m_runtimeBlockReason);
-      else if(m_runtimeNotice != "" && !m_tradePermissionBlocked)
+      else if(m_runtimeNotice != "" && !m_tradePermissionGuard.IsBlocked())
          m_logger.Warn("CONTEXT", m_runtimeNotice);
 
       if(!m_runtimeBlocked && (m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
@@ -1102,7 +1003,7 @@ private:
          return;
         }
 
-      if(HasPendingReverseExit())
+      if(m_pendingReverseExit.HasPending())
         {
          TryPlacePendingReverseExit();
          return;

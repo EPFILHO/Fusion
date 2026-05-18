@@ -42,6 +42,17 @@ Fatia MA iniciada na 1.052:
 - os novos campos sao persistidos nos perfis e entram em alteracoes pendentes;
 - `FCO` segue como modo de saida padrao e distancia minima `0` preserva o comportamento atual de perfis antigos.
 
+Fatia RSI iniciada na 1.052:
+
+- `EAApplication` teve o guard de permissao de trade extraido para `CTradePermissionGuard`, evitando adicionar mais validacao operacional ao orquestrador;
+- o estado de `VM` pendente foi encapsulado em `CPendingReverseExit`, mantendo a execucao no mesmo fluxo e retirando campos auxiliares do orquestrador;
+- `STRATS > RSI` passou a ter painel concreto com toggle, prioridade, periodo, timeframe, niveis, preco, modo de sinal e modo de saida;
+- os campos da RSI usam settings, inputs, persistencia, runtime e validacao de modo propria;
+- a validacao da subaba cobre prioridade, periodo, niveis 0..100, `sobrevenda < sobrecompra` nos modos de zona e `sobrevenda < media < sobrecompra` quando a saida usa a linha media;
+- a saida `Cruz. Media` fecha no alvo da linha media do RSI e fica disponivel apenas no combo da RSI, sem vazar para MA/BB;
+- a combinacao entrada `Cruz. Media` + saida `Cruz. Media` fica bloqueada para evitar entrada e saida na mesma linha.
+- o rodape da RSI descreve a combinacao entrada/saida escolhida, incluindo o detalhe de que `Saida da Zona` com `Sinal Oposto`/`VM` espera a saida da zona oposta.
+
 ## Filtros
 
 As paginas de `FILTERS` tambem devem continuar concretas por filtro.
@@ -51,6 +62,10 @@ Campos esperados para expansao:
 - `Trend Filter`: toggle, periodo da MA, timeframe, metodo e preco.
 - `RSI Filter`: toggle, periodo, timeframe, minimo para compra, maximo para venda e preco.
 - `Bollinger Filter`: novo filtro separado da estrategia Bollinger, com settings proprios e sem compartilhar campos ambiguos com `bb*` da estrategia.
+
+Pendencia tecnica para a hora da expansao:
+
+- revisar `TrendFilter` e `BollingerStrategy` antes de mexer nos filtros/BB, porque ainda usam `CopyBuffer` sem `ArraySetAsSeries`; alinhar o indexamento com MA/RSI para evitar leitura invertida de candles.
 
 Direcao para `Bollinger Filter`:
 

@@ -105,6 +105,22 @@
          return true;
       if(m_draftSettings.rsiTimeframe != m_committedSettings.rsiTimeframe)
          return true;
+      if(m_draftSettings.rsiPriority != m_committedSettings.rsiPriority)
+         return true;
+      if(m_draftSettings.rsiPeriod != m_committedSettings.rsiPeriod)
+         return true;
+      if(m_draftSettings.rsiOversold != m_committedSettings.rsiOversold)
+         return true;
+      if(m_draftSettings.rsiOverbought != m_committedSettings.rsiOverbought)
+         return true;
+      if(m_draftSettings.rsiMiddle != m_committedSettings.rsiMiddle)
+         return true;
+      if(m_draftSettings.rsiMode != m_committedSettings.rsiMode)
+         return true;
+      if(m_draftSettings.rsiPrice != m_committedSettings.rsiPrice)
+         return true;
+      if(m_draftSettings.rsiExitMode != m_committedSettings.rsiExitMode)
+         return true;
       if(m_draftSettings.bbTimeframe != m_committedSettings.bbTimeframe)
          return true;
       if(m_draftSettings.trendMATimeframe != m_committedSettings.trendMATimeframe)

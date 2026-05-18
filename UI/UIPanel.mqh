@@ -13,6 +13,7 @@
 #include "Pages/StatusPage.mqh"
 #include "Pages/ResultsPage.mqh"
 #include "MACrossPanel.mqh"
+#include "RSIStrategyPanel.mqh"
 #include "StrategyTimeframePanel.mqh"
 #include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"

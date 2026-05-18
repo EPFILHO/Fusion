@@ -13,7 +13,8 @@ private:
    int                  m_middle;
    ENUM_RSI_SIGNAL_MODE m_mode;
    ENUM_APPLIED_PRICE   m_price;
-   ENUM_EXIT_MODE       m_exitMode;
+   ENUM_RSI_EXIT_MODE   m_exitMode;
+   datetime             m_lastSignalBarTime;
 
    void                 ReleaseHandle(void)
      {
@@ -27,10 +28,30 @@ private:
       return (m_handle != INVALID_HANDLE);
      }
 
+   void                 ResetEntryTracking(void)
+     {
+      m_lastSignalBarTime = 0;
+     }
+
    bool                 LoadBuffer(double &buffer[])
      {
       ArrayResize(buffer, 4);
+      ArraySetAsSeries(buffer, true);
       return (CopyBuffer(m_handle, 0, 0, 4, buffer) >= 4);
+     }
+
+   bool                 MiddleLevelValid(void) const
+     {
+      return (m_middle >= 0 && m_middle <= 100);
+     }
+
+   ENUM_EXIT_MODE       GenericExitMode(void) const
+     {
+      if(m_exitMode == RSI_EXIT_REVERSE_SIGNAL)
+         return EXIT_REVERSE_SIGNAL;
+      if(m_exitMode == RSI_EXIT_TP_SL)
+         return EXIT_TP_SL;
+      return EXIT_OPPOSITE_SIGNAL;
      }
 
    ENUM_SIGNAL_TYPE     EvaluateSignal(void)
@@ -69,6 +90,41 @@ private:
       return SIGNAL_NONE;
      }
 
+   ENUM_SIGNAL_TYPE     EvaluateMiddleTargetExit(const ENUM_POSITION_TYPE currentPosition)
+     {
+      if(!MiddleLevelValid())
+         return SIGNAL_NONE;
+
+      double buffer[];
+      if(!LoadBuffer(buffer))
+         return SIGNAL_NONE;
+
+      double current = buffer[1];
+      if(currentPosition == POSITION_TYPE_BUY && current >= m_middle)
+         return SIGNAL_SELL;
+      if(currentPosition == POSITION_TYPE_SELL && current <= m_middle)
+         return SIGNAL_BUY;
+
+      return SIGNAL_NONE;
+     }
+
+   bool                 SignalAlreadyReachedMiddleTarget(const ENUM_SIGNAL_TYPE signal)
+     {
+      if(m_exitMode != RSI_EXIT_MIDDLE_TARGET || !MiddleLevelValid())
+         return false;
+
+      double buffer[];
+      if(!LoadBuffer(buffer))
+         return false;
+
+      double current = buffer[1];
+      if(signal == SIGNAL_BUY && current >= m_middle)
+         return true;
+      if(signal == SIGNAL_SELL && current <= m_middle)
+         return true;
+      return false;
+     }
+
 public:
                      CRSIStrategy(void) : CStrategyBase("rsi", "RSI", "RSI", 8)
      {
@@ -79,7 +135,8 @@ public:
       m_middle     = 50;
       m_mode       = RSI_SIGNAL_CROSSOVER;
       m_price      = PRICE_CLOSE;
-      m_exitMode   = EXIT_OPPOSITE_SIGNAL;
+      m_exitMode   = RSI_EXIT_OPPOSITE_SIGNAL;
+      ResetEntryTracking();
      }
 
    virtual bool      Initialize(CLogger *logger,const string symbol) override
@@ -94,6 +151,7 @@ public:
    virtual void      Shutdown(void) override
      {
       ReleaseHandle();
+      ResetEntryTracking();
       CStrategyBase::Shutdown();
      }
 
@@ -123,6 +181,7 @@ public:
       if(!m_enabled)
         {
          ReleaseHandle();
+         ResetEntryTracking();
          return true;
         }
 
@@ -132,16 +191,46 @@ public:
       return true;
      }
 
+   virtual void      PrimeEntryState(void) override
+     {
+      ResetEntryTracking();
+      if(!m_enabled || !m_initialized)
+         return;
+
+      if(EvaluateSignal() != SIGNAL_NONE)
+         m_lastSignalBarTime = iTime(m_symbol, m_timeframe, 1);
+     }
+
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) override
      {
       if(!m_enabled || !m_initialized)
          return SIGNAL_NONE;
-      return EvaluateSignal();
+
+      ENUM_SIGNAL_TYPE signal = EvaluateSignal();
+      if(signal == SIGNAL_NONE)
+         return SIGNAL_NONE;
+      if(SignalAlreadyReachedMiddleTarget(signal))
+         return SIGNAL_NONE;
+
+      datetime signalBarTime = iTime(m_symbol, m_timeframe, 1);
+      if(signalBarTime <= 0)
+         return SIGNAL_NONE;
+      if(signalBarTime == m_lastSignalBarTime)
+         return SIGNAL_NONE;
+
+      m_lastSignalBarTime = signalBarTime;
+      return signal;
      }
 
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) override
      {
-      if(m_exitMode != EXIT_OPPOSITE_SIGNAL && m_exitMode != EXIT_REVERSE_SIGNAL)
+      if(!m_enabled || !m_initialized)
+         return SIGNAL_NONE;
+
+      if(m_exitMode == RSI_EXIT_MIDDLE_TARGET)
+         return EvaluateMiddleTargetExit(currentPosition);
+
+      if(m_exitMode != RSI_EXIT_OPPOSITE_SIGNAL && m_exitMode != RSI_EXIT_REVERSE_SIGNAL)
          return SIGNAL_NONE;
 
       ENUM_SIGNAL_TYPE signal = EvaluateSignal();
@@ -155,7 +244,7 @@ public:
 
    virtual ENUM_EXIT_MODE ExitMode(void) const override
      {
-      return m_exitMode;
+      return GenericExitMode();
      }
   };
 

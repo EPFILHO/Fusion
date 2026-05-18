@@ -104,7 +104,7 @@ input int                    inp_RSIOverbought = 70;
 input int                    inp_RSIMiddle = 50;
 input ENUM_RSI_SIGNAL_MODE   inp_RSIMode   = RSI_SIGNAL_CROSSOVER;
 input ENUM_APPLIED_PRICE     inp_RSIPrice  = PRICE_CLOSE;
-input ENUM_EXIT_MODE         inp_RSIExitMode = EXIT_OPPOSITE_SIGNAL;
+input ENUM_RSI_EXIT_MODE     inp_RSIExitMode = RSI_EXIT_OPPOSITE_SIGNAL;
 
 input group "Strategy - Bollinger"
 input bool                   inp_UseBollinger = false;

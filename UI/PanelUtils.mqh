@@ -197,9 +197,9 @@ string FusionExitModeName(const ENUM_EXIT_MODE mode)
       case EXIT_TP_SL:
          return "TP/SL";
       case EXIT_REVERSE_SIGNAL:
-         return "Virar a mão (VM)";
+         return "Virar Mao (VM)";
       default:
-         return "Cruz. oposto (FCO)";
+         return "Sinal Oposto";
      }
   }
 
@@ -211,6 +211,60 @@ bool FusionPopulateExitModeCombo(CComboBox &combo)
    if(!combo.AddItem(FusionExitModeName(EXIT_OPPOSITE_SIGNAL), (long)EXIT_OPPOSITE_SIGNAL))
       return false;
    if(!combo.AddItem(FusionExitModeName(EXIT_REVERSE_SIGNAL), (long)EXIT_REVERSE_SIGNAL))
+      return false;
+   return true;
+  }
+
+string FusionRSIExitModeName(const ENUM_RSI_EXIT_MODE mode)
+  {
+   switch(mode)
+     {
+      case RSI_EXIT_TP_SL:
+         return "TP/SL";
+      case RSI_EXIT_REVERSE_SIGNAL:
+         return "Virar Mao (VM)";
+      case RSI_EXIT_MIDDLE_TARGET:
+         return "Cruz. Media";
+      default:
+         return "Sinal Oposto";
+     }
+  }
+
+bool FusionPopulateRSIExitModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(5);
+   if(!combo.AddItem(FusionRSIExitModeName(RSI_EXIT_TP_SL), (long)RSI_EXIT_TP_SL))
+      return false;
+   if(!combo.AddItem(FusionRSIExitModeName(RSI_EXIT_OPPOSITE_SIGNAL), (long)RSI_EXIT_OPPOSITE_SIGNAL))
+      return false;
+   if(!combo.AddItem(FusionRSIExitModeName(RSI_EXIT_REVERSE_SIGNAL), (long)RSI_EXIT_REVERSE_SIGNAL))
+      return false;
+   if(!combo.AddItem(FusionRSIExitModeName(RSI_EXIT_MIDDLE_TARGET), (long)RSI_EXIT_MIDDLE_TARGET))
+      return false;
+   return true;
+  }
+
+string FusionRSIModeName(const ENUM_RSI_SIGNAL_MODE mode)
+  {
+   switch(mode)
+     {
+      case RSI_SIGNAL_ZONE:
+         return "Dentro da Zona";
+      case RSI_SIGNAL_MIDDLE:
+         return "Cruz. Media";
+      default:
+         return "Saida da Zona";
+     }
+  }
+
+bool FusionPopulateRSIModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(4);
+   if(!combo.AddItem(FusionRSIModeName(RSI_SIGNAL_CROSSOVER), (long)RSI_SIGNAL_CROSSOVER))
+      return false;
+   if(!combo.AddItem(FusionRSIModeName(RSI_SIGNAL_ZONE), (long)RSI_SIGNAL_ZONE))
+      return false;
+   if(!combo.AddItem(FusionRSIModeName(RSI_SIGNAL_MIDDLE), (long)RSI_SIGNAL_MIDDLE))
       return false;
    return true;
   }

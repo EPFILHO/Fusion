@@ -78,7 +78,9 @@
          if(m_strategyPanels[sp].HandleChange(objectName, m_draftSettings))
            {
             RefreshConfigValidation();
+            m_strategyPanels[sp].Sync(m_draftSettings, CanEditActiveProfile());
             RefreshSignalDraftViews(false, false);
+            ChartRedraw();
             return true;
            }
         }

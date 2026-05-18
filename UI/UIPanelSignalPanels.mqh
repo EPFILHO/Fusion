@@ -9,12 +9,7 @@
       if(index == 0)
          m_strategyPanels[index] = new CMACrossPanel();
       else if(index == 1)
-         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_RSI,
-                                                               StrategyPanelTitle(index),
-                                                               StrategyPanelKey(index),
-                                                               "Gera sinais de entrada e saida com base no RSI.",
-                                                               StrategyPanelCommand(index),
-                                                               false);
+         m_strategyPanels[index] = new CRSIStrategyPanel();
       else
          m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_BB,
                                                                StrategyPanelTitle(index),

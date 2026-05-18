@@ -31,6 +31,14 @@ enum ENUM_EXIT_MODE
    EXIT_REVERSE_SIGNAL
   };
 
+enum ENUM_RSI_EXIT_MODE
+  {
+   RSI_EXIT_TP_SL = 0,
+   RSI_EXIT_OPPOSITE_SIGNAL,
+   RSI_EXIT_REVERSE_SIGNAL,
+   RSI_EXIT_MIDDLE_TARGET
+  };
+
 enum ENUM_ENTRY_MODE
   {
    ENTRY_NEXT_CANDLE = 0,
@@ -173,7 +181,7 @@ struct SEASettings
    int                      rsiMiddle;
    ENUM_RSI_SIGNAL_MODE     rsiMode;
    ENUM_APPLIED_PRICE       rsiPrice;
-   ENUM_EXIT_MODE           rsiExitMode;
+   ENUM_RSI_EXIT_MODE       rsiExitMode;
    bool                     useBollinger;
    int                      bbPriority;
    int                      bbPeriod;
@@ -401,7 +409,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.rsiMiddle             = 50;
    settings.rsiMode               = RSI_SIGNAL_CROSSOVER;
    settings.rsiPrice              = PRICE_CLOSE;
-   settings.rsiExitMode           = EXIT_OPPOSITE_SIGNAL;
+   settings.rsiExitMode           = RSI_EXIT_OPPOSITE_SIGNAL;
    settings.useBollinger          = false;
    settings.bbPriority            = 6;
    settings.bbPeriod              = 20;
