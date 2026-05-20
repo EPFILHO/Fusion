@@ -14,7 +14,8 @@ enum ENUM_FUSION_SELECTION_COMBO_KIND
    FUSION_SELECTION_ENTRY_MODE,
    FUSION_SELECTION_EXIT_MODE,
    FUSION_SELECTION_RSI_MODE,
-   FUSION_SELECTION_RSI_EXIT_MODE
+   FUSION_SELECTION_RSI_EXIT_MODE,
+   FUSION_SELECTION_BB_MODE
   };
 
 class CSelectionComboField
@@ -38,6 +39,8 @@ private:
          return FusionPopulateExitModeCombo(m_combo);
       if(m_kind == FUSION_SELECTION_RSI_MODE)
          return FusionPopulateRSIModeCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_BB_MODE)
+         return FusionPopulateBBModeCombo(m_combo);
       return FusionPopulateRSIExitModeCombo(m_combo);
      }
 

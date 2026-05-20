@@ -269,6 +269,31 @@ bool FusionPopulateRSIModeCombo(CComboBox &combo)
    return true;
   }
 
+string FusionBBModeName(const ENUM_BB_SIGNAL_MODE mode)
+  {
+   switch(mode)
+     {
+      case BB_SIGNAL_REBOUND:
+         return "Toque/Rejeicao";
+      case BB_SIGNAL_BREAKOUT:
+         return "Rompimento";
+      default:
+         return "FFFD";
+     }
+  }
+
+bool FusionPopulateBBModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(4);
+   if(!combo.AddItem(FusionBBModeName(BB_SIGNAL_REENTRY), (long)BB_SIGNAL_REENTRY))
+      return false;
+   if(!combo.AddItem(FusionBBModeName(BB_SIGNAL_REBOUND), (long)BB_SIGNAL_REBOUND))
+      return false;
+   if(!combo.AddItem(FusionBBModeName(BB_SIGNAL_BREAKOUT), (long)BB_SIGNAL_BREAKOUT))
+      return false;
+   return true;
+  }
+
 bool FusionUsesTPSLExit(const SEASettings &settings)
   {
    return ((settings.useMACross && settings.maExitMode == EXIT_TP_SL) ||

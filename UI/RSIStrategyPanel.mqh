@@ -127,9 +127,9 @@ private:
          (exitMode == RSI_EXIT_OPPOSITE_SIGNAL || exitMode == RSI_EXIT_REVERSE_SIGNAL))
          return "Observacao: espera o ciclo ate a zona oposta.";
       if(mode == RSI_SIGNAL_ZONE && exitMode == RSI_EXIT_REVERSE_SIGNAL)
-         return "Use com cautela; modo agressivo e reversao imediata.";
+         return "Agressivo: repete enquanto durar; VM aumenta o giro.";
       if(mode == RSI_SIGNAL_ZONE)
-         return "Use com cautela; considere filtro de tendencia.";
+         return "Agressivo: pode repetir entrada enquanto a condicao durar.";
       if(exitMode == RSI_EXIT_REVERSE_SIGNAL)
          return "Use com cautela; reversao imediata aumenta o giro.";
       return "";

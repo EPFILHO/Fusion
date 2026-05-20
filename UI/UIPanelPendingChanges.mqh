@@ -121,7 +121,19 @@
          return true;
       if(m_draftSettings.rsiExitMode != m_committedSettings.rsiExitMode)
          return true;
+      if(m_draftSettings.bbPriority != m_committedSettings.bbPriority)
+         return true;
+      if(m_draftSettings.bbPeriod != m_committedSettings.bbPeriod)
+         return true;
       if(m_draftSettings.bbTimeframe != m_committedSettings.bbTimeframe)
+         return true;
+      if(MathAbs(m_draftSettings.bbDeviation - m_committedSettings.bbDeviation) > 0.0000001)
+         return true;
+      if(m_draftSettings.bbPrice != m_committedSettings.bbPrice)
+         return true;
+      if(m_draftSettings.bbMode != m_committedSettings.bbMode)
+         return true;
+      if(m_draftSettings.bbExitMode != m_committedSettings.bbExitMode)
          return true;
       if(m_draftSettings.trendMATimeframe != m_committedSettings.trendMATimeframe)
          return true;

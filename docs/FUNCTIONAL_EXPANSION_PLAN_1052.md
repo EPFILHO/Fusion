@@ -53,6 +53,15 @@ Fatia RSI iniciada na 1.052:
 - a combinacao entrada `Cruz. Media` + saida `Cruz. Media` fica bloqueada para evitar entrada e saida na mesma linha.
 - o rodape da RSI descreve a combinacao entrada/saida escolhida, incluindo o detalhe de que `Saida da Zona` com `Sinal Oposto`/`VM` espera a saida da zona oposta.
 
+Fatia Bollinger iniciada na 1.052:
+
+- `STRATS > BB` passou de painel generico para painel concreto com toggle, prioridade, periodo, timeframe, desvio, preco, modo de sinal e modo de saida;
+- os modos exibidos sao `FFFD`, `Toque/Rejeicao` e `Rompimento`, mantendo os enums existentes da estrategia;
+- a validacao cobre prioridade 0..1000, periodo 1..1000 e desvio maior que 0 ate 10;
+- o rodape da Bollinger descreve entrada, saida e cautelas da combinacao selecionada;
+- os novos campos entram na deteccao de alteracoes pendentes para salvar/cancelar perfis corretamente;
+- a estrategia Bollinger passou a usar `ArraySetAsSeries` nos buffers e `PrimeEntryState`, alinhando a leitura de candles e a protecao contra sinal antigo com MA/RSI.
+
 ## Filtros
 
 As paginas de `FILTERS` tambem devem continuar concretas por filtro.
@@ -65,7 +74,7 @@ Campos esperados para expansao:
 
 Pendencia tecnica para a hora da expansao:
 
-- revisar `TrendFilter` e `BollingerStrategy` antes de mexer nos filtros/BB, porque ainda usam `CopyBuffer` sem `ArraySetAsSeries`; alinhar o indexamento com MA/RSI para evitar leitura invertida de candles.
+- revisar `TrendFilter` antes de mexer nos filtros, porque ainda usa `CopyBuffer` sem `ArraySetAsSeries`; alinhar o indexamento com MA/RSI para evitar leitura invertida de candles.
 
 Direcao para `Bollinger Filter`:
 

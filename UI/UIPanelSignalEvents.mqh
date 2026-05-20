@@ -68,6 +68,37 @@
       if(id != CHARTEVENT_CUSTOM + ON_CHANGE)
          return false;
 
+      if(!CanEditActiveProfile())
+        {
+         bool matched = false;
+         SEASettings ignored = m_draftSettings;
+
+         for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
+           {
+            if(m_strategyPanels[sp] == NULL)
+               continue;
+            if(m_strategyPanels[sp].HandleChange(objectName, ignored))
+               matched = true;
+           }
+
+         for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
+           {
+            if(m_filterPanels[fp] == NULL)
+               continue;
+            if(m_filterPanels[fp].HandleChange(objectName, ignored))
+               matched = true;
+           }
+
+         if(matched)
+           {
+            RefreshSignalDraftViews(true, true);
+            ChartRedraw();
+            return true;
+           }
+
+         return false;
+        }
+
       if(!TryBeginActiveProfileEdit())
          return false;
 

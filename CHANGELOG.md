@@ -14,6 +14,10 @@
 - As janelas de `SESSION` e `NEWS` passaram a tratar o horario final como exclusivo: o bloqueio/termino vale a partir do inicio do minuto configurado.
 - Logs de protecao como sessao fechada ou news ativa passaram a ser emitidos uma vez por episodio, voltando a logar apenas quando a condicao limpa e reaparece ou muda de motivo.
 - Registrada pendencia para uma fatia futura de observabilidade: logar transicoes de news, sessao e novo dia/reset diario sem confundir com liberacao geral de operacao.
+- `STRATS > BB` ganhou painel concreto com prioridade, periodo, timeframe, desvio, preco, modo de sinal, saida, validacoes e rodape explicativo.
+- A estrategia Bollinger agora usa buffers em serie como MA/RSI e prepara o estado de entrada ao iniciar, evitando consumir sinal ja formado antes do clique em `INICIAR`.
+- Combos de `STRATS`/`FILTERS` em modo somente leitura agora sao resincronizados imediatamente se o usuario tentar altera-los, evitando rodape incoerente com o perfil realmente ativo.
+- O minimize/maximize do painel voltou a deixar a `CAppDialog` aplicar o estado nativo antes de esconder o conteudo gerenciado, evitando painel branco ao minimizar.
 
 ## 1.051 - 2026-05-09
 - Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.

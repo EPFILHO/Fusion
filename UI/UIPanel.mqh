@@ -14,6 +14,7 @@
 #include "Pages/ResultsPage.mqh"
 #include "MACrossPanel.mqh"
 #include "RSIStrategyPanel.mqh"
+#include "BollingerStrategyPanel.mqh"
 #include "StrategyTimeframePanel.mqh"
 #include "FilterTimeframePanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
@@ -178,10 +179,9 @@ protected:
 
    virtual void                Minimize(void)
      {
-      if(!m_created)
-         return;
-      HideManagedContent();
       CAppDialog::Minimize();
+      if(m_created)
+         HideManagedContent();
       ChartRedraw();
      }
 
@@ -189,7 +189,10 @@ protected:
      {
       CAppDialog::Maximize();
       if(!m_created)
+        {
+         ChartRedraw();
          return;
+        }
 
       SetShellVisible(true);
       ApplyVisibility();

@@ -11,12 +11,7 @@
       else if(index == 1)
          m_strategyPanels[index] = new CRSIStrategyPanel();
       else
-         m_strategyPanels[index] = new CStrategyTimeframePanel(FUSION_STRATEGY_PANEL_BB,
-                                                               StrategyPanelTitle(index),
-                                                               StrategyPanelKey(index),
-                                                               "Gera sinais com leitura das bandas de Bollinger.",
-                                                               StrategyPanelCommand(index),
-                                                               false);
+         m_strategyPanels[index] = new CBollingerStrategyPanel();
 
       if(m_strategyPanels[index] == NULL)
          return false;
