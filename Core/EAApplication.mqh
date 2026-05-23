@@ -244,11 +244,37 @@ private:
       m_runtimeNotice = notice;
      }
 
+   bool                    IsSessionProtectionNotice(const string notice) const
+     {
+      return (notice == "Fora da janela de sessao." || notice == "Sessao encerrada.");
+     }
+
+   bool                    IsNewsProtectionNotice(const string notice) const
+     {
+      return (StringFind(notice, "Janela de news ") == 0);
+     }
+
+   void                    LogProtectionNoticeCleared(const string notice)
+     {
+      if(IsSessionProtectionNotice(notice))
+        {
+         m_logger.Info("PROTECT", "Bloqueio de sessao removido.");
+         return;
+        }
+
+      if(IsNewsProtectionNotice(notice))
+        {
+         m_logger.Info("PROTECT", "Bloqueio de news removido: " + notice);
+         return;
+        }
+     }
+
    void                    ClearProtectionNotice(void)
      {
       if(!m_protectionNoticeActive)
          return;
 
+      LogProtectionNoticeCleared(m_protectionNoticeReason);
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
       m_runtimeNotice = m_tradePermissionGuard.IsBlocked() ? m_tradePermissionGuard.Notice() : "";
@@ -263,6 +289,8 @@ private:
         }
 
       bool changed = (!m_protectionNoticeActive || m_protectionNoticeReason != notice);
+      if(changed && m_protectionNoticeActive)
+         LogProtectionNoticeCleared(m_protectionNoticeReason);
 
       m_protectionNoticeActive = true;
       m_protectionNoticeReason = notice;

@@ -31,6 +31,7 @@
 - O comentario das ordens de entrada agora usa o prefixo `EP Fusion - ` em vez de `EA `.
 - A aba `PERFIS` agora permite `NOVO` e `DUPLICAR` mesmo quando o perfil ativo esta carregado em outro grafico, mantendo bloqueados os caminhos que editam/carregam/removem o perfil travado.
 - A aba `PERFIS` tambem fica marcada em vermelho quando ha lock de perfil por outro grafico, mantendo o padrao visual de atencao das demais abas.
+- Bloqueios de sessao e news agora tambem logam quando a condicao deixa de bloquear entradas, sem declarar liberacao geral se outro blocker ainda estiver ativo.
 
 ## 1.051 - 2026-05-09
 - Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.
