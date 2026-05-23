@@ -58,6 +58,8 @@ private:
    string                  m_runtimeNotice;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
+   bool                    m_entryBlockNoticeActive;
+   string                  m_entryBlockNoticeReason;
    string                  m_lastClosedStrategyId;
    datetime                m_lastClosedStrategyBarTime;
 
@@ -193,6 +195,7 @@ private:
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
+      snapshot.entryBlockReason = m_entryBlockNoticeActive ? m_entryBlockNoticeReason : "";
       snapshot.tradePermissionBlocked = m_tradePermissionGuard.IsBlocked();
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
@@ -272,6 +275,43 @@ private:
         }
      }
 
+   void                    ClearEntryBlockNotice(void)
+     {
+      if(!m_entryBlockNoticeActive)
+         return;
+
+      m_entryBlockNoticeActive = false;
+      m_entryBlockNoticeReason = "";
+     }
+
+   void                    ApplyEntryBlockNotice(const string reason)
+     {
+      if(reason == "")
+        {
+         ClearEntryBlockNotice();
+         return;
+        }
+
+      bool changed = (!m_entryBlockNoticeActive || m_entryBlockNoticeReason != reason);
+      m_entryBlockNoticeActive = true;
+      m_entryBlockNoticeReason = reason;
+
+      if(changed)
+         m_logger.Info("SIGNAL", reason);
+     }
+
+   string                  FormatDirectionBlockReason(const SSignalDecision &decision,const string reason) const
+     {
+      string strategyName = (decision.strategyName != "") ? decision.strategyName : decision.shortName;
+      string text = "Entrada " + SignalToString(decision.signal);
+      if(strategyName != "")
+         text += " da " + strategyName;
+      text += " bloqueada por Direcao";
+      if(reason != "")
+         text += ": " + reason;
+      return text;
+     }
+
    bool                    RefreshTradePermissionState(void)
      {
       bool wasBlocked = m_tradePermissionGuard.IsBlocked();
@@ -285,9 +325,9 @@ private:
       m_runtimeNotice = m_tradePermissionGuard.Notice();
       if(m_started && !m_positionState.hasPosition)
         {
-         m_started = false;
+         // Trading permission can disappear briefly during broker reconnects.
+         // Keep the EA running so it resumes automatically when permissions return.
          m_pendingReverseExit.Reset();
-         ReleaseRunningInstance();
         }
       return false;
      }
@@ -481,11 +521,15 @@ private:
          return false;
 
       if(!RefreshTradePermissionState())
+        {
+         ClearEntryBlockNotice();
          return false;
+        }
 
       string blockReason = "";
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
         {
+         ClearEntryBlockNotice();
          ApplyProtectionNotice(blockReason);
          return false;
         }
@@ -497,13 +541,19 @@ private:
          string reentryReason = "";
          if(IsReentryBlockedThisBar(decision.strategyId, reentryReason))
            {
+            ClearEntryBlockNotice();
             m_logger.Debug("BLOCKER", reentryReason);
             return false;
            }
         }
 
       if(!m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
+        {
+         ApplyEntryBlockNotice(FormatDirectionBlockReason(decision, blockReason));
          return false;
+        }
+
+      ClearEntryBlockNotice();
 
       double entryPrice = (decision.signal == SIGNAL_BUY)
                           ? SymbolInfoDouble(_Symbol, SYMBOL_ASK)
@@ -697,6 +747,7 @@ private:
             if(m_positionState.hasPosition)
                return;
             m_started = false;
+            ClearEntryBlockNotice();
             ReleaseRunningInstance();
            }
          else
@@ -716,6 +767,7 @@ private:
             if(!RegisterRunningInstance())
                return;
             m_signalManager.PrimeEntryStates();
+            ClearEntryBlockNotice();
             m_started = true;
            }
          RefreshProfileBlockReasons();
@@ -812,6 +864,8 @@ private:
       m_runtimeNotice       = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
+      m_entryBlockNoticeActive = false;
+      m_entryBlockNoticeReason = "";
       m_lastClosedStrategyId   = "";
       m_lastClosedStrategyBarTime = 0;
       m_pendingReverseExit.Reset();
@@ -833,6 +887,8 @@ private:
       m_runtimeNotice = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
+      m_entryBlockNoticeActive = false;
+      m_entryBlockNoticeReason = "";
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&
@@ -1007,6 +1063,7 @@ private:
       if(!m_started)
         {
          ClearProtectionNotice();
+         ClearEntryBlockNotice();
          return;
         }
 
@@ -1017,6 +1074,7 @@ private:
       if(HasForeignNettingPosition(blockReason))
         {
          ClearProtectionNotice();
+         ClearEntryBlockNotice();
          datetime now = TimeCurrent();
          if(now - m_lastNettingWarning >= 60)
            {
@@ -1028,6 +1086,7 @@ private:
 
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
         {
+         ClearEntryBlockNotice();
          ApplyProtectionNotice(blockReason);
          return;
         }
@@ -1037,7 +1096,11 @@ private:
       SSignalDecision decision;
       ResetSignalDecision(decision);
       if(!m_signalManager.GetEntryDecision(decision))
+        {
+         if(decision.blockedBy != "")
+            ApplyEntryBlockNotice(decision.blockedBy);
          return;
+        }
 
       TryPlaceEntryDecision(decision, true);
      }

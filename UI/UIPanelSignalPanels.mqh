@@ -45,17 +45,11 @@
          return false;
 
       if(index == 0)
-         m_filterPanels[index] = new CFilterTimeframePanel(FUSION_FILTER_PANEL_TREND,
-                                                           FilterPanelTitle(index),
-                                                           FilterPanelKey(index),
-                                                           "Valida a direcao do mercado com media movel.",
-                                                           FilterPanelCommand(index));
+         m_filterPanels[index] = new CTrendFilterPanel();
+      else if(index == 1)
+         m_filterPanels[index] = new CRSIFilterPanel();
       else
-         m_filterPanels[index] = new CFilterTimeframePanel(FUSION_FILTER_PANEL_RSI,
-                                                           FilterPanelTitle(index),
-                                                           FilterPanelKey(index),
-                                                           "Filtra sinais pela faixa operacional do RSI.",
-                                                           FilterPanelCommand(index));
+         return false;
 
       if(m_filterPanels[index] == NULL)
          return false;

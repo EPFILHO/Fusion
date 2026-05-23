@@ -19,6 +19,8 @@ public:
    virtual void   Sync(const SEASettings &settings,const bool editable) = 0;
    virtual bool   HandleClick(const string objectName,SUICommand &command) = 0;
    virtual bool   HandleChange(const string objectName,SEASettings &settings) = 0;
+   virtual bool   IsDeferredEdit(const string objectName) const { return false; }
+   virtual void   NormalizeDeferredEdit(const string objectName) {}
    virtual bool   Validate(SEASettings &candidate,const bool editable,string &error) = 0;
   };
 

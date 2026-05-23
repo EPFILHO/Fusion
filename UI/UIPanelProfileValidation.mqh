@@ -53,6 +53,14 @@
      {
       m_profileTabValid = true;
       m_profileTabError = "";
+
+      string profileBlockStatus = ProfileBlockStatusText();
+      if(profileBlockStatus != "")
+        {
+         m_profileTabValid = false;
+         m_profileTabError = profileBlockStatus;
+        }
+
       if(!ProfileEditMode() || !m_profilesEditCreated)
          return;
 

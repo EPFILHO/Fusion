@@ -36,6 +36,7 @@
       m_snapshot.startBlockedReason = "";
       m_snapshot.activeProfileBlockedReason = "";
       m_snapshot.runtimeNotice = "";
+      m_snapshot.entryBlockReason = "";
       m_snapshot.tradePermissionBlocked = false;
       m_snapshot.tradePermissionReason = "";
       m_snapshot.dailyTradeCount = 0;

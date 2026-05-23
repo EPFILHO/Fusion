@@ -157,6 +157,12 @@ public:
          noticeText = "Posicao aberta em gerenciamento. Iniciar fica bloqueado ate fechar.";
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.entryBlockReason != "")
+        {
+         noticeTitle = "ENTRADA BLOQUEADA";
+         noticeText = snapshot.entryBlockReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.runtimeNotice != "")
         {
          noticeTitle = snapshot.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";

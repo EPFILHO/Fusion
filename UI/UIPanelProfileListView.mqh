@@ -130,10 +130,10 @@
          m_profileMagicLbl.Text("Magic");
          m_profileSaveAsBtn.Text(draftState.duplicateMode ? "SALVAR COPIA" : "SALVAR");
          bool nameStyleValid = (!draftState.editMode || !draftState.validName || draftState.nameAvailable);
-         FusionApplyEditStyle(m_profileNewEdit, nameStyleValid, draftState.editMode && access.activeProfileEditable);
-         FusionApplyEditStyle(m_profileMagicEdit, draftState.magicValid && draftState.magicAvailable, draftState.editMode && access.activeProfileEditable);
-         m_profileNewLbl.Color(!draftState.editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : (nameStyleValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_profileMagicLbl.Color(!draftState.editMode || !access.activeProfileEditable ? FUSION_CLR_MUTED : ((draftState.magicValid && draftState.magicAvailable) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         FusionApplyEditStyle(m_profileNewEdit, nameStyleValid, draftState.editMode && access.profileCreateAllowed);
+         FusionApplyEditStyle(m_profileMagicEdit, draftState.magicValid && draftState.magicAvailable, draftState.editMode && access.profileCreateAllowed);
+         m_profileNewLbl.Color(!draftState.editMode || !access.profileCreateAllowed ? FUSION_CLR_MUTED : (nameStyleValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_profileMagicLbl.Color(!draftState.editMode || !access.profileCreateAllowed ? FUSION_CLR_MUTED : ((draftState.magicValid && draftState.magicAvailable) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
         }
      }
 
@@ -141,7 +141,7 @@
                                                          const SUIProfileActionState &profileActions,
                                                          const SUIProfileEditDraftState &draftState)
      {
-      if(!access.profileEditMode && access.activeProfileEditable)
+      if(!access.profileEditMode && access.profileCreateAllowed)
          FusionApplyActionButtonStyle(m_profileNewBtn, FUSION_CLR_GOOD, true);
       else
          FusionApplyNeutralButtonStyle(m_profileNewBtn);
@@ -153,7 +153,7 @@
 
       if(m_profilesEditCreated)
         {
-         if(draftState.editMode && access.activeProfileEditable && access.configInputsValid && draftState.ready)
+         if(draftState.editMode && access.profileCreateAllowed && access.configInputsValid && draftState.ready)
             FusionApplyActionButtonStyle(m_profileSaveAsBtn, FUSION_CLR_GOOD, true);
          else
             FusionApplyNeutralButtonStyle(m_profileSaveAsBtn);
@@ -206,9 +206,9 @@
 
       string selectedName = SelectedProfileName();
       if(profileActions.selectedIsActive && m_snapshot.startBlockedReason != "")
-         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Magic em uso em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Magic em uso em outro grafico; use NOVO ou DUPLICAR.", FUSION_CLR_WARN);
       else if(profileActions.selectedIsActive && m_snapshot.activeProfileBlockedReason != "")
-         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Perfil carregado em outro grafico. Carregue outro perfil.", FUSION_CLR_WARN);
+         SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Use NOVO ou DUPLICAR para criar outro perfil.", FUSION_CLR_WARN);
       else if(profileActions.selectedIsActive && profileActions.selectedIsDefault)
          SetProfileStatus("Selecionado: " + selectedName + " [ATIVO]. Default reservado.", FUSION_CLR_MUTED);
       else if(profileActions.selectedIsActive)

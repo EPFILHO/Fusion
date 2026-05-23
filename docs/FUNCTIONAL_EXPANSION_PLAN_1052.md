@@ -68,13 +68,14 @@ As paginas de `FILTERS` tambem devem continuar concretas por filtro.
 
 Campos esperados para expansao:
 
-- `Trend Filter`: toggle, periodo da MA, timeframe, metodo e preco.
-- `RSI Filter`: toggle, periodo, timeframe, minimo para compra, maximo para venda e preco.
+- `Trend Filter`: toggle, periodo da MA, timeframe, metodo e preco. Implementado com painel concreto, validacao e leitura de buffer em serie.
+- `RSI Filter`: toggle, modo, periodo, timeframe, niveis, preco e rodape explicativo. Implementado com modos `Direcao`, `Neutro`, `Extremos` e `Avancado`, validacao 0..100 dos niveis e leitura do RSI no candle fechado.
 - `Bollinger Filter`: novo filtro separado da estrategia Bollinger, com settings proprios e sem compartilhar campos ambiguos com `bb*` da estrategia.
 
-Pendencia tecnica para a hora da expansao:
+Revisao tecnica da expansao:
 
-- revisar `TrendFilter` antes de mexer nos filtros, porque ainda usa `CopyBuffer` sem `ArraySetAsSeries`; alinhar o indexamento com MA/RSI para evitar leitura invertida de candles.
+- `Trend Filter` passou a usar buffer em serie e candle fechado na leitura da MA, alinhado com as estrategias.
+- `RSI Filter` passou a checar handle invalido antes de copiar buffer e manteve `ArraySetAsSeries` com `buffer[1]`, alinhado com MA/RSI/Bollinger no candle fechado.
 
 Direcao para `Bollinger Filter`:
 
@@ -115,6 +116,15 @@ Pendencias para tratar em uma fatia propria, sem misturar com a expansao das est
 - logar uma vez quando a sessao de operacao inicia, quando encerra e quando novas entradas voltam a ser permitidas;
 - logar novo dia/reset diario de contadores quando a protecao diaria virar o dia;
 - manter os logs especificos: fim de news nao deve prometer operacao liberada se outro blocker continuar ativo.
+- evoluir a aba `STATUS` para uma telemetria de sinais sem gambiarra: ultimo sinal, origem, resultado, filtro/bloqueio aplicado e motivo.
+
+## Limpeza Tecnica Da GUI
+
+Pendencias para uma fatia futura, sem misturar com estrategia/filtro/risco:
+
+- aproximar `CONFIG > PROTECT` do padrao usado por `STRATS` e `FILTERS`, com grupos/paineis separados por subaba em vez de uma unica pagina com show/hide individual;
+- manter a troca atual em duas fases, escondendo tudo antes de mostrar a subaba ativa, ate essa refatoracao ser feita;
+- revisar residuos visuais de troca de abas/subabas no MT5 apenas com caso reproduzivel, evitando mexer nos `ComboBox` sem necessidade.
 
 ## Ordem De Trabalho
 

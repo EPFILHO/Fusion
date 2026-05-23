@@ -16,6 +16,18 @@ private:
    IConflictResolver  *m_resolver;
    string              m_symbol;
 
+   string            FormatEntryBlockReason(const SSignalDecision &decision,const CFilterBase *filter,const string reason) const
+     {
+      string strategyName = (decision.strategyName != "") ? decision.strategyName : decision.shortName;
+      string text = "Entrada " + SignalToString(decision.signal);
+      if(strategyName != "")
+         text += " da " + strategyName;
+      text += " bloqueada por " + filter.Name();
+      if(reason != "")
+         text += ": " + reason;
+      return text;
+     }
+
 public:
                      CSignalManager(void)
      {
@@ -161,7 +173,7 @@ public:
          string reason = "";
          if(!m_filters[i].AllowEntry(decision.signal, reason))
            {
-            decision.blockedBy = m_filters[i].Name() + ": " + reason;
+            decision.blockedBy = FormatEntryBlockReason(decision, m_filters[i], reason);
             decision.signal = SIGNAL_NONE;
             return false;
            }

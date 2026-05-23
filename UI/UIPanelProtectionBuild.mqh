@@ -3,7 +3,7 @@
 
    bool                       BuildConfigProtectionPage(void)
      {
-      string pageNames[FUSION_PROTECT_COUNT] = {"GERAL", "SPREAD", "SESSION", "NEWS", "DAY", "DRAWDOWN", "STREAK"};
+      string pageNames[FUSION_PROTECT_COUNT] = {"GERAL", "ENTRY", "SESSION", "NEWS", "DAY", "DRAWDOWN", "STREAK"};
       int tabWidth = 74;
       int tabGap = 2;
       int tabX = 18;
@@ -34,7 +34,7 @@
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
-      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Spread", "Session", "News", "Day", "Drawdown", "Streak"};
+      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "Drawdown", "Streak"};
       int generalY = 226;
       for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
@@ -45,17 +45,32 @@
          generalY += 32;
         }
 
-      if(!AddLabel(m_protectSpreadHdr, "Fusion_protect_spread_hdr", 22, 188, 280, 206, "Protecao de Spread", FUSION_CLR_VALUE, 9))
+      if(!AddLabel(m_protectSpreadHdr, "Fusion_protect_spread_hdr", 22, 188, 280, 206, "Protecao de Entrada", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_protectSpreadDesc, "Fusion_protect_spread_desc", 22, 214, 520, 232, "Bloqueia novas entradas quando o spread passar do limite.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_protectSpreadDesc, "Fusion_protect_spread_desc", 22, 214, 520, 232, "Regras globais aplicadas antes de enviar uma nova ordem.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_protectSpreadEnabledLbl, "Fusion_protect_spread_enabled_lbl", 22, 250, 160, 268, "Ativo", FUSION_CLR_LABEL))
+      if(!AddLabel(m_protectSpreadEnabledLbl, "Fusion_protect_spread_enabled_lbl", 22, 250, 160, 268, "Max Spread", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_protectSpreadEnabledBtn, "Fusion_protect_spread_enabled_btn", 200, 248, 310, 272, "OFF", FUSION_CLR_BAD))
+      if(!AddButton(m_protectSpreadEnabledBtn, "Fusion_protect_spread_enabled_btn", 200, 248, 290, 272, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_protectSpreadLimitLbl, "Fusion_protect_spread_limit_lbl", 22, 288, 170, 306, "Max Spread", FUSION_CLR_LABEL))
+      if(!AddEdit(m_protectSpreadLimitEdit, "Fusion_protect_spread_limit_edit", 306, 248, 416, 272, "0"))
          return false;
-      if(!AddEdit(m_protectSpreadLimitEdit, "Fusion_protect_spread_limit_edit", 200, 286, 310, 310, "0"))
+      if(!AddLabel(m_protectSpreadLimitLbl, "Fusion_protect_spread_limit_lbl", 424, 250, 470, 268, "pts", FUSION_CLR_LABEL))
+         return false;
+      if(!m_protectDirection.Create(GetPointer(this),
+                                    m_chartId,
+                                    m_subWindow,
+                                    "Fusion_protect_direction",
+                                    "Direcao",
+                                    FUSION_SELECTION_TRADE_DIRECTION,
+                                    22,
+                                    288,
+                                    170,
+                                    306,
+                                    200,
+                                    286,
+                                    340,
+                                    310))
          return false;
 
       if(!AddLabel(m_protectSessionHdr, "Fusion_protect_session_hdr", 22, 188, 280, 206, "Protecao de Sessao", FUSION_CLR_VALUE, 9))

@@ -14,7 +14,7 @@ public:
       for(int i = ControlsTotal() - 1; i >= 0; --i)
         {
          CWnd *control = Control(i);
-         if(control != NULL && control.OnEvent(id, lparam, dparam, sparam))
+         if(control != NULL && control.IsVisible() && control.OnEvent(id, lparam, dparam, sparam))
             return true;
         }
 
@@ -29,7 +29,7 @@ public:
       for(int i = ControlsTotal() - 1; i >= 0; --i)
         {
          CWnd *control = Control(i);
-         if(control != NULL && control.OnMouseEvent(x, y, flags))
+         if(control != NULL && control.IsVisible() && control.OnMouseEvent(x, y, flags))
             return true;
         }
 

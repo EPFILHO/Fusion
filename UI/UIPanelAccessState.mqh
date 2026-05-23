@@ -43,6 +43,7 @@
       access.activeProfileEditable = false;
       access.profileLoadAllowed = false;
       access.profileAdminAllowed = false;
+      access.profileCreateAllowed = false;
       access.canPause = false;
       access.canStart = false;
       access.canSave = false;
@@ -64,6 +65,7 @@
       access.configInputsValid = configInputsValid;
       access.runtimeEditable = RuntimeEditable(snapshot);
       access.activeProfileEditable = access.runtimeEditable && !access.hasPeerProfileLock;
+      access.profileCreateAllowed = (access.runtimeEditable && (profileEditMode || !hasPendingChanges));
       access.canPause = (snapshot.started && !access.hasLocalPositionLock);
       access.canStart = (!profileEditMode &&
                          access.activeProfileEditable &&
@@ -106,6 +108,12 @@
      {
       SUIAccessState access = CurrentAccessState();
       return access.profileAdminAllowed;
+     }
+
+   bool                       ProfileCreateAllowed(void)
+     {
+      SUIAccessState access = CurrentAccessState();
+      return access.profileCreateAllowed;
      }
 
    bool                       CanEditSettings(void)

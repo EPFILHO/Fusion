@@ -16,7 +16,8 @@
 #include "RSIStrategyPanel.mqh"
 #include "BollingerStrategyPanel.mqh"
 #include "StrategyTimeframePanel.mqh"
-#include "FilterTimeframePanel.mqh"
+#include "TrendFilterPanel.mqh"
+#include "RSIFilterPanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
 #include "../Core/InstanceRegistry.mqh"
 #include "../Core/ActiveProfileRegistry.mqh"
@@ -350,6 +351,7 @@ public:
                            snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
                            snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
                            snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                           snapshot.entryBlockReason != m_snapshot.entryBlockReason ||
                            snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
                            snapshot.tradePermissionReason != m_snapshot.tradePermissionReason ||
                            snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
@@ -427,6 +429,8 @@ public:
       bool result = CAppDialog::OnEvent(id, lparam, dparam, sparam);
       if(!m_minimized)
         {
+         if(HandleProtectionChange(id, sparam))
+            return true;
          if(HandleSignalPanelChange(id, sparam))
             return true;
         }

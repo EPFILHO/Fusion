@@ -18,6 +18,19 @@
 - A estrategia Bollinger agora usa buffers em serie como MA/RSI e prepara o estado de entrada ao iniciar, evitando consumir sinal ja formado antes do clique em `INICIAR`.
 - Combos de `STRATS`/`FILTERS` em modo somente leitura agora sao resincronizados imediatamente se o usuario tentar altera-los, evitando rodape incoerente com o perfil realmente ativo.
 - O minimize/maximize do painel voltou a deixar a `CAppDialog` aplicar o estado nativo antes de esconder o conteudo gerenciado, evitando painel branco ao minimizar.
+- `FILTERS > Trend` ganhou painel concreto com periodo, timeframe, metodo, preco, validacao e rodape explicando que o filtro apenas bloqueia sinais contra a media.
+- O `Trend Filter` agora usa buffer em serie ao ler a MA, alinhando o candle fechado usado na comparacao com MA/RSI/Bollinger.
+- `FILTERS > RSI` ganhou painel concreto com periodo, timeframe, preco, minimo para compra, maximo para venda, validacao 0..100 e rodape explicando a faixa operacional.
+- O `RSI Filter` agora revisa o handle antes da leitura e registra motivos de bloqueio com valor de RSI e limite configurado.
+- `FILTERS > RSI` ganhou modos explicitos: `Direcao`, `Neutro`, `Extremos` e `Avancado`, com rodape descrevendo exatamente o que cada filtro bloqueia.
+- Bloqueios de entrada por filtros agora logam uma vez por episodio informando direcao, estrategia, filtro e motivo.
+- A aba `STATUS` passou a exibir bloqueios atuais de entrada em `Aviso`, sem misturar esse estado com os avisos operacionais gerais.
+- O aviso de entrada bloqueada deixou de sumir quando o ciclo seguinte nao tem novo sinal candidato; ele limpa apenas quando ha entrada valida, pausa ou outro bloqueio operacional.
+- `CONFIG > PROTECT > SPREAD` virou `ENTRY`, mantendo spread e expondo `Direcao` (`Ambas`, `So Compra`, `So Venda`) na GUI.
+- O guard de trading agora diferencia queda de conexao, AutoTrading manual e permissao temporaria da conta, logando a perda/restauro de conexao uma vez por episodio e retomando automaticamente quando o MT5 libera o trading.
+- O comentario das ordens de entrada agora usa o prefixo `EP Fusion - ` em vez de `EA `.
+- A aba `PERFIS` agora permite `NOVO` e `DUPLICAR` mesmo quando o perfil ativo esta carregado em outro grafico, mantendo bloqueados os caminhos que editam/carregam/removem o perfil travado.
+- A aba `PERFIS` tambem fica marcada em vermelho quando ha lock de perfil por outro grafico, mantendo o padrao visual de atencao das demais abas.
 
 ## 1.051 - 2026-05-09
 - Iniciada a nova rodada conservadora de limpeza da GUI, mantendo o comportamento operacional da 1.050.

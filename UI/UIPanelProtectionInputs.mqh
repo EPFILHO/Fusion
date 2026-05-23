@@ -217,7 +217,9 @@
 
       if(objectName == m_protectSpreadLimitEdit.Name())
         {
-         NormalizeIntegerEdit(m_protectSpreadLimitEdit, m_draftSettings.maxSpreadPoints, true);
+         NormalizeIntegerEdit(m_protectSpreadLimitEdit,
+                              m_draftSettings.enableSpreadProtection ? 1 : 0,
+                              !m_draftSettings.enableSpreadProtection);
          return true;
         }
       if(objectName == m_protectDayTradesEdit.Name())

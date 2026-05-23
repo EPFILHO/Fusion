@@ -15,6 +15,7 @@
    CButton                    m_protectSpreadEnabledBtn;
    CLabel                     m_protectSpreadLimitLbl;
    CEdit                      m_protectSpreadLimitEdit;
+   CSelectionComboField       m_protectDirection;
 
    CLabel                     m_protectSessionHdr;
    CLabel                     m_protectSessionDesc;
@@ -109,6 +110,12 @@
         }
      }
 
+   void                       SyncProtectionDirectionCombo(const bool editable)
+     {
+      m_protectDirection.Sync((long)m_draftSettings.tradeDirection, editable);
+      m_protectDirection.RaiseRuntimeObjects(3900);
+     }
+
 #include "UIPanelProtectionInputs.mqh"
 #include "UIPanelProtectionValidation.mqh"
 #include "UIPanelProtectionBuild.mqh"
@@ -164,6 +171,53 @@
       return true;
      }
 
+   bool                       HandleProtectionSpreadToggle(const string objectName)
+     {
+      if(objectName != m_protectSpreadEnabledBtn.Name())
+         return false;
+
+      ReleaseButton(m_protectSpreadEnabledBtn);
+      if(!CanEditActiveProfile())
+         return true;
+
+      m_draftSettings.enableSpreadProtection = !m_draftSettings.enableSpreadProtection;
+      if(m_draftSettings.enableSpreadProtection)
+        {
+         if(m_draftSettings.maxSpreadPoints <= 0)
+            m_draftSettings.maxSpreadPoints = 1;
+        }
+      else
+         m_draftSettings.maxSpreadPoints = 0;
+
+      m_protectSpreadLimitEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleProtectionDirectionChange(const string objectName)
+     {
+      if(!m_protectDirection.Matches(objectName))
+         return false;
+
+      if(!TryBeginActiveProfileEdit())
+        {
+         SyncProtectionDirectionCombo(false);
+         return true;
+        }
+
+      m_draftSettings.tradeDirection = (ENUM_TRADE_DIRECTION)m_protectDirection.Value();
+      RefreshConfigValidation();
+      SyncProtectionDirectionCombo(CanEditActiveProfile());
+      return true;
+     }
+
+   bool                       HandleProtectionChange(const int id,const string objectName)
+     {
+      if(id != CHARTEVENT_CUSTOM + ON_CHANGE || !m_configProtectionCreated)
+         return false;
+      return HandleProtectionDirectionChange(objectName);
+     }
+
    bool                       HandleProtectionPageClick(const string objectName)
      {
       for(int tabIndex = 0; tabIndex < FUSION_PROTECT_COUNT; ++tabIndex)
@@ -184,7 +238,7 @@
 
    bool                       HandleProtectionToggleClick(const string objectName)
      {
-      if(HandleProtectionBooleanToggle(objectName, m_protectSpreadEnabledBtn, m_draftSettings.enableSpreadProtection))
+      if(HandleProtectionSpreadToggle(objectName))
          return true;
 
       if(HandleProtectionBooleanToggle(objectName, m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter))

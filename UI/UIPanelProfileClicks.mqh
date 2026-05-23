@@ -147,7 +147,7 @@
       string status = "";
       bool valid = BuildPendingSettings(pendingSettings, ignoredProfile, status);
       pendingSettings.magicNumber = draftMagic;
-      if(ActiveProfileEditable() && valid && newProfileName != "")
+      if(ProfileCreateAllowed() && valid && newProfileName != "")
         {
          QueueSaveProfileCommand(newProfileName, pendingSettings, RELOAD_COLD);
          SetProfileStatus("Solicitado salvamento do perfil " + newProfileName + ".", FUSION_CLR_GOOD, true);

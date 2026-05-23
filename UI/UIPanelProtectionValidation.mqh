@@ -68,6 +68,8 @@
       if(!m_configProtectionCreated)
          return false;
 
+      if(m_draftSettings.tradeDirection != m_committedSettings.tradeDirection)
+         return true;
       if(ProtectionIntegerEditPending(m_protectSpreadLimitEdit, m_committedSettings.maxSpreadPoints))
          return true;
       if(ProtectionIntegerEditPending(m_protectSessionStartHourEdit, m_committedSettings.sessionStartHour, true))
@@ -112,16 +114,18 @@
       error = "";
 
       string spreadText = FusionTrimCopy(LiveEditText(m_protectSpreadLimitEdit));
+      outSettings.tradeDirection = (ENUM_TRADE_DIRECTION)m_protectDirection.Value();
       bool spreadValid = FusionIsIntegerText(spreadText, true) && (int)StringToInteger(spreadText) >= 0;
       int parsedSpread = spreadValid ? (int)StringToInteger(spreadText) : 0;
       if(spreadValid && outSettings.enableSpreadProtection && parsedSpread <= 0)
          spreadValid = false;
-      FusionApplyEditStyle(m_protectSpreadLimitEdit, spreadValid, editable);
-      m_protectSpreadLimitLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      FusionApplyEditStyle(m_protectSpreadLimitEdit, spreadValid, editable && outSettings.enableSpreadProtection);
+      m_protectSpreadEnabledLbl.Color(!editable ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectSpreadLimitLbl.Color(!editable || !outSettings.enableSpreadProtection ? FUSION_CLR_MUTED : (spreadValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       string spreadError = "";
       if(!spreadValid)
          spreadError = outSettings.enableSpreadProtection ? "Max Spread deve ser > 0 quando ativo." : "Max Spread deve ser zero ou inteiro positivo.";
-      outSettings.maxSpreadPoints = parsedSpread;
+      outSettings.maxSpreadPoints = outSettings.enableSpreadProtection ? parsedSpread : 0;
 
       int sessionStartHour = 0, sessionStartMinute = 0, sessionEndHour = 0, sessionEndMinute = 0;
       string sessionError = "";

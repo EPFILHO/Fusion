@@ -142,6 +142,7 @@ private:
       WriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod));
       WriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice));
       WriteLine(handle, "useRSIFilter", IntegerToString((int)settings.useRSIFilter));
+      WriteLine(handle, "rsiFilterMode", IntegerToString((int)settings.rsiFilterMode));
       WriteLine(handle, "rsiFilterPeriod", IntegerToString(settings.rsiFilterPeriod));
       WriteLine(handle, "rsiFilterTimeframe", IntegerToString((int)settings.rsiFilterTimeframe));
       WriteLine(handle, "rsiFilterBuyMin", IntegerToString(settings.rsiFilterBuyMin));
@@ -291,6 +292,7 @@ private:
       else if(key == "trendMAMethod") settings.trendMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
       else if(key == "trendMAPrice") settings.trendMAPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "useRSIFilter") settings.useRSIFilter = (bool)StringToInteger(value);
+      else if(key == "rsiFilterMode") settings.rsiFilterMode = (ENUM_RSI_FILTER_MODE)StringToInteger(value);
       else if(key == "rsiFilterPeriod") settings.rsiFilterPeriod = (int)StringToInteger(value);
       else if(key == "rsiFilterTimeframe") settings.rsiFilterTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "rsiFilterBuyMin") settings.rsiFilterBuyMin = (int)StringToInteger(value);

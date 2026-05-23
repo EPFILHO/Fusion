@@ -52,6 +52,14 @@ enum ENUM_RSI_SIGNAL_MODE
    RSI_SIGNAL_MIDDLE
   };
 
+enum ENUM_RSI_FILTER_MODE
+  {
+   RSI_FILTER_ADVANCED = 0,
+   RSI_FILTER_DIRECTION,
+   RSI_FILTER_NEUTRAL,
+   RSI_FILTER_EXTREMES
+  };
+
 enum ENUM_BB_SIGNAL_MODE
   {
    BB_SIGNAL_REENTRY = 0,
@@ -196,6 +204,7 @@ struct SEASettings
    ENUM_MA_METHOD           trendMAMethod;
    ENUM_APPLIED_PRICE       trendMAPrice;
    bool                     useRSIFilter;
+   ENUM_RSI_FILTER_MODE     rsiFilterMode;
    int                      rsiFilterPeriod;
    ENUM_TIMEFRAMES          rsiFilterTimeframe;
    int                      rsiFilterBuyMin;
@@ -302,6 +311,7 @@ struct SUIPanelSnapshot
    string startBlockedReason;
    string activeProfileBlockedReason;
    string runtimeNotice;
+   string entryBlockReason;
    bool   tradePermissionBlocked;
    string tradePermissionReason;
    int    dailyTradeCount;
@@ -335,7 +345,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 3;
+   settings.schemaVersion         = 4;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -424,6 +434,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
    settings.useRSIFilter          = false;
+   settings.rsiFilterMode         = RSI_FILTER_ADVANCED;
    settings.rsiFilterPeriod       = 14;
    settings.rsiFilterTimeframe    = FUSION_DEFAULT_TIMEFRAME;
    settings.rsiFilterBuyMin       = 50;

@@ -77,6 +77,7 @@ struct SUIAccessState
    bool activeProfileEditable;
    bool profileLoadAllowed;
    bool profileAdminAllowed;
+   bool profileCreateAllowed;
    bool canPause;
    bool canStart;
    bool canSave;

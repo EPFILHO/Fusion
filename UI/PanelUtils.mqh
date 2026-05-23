@@ -190,6 +190,31 @@ bool FusionPopulateEntryModeCombo(CComboBox &combo)
    return true;
   }
 
+string FusionTradeDirectionName(const ENUM_TRADE_DIRECTION direction)
+  {
+   switch(direction)
+     {
+      case DIRECTION_BUY_ONLY:
+         return "So Compra";
+      case DIRECTION_SELL_ONLY:
+         return "So Venda";
+      default:
+         return "Ambas";
+     }
+  }
+
+bool FusionPopulateTradeDirectionCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(4);
+   if(!combo.AddItem(FusionTradeDirectionName(DIRECTION_BOTH), (long)DIRECTION_BOTH))
+      return false;
+   if(!combo.AddItem(FusionTradeDirectionName(DIRECTION_BUY_ONLY), (long)DIRECTION_BUY_ONLY))
+      return false;
+   if(!combo.AddItem(FusionTradeDirectionName(DIRECTION_SELL_ONLY), (long)DIRECTION_SELL_ONLY))
+      return false;
+   return true;
+  }
+
 string FusionExitModeName(const ENUM_EXIT_MODE mode)
   {
    switch(mode)
@@ -265,6 +290,35 @@ bool FusionPopulateRSIModeCombo(CComboBox &combo)
    if(!combo.AddItem(FusionRSIModeName(RSI_SIGNAL_ZONE), (long)RSI_SIGNAL_ZONE))
       return false;
    if(!combo.AddItem(FusionRSIModeName(RSI_SIGNAL_MIDDLE), (long)RSI_SIGNAL_MIDDLE))
+      return false;
+   return true;
+  }
+
+string FusionRSIFilterModeName(const ENUM_RSI_FILTER_MODE mode)
+  {
+   switch(mode)
+     {
+      case RSI_FILTER_DIRECTION:
+         return "Direcao";
+      case RSI_FILTER_NEUTRAL:
+         return "Neutro";
+      case RSI_FILTER_EXTREMES:
+         return "Extremos";
+      default:
+         return "Avancado";
+     }
+  }
+
+bool FusionPopulateRSIFilterModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(5);
+   if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_ADVANCED), (long)RSI_FILTER_ADVANCED))
+      return false;
+   if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_DIRECTION), (long)RSI_FILTER_DIRECTION))
+      return false;
+   if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_NEUTRAL), (long)RSI_FILTER_NEUTRAL))
+      return false;
+   if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_EXTREMES), (long)RSI_FILTER_EXTREMES))
       return false;
    return true;
   }

@@ -131,7 +131,7 @@ public:
                                                     : SymbolInfoDouble(m_symbol, SYMBOL_BID);
       request.sl           = plan.stopLoss;
       request.tp           = plan.takeProfit;
-      request.comment      = "EA " + decision.shortName;
+      request.comment      = "EP Fusion - " + decision.shortName;
 
       if(!OrderSend(request, result))
         {

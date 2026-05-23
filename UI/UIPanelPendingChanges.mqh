@@ -135,9 +135,25 @@
          return true;
       if(m_draftSettings.bbExitMode != m_committedSettings.bbExitMode)
          return true;
+      if(m_draftSettings.trendMAPeriod != m_committedSettings.trendMAPeriod)
+         return true;
       if(m_draftSettings.trendMATimeframe != m_committedSettings.trendMATimeframe)
          return true;
-      return (m_draftSettings.rsiFilterTimeframe != m_committedSettings.rsiFilterTimeframe);
+      if(m_draftSettings.trendMAMethod != m_committedSettings.trendMAMethod)
+         return true;
+      if(m_draftSettings.trendMAPrice != m_committedSettings.trendMAPrice)
+         return true;
+      if(m_draftSettings.rsiFilterMode != m_committedSettings.rsiFilterMode)
+         return true;
+      if(m_draftSettings.rsiFilterPeriod != m_committedSettings.rsiFilterPeriod)
+         return true;
+      if(m_draftSettings.rsiFilterTimeframe != m_committedSettings.rsiFilterTimeframe)
+         return true;
+      if(m_draftSettings.rsiFilterBuyMin != m_committedSettings.rsiFilterBuyMin)
+         return true;
+      if(m_draftSettings.rsiFilterSellMax != m_committedSettings.rsiFilterSellMax)
+         return true;
+      return (m_draftSettings.rsiFilterPrice != m_committedSettings.rsiFilterPrice);
      }
 
    bool                       HasNewsWindowPendingChanges(const int newsIndex)
@@ -153,6 +169,8 @@
 
    bool                       HasProtectionSettingPendingChanges(void)
      {
+      if(m_draftSettings.tradeDirection != m_committedSettings.tradeDirection)
+         return true;
       if(m_draftSettings.enableSpreadProtection != m_committedSettings.enableSpreadProtection)
          return true;
       if(m_draftSettings.maxSpreadPoints != m_committedSettings.maxSpreadPoints)

@@ -83,21 +83,23 @@ private:
         }
      }
 
-   string            RiskHint(const ENUM_BB_SIGNAL_MODE mode,const ENUM_EXIT_MODE exitMode) const
+   string            RiskHint(const ENUM_BB_SIGNAL_MODE mode,const ENUM_EXIT_MODE exitMode,const ENUM_TRADE_DIRECTION direction) const
      {
+      if(exitMode == EXIT_REVERSE_SIGNAL && direction != DIRECTION_BOTH)
+         return "VM requer Direcao = Ambas.";
       if(mode == BB_SIGNAL_BREAKOUT && exitMode == EXIT_REVERSE_SIGNAL)
          return "Agressivo: repete enquanto fechar fora; VM aumenta giro.";
       if(mode == BB_SIGNAL_BREAKOUT)
          return "Agressivo: pode repetir entrada enquanto fechar fora.";
       if(exitMode == EXIT_REVERSE_SIGNAL)
          return "Use com cautela; reversao imediata aumenta o giro.";
-      return "Reversao por bandas pede filtro de tendencia.";
+      return "Recomenda-se usar filtro TREND.";
      }
 
    void              SyncGuidance(const SEASettings &settings,const bool editable)
      {
       color textColor = editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED;
-      string risk = RiskHint(settings.bbMode, settings.bbExitMode);
+      string risk = RiskHint(settings.bbMode, settings.bbExitMode, settings.tradeDirection);
 
       m_entryHint.Text(EntryHint(settings.bbMode));
       m_entryHint.Color(textColor);
@@ -314,19 +316,23 @@ public:
       bool priorityValid = (candidate.bbPriority >= 0 && candidate.bbPriority <= 1000);
       bool periodValid = PeriodValid(candidate.bbPeriod);
       bool deviationValid = DeviationValid(candidate.bbDeviation);
+      bool vmDirectionValid = (candidate.bbExitMode != EXIT_REVERSE_SIGNAL ||
+                               candidate.tradeDirection == DIRECTION_BOTH);
 
       m_priority.SetValid(priorityValid, editable);
       m_period.SetValid(periodValid, editable);
       m_deviation.SetValid(deviationValid, editable);
 
-      if(!priorityValid || !periodValid || !deviationValid)
+      if(!priorityValid || !periodValid || !deviationValid || !vmDirectionValid)
         {
          if(!priorityValid)
             error = "Bollinger: prioridade deve ser 0 a 1000.";
          else if(!periodValid)
             error = "Bollinger: periodo deve ser 1 a 1000.";
-         else
+         else if(!deviationValid)
             error = "Bollinger: desvio deve ser maior que 0 e ate 10.";
+         else
+            error = "VM requer Direcao = Ambas.";
          return false;
         }
 

@@ -66,7 +66,7 @@
 
       bool selectedLocked = (state.selectedRuntimeLocked || state.selectedActiveProfileLocked);
       state.canLoad = (!selectedLocked && access.profileLoadAllowed);
-      state.canDuplicate = (!selectedLocked && access.profileAdminAllowed);
+      state.canDuplicate = (!state.selectedRuntimeLocked && access.profileCreateAllowed);
       state.canDelete = (!selectedLocked &&
                          !state.selectedIsActive &&
                          !state.selectedIsDefault &&
@@ -84,5 +84,5 @@
    bool                       CanStartNewProfile(void)
      {
       SUIAccessState access = CurrentAccessState();
-      return (!access.profileEditMode && access.activeProfileEditable);
+      return (!access.profileEditMode && access.profileCreateAllowed);
      }

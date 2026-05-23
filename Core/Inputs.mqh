@@ -125,6 +125,7 @@ input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE;
 
 input group "Filter - RSI"
 input bool               inp_UseRSIFilter   = false;
+input ENUM_RSI_FILTER_MODE inp_RSIFilterMode = RSI_FILTER_ADVANCED;
 input int                inp_RSIFilterPeriod = 14;
 input ENUM_TIMEFRAMES    inp_RSIFilterTF    = FUSION_DEFAULT_TIMEFRAME;
 input int                inp_RSIFilterBuyMin = 50;
@@ -232,6 +233,7 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.trendMAMethod          = inp_TrendMAMethod;
    settings.trendMAPrice           = inp_TrendMAPrice;
    settings.useRSIFilter           = inp_UseRSIFilter;
+   settings.rsiFilterMode          = inp_RSIFilterMode;
    settings.rsiFilterPeriod        = inp_RSIFilterPeriod;
    settings.rsiFilterTimeframe     = inp_RSIFilterTF;
    settings.rsiFilterBuyMin        = inp_RSIFilterBuyMin;

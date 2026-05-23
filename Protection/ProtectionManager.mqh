@@ -80,13 +80,13 @@ public:
 
       if(signal == SIGNAL_BUY && m_settings.tradeDirection == DIRECTION_SELL_ONLY)
         {
-         reason = "BUY bloqueado pela direcao.";
+         reason = "apenas vendas permitidas";
          return false;
         }
 
       if(signal == SIGNAL_SELL && m_settings.tradeDirection == DIRECTION_BUY_ONLY)
         {
-         reason = "SELL bloqueado pela direcao.";
+         reason = "apenas compras permitidas";
          return false;
         }
 

@@ -3,7 +3,8 @@
 
    void                       SyncProtectionOverview(void)
      {
-      m_protectGeneralValues[0].Text(!m_draftSettings.enableSpreadProtection ? "OFF" : "Max " + IntegerToString(m_draftSettings.maxSpreadPoints) + " pts");
+      string spreadText = !m_draftSettings.enableSpreadProtection ? "Spread OFF" : "Spread max " + IntegerToString(m_draftSettings.maxSpreadPoints) + " pts";
+      m_protectGeneralValues[0].Text(FusionTradeDirectionName(m_draftSettings.tradeDirection) + " | " + spreadText);
       m_protectGeneralValues[1].Text(!m_draftSettings.enableSessionFilter ? "OFF" :
                                      StringFormat("%02d:%02d - %02d:%02d",
                                                   m_draftSettings.sessionStartHour,
@@ -31,6 +32,7 @@
       SyncProtectionOverview();
 
       FusionApplyToggleButtonStyle(m_protectSpreadEnabledBtn, m_draftSettings.enableSpreadProtection, editable);
+      SyncProtectionDirectionCombo(editable);
       FusionApplyToggleButtonStyle(m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter, editable);
       FusionApplyToggleButtonStyle(m_protectSessionCloseBtn, m_draftSettings.closeOnSessionEnd, editable);
 
@@ -48,8 +50,9 @@
    void                       SyncProtectionControls(void)
      {
       RefreshProtectionTheme();
-      FusionApplyEditStyle(m_protectSpreadLimitEdit, true, CanEditActiveProfile());
+      FusionApplyEditStyle(m_protectSpreadLimitEdit, true, CanEditActiveProfile() && m_draftSettings.enableSpreadProtection);
       m_protectSpreadLimitEdit.Text(IntegerToString(m_draftSettings.maxSpreadPoints));
+      SyncProtectionDirectionCombo(CanEditActiveProfile());
       m_protectSessionStartHourEdit.Text(StringFormat("%02d", m_draftSettings.sessionStartHour));
       m_protectSessionStartMinuteEdit.Text(StringFormat("%02d", m_draftSettings.sessionStartMinute));
       m_protectSessionEndHourEdit.Text(StringFormat("%02d", m_draftSettings.sessionEndHour));

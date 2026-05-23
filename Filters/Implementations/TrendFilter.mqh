@@ -84,9 +84,12 @@ public:
       reason = "";
       if(!m_enabled || !m_initialized || signal == SIGNAL_NONE)
          return true;
+      if(m_handle == INVALID_HANDLE)
+         return true;
 
       double ma[];
       ArrayResize(ma, 2);
+      ArraySetAsSeries(ma, true);
       if(CopyBuffer(m_handle, 0, 0, 2, ma) < 2)
          return true;
 
@@ -94,13 +97,13 @@ public:
 
       if(signal == SIGNAL_BUY && close1 < ma[1])
         {
-         reason = "Trend filter blocked BUY";
+         reason = "preco abaixo da MA";
          return false;
         }
 
       if(signal == SIGNAL_SELL && close1 > ma[1])
         {
-         reason = "Trend filter blocked SELL";
+         reason = "preco acima da MA";
          return false;
         }
 

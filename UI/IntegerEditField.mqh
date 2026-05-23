@@ -120,6 +120,24 @@ public:
       m_edit.Text(digits);
      }
 
+   void              SanitizeRange(const int fallback,const int minValue,const int maxValue,const int maxDigits=0)
+     {
+      string text = FusionTrimCopy(LiveText());
+      int value = fallback;
+      if(FusionIsIntegerText(text, true))
+        {
+         value = (int)StringToInteger(text);
+         if(value < minValue || value > maxValue)
+            value = fallback;
+        }
+
+      string normalized = IntegerToString(value);
+      if(maxDigits > 0 && StringLen(normalized) > maxDigits)
+         normalized = IntegerToString(fallback);
+
+      m_edit.Text(normalized);
+     }
+
    int               Value(void) const
      {
       string text = FusionTrimCopy(LiveText());
@@ -128,10 +146,24 @@ public:
       return (int)StringToInteger(text);
      }
 
+   void              SetValue(const int value)
+     {
+      if(!m_created)
+         return;
+      m_edit.Text(IntegerToString(value));
+     }
+
    void              SetValid(const bool valid,const bool editable)
      {
       FusionApplyLabelEnabled(m_label, editable);
       FusionApplyEditStyle(m_edit, valid, editable);
+     }
+
+   void              SetLabelText(const string text)
+     {
+      if(!m_created)
+         return;
+      m_label.Text(text);
      }
   };
 

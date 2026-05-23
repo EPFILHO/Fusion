@@ -11,6 +11,16 @@
       return false;
      }
 
+   bool                       IsFilterDeferredEdit(const string objectName)
+     {
+      for(int filterIndex = 0; filterIndex < FUSION_FILTER_PANEL_COUNT; ++filterIndex)
+        {
+         if(m_filterPanels[filterIndex] != NULL && m_filterPanels[filterIndex].IsDeferredEdit(objectName))
+            return true;
+        }
+      return false;
+     }
+
    bool                       IsDeferredRefreshEdit(const string objectName)
      {
       if(objectName == m_profileNewEdit.Name())
@@ -18,6 +28,8 @@
       if(objectName == m_profileMagicEdit.Name())
          return true;
       if(IsStrategyDeferredEdit(objectName))
+         return true;
+      if(IsFilterDeferredEdit(objectName))
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
@@ -65,6 +77,32 @@
       return changed;
      }
 
+   bool                       HandleFilterPanelDeferredEdit(const string objectName)
+     {
+      if(!IsFilterDeferredEdit(objectName))
+         return false;
+
+      if(!TryBeginActiveProfileEdit(false))
+        {
+         SyncFilterPanels();
+         return false;
+        }
+
+      bool changed = false;
+      for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
+        {
+         if(m_filterPanels[fp] == NULL || !m_filterPanels[fp].IsDeferredEdit(objectName))
+            continue;
+         m_filterPanels[fp].HandleChange(objectName, m_draftSettings);
+         changed = true;
+        }
+
+      if(changed)
+         RefreshSignalDraftViews(false, true);
+
+      return changed;
+     }
+
    void                       NormalizeStrategyDeferredEdit(const string objectName)
      {
       for(int sp = 0; sp < FUSION_STRATEGY_PANEL_COUNT; ++sp)
@@ -72,6 +110,16 @@
          if(m_strategyPanels[sp] == NULL || !m_strategyPanels[sp].IsDeferredEdit(objectName))
             continue;
          m_strategyPanels[sp].NormalizeDeferredEdit(objectName);
+        }
+     }
+
+   void                       NormalizeFilterDeferredEdit(const string objectName)
+     {
+      for(int fp = 0; fp < FUSION_FILTER_PANEL_COUNT; ++fp)
+        {
+         if(m_filterPanels[fp] == NULL || !m_filterPanels[fp].IsDeferredEdit(objectName))
+            continue;
+         m_filterPanels[fp].NormalizeDeferredEdit(objectName);
         }
      }
 
@@ -96,9 +144,11 @@
    void                       HandleDeferredRefreshEvent(const int id,const string objectName)
      {
       HandleStrategyPanelDeferredEdit(objectName);
+      HandleFilterPanelDeferredEdit(objectName);
       if(id == CHARTEVENT_OBJECT_ENDEDIT)
         {
          NormalizeStrategyDeferredEdit(objectName);
+         NormalizeFilterDeferredEdit(objectName);
          NormalizeProtectionDeferredEdit(objectName);
          NormalizeConfigDeferredEdit(objectName);
          NormalizeProfileDeferredEdit(objectName);
