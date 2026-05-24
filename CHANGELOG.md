@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.052 - 2026-05-12
+- Atualizado o handoff da 1.053 com baseline atual, ordem recomendada (`limpeza curta -> Bollinger Filter -> Risk`) e prompt de continuidade.
 - Criado o plano curto de expansao funcional da 1.052 em `docs/FUNCTIONAL_EXPANSION_PLAN_1052.md`, preservando os guardrails da GUI estabilizada.
 - Auditada a `MA Cross` contra os inputs MATRIX antes da expansao da RSI: prioridade ainda nao aparece na subaba, `VM` ainda nao existe como modo de saida e distancia minima entre medias ainda nao existe em settings, inputs, persistencia, runtime ou GUI.
 - A `MA Cross` ganhou prioridade editavel na subaba, distancia minima entre medias em pontos e o modo de saida `VM`, que fecha no cruzamento oposto e agenda entrada na mao oposta apos a sincronizacao do fechamento.

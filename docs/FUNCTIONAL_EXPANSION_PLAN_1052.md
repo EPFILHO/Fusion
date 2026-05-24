@@ -82,6 +82,8 @@ Direcao para `Bollinger Filter`:
 - Criar settings com prefixo proprio, por exemplo `bbFilter*`.
 - Criar classe runtime propria derivada de `CFilterBase`.
 - O filtro nunca gera entrada; ele apenas aprova ou bloqueia o sinal recebido.
+- Inspiracao Matrix: filtro anti-squeeze que bloqueia entradas quando as bandas estao estreitas.
+- Modos candidatos: `Absoluto`, `Relativo (%)` e, se valer a complexidade agora, `Percentil`.
 - A validacao e persistencia devem acompanhar os novos campos sem quebrar perfis antigos.
 
 ## Risco Global
@@ -109,13 +111,15 @@ Validacoes iniciais de GUI:
 
 ## Observabilidade Operacional
 
-Pendencias para tratar em uma fatia propria, sem misturar com a expansao das estrategias:
+Ja implementado nesta fase:
 
-- registrar transicoes de protecao, nao apenas bloqueios em tentativas de entrada;
-- logar uma vez quando uma janela de news inicia e uma vez quando ela encerra;
-- logar uma vez quando a sessao de operacao inicia, quando encerra e quando novas entradas voltam a ser permitidas;
+- bloqueios de sessao/news logam uma vez por episodio;
+- fim de bloqueio de sessao/news tambem loga uma vez, sem prometer operacao liberada se outro blocker continuar ativo;
+- queda/restauro de conexao e retomada de trading tambem logam por episodio.
+
+Pendencias para tratar em fatia propria, sem misturar com filtro/risco:
+
 - logar novo dia/reset diario de contadores quando a protecao diaria virar o dia;
-- manter os logs especificos: fim de news nao deve prometer operacao liberada se outro blocker continuar ativo.
 - evoluir a aba `STATUS` para uma telemetria de sinais sem gambiarra: ultimo sinal, origem, resultado, filtro/bloqueio aplicado e motivo.
 
 ## Limpeza Tecnica Da GUI
@@ -128,13 +132,14 @@ Pendencias para uma fatia futura, sem misturar com estrategia/filtro/risco:
 
 ## Ordem De Trabalho
 
-1. Registrar este desenho curto.
-2. Completar `MA Cross` com prioridade editavel, `VM` e distancia minima entre as medias.
-3. Expandir GUI e validacao da `RSI` strategy.
-4. Expandir GUI e validacao da `Bollinger` strategy.
-5. Expandir GUI e validacao de `Trend Filter` e `RSI Filter`.
-6. Adicionar `Bollinger Filter`.
-7. Expor e validar o risco global completo.
+1. Concluido: registrar este desenho curto.
+2. Concluido: completar `MA Cross` com prioridade editavel, `VM` e distancia minima entre as medias.
+3. Concluido: expandir GUI e validacao da `RSI` strategy.
+4. Concluido: expandir GUI e validacao da `Bollinger` strategy.
+5. Concluido: expandir GUI e validacao de `Trend Filter` e `RSI Filter`.
+6. Migrado para 1.053: fazer uma limpeza curta/segura sem mudar comportamento.
+7. Migrado para 1.053: adicionar `Bollinger Filter`.
+8. Migrado para 1.053: expor e validar o risco global completo.
 
 ## Smoke Tests Minimos
 
