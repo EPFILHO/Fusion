@@ -98,18 +98,6 @@
       return access.activeProfileEditable;
      }
 
-   bool                       ProfileLoadAllowed(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.profileLoadAllowed;
-     }
-
-   bool                       ProfileAdminAllowed(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.profileAdminAllowed;
-     }
-
    bool                       ProfileCreateAllowed(void)
      {
       SUIAccessState access = CurrentAccessState();
@@ -135,28 +123,4 @@
       if(refreshWhenBlocked)
          RefreshTheme();
       return false;
-     }
-
-   bool                       CanPause(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.canPause;
-     }
-
-   bool                       CanStart(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.canStart;
-     }
-
-   bool                       CanSave(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.canSave;
-     }
-
-   bool                       CanCancel(void)
-     {
-      SUIAccessState access = CurrentAccessState();
-      return access.canCancel;
      }

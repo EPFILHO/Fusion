@@ -16,6 +16,8 @@
    CLabel                     m_protectSpreadLimitLbl;
    CEdit                      m_protectSpreadLimitEdit;
    CSelectionComboField       m_protectDirection;
+   CLabel                     m_protectEntryFoot1;
+   CLabel                     m_protectEntryFoot2;
 
    CLabel                     m_protectSessionHdr;
    CLabel                     m_protectSessionDesc;
@@ -29,6 +31,11 @@
    CEdit                      m_protectSessionEndMinuteEdit;
    CLabel                     m_protectSessionCloseLbl;
    CButton                    m_protectSessionCloseBtn;
+   CLabel                     m_protectSessionOvernightLbl;
+   CButton                    m_protectSessionOvernightBtn;
+   CLabel                     m_protectSessionFoot1;
+   CLabel                     m_protectSessionFoot2;
+   CLabel                     m_protectSessionFoot3;
 
    CLabel                     m_protectNewsHdr;
    CLabel                     m_protectNewsDesc;
@@ -247,6 +254,9 @@
       if(HandleProtectionBooleanToggle(objectName, m_protectSessionCloseBtn, m_draftSettings.closeOnSessionEnd))
          return true;
 
+      if(HandleProtectionBooleanToggle(objectName, m_protectSessionOvernightBtn, m_draftSettings.sessionOvernight))
+         return true;
+
       if(HandleProtectionBooleanToggle(objectName, m_protectDayEnabledBtn, m_draftSettings.enableDailyLimits))
          return true;
 
@@ -263,6 +273,7 @@
 
          if(HandleProtectionNewsModeToggle(objectName, newsIndex))
             return true;
+
         }
 
       return false;

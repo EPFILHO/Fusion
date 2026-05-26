@@ -52,7 +52,8 @@ A 1.052 fica tratada como checkpoint funcional testavel, nao como roadmap comple
 
 - `STATUS` ainda pode evoluir para telemetria de sinais/bloqueios mais rica: ultimo sinal, origem, filtro, motivo e resultado.
 - `CONFIG > PROTECT` ainda pode ser limpo futuramente para ficar mais parecido com o padrao concreto de `STRATS`/`FILTERS`.
-- Residuos visuais em troca de abas/subabas devem ser tratados apenas com reproduzibilidade clara, para nao reabrir regressao de ComboBox.
+- A 1.053 recebeu apenas mitigacao pontual para residuos visuais de status no topo ao trocar abas. A limpeza arquitetural da GUI em duas fases (esconder tudo do grupo e depois mostrar somente o ativo) fica como divida tecnica futura, fora do escopo desta versao.
+- Residuos visuais em troca de abas/subabas devem continuar sendo tratados apenas com reproduzibilidade clara, para nao reabrir regressao de ComboBox.
 - Novo dia/reset diario e outros logs de transicao podem ser melhorados em fatia propria, sem misturar com filtro/risco.
 
 ## Prompt Para A Proxima Sessao

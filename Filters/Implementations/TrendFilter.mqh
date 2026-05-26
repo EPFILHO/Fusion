@@ -85,13 +85,19 @@ public:
       if(!m_enabled || !m_initialized || signal == SIGNAL_NONE)
          return true;
       if(m_handle == INVALID_HANDLE)
-         return true;
+        {
+         reason = "indicador indisponivel";
+         return false;
+        }
 
       double ma[];
       ArrayResize(ma, 2);
       ArraySetAsSeries(ma, true);
       if(CopyBuffer(m_handle, 0, 0, 2, ma) < 2)
-         return true;
+        {
+         reason = "sem dados suficientes do indicador";
+         return false;
+        }
 
       double close1 = iClose(m_symbol, m_timeframe, 1);
 

@@ -37,6 +37,18 @@
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())
          return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTP1PercentEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTP1DistanceEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTP2PercentEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTP2DistanceEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskBreakevenTriggerEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskBreakevenOffsetEdit.Name())
+         return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          return true;
       if(IsProtectionDeferredEdit(objectName))
@@ -137,6 +149,18 @@
          NormalizeIntegerEdit(m_cfgRiskSLEdit, m_draftSettings.fixedSLPoints, true, 6);
       else if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())
          NormalizeIntegerEdit(m_cfgRiskTPEdit, m_draftSettings.fixedTPPoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTP1PercentEdit.Name())
+         NormalizeDecimalEdit(m_cfgRiskTP1PercentEdit, m_draftSettings.tp1.percent, 2, true);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTP1DistanceEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskTP1DistanceEdit, m_draftSettings.tp1.distancePoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTP2PercentEdit.Name())
+         NormalizeDecimalEdit(m_cfgRiskTP2PercentEdit, m_draftSettings.tp2.percent, 2, true);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTP2DistanceEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskTP2DistanceEdit, m_draftSettings.tp2.distancePoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskBreakevenTriggerEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskBreakevenTriggerEdit, m_draftSettings.breakevenTriggerPoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskBreakevenOffsetEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskBreakevenOffsetEdit, m_draftSettings.breakevenOffsetPoints, true, 6);
       else if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          NormalizeIntegerEdit(m_cfgSystemMagicEdit, m_draftSettings.magicNumber, false, 10);
      }

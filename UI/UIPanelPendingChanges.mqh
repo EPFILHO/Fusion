@@ -14,8 +14,25 @@
       return (text != IntegerToString(committedValue));
      }
 
+   bool                       RiskDecimalPending(CEdit &edit,const double committedValue,const int digits)
+     {
+      string text = FusionNormalizeDecimalText(LiveEditText(edit));
+      if(FusionIsDecimalText(text, true))
+         return (MathAbs(StringToDouble(text) - committedValue) > 0.0000001);
+      return (text != FusionNormalizeDecimalText(DoubleToString(committedValue, digits)));
+     }
+
    bool                       HasRiskPendingChanges(void)
      {
+      if(m_draftSettings.usePartialTP != m_committedSettings.usePartialTP)
+         return true;
+      if(m_draftSettings.tp1.enabled != m_committedSettings.tp1.enabled)
+         return true;
+      if(m_draftSettings.tp2.enabled != m_committedSettings.tp2.enabled)
+         return true;
+      if(m_draftSettings.useBreakeven != m_committedSettings.useBreakeven)
+         return true;
+
       if(m_configRiskCreated)
         {
          string lotText = FusionNormalizeDecimalText(LiveEditText(m_cfgRiskLotEdit));
@@ -31,6 +48,18 @@
             return true;
          if(RiskIntegerPending(m_cfgRiskTPEdit, m_committedSettings.fixedTPPoints))
             return true;
+         if(RiskDecimalPending(m_cfgRiskTP1PercentEdit, m_committedSettings.tp1.percent, 2))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskTP1DistanceEdit, m_committedSettings.tp1.distancePoints))
+            return true;
+         if(RiskDecimalPending(m_cfgRiskTP2PercentEdit, m_committedSettings.tp2.percent, 2))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskTP2DistanceEdit, m_committedSettings.tp2.distancePoints))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskBreakevenTriggerEdit, m_committedSettings.breakevenTriggerPoints))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskBreakevenOffsetEdit, m_committedSettings.breakevenOffsetPoints))
+            return true;
         }
       else
         {
@@ -39,6 +68,18 @@
          if(m_draftSettings.fixedSLPoints != m_committedSettings.fixedSLPoints)
             return true;
          if(m_draftSettings.fixedTPPoints != m_committedSettings.fixedTPPoints)
+            return true;
+         if(MathAbs(m_draftSettings.tp1.percent - m_committedSettings.tp1.percent) > 0.0000001)
+            return true;
+         if(m_draftSettings.tp1.distancePoints != m_committedSettings.tp1.distancePoints)
+            return true;
+         if(MathAbs(m_draftSettings.tp2.percent - m_committedSettings.tp2.percent) > 0.0000001)
+            return true;
+         if(m_draftSettings.tp2.distancePoints != m_committedSettings.tp2.distancePoints)
+            return true;
+         if(m_draftSettings.breakevenTriggerPoints != m_committedSettings.breakevenTriggerPoints)
+            return true;
+         if(m_draftSettings.breakevenOffsetPoints != m_committedSettings.breakevenOffsetPoints)
             return true;
         }
 
@@ -74,7 +115,9 @@
          return true;
       if(m_draftSettings.useTrendFilter != m_committedSettings.useTrendFilter)
          return true;
-      return (m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter);
+      if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
+         return true;
+      return (m_draftSettings.bbFilterEnabled != m_committedSettings.bbFilterEnabled);
      }
 
    bool                       HasSignalParameterPendingChanges(void)
@@ -153,7 +196,21 @@
          return true;
       if(m_draftSettings.rsiFilterSellMax != m_committedSettings.rsiFilterSellMax)
          return true;
-      return (m_draftSettings.rsiFilterPrice != m_committedSettings.rsiFilterPrice);
+      if(m_draftSettings.rsiFilterPrice != m_committedSettings.rsiFilterPrice)
+         return true;
+      if(m_draftSettings.bbFilterMode != m_committedSettings.bbFilterMode)
+         return true;
+      if(m_draftSettings.bbFilterPeriod != m_committedSettings.bbFilterPeriod)
+         return true;
+      if(m_draftSettings.bbFilterTimeframe != m_committedSettings.bbFilterTimeframe)
+         return true;
+      if(MathAbs(m_draftSettings.bbFilterDeviation - m_committedSettings.bbFilterDeviation) > 0.0000001)
+         return true;
+      if(m_draftSettings.bbFilterPrice != m_committedSettings.bbFilterPrice)
+         return true;
+      if(m_draftSettings.bbFilterMinWidthPoints != m_committedSettings.bbFilterMinWidthPoints)
+         return true;
+      return (MathAbs(m_draftSettings.bbFilterMinWidthPercent - m_committedSettings.bbFilterMinWidthPercent) > 0.0000001);
      }
 
    bool                       HasNewsWindowPendingChanges(const int newsIndex)
@@ -181,6 +238,8 @@
          m_draftSettings.sessionStartMinute != m_committedSettings.sessionStartMinute ||
          m_draftSettings.sessionEndHour != m_committedSettings.sessionEndHour ||
          m_draftSettings.sessionEndMinute != m_committedSettings.sessionEndMinute)
+         return true;
+      if(m_draftSettings.sessionOvernight != m_committedSettings.sessionOvernight)
          return true;
       if(m_draftSettings.closeOnSessionEnd != m_committedSettings.closeOnSessionEnd)
          return true;

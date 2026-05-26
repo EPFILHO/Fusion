@@ -49,7 +49,7 @@
       else if(index == 1)
          m_filterPanels[index] = new CRSIFilterPanel();
       else
-         return false;
+         m_filterPanels[index] = new CBollingerFilterPanel();
 
       if(m_filterPanels[index] == NULL)
          return false;

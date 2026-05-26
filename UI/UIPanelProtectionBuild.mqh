@@ -34,7 +34,7 @@
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
-      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "Drawdown", "Streak"};
+      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "Drawdown", "Contagem Streak"};
       int generalY = 226;
       for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
@@ -72,6 +72,10 @@
                                     340,
                                     310))
          return false;
+      if(!AddLabel(m_protectEntryFoot1, "Fusion_protect_entry_foot_1", 22, 482, 520, 500, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectEntryFoot2, "Fusion_protect_entry_foot_2", 22, 506, 520, 524, "", FUSION_CLR_MUTED, 8))
+         return false;
 
       if(!AddLabel(m_protectSessionHdr, "Fusion_protect_session_hdr", 22, 188, 280, 206, "Protecao de Sessao", FUSION_CLR_VALUE, 9))
          return false;
@@ -96,6 +100,16 @@
       if(!AddLabel(m_protectSessionCloseLbl, "Fusion_protect_session_close_lbl", 22, 364, 180, 382, "Fechar no fim", FUSION_CLR_LABEL))
          return false;
       if(!AddButton(m_protectSessionCloseBtn, "Fusion_protect_session_close_btn", 200, 362, 310, 386, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_protectSessionOvernightLbl, "Fusion_protect_session_overnight_lbl", 22, 402, 180, 420, "Overnight", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_protectSessionOvernightBtn, "Fusion_protect_session_overnight_btn", 200, 400, 310, 424, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_protectSessionFoot1, "Fusion_protect_session_foot_1", 22, 456, 520, 474, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectSessionFoot2, "Fusion_protect_session_foot_2", 22, 480, 520, 498, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectSessionFoot3, "Fusion_protect_session_foot_3", 22, 504, 520, 522, "", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_protectNewsHdr, "Fusion_protect_news_hdr", 22, 188, 280, 206, "Janelas de News", FUSION_CLR_VALUE, 9))

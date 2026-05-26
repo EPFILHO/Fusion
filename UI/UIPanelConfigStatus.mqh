@@ -8,8 +8,13 @@
       m_cfgStatusColor = clr;
       if(m_configTabCreated)
         {
-         m_cfgStatus.Text(text);
-         m_cfgStatus.Color(clr);
+         if(m_activeTab == FUSION_TAB_CONFIG)
+           {
+            m_cfgStatus.Text(text);
+            m_cfgStatus.Color(clr);
+           }
+         else
+            m_cfgStatus.Text("");
         }
      }
 
@@ -30,12 +35,19 @@
      {
       if(m_configPage == FUSION_CFG_RISK)
         {
-         if(!lotValid)
+         if(m_riskPage == FUSION_RISK_LOT && !lotValid)
             return "Lote Fixo invalido. Ajuste o volume.";
-         if(!slValid)
-            return "SL Fixo invalido. Use 0 a 100000 pontos.";
-         if(!tpValid)
-            return "TP Fixo invalido. Use 0 a 100000 pontos.";
+         if(m_riskPage == FUSION_RISK_SLTP)
+           {
+            if(!slValid)
+               return "SL Fixo invalido. Use 0 a 100000 pontos.";
+            if(!tpValid)
+               return "TP Fixo invalido. Use 0 a 100000 pontos.";
+           }
+         if(m_riskPage == FUSION_RISK_PARTIAL && !m_cfgRiskPartialValid)
+            return m_cfgRiskPartialError;
+         if(m_riskPage == FUSION_RISK_BREAKEVEN && !m_cfgRiskBEValid)
+            return m_cfgRiskBEError;
          return "";
         }
 

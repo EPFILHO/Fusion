@@ -30,8 +30,6 @@
      {
       m_parentStatusText = text;
       m_parentStatusColor = clr;
-      m_parentStatus.Text(text);
-      m_parentStatus.Color(clr);
      }
 
    void                       ApplySharedParentStatus(void)
@@ -44,6 +42,8 @@
          SetSharedParentStatus(m_profileTabError, FUSION_CLR_BAD);
       else if(m_snapshot.tradePermissionBlocked)
          SetSharedParentStatus(m_snapshot.tradePermissionReason, FUSION_CLR_WARN);
+      else if(m_snapshot.pendingReverseExit)
+         SetSharedParentStatus("VM armada: reversao direta; guards ativos.", FUSION_CLR_WARN);
       else if(HasParentTabError())
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
       else if(ProfileEditMode())
@@ -63,9 +63,15 @@
 
    void                       RefreshSharedParentStatusVisibility(void)
      {
-      m_parentStatus.Text(m_parentStatusText);
-      m_parentStatus.Color(m_parentStatusColor);
-      SetVisible(m_parentStatus, UsesSharedParentStatus() && m_parentStatusText != "");
+      bool statusVisible = (UsesSharedParentStatus() && m_parentStatusText != "");
+      if(statusVisible)
+        {
+         m_parentStatus.Text(m_parentStatusText);
+         m_parentStatus.Color(m_parentStatusColor);
+        }
+      else
+         m_parentStatus.Text("");
+      SetVisible(m_parentStatus, statusVisible);
      }
 
    void                       RefreshSharedParentStatus(void)
@@ -103,9 +109,11 @@
                FusionApplyPrimaryButtonStyle(m_configTabs[i], true);
             else if(ConfigSubtabHasError((ENUM_FUSION_CONFIG_PAGE)i))
                FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_BAD, true);
-            else
+           else
                FusionApplyPrimaryButtonStyle(m_configTabs[i], false);
            }
+         if(m_configRiskCreated)
+            ApplyRiskTabStyles();
          if(m_configProtectionCreated)
             ApplyProtectionTabStyles();
          if(m_configSystemCreated)

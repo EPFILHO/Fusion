@@ -15,6 +15,7 @@
 #include "../Strategies/Implementations/BollingerStrategy.mqh"
 #include "../Filters/Implementations/TrendFilter.mqh"
 #include "../Filters/Implementations/RSIFilter.mqh"
+#include "../Filters/Implementations/BollingerFilter.mqh"
 #include "../Risk/RiskManager.mqh"
 #include "../Protection/ProtectionManager.mqh"
 #include "../Normalization/SymbolNormalizer.mqh"
@@ -35,6 +36,7 @@ private:
    CBollingerStrategy      m_bbStrategy;
    CTrendFilter            m_trendFilter;
    CRSIFilter              m_rsiFilter;
+   CBollingerFilter        m_bbFilter;
    CRiskManager            m_riskManager;
    CProtectionManager      m_protectionManager;
    CSymbolNormalizer       m_normalizer;
@@ -124,6 +126,16 @@ private:
       return false;
      }
 
+   void                    LogNettingWarning(const string reason)
+     {
+      datetime now = TimeCurrent();
+      if(now - m_lastNettingWarning < 60)
+         return;
+
+      m_logger.Warn("NETTING", reason);
+      m_lastNettingWarning = now;
+     }
+
    bool                    CanPersistProfile(const string profileName,const SEASettings &settings) const
      {
       string conflictProfile = "";
@@ -165,6 +177,7 @@ private:
       m_signalManager.AddStrategy(&m_bbStrategy);
       m_signalManager.AddFilter(&m_trendFilter);
       m_signalManager.AddFilter(&m_rsiFilter);
+      m_signalManager.AddFilter(&m_bbFilter);
       m_modulesRegistered = true;
      }
 
@@ -190,12 +203,14 @@ private:
       snapshot.useBollinger     = m_settings.useBollinger;
       snapshot.useTrendFilter   = m_settings.useTrendFilter;
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
+      snapshot.bbFilterEnabled  = m_settings.bbFilterEnabled;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
       snapshot.entryBlockReason = m_entryBlockNoticeActive ? m_entryBlockNoticeReason : "";
+      snapshot.pendingReverseExit = m_pendingReverseExit.HasPending();
       snapshot.tradePermissionBlocked = m_tradePermissionGuard.IsBlocked();
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
@@ -310,6 +325,16 @@ private:
 
       m_entryBlockNoticeActive = false;
       m_entryBlockNoticeReason = "";
+     }
+
+   void                    DiscardBlockedEntrySignals(const string reason)
+     {
+      if(!m_started || m_positionState.hasPosition)
+         return;
+
+      m_signalManager.PrimeEntryStates();
+      if(reason != "")
+         m_logger.Debug("SIGNAL", "Sinais descartados durante bloqueio: " + reason);
      }
 
    void                    ApplyEntryBlockNotice(const string reason)
@@ -543,7 +568,9 @@ private:
       return currentPrice <= targetPrice;
      }
 
-   bool                    TryPlaceEntryDecision(const SSignalDecision &decision,const bool checkReentryBlock)
+   bool                    TryPlaceEntryDecision(const SSignalDecision &decision,
+                                                 const bool checkReentryBlock,
+                                                 const bool bypassDirectionBlock)
      {
       if(decision.signal == SIGNAL_NONE)
          return false;
@@ -551,6 +578,7 @@ private:
       if(!RefreshTradePermissionState())
         {
          ClearEntryBlockNotice();
+         DiscardBlockedEntrySignals(m_tradePermissionGuard.Notice());
          return false;
         }
 
@@ -559,6 +587,7 @@ private:
         {
          ClearEntryBlockNotice();
          ApplyProtectionNotice(blockReason);
+         DiscardBlockedEntrySignals(blockReason);
          return false;
         }
 
@@ -568,16 +597,18 @@ private:
         {
          string reentryReason = "";
          if(IsReentryBlockedThisBar(decision.strategyId, reentryReason))
-           {
-            ClearEntryBlockNotice();
-            m_logger.Debug("BLOCKER", reentryReason);
-            return false;
-           }
+            {
+             ClearEntryBlockNotice();
+             DiscardBlockedEntrySignals(reentryReason);
+             m_logger.Debug("BLOCKER", reentryReason);
+             return false;
+            }
         }
 
-      if(!m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
+      if(!bypassDirectionBlock && !m_protectionManager.IsDirectionAllowed(decision.signal, blockReason))
         {
          ApplyEntryBlockNotice(FormatDirectionBlockReason(decision, blockReason));
+         DiscardBlockedEntrySignals(blockReason);
          return false;
         }
 
@@ -606,6 +637,8 @@ private:
       if(!m_pendingReverseExit.TakeDecision(decision))
          return;
 
+      m_runtimeNotice = "";
+
       if(!m_started)
          return;
 
@@ -615,16 +648,11 @@ private:
 
       if(HasForeignNettingPosition(blockReason))
         {
-         datetime now = TimeCurrent();
-         if(now - m_lastNettingWarning >= 60)
-           {
-            m_logger.Warn("NETTING", blockReason);
-            m_lastNettingWarning = now;
-           }
+         LogNettingWarning(blockReason);
          return;
         }
 
-      TryPlaceEntryDecision(decision, false);
+      TryPlaceEntryDecision(decision, false, true);
      }
 
    void                    SyncPositionState(void)
@@ -684,7 +712,10 @@ private:
       if(m_settings.usePartialTP)
         {
          double partialProfit = 0.0;
-         if(!m_positionState.tp1Executed && PriceReached(m_positionState.type, currentPrice, m_positionState.tp1Price))
+         if(!m_positionState.tp1Executed &&
+            m_positionState.tp1Volume > 0.0 &&
+            m_positionState.tp1Price > 0.0 &&
+            PriceReached(m_positionState.type, currentPrice, m_positionState.tp1Price))
            {
             if(m_executionService.PartialClose(m_positionState, m_positionState.tp1Volume, "Partial TP1", partialProfit))
               {
@@ -697,7 +728,10 @@ private:
               }
            }
 
-         if(!m_positionState.tp2Executed && PriceReached(m_positionState.type, currentPrice, m_positionState.tp2Price))
+         if(!m_positionState.tp2Executed &&
+            m_positionState.tp2Volume > 0.0 &&
+            m_positionState.tp2Price > 0.0 &&
+            PriceReached(m_positionState.type, currentPrice, m_positionState.tp2Price))
            {
             if(m_executionService.PartialClose(m_positionState, m_positionState.tp2Volume, "Partial TP2", partialProfit))
               {
@@ -747,7 +781,10 @@ private:
            {
             m_logger.Trade("EXIT", "Signal exit from " + ownerName);
             if(reverseExit)
+              {
                m_pendingReverseExit.Arm(exitSignal, ownerStrategyId, ownerStrategyName, shortName);
+               m_runtimeNotice = "VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
+              }
            }
         }
      }
@@ -777,6 +814,7 @@ private:
             m_started = false;
             ClearEntryBlockNotice();
             ReleaseRunningInstance();
+            m_logger.Info("UI", "EA pausado pelo painel.");
            }
          else
            {
@@ -797,6 +835,7 @@ private:
             m_signalManager.PrimeEntryStates();
             ClearEntryBlockNotice();
             m_started = true;
+            m_logger.Info("UI", "EA iniciado pelo painel.");
            }
          RefreshProfileBlockReasons();
          m_panel.Update(BuildPanelSnapshot());
@@ -1073,7 +1112,10 @@ private:
       SyncPositionState();
 
       if(!RefreshTradePermissionState())
+        {
+         DiscardBlockedEntrySignals(m_tradePermissionGuard.Notice());
          return;
+        }
 
       if(m_positionState.hasPosition)
         {
@@ -1103,12 +1145,8 @@ private:
         {
          ClearProtectionNotice();
          ClearEntryBlockNotice();
-         datetime now = TimeCurrent();
-         if(now - m_lastNettingWarning >= 60)
-           {
-            m_logger.Warn("NETTING", blockReason);
-            m_lastNettingWarning = now;
-           }
+         DiscardBlockedEntrySignals(blockReason);
+         LogNettingWarning(blockReason);
          return;
         }
 
@@ -1116,6 +1154,7 @@ private:
         {
          ClearEntryBlockNotice();
          ApplyProtectionNotice(blockReason);
+         DiscardBlockedEntrySignals(blockReason);
          return;
         }
 
@@ -1126,11 +1165,14 @@ private:
       if(!m_signalManager.GetEntryDecision(decision))
         {
          if(decision.blockedBy != "")
+           {
             ApplyEntryBlockNotice(decision.blockedBy);
+            DiscardBlockedEntrySignals(decision.blockedBy);
+           }
          return;
         }
 
-      TryPlaceEntryDecision(decision, true);
+      TryPlaceEntryDecision(decision, true, false);
      }
 
    void              OnTimer(void)

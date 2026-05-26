@@ -36,43 +36,6 @@
       return true;
      }
 
-   bool                       BuildConfigRiskPage(void)
-     {
-      if(!AddLabel(m_cfgRiskHdr, "Fusion_cfg_risk_hdr", 22, 160, 260, 180, "Risco Base", FUSION_CLR_VALUE, 9))
-         return false;
-      if(!AddLabel(m_cfgRiskLotLbl, "Fusion_cfg_lot_lbl", 22, 198, 160, 216, "Lote Fixo", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskLotEdit, "Fusion_cfg_lot_edit", 200, 196, 310, 220, "0.10"))
-         return false;
-      if(!AddLabel(m_cfgRiskSLLbl, "Fusion_cfg_sl_lbl", 22, 236, 170, 254, "SL Fixo (0=off)", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskSLEdit, "Fusion_cfg_sl_edit", 200, 234, 310, 258, "0"))
-         return false;
-      if(!AddLabel(m_cfgRiskTPLbl, "Fusion_cfg_tp_lbl", 22, 274, 170, 292, "TP Fixo (0=off)", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskTPEdit, "Fusion_cfg_tp_edit", 200, 272, 310, 296, "0"))
-         return false;
-      return true;
-     }
-
-   bool                       EnsureConfigRiskPageCreated(void)
-     {
-      if(m_configRiskCreated)
-         return true;
-      CFusionHitGroup *previous = PushBuildTarget(m_configRiskGroup);
-      if(!BuildConfigRiskPage())
-        {
-         PopBuildTarget(previous);
-         return false;
-        }
-      PopBuildTarget(previous);
-      m_configRiskCreated = true;
-      m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-      m_cfgRiskSLEdit.Text(IntegerToString(m_draftSettings.fixedSLPoints));
-      m_cfgRiskTPEdit.Text(IntegerToString(m_draftSettings.fixedTPPoints));
-      return true;
-     }
-
    bool                       BuildConfigSystemPage(void)
      {
       if(!AddLabel(m_cfgSystemHdr, "Fusion_cfg_system_hdr", 22, 160, 300, 180, "Sistema e Persistencia", FUSION_CLR_VALUE, 9))

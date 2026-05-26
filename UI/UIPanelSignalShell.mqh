@@ -38,8 +38,8 @@
 
    bool                       BuildFilterTab(void)
      {
-      string pageNames[FUSION_FILTER_COUNT] = {"GERAL", "TREND", "RSI"};
-      int tabWidth = 110;
+      string pageNames[FUSION_FILTER_COUNT] = {"GERAL", "TREND", "RSI", "BB"};
+      int tabWidth = 100;
       int tabGap = 4;
       int x = 18;
       for(int i = 0; i < FUSION_FILTER_COUNT; ++i)

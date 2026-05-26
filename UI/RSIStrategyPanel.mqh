@@ -119,10 +119,8 @@ private:
         }
      }
 
-   string            RiskHint(const ENUM_RSI_SIGNAL_MODE mode,const ENUM_RSI_EXIT_MODE exitMode,const ENUM_TRADE_DIRECTION direction) const
+   string            RiskHint(const ENUM_RSI_SIGNAL_MODE mode,const ENUM_RSI_EXIT_MODE exitMode) const
      {
-      if(exitMode == RSI_EXIT_REVERSE_SIGNAL && direction != DIRECTION_BOTH)
-         return "VM requer Direcao = Ambas.";
       if(InvalidMiddleExitCombo(mode, exitMode))
          return "Bloqueado: entrada e saida usam a mesma linha.";
       if(mode == RSI_SIGNAL_CROSSOVER &&
@@ -140,7 +138,7 @@ private:
    void              SyncGuidance(const SEASettings &settings,const bool editable)
      {
       color textColor = editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED;
-      string risk = RiskHint(settings.rsiMode, settings.rsiExitMode, settings.tradeDirection);
+      string risk = RiskHint(settings.rsiMode, settings.rsiExitMode);
 
       m_entryHint.Text(EntryHint(settings.rsiMode));
       m_entryHint.Color(textColor);
@@ -404,8 +402,6 @@ public:
       bool middleValid = (!middleMode || IsLevelInRange(candidate.rsiMiddle));
       bool middleTargetOrderValid = MiddleTargetOrderValid(candidate);
       bool middleExitComboValid = !InvalidMiddleExitCombo(candidate.rsiMode, candidate.rsiExitMode);
-      bool vmDirectionValid = (candidate.rsiExitMode != RSI_EXIT_REVERSE_SIGNAL ||
-                               candidate.tradeDirection == DIRECTION_BOTH);
 
       m_priority.SetValid(priorityValid, editable);
       m_period.SetValid(periodValid, editable);
@@ -413,7 +409,7 @@ public:
       m_overbought.SetValid(zoneLevelsValid && middleTargetOrderValid, editable && zoneMode);
       m_middle.SetValid(middleValid && middleTargetOrderValid, editable && middleMode);
 
-      if(!priorityValid || !periodValid || !zoneLevelsValid || !middleValid || !middleTargetOrderValid || !middleExitComboValid || !vmDirectionValid)
+      if(!priorityValid || !periodValid || !zoneLevelsValid || !middleValid || !middleTargetOrderValid || !middleExitComboValid)
         {
          if(!priorityValid)
             error = "RSI: prioridade deve ser 0 a 1000.";
@@ -429,8 +425,6 @@ public:
             error = "RSI: use sobrevenda < media < sobrecompra.";
          else if(!middleExitComboValid)
             error = "RSI: entrada/saida Cruz. Media invalidas.";
-         else
-            error = "VM requer Direcao = Ambas.";
          return false;
         }
 

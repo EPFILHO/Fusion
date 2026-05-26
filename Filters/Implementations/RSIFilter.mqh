@@ -25,23 +25,6 @@ private:
       return (m_handle != INVALID_HANDLE);
      }
 
-   bool               BlockAdvanced(const ENUM_SIGNAL_TYPE signal,const double rsi,string &reason) const
-     {
-      if(signal == SIGNAL_BUY && rsi < m_buyMin)
-        {
-         reason = "RSI " + DoubleToString(rsi, 2) + " abaixo do minimo de compra " + IntegerToString(m_buyMin);
-         return true;
-        }
-
-      if(signal == SIGNAL_SELL && rsi > m_sellMax)
-        {
-         reason = "RSI " + DoubleToString(rsi, 2) + " acima do maximo de venda " + IntegerToString(m_sellMax);
-         return true;
-        }
-
-      return false;
-     }
-
    bool               BlockDirection(const ENUM_SIGNAL_TYPE signal,const double rsi,string &reason) const
      {
       int level = m_buyMin;
@@ -97,7 +80,7 @@ public:
                      CRSIFilter(void) : CFilterBase("rsi_filter", "RSI Filter")
      {
       m_handle  = INVALID_HANDLE;
-      m_mode    = RSI_FILTER_ADVANCED;
+      m_mode    = RSI_FILTER_DIRECTION;
       m_period  = 14;
       m_buyMin  = 50;
       m_sellMax = 50;
@@ -157,13 +140,19 @@ public:
       if(!m_enabled || !m_initialized || signal == SIGNAL_NONE)
          return true;
       if(m_handle == INVALID_HANDLE)
-         return true;
+        {
+         reason = "indicador indisponivel";
+         return false;
+        }
 
       double buffer[];
       ArrayResize(buffer, 2);
       ArraySetAsSeries(buffer, true);
       if(CopyBuffer(m_handle, 0, 0, 2, buffer) < 2)
-         return true;
+        {
+         reason = "sem dados suficientes do indicador";
+         return false;
+        }
 
       double rsi = buffer[1];
 
@@ -175,7 +164,7 @@ public:
       else if(m_mode == RSI_FILTER_EXTREMES)
          blocked = BlockExtremes(rsi, reason);
       else
-         blocked = BlockAdvanced(signal, rsi, reason);
+         blocked = BlockDirection(signal, rsi, reason);
 
       if(blocked)
          return false;

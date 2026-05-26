@@ -151,6 +151,12 @@ public:
          noticeText = snapshot.tradePermissionReason;
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.pendingReverseExit)
+        {
+         noticeTitle = "VIRADA DE MAO";
+         noticeText = "VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.hasPosition && !snapshot.started)
         {
          noticeTitle = "INICIO BLOQUEADO";

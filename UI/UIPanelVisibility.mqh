@@ -86,7 +86,7 @@
       for(int i = 0; i < FUSION_CFG_COUNT; ++i)
          SetVisible(m_configTabs[i], visible);
       SetVisible(m_configTabsSeparator, visible);
-      SetVisible(m_configContentFrame, visible && m_configPage != FUSION_CFG_PROTECTION);
+      SetVisible(m_configContentFrame, visible && m_configPage == FUSION_CFG_SYSTEM);
 
       bool riskVisible = visible && m_configPage == FUSION_CFG_RISK;
       bool protectionVisible = visible && m_configPage == FUSION_CFG_PROTECTION;
@@ -95,13 +95,7 @@
       if(m_configRiskCreated)
         {
          SetVisible(m_configRiskGroup, riskVisible);
-         SetVisible(m_cfgRiskHdr, riskVisible);
-         SetVisible(m_cfgRiskLotLbl, riskVisible);
-         SetVisible(m_cfgRiskLotEdit, riskVisible);
-         SetVisible(m_cfgRiskSLLbl, riskVisible);
-         SetVisible(m_cfgRiskSLEdit, riskVisible);
-         SetVisible(m_cfgRiskTPLbl, riskVisible);
-         SetVisible(m_cfgRiskTPEdit, riskVisible);
+         SetRiskControlsVisible(m_riskPage, riskVisible);
         }
 
       if(m_configProtectionCreated)
@@ -124,6 +118,8 @@
       if(visible)
          RestoreConfigStatus();
       SetVisible(m_cfgStatus, visible);
+      if(!visible)
+         m_cfgStatus.Text("");
      }
 
    void                       SetShellVisible(const bool visible)
@@ -135,7 +131,10 @@
       SetVisible(m_lblProfile, visible);
       SetVisible(m_activeProfile, visible);
       if(!visible)
+        {
          SetVisible(m_parentStatus, false);
+         m_parentStatus.Text("");
+        }
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
          SetVisible(m_tabs[i], visible);
       SetVisible(m_tabsSeparator, visible);
@@ -172,8 +171,20 @@
       SetConfigVisible(false);
      }
 
+   void                       ClearTopStatusVisuals(void)
+     {
+      m_parentStatus.Text("");
+      if(m_strategyTabCreated)
+         m_strategyStatus.Text("");
+      if(m_filterTabCreated)
+         m_filterStatus.Text("");
+      if(m_configTabCreated)
+         m_cfgStatus.Text("");
+     }
+
    void                       ApplyVisibility(const bool refreshTheme=true)
      {
+      ClearTopStatusVisuals();
       if(m_statusPageCreated)
         {
          bool statusVisible = (m_activeTab == FUSION_TAB_STATUS);

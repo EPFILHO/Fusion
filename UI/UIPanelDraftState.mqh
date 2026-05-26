@@ -43,6 +43,8 @@
          m_draftSettings.useTrendFilter = !m_draftSettings.useTrendFilter;
       else if(type == UI_COMMAND_TOGGLE_RSI_FILTER)
          m_draftSettings.useRSIFilter = !m_draftSettings.useRSIFilter;
+      else if(type == UI_COMMAND_TOGGLE_BB_FILTER)
+         m_draftSettings.bbFilterEnabled = !m_draftSettings.bbFilterEnabled;
      }
 
    string                     DraftProfileName(void)
@@ -53,11 +55,7 @@
    void                       SyncDraftSettingsToControls(void)
      {
       if(m_configRiskCreated)
-        {
-         m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
-         m_cfgRiskSLEdit.Text(IntegerToString(m_draftSettings.fixedSLPoints));
-         m_cfgRiskTPEdit.Text(IntegerToString(m_draftSettings.fixedTPPoints));
-        }
+         SyncRiskControls();
       if(m_configProtectionCreated)
          SyncProtectionControls();
       if(m_configSystemCreated)

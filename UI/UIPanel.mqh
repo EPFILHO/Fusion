@@ -18,6 +18,7 @@
 #include "StrategyTimeframePanel.mqh"
 #include "TrendFilterPanel.mqh"
 #include "RSIFilterPanel.mqh"
+#include "BollingerFilterPanel.mqh"
 #include "../Persistence/SettingsStore.mqh"
 #include "../Core/InstanceRegistry.mqh"
 #include "../Core/ActiveProfileRegistry.mqh"
@@ -35,6 +36,12 @@ private:
    bool                       m_hasPendingCommand;
    bool                       m_configInputsValid;
    bool                       m_cfgRiskValid;
+   bool                       m_cfgRiskLotValid;
+   bool                       m_cfgRiskSLTPValid;
+   bool                       m_cfgRiskPartialValid;
+   string                     m_cfgRiskPartialError;
+   bool                       m_cfgRiskBEValid;
+   string                     m_cfgRiskBEError;
    bool                       m_cfgProtectionValid;
    bool                       m_cfgSystemValid;
    bool                       m_hasCommittedSettings;
@@ -91,15 +98,8 @@ private:
 #include "UIPanelHeader.mqh"
 #include "UIPanelSignalTabs.mqh"
 #include "UIPanelProfiles.mqh"
+#include "UIPanelRiskTabs.mqh"
 #include "UIPanelProtectionTabs.mqh"
-
-   CLabel                     m_cfgRiskHdr;
-   CLabel                     m_cfgRiskLotLbl;
-   CEdit                      m_cfgRiskLotEdit;
-   CLabel                     m_cfgRiskSLLbl;
-   CEdit                      m_cfgRiskSLEdit;
-   CLabel                     m_cfgRiskTPLbl;
-   CEdit                      m_cfgRiskTPEdit;
 
    CLabel                     m_cfgSystemHdr;
    CLabel                     m_cfgSystemMagicLbl;
@@ -153,6 +153,8 @@ private:
       if(HandleTopActionClick(objectName))
          return true;
       if(HandleConfigSystemConflictClick(objectName))
+         return true;
+      if(HandleRiskClick(objectName))
          return true;
       if(HandleProtectionClick(objectName))
          return true;
@@ -309,6 +311,7 @@ public:
       m_snapshot.useBollinger    = settings.useBollinger;
       m_snapshot.useTrendFilter  = settings.useTrendFilter;
       m_snapshot.useRSIFilter    = settings.useRSIFilter;
+      m_snapshot.bbFilterEnabled = settings.bbFilterEnabled;
 
       m_committedSettings        = settings;
       m_draftSettings            = settings;
@@ -341,18 +344,20 @@ public:
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
       bool permissionStateChanged = runtimeStateChanged ||
                                     snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
-                                    snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
-                                    snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
-                                    snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
-                                    snapshot.tradePermissionReason != m_snapshot.tradePermissionReason;
+                                     snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
+                                     snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
+                                     snapshot.pendingReverseExit != m_snapshot.pendingReverseExit ||
+                                     snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
+                                     snapshot.tradePermissionReason != m_snapshot.tradePermissionReason;
       bool editBlockExited = (wasEditBlocked && nowCanEditActiveProfile && m_hasCommittedSettings);
       bool redrawNeeded = runtimeStateChanged ||
                            snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                            snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
                            snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
-                           snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
-                           snapshot.entryBlockReason != m_snapshot.entryBlockReason ||
-                           snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
+                            snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                            snapshot.entryBlockReason != m_snapshot.entryBlockReason ||
+                            snapshot.pendingReverseExit != m_snapshot.pendingReverseExit ||
+                            snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
                            snapshot.tradePermissionReason != m_snapshot.tradePermissionReason ||
                            snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
                            MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||

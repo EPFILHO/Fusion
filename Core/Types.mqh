@@ -54,10 +54,15 @@ enum ENUM_RSI_SIGNAL_MODE
 
 enum ENUM_RSI_FILTER_MODE
   {
-   RSI_FILTER_ADVANCED = 0,
-   RSI_FILTER_DIRECTION,
+   RSI_FILTER_DIRECTION = 0,
    RSI_FILTER_NEUTRAL,
    RSI_FILTER_EXTREMES
+  };
+
+enum ENUM_BB_FILTER_WIDTH_MODE
+  {
+   BB_FILTER_WIDTH_ABSOLUTE = 0,
+   BB_FILTER_WIDTH_RELATIVE
   };
 
 enum ENUM_BB_SIGNAL_MODE
@@ -89,6 +94,7 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_BB,
    UI_COMMAND_TOGGLE_TREND_FILTER,
    UI_COMMAND_TOGGLE_RSI_FILTER,
+   UI_COMMAND_TOGGLE_BB_FILTER,
    UI_COMMAND_SAVE_PROFILE,
    UI_COMMAND_LOAD_PROFILE
   };
@@ -144,6 +150,7 @@ struct SEASettings
    int                      sessionStartMinute;
    int                      sessionEndHour;
    int                      sessionEndMinute;
+   bool                     sessionOvernight;
    bool                     closeOnSessionEnd;
    SNewsWindowConfig        newsWindows[FUSION_NEWS_WINDOW_COUNT];
    bool                     enableDailyLimits;
@@ -210,6 +217,14 @@ struct SEASettings
    int                      rsiFilterBuyMin;
    int                      rsiFilterSellMax;
    ENUM_APPLIED_PRICE       rsiFilterPrice;
+   bool                     bbFilterEnabled;
+   ENUM_BB_FILTER_WIDTH_MODE bbFilterMode;
+   int                      bbFilterPeriod;
+   ENUM_TIMEFRAMES          bbFilterTimeframe;
+   double                   bbFilterDeviation;
+   ENUM_APPLIED_PRICE       bbFilterPrice;
+   int                      bbFilterMinWidthPoints;
+   double                   bbFilterMinWidthPercent;
    bool                     isTester;
   };
 
@@ -306,12 +321,14 @@ struct SUIPanelSnapshot
    bool   useBollinger;
    bool   useTrendFilter;
    bool   useRSIFilter;
+   bool   bbFilterEnabled;
    bool   runtimeBlocked;
    string runtimeBlockReason;
    string startBlockedReason;
    string activeProfileBlockedReason;
    string runtimeNotice;
    string entryBlockReason;
+   bool   pendingReverseExit;
    bool   tradePermissionBlocked;
    string tradePermissionReason;
    int    dailyTradeCount;
@@ -345,7 +362,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 4;
+   settings.schemaVersion         = 8;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -362,6 +379,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.sessionStartMinute    = 0;
    settings.sessionEndHour        = 23;
    settings.sessionEndMinute      = 59;
+   settings.sessionOvernight      = false;
    settings.closeOnSessionEnd     = false;
    for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
      {
@@ -434,12 +452,20 @@ void SetDefaultSettings(SEASettings &settings)
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
    settings.useRSIFilter          = false;
-   settings.rsiFilterMode         = RSI_FILTER_ADVANCED;
+   settings.rsiFilterMode         = RSI_FILTER_DIRECTION;
    settings.rsiFilterPeriod       = 14;
    settings.rsiFilterTimeframe    = FUSION_DEFAULT_TIMEFRAME;
    settings.rsiFilterBuyMin       = 50;
    settings.rsiFilterSellMax      = 50;
    settings.rsiFilterPrice        = PRICE_CLOSE;
+   settings.bbFilterEnabled       = false;
+   settings.bbFilterMode          = BB_FILTER_WIDTH_ABSOLUTE;
+   settings.bbFilterPeriod        = 20;
+   settings.bbFilterTimeframe     = FUSION_DEFAULT_TIMEFRAME;
+   settings.bbFilterDeviation     = 2.0;
+   settings.bbFilterPrice         = PRICE_CLOSE;
+   settings.bbFilterMinWidthPoints = 100;
+   settings.bbFilterMinWidthPercent = 0.20;
    settings.isTester              = false;
   }
 
@@ -460,6 +486,7 @@ void ResolveOperationalTimeframes(SEASettings &settings,const ENUM_TIMEFRAMES fa
    settings.bbTimeframe        = ResolveOperationalTimeframe(settings.bbTimeframe, fallbackTimeframe);
    settings.trendMATimeframe   = ResolveOperationalTimeframe(settings.trendMATimeframe, fallbackTimeframe);
    settings.rsiFilterTimeframe = ResolveOperationalTimeframe(settings.rsiFilterTimeframe, fallbackTimeframe);
+   settings.bbFilterTimeframe  = ResolveOperationalTimeframe(settings.bbFilterTimeframe, fallbackTimeframe);
   }
 
 void ResetSignalDecision(SSignalDecision &decision)

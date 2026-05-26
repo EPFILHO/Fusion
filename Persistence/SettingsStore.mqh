@@ -69,6 +69,7 @@ private:
       WriteLine(handle, "sessionStartMinute", IntegerToString(settings.sessionStartMinute));
       WriteLine(handle, "sessionEndHour", IntegerToString(settings.sessionEndHour));
       WriteLine(handle, "sessionEndMinute", IntegerToString(settings.sessionEndMinute));
+      WriteLine(handle, "sessionOvernight", IntegerToString((int)settings.sessionOvernight));
       WriteLine(handle, "closeOnSessionEnd", IntegerToString((int)settings.closeOnSessionEnd));
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
@@ -148,6 +149,14 @@ private:
       WriteLine(handle, "rsiFilterBuyMin", IntegerToString(settings.rsiFilterBuyMin));
       WriteLine(handle, "rsiFilterSellMax", IntegerToString(settings.rsiFilterSellMax));
       WriteLine(handle, "rsiFilterPrice", IntegerToString((int)settings.rsiFilterPrice));
+      WriteLine(handle, "bbFilterEnabled", IntegerToString((int)settings.bbFilterEnabled));
+      WriteLine(handle, "bbFilterMode", IntegerToString((int)settings.bbFilterMode));
+      WriteLine(handle, "bbFilterPeriod", IntegerToString(settings.bbFilterPeriod));
+      WriteLine(handle, "bbFilterTimeframe", IntegerToString((int)settings.bbFilterTimeframe));
+      WriteLine(handle, "bbFilterDeviation", DoubleToString(settings.bbFilterDeviation, 2));
+      WriteLine(handle, "bbFilterPrice", IntegerToString((int)settings.bbFilterPrice));
+      WriteLine(handle, "bbFilterMinWidthPoints", IntegerToString(settings.bbFilterMinWidthPoints));
+      WriteLine(handle, "bbFilterMinWidthPercent", DoubleToString(settings.bbFilterMinWidthPercent, 2));
       return true;
      }
 
@@ -216,6 +225,7 @@ private:
       else if(key == "sessionStartMinute") settings.sessionStartMinute = (int)StringToInteger(value);
       else if(key == "sessionEndHour") settings.sessionEndHour = (int)StringToInteger(value);
       else if(key == "sessionEndMinute") settings.sessionEndMinute = (int)StringToInteger(value);
+      else if(key == "sessionOvernight") settings.sessionOvernight = (bool)StringToInteger(value);
       else if(key == "closeOnSessionEnd") settings.closeOnSessionEnd = (bool)StringToInteger(value);
       else if(ApplyNewsWindowSetting(key, value, settings)) return;
       else if(key == "enableDailyLimits") settings.enableDailyLimits = (bool)StringToInteger(value);
@@ -255,18 +265,6 @@ private:
       else if(key == "maFastPrice") settings.maFastPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "maSlowPrice") settings.maSlowPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "maEntryMode") settings.maEntryMode = (ENUM_ENTRY_MODE)StringToInteger(value);
-      else if(key == "maMethod")
-        {
-         ENUM_MA_METHOD method = (ENUM_MA_METHOD)StringToInteger(value);
-         settings.maFastMethod = method;
-         settings.maSlowMethod = method;
-        }
-      else if(key == "maPrice")
-        {
-         ENUM_APPLIED_PRICE price = (ENUM_APPLIED_PRICE)StringToInteger(value);
-         settings.maFastPrice = price;
-         settings.maSlowPrice = price;
-        }
       else if(key == "maExitMode") settings.maExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useRSI") settings.useRSI = (bool)StringToInteger(value);
       else if(key == "rsiPriority") settings.rsiPriority = (int)StringToInteger(value);
@@ -298,6 +296,14 @@ private:
       else if(key == "rsiFilterBuyMin") settings.rsiFilterBuyMin = (int)StringToInteger(value);
       else if(key == "rsiFilterSellMax") settings.rsiFilterSellMax = (int)StringToInteger(value);
       else if(key == "rsiFilterPrice") settings.rsiFilterPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "bbFilterEnabled") settings.bbFilterEnabled = (bool)StringToInteger(value);
+      else if(key == "bbFilterMode") settings.bbFilterMode = (ENUM_BB_FILTER_WIDTH_MODE)StringToInteger(value);
+      else if(key == "bbFilterPeriod") settings.bbFilterPeriod = (int)StringToInteger(value);
+      else if(key == "bbFilterTimeframe") settings.bbFilterTimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
+      else if(key == "bbFilterDeviation") settings.bbFilterDeviation = StringToDouble(value);
+      else if(key == "bbFilterPrice") settings.bbFilterPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "bbFilterMinWidthPoints") settings.bbFilterMinWidthPoints = (int)StringToInteger(value);
+      else if(key == "bbFilterMinWidthPercent") settings.bbFilterMinWidthPercent = StringToDouble(value);
      }
 
    void              ApplyRuntimeField(const string key,const string value,string &activeProfileName,bool &started,SPositionRuntimeState &state) const
@@ -546,8 +552,6 @@ public:
         }
 
       FileClose(handle);
-      if(settings.schemaVersion < 2 && settings.maxSpreadPoints > 0)
-         settings.enableSpreadProtection = true;
       return true;
      }
   };

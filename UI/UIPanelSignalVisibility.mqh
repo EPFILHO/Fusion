@@ -11,6 +11,8 @@
       if(visible)
          RestoreStrategyStatus();
       SetVisible(m_strategyStatus, visible);
+      if(!visible)
+         m_strategyStatus.Text("");
 
       bool overviewVisible = visible && m_strategyPage == FUSION_STRAT_OVERVIEW;
       if(overviewVisible)
@@ -53,6 +55,8 @@
       if(visible)
          RestoreFilterStatus();
       SetVisible(m_filterStatus, visible);
+      if(!visible)
+         m_filterStatus.Text("");
 
       bool overviewVisible = visible && m_filterPage == FUSION_FILTER_OVERVIEW;
       if(overviewVisible)

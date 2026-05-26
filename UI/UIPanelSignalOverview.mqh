@@ -10,55 +10,13 @@
       return "Bollinger";
      }
 
-   string                     StrategyPanelTitle(const int index) const
-     {
-      return StrategyDisplayName(index);
-     }
-
-   string                     StrategyPanelKey(const int index) const
-     {
-      if(index == 0)
-         return "ma";
-      if(index == 1)
-         return "rsi";
-      return "bb";
-     }
-
-   ENUM_UI_COMMAND            StrategyPanelCommand(const int index) const
-     {
-      if(index == 0)
-         return UI_COMMAND_TOGGLE_MACROSS;
-      if(index == 1)
-         return UI_COMMAND_TOGGLE_RSI;
-      return UI_COMMAND_TOGGLE_BB;
-     }
-
    string                     FilterDisplayName(const int index) const
      {
       if(index == 0)
          return "Trend";
-      return "RSI";
-     }
-
-   string                     FilterPanelTitle(const int index) const
-     {
-      if(index == 0)
-         return "Trend Filter";
-      return "RSI Filter";
-     }
-
-   string                     FilterPanelKey(const int index) const
-     {
-      if(index == 0)
-         return "trend";
-      return "rsi";
-     }
-
-   ENUM_UI_COMMAND            FilterPanelCommand(const int index) const
-     {
-      if(index == 0)
-         return UI_COMMAND_TOGGLE_TREND_FILTER;
-      return UI_COMMAND_TOGGLE_RSI_FILTER;
+      if(index == 1)
+         return "RSI";
+      return "Bollinger";
      }
 
    bool                       CreateStrategyOverview(void)
@@ -143,7 +101,7 @@
       if(!m_filterOverviewCreated)
          return;
 
-      bool filterStates[FUSION_FILTER_PANEL_COUNT] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter};
+      bool filterStates[FUSION_FILTER_PANEL_COUNT] = {m_draftSettings.useTrendFilter, m_draftSettings.useRSIFilter, m_draftSettings.bbFilterEnabled};
       for(int i = 0; i < FUSION_FILTER_PANEL_COUNT; ++i)
         {
          m_filterOverviewName[i].Text(FilterDisplayName(i));

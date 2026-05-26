@@ -12,6 +12,7 @@ bool FusionProtectionIsInsideClockWindow(const int startHour,
                                          const int startMinute,
                                          const int endHour,
                                          const int endMinute,
+                                         const bool overnightAllowed,
                                          const datetime now)
   {
    MqlDateTime parts;
@@ -23,6 +24,9 @@ bool FusionProtectionIsInsideClockWindow(const int startHour,
 
    if(startMinutes <= endMinutes)
       return (currentMinutes >= startMinutes && currentMinutes < endMinutes);
+
+   if(!overnightAllowed)
+      return false;
 
    return (currentMinutes >= startMinutes || currentMinutes < endMinutes);
   }

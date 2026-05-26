@@ -4,23 +4,42 @@
    void                       SyncProtectionOverview(void)
      {
       string spreadText = !m_draftSettings.enableSpreadProtection ? "Spread OFF" : "Spread max " + IntegerToString(m_draftSettings.maxSpreadPoints) + " pts";
-      m_protectGeneralValues[0].Text(FusionTradeDirectionName(m_draftSettings.tradeDirection) + " | " + spreadText);
-      m_protectGeneralValues[1].Text(!m_draftSettings.enableSessionFilter ? "OFF" :
-                                     StringFormat("%02d:%02d - %02d:%02d",
-                                                  m_draftSettings.sessionStartHour,
-                                                  m_draftSettings.sessionStartMinute,
-                                                  m_draftSettings.sessionEndHour,
-                                                  m_draftSettings.sessionEndMinute));
+      string blockedSignalText = "Descarta sinais";
+      m_protectGeneralValues[0].Text(FusionTradeDirectionName(m_draftSettings.tradeDirection) + " | " + spreadText + " | " + blockedSignalText);
+      string sessionText = !m_draftSettings.enableSessionFilter ? "OFF" :
+                           StringFormat("%02d:%02d - %02d:%02d",
+                                        m_draftSettings.sessionStartHour,
+                                        m_draftSettings.sessionStartMinute,
+                                        m_draftSettings.sessionEndHour,
+                                        m_draftSettings.sessionEndMinute);
+      if(m_draftSettings.enableSessionFilter && m_draftSettings.sessionOvernight)
+         sessionText += " +1d";
+      m_protectGeneralValues[1].Text(sessionText);
 
       int newsEnabled = 0;
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
          if(m_draftSettings.newsWindows[newsIndex].enabled)
             newsEnabled++;
-      m_protectGeneralValues[2].Text(IntegerToString(newsEnabled) + "/" + IntegerToString(FUSION_NEWS_WINDOW_COUNT) + " janelas ativas");
+      string newsText = IntegerToString(newsEnabled) + "/" + IntegerToString(FUSION_NEWS_WINDOW_COUNT) + " janelas ativas";
+      m_protectGeneralValues[2].Text(newsText);
       m_protectGeneralValues[3].Text(StringFormat("Trades %d | P/L %.2f", m_snapshot.dailyTradeCount, m_snapshot.dailyClosedProfit));
       m_protectGeneralValues[4].Text(!m_draftSettings.enableDrawdown ? "OFF" :
                                      (m_snapshot.drawdownProtectionActive ? "ATIVO" : "Aguardando meta"));
       m_protectGeneralValues[5].Text(StringFormat("Loss %d | Win %d", m_snapshot.lossStreak, m_snapshot.winStreak));
+     }
+
+   void                       SyncProtectionFooters(void)
+     {
+      m_protectEntryFoot1.Text("Sinais surgidos durante bloqueios sao descartados.");
+      m_protectEntryFoot2.Text("Direcao nao bloqueia estrategia em VM; guards continuam ativos.");
+
+      m_protectSessionFoot1.Text(m_draftSettings.sessionOvernight ?
+                                 "Overnight ON: Inicio > Fim e cruza meia-noite." :
+                                 "Overnight OFF: Fim > Inicio no mesmo dia.");
+      m_protectSessionFoot2.Text(m_draftSettings.closeOnSessionEnd ?
+                                 "Fechar no fim ON: fecha posicoes ao termino da sessao." :
+                                 "Fechar no fim OFF: nao fecha posicoes pelo fim da sessao.");
+      m_protectSessionFoot3.Text("Fora da janela, novas entradas ficam bloqueadas.");
      }
 
    void                       RefreshProtectionTheme(void)
@@ -30,11 +49,13 @@
       ApplyProtectionTabStyles();
 
       SyncProtectionOverview();
+      SyncProtectionFooters();
 
       FusionApplyToggleButtonStyle(m_protectSpreadEnabledBtn, m_draftSettings.enableSpreadProtection, editable);
       SyncProtectionDirectionCombo(editable);
       FusionApplyToggleButtonStyle(m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter, editable);
       FusionApplyToggleButtonStyle(m_protectSessionCloseBtn, m_draftSettings.closeOnSessionEnd, editable);
+      FusionApplyToggleButtonStyle(m_protectSessionOvernightBtn, m_draftSettings.sessionOvernight, editable);
 
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {

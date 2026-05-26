@@ -75,6 +75,8 @@
          return true;
       if(HandleFilterTabNavigationClick(objectName))
          return true;
+      if(HandleRiskPageClick(objectName))
+         return true;
       if(HandleConfigTabNavigationClick(objectName))
          return true;
       return false;

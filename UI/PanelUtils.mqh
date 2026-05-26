@@ -305,20 +305,35 @@ string FusionRSIFilterModeName(const ENUM_RSI_FILTER_MODE mode)
       case RSI_FILTER_EXTREMES:
          return "Extremos";
       default:
-         return "Avancado";
+         return "Direcao";
      }
   }
 
 bool FusionPopulateRSIFilterModeCombo(CComboBox &combo)
-  {
-   combo.ListViewItems(5);
-   if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_ADVANCED), (long)RSI_FILTER_ADVANCED))
-      return false;
+{
+   combo.ListViewItems(3);
    if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_DIRECTION), (long)RSI_FILTER_DIRECTION))
       return false;
    if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_NEUTRAL), (long)RSI_FILTER_NEUTRAL))
       return false;
    if(!combo.AddItem(FusionRSIFilterModeName(RSI_FILTER_EXTREMES), (long)RSI_FILTER_EXTREMES))
+      return false;
+   return true;
+  }
+
+string FusionBBFilterWidthModeName(const ENUM_BB_FILTER_WIDTH_MODE mode)
+  {
+   if(mode == BB_FILTER_WIDTH_RELATIVE)
+      return "Relativo %";
+   return "Absoluto";
+  }
+
+bool FusionPopulateBBFilterWidthModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(3);
+   if(!combo.AddItem(FusionBBFilterWidthModeName(BB_FILTER_WIDTH_ABSOLUTE), (long)BB_FILTER_WIDTH_ABSOLUTE))
+      return false;
+   if(!combo.AddItem(FusionBBFilterWidthModeName(BB_FILTER_WIDTH_RELATIVE), (long)BB_FILTER_WIDTH_RELATIVE))
       return false;
    return true;
   }

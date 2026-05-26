@@ -119,8 +119,13 @@
       m_strategyStatusColor = clr;
       if(m_strategyTabCreated)
         {
-         m_strategyStatus.Text(text);
-         m_strategyStatus.Color(clr);
+         if(m_activeTab == FUSION_TAB_STRATEGIES)
+           {
+            m_strategyStatus.Text(text);
+            m_strategyStatus.Color(clr);
+           }
+         else
+            m_strategyStatus.Text("");
         }
      }
 
@@ -130,8 +135,13 @@
       m_filterStatusColor = clr;
       if(m_filterTabCreated)
         {
-         m_filterStatus.Text(text);
-         m_filterStatus.Color(clr);
+         if(m_activeTab == FUSION_TAB_FILTERS)
+           {
+            m_filterStatus.Text(text);
+            m_filterStatus.Color(clr);
+           }
+         else
+            m_filterStatus.Text("");
         }
      }
 

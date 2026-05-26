@@ -16,6 +16,7 @@ public:
                                                  m_settings.sessionStartMinute,
                                                  m_settings.sessionEndHour,
                                                  m_settings.sessionEndMinute,
+                                                 m_settings.sessionOvernight,
                                                  now);
      }
 

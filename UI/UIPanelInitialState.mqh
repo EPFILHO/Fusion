@@ -31,12 +31,14 @@
       m_snapshot.useBollinger = false;
       m_snapshot.useTrendFilter = false;
       m_snapshot.useRSIFilter = false;
+      m_snapshot.bbFilterEnabled = false;
       m_snapshot.runtimeBlocked = false;
       m_snapshot.runtimeBlockReason = "";
       m_snapshot.startBlockedReason = "";
       m_snapshot.activeProfileBlockedReason = "";
       m_snapshot.runtimeNotice = "";
       m_snapshot.entryBlockReason = "";
+      m_snapshot.pendingReverseExit = false;
       m_snapshot.tradePermissionBlocked = false;
       m_snapshot.tradePermissionReason = "";
       m_snapshot.dailyTradeCount = 0;
@@ -50,6 +52,12 @@
      {
       m_configInputsValid = true;
       m_cfgRiskValid = true;
+      m_cfgRiskLotValid = true;
+      m_cfgRiskSLTPValid = true;
+      m_cfgRiskPartialValid = true;
+      m_cfgRiskPartialError = "";
+      m_cfgRiskBEValid = true;
+      m_cfgRiskBEError = "";
       m_cfgProtectionValid = true;
       m_cfgSystemValid = true;
       m_cfgStatusText = "";
@@ -125,6 +133,7 @@
       m_strategyPage = FUSION_STRAT_OVERVIEW;
       m_filterPage = FUSION_FILTER_OVERVIEW;
       m_configPage = FUSION_CFG_RISK;
+      m_riskPage = FUSION_RISK_LOT;
       m_protectPage = FUSION_PROTECT_GENERAL;
       m_statusPageCreated = false;
       m_resultsPageCreated = false;

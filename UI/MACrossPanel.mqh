@@ -322,15 +322,13 @@ public:
       bool slowValid = (candidate.maSlowPeriod > 0 && candidate.maSlowPeriod <= 1000);
       bool orderValid = (fastValid && slowValid && candidate.maFastPeriod < candidate.maSlowPeriod);
       bool distanceValid = (candidate.maMinDistancePoints >= 0 && candidate.maMinDistancePoints <= 100000);
-      bool vmDirectionValid = (candidate.maExitMode != EXIT_REVERSE_SIGNAL ||
-                               candidate.tradeDirection == DIRECTION_BOTH);
 
       m_priority.SetValid(priorityValid, editable);
       m_fastPeriod.SetValid(fastValid && orderValid, editable);
       m_slowPeriod.SetValid(slowValid && orderValid, editable);
       m_minDistance.SetValid(distanceValid, editable);
 
-      if(!priorityValid || !fastValid || !slowValid || !orderValid || !distanceValid || !vmDirectionValid)
+      if(!priorityValid || !fastValid || !slowValid || !orderValid || !distanceValid)
         {
          if(!priorityValid)
             error = "MA Prioridade: use valor de 0 a 1000.";
@@ -342,8 +340,6 @@ public:
             error = "MA Rapida deve ser menor que MA Lenta.";
          else if(!distanceValid)
             error = "MA Dist. Min: use 0 a 100000 pontos.";
-         else
-            error = "VM requer Direcao = Ambas.";
          return false;
         }
 

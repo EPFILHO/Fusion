@@ -41,7 +41,7 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin)
      {
-      string labels[FUSION_RESULTS_ROW_COUNT] = {"Lote", "Max Spread", "Magic", "Perfil", "Modo", "Execucao"};
+      string labels[FUSION_RESULTS_ROW_COUNT] = {"Lote", "Spread", "Magic Number do EA", "Perfil Carregado", "Modo", "Execucao"};
       int y = 112;
       for(int i = 0; i < FUSION_RESULTS_ROW_COUNT; ++i)
         {
@@ -57,10 +57,10 @@ public:
    void              Update(const SUIPanelSnapshot &snapshot,const SEASettings &settings,const string committedProfileName)
      {
       m_values[0].Text(FusionFormatVolume(settings.fixedLot, snapshot.symbolSpec));
-      m_values[1].Text(IntegerToString(settings.maxSpreadPoints));
+      m_values[1].Text(settings.enableSpreadProtection ? "ON - " + IntegerToString(settings.maxSpreadPoints) + " pts" : "OFF");
       m_values[2].Text(IntegerToString(settings.magicNumber));
       m_values[3].Text(committedProfileName == "" ? snapshot.activeProfileName : committedProfileName);
-      m_values[4].Text(snapshot.started ? "HOT RELOAD READY" : "EDIT MODE");
+      m_values[4].Text(snapshot.started ? "EA RODANDO: EDICAO SUSPENSA" : "EDICAO LIBERADA");
       m_values[5].Text(snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
       m_values[5].Color(FUSION_CLR_VALUE);
      }

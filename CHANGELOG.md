@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.053 - 2026-05-24
+- Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.
+- Adicionado `Bollinger Filter` separado da estrategia Bollinger, com settings/persistencia/inputs proprios usando prefixo `bbFilter*`.
+- A persistencia foi atualizada para `schemaVersion=8` e teve aliases/migracoes antigas removidos (`maMethod`, `maPrice`, spread legado, overnight inferido e RSI Filter antigo).
+- O novo filtro herda de `CFilterBase`, usa handle proprio de `iBands` e apenas aprova/bloqueia sinais recebidos, sem gerar entradas.
+- Implementado anti-squeeze por largura das bandas nos modos `Absoluto` e `Relativo %`; o modo `Percentil` ficou fora desta fatia ate alinhamento explicito.
+- `FILTERS > BB` ganhou painel concreto com toggle, modo, periodo, timeframe, desvio, preco, limite minimo, validacoes e rodape claro.
+- Filtros ativos agora falham fechado quando o indicador/handle nao esta disponivel ou nao ha dados suficientes, evitando falso positivo de entrada.
+- Sinais surgidos durante bloqueios agora sao sempre descartados por definicao, removendo a opcao de manter sinal atrasado apos news/sessao/spread/filtros.
+- Removido tambem o campo interno/persistido antigo de descarte configuravel, deixando o descarte de sinais bloqueados como regra fixa do motor.
+- `CONFIG > PROTECT > SESSION` manteve `Overnight` explicito para permitir sessao cruzando meia-noite; `NEWS` voltou a usar apenas janelas no mesmo dia.
+- Cliques efetivos em `INICIAR` e `PAUSAR` pelo painel agora geram log `INFO` no escopo `UI`.
+- `CONFIG > RISK` ganhou subtabs internas e `TP PARCIAL` passou a expor ativacao, TP1/TP2, volume % e distancia em pontos com validacoes proprias e guarda para ignorar alvo inativo.
+- `CONFIG > RISK > BREAKEVEN` passou a expor ativacao, gatilho em pontos e offset em pontos com validacao propria.
+- Comentarios enviados pelo EA em entradas, fechamentos e parciais agora passam pelo prefixo unico `EP Fusion - `.
+- A `VM` agora aparece no `STATUS`/rodape quando armada e fica documentada como reversao direta sem filtros/direcao, mantendo guards operacionais ativos.
+- Refinados textos e rodapes de `CONFIG > PROTECT`: resumo de sinais descartados, `Contagem Streak`, explicacao de sinais bloqueados, `Direcao` x `VM`, `Overnight` e `Fechar no fim`.
+- O `RSI Filter` deixou de expor o modo `Avancado`; ficam apenas `Direcao`, `Neutro` e `Extremos`.
+- Reorganizado `Core/Inputs.mqh` apenas para melhorar a leitura no Tester do MT5, com grupos, separadores e comentarios em portugues ASCII, sem alterar nomes, defaults ou logica de leitura.
+- Inputs de timeframe passaram a usar um enum proprio com nomes `TIMEFRAME_*`, sem `current`, mantendo default M15 e convertendo para `ENUM_TIMEFRAMES` antes de preencher as settings.
+- Mitigado residuo visual de status superior ao trocar abas, limpando apenas os labels escondidos e preservando os textos internos salvos.
+- Registrada como divida tecnica futura a padronizacao ampla da GUI em duas fases de visibilidade, fora do escopo da 1.053.
+- Compilado no MetaEditor apos as mudancas com `0 errors, 0 warnings`.
+
 ## 1.052 - 2026-05-12
 - Atualizado o handoff da 1.053 com baseline atual, ordem recomendada (`limpeza curta -> Bollinger Filter -> Risk`) e prompt de continuidade.
 - Criado o plano curto de expansao funcional da 1.052 em `docs/FUNCTIONAL_EXPANSION_PLAN_1052.md`, preservando os guardrails da GUI estabilizada.

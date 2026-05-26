@@ -19,6 +19,8 @@
       SetVisible(m_protectSpreadEnabledBtn, visible);
       SetVisible(m_protectSpreadLimitLbl, visible);
       SetVisible(m_protectSpreadLimitEdit, visible);
+      SetVisible(m_protectEntryFoot1, visible);
+      SetVisible(m_protectEntryFoot2, visible);
       if(visible)
          m_protectDirection.Show();
       else
@@ -39,6 +41,11 @@
       SetVisible(m_protectSessionEndMinuteEdit, visible);
       SetVisible(m_protectSessionCloseLbl, visible);
       SetVisible(m_protectSessionCloseBtn, visible);
+      SetVisible(m_protectSessionOvernightLbl, visible);
+      SetVisible(m_protectSessionOvernightBtn, visible);
+      SetVisible(m_protectSessionFoot1, visible);
+      SetVisible(m_protectSessionFoot2, visible);
+      SetVisible(m_protectSessionFoot3, visible);
      }
 
    void                       SetProtectionNewsVisible(const bool visible)

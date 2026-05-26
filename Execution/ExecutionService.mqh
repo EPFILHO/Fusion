@@ -15,6 +15,42 @@ private:
    int                m_slippagePoints;
    bool               m_needsSync;
 
+   string             TrimComment(const string text) const
+     {
+      int start = 0;
+      int end = StringLen(text) - 1;
+
+      while(start <= end)
+        {
+         ushort ch = StringGetCharacter(text, start);
+         if(ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n')
+            break;
+         start++;
+        }
+
+      while(end >= start)
+        {
+         ushort ch = StringGetCharacter(text, end);
+         if(ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n')
+            break;
+         end--;
+        }
+
+      if(end < start)
+         return "";
+      return StringSubstr(text, start, end - start + 1);
+     }
+
+   string             OrderComment(const string reason) const
+     {
+      string trimmed = TrimComment(reason);
+      if(StringFind(trimmed, "EP Fusion - ") == 0)
+         return trimmed;
+      if(trimmed == "")
+         return "EP Fusion";
+      return "EP Fusion - " + trimmed;
+     }
+
    double             CurrentClosePrice(const ENUM_POSITION_TYPE type) const
      {
       if(type == POSITION_TYPE_BUY)
@@ -131,7 +167,7 @@ public:
                                                     : SymbolInfoDouble(m_symbol, SYMBOL_BID);
       request.sl           = plan.stopLoss;
       request.tp           = plan.takeProfit;
-      request.comment      = "EP Fusion - " + decision.shortName;
+      request.comment      = OrderComment(decision.shortName);
 
       if(!OrderSend(request, result))
         {
@@ -179,7 +215,7 @@ public:
       request.volume       = state.volume;
       request.type         = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
       request.price        = CurrentClosePrice(state.type);
-      request.comment      = reason;
+      request.comment      = OrderComment(reason);
 
       if(!OrderSend(request, result))
         {
@@ -217,7 +253,7 @@ public:
       request.volume       = lotToClose;
       request.type         = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
       request.price        = CurrentClosePrice(state.type);
-      request.comment      = reason;
+      request.comment      = OrderComment(reason);
 
       if(!OrderSend(request, result))
          return false;

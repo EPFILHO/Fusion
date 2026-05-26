@@ -64,6 +64,8 @@ Na inicializacao, o `SignalManager` deve aplicar as configuracoes do perfil ante
 
 O `SignalManager` nao deve impor um timeframe unico ao conjunto de modulos. A direcao do Fusion e carregar timeframes operacionais explicitos por estrategia e por filtro.
 
+Sinais de entrada que aparecem enquanto outro bloqueio esta ativo sao descartados por definicao. Isso evita que um cruzamento ou toque antigo seja executado quando sessao, news, spread, permissao de trading ou outro guard deixar de bloquear.
+
 ### `Strategies`
 
 Cada estrategia herda de `CStrategyBase`.
@@ -76,6 +78,8 @@ Uma estrategia deve:
 - produzir sinal de saida apenas para posicoes que ela abriu.
 
 Uma estrategia nao deve abrir ordem diretamente, alterar lote, nem fazer gestao financeira. Isso fica em `Risk`, `Protection` e `Execution`.
+
+O modo de saida `VM` fecha a posicao pelo sinal contrario da estrategia dona e agenda uma entrada direta na mao oposta apos a sincronizacao do fechamento. Essa reversao nao passa novamente por filtros, resolvedor de entrada, regra de prioridade ou `tradeDirection`; ela ainda respeita guards operacionais como permissao de trading, conflito netting, protecoes globais, risco e execucao. Quando a VM esta armada, o painel deve mostrar essa condicao no `STATUS`/rodape.
 
 ### `Filters`
 

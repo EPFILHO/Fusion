@@ -22,6 +22,8 @@
                                                            CEdit &endHourEdit,
                                                            CEdit &endMinuteEdit,
                                                            const bool editable,
+                                                           const bool required,
+                                                           const bool overnightAllowed,
                                                            const string invalidError,
                                                            const string orderError,
                                                            int &startHour,
@@ -46,7 +48,8 @@
         {
          int startTotal = startHour * 60 + startMinute;
          int endTotal = endHour * 60 + endMinute;
-         orderValid = (endTotal > startTotal);
+         if(required)
+            orderValid = overnightAllowed ? (startTotal > endTotal) : (endTotal > startTotal);
         }
 
       bool fieldsValid = startHourValid && startMinuteValid && endHourValid && endMinuteValid && orderValid;
@@ -69,6 +72,8 @@
          return false;
 
       if(m_draftSettings.tradeDirection != m_committedSettings.tradeDirection)
+         return true;
+      if(m_draftSettings.sessionOvernight != m_committedSettings.sessionOvernight)
          return true;
       if(ProtectionIntegerEditPending(m_protectSpreadLimitEdit, m_committedSettings.maxSpreadPoints))
          return true;
@@ -134,8 +139,10 @@
                                                              m_protectSessionEndHourEdit,
                                                              m_protectSessionEndMinuteEdit,
                                                              editable,
+                                                             outSettings.enableSessionFilter,
+                                                             outSettings.sessionOvernight,
                                                              "Horario da sessao invalido.",
-                                                             "Fim da sessao deve ser maior que o inicio.",
+                                                             "Sessao: ajuste Inicio/Fim para o modo Overnight.",
                                                              sessionStartHour,
                                                              sessionStartMinute,
                                                              sessionEndHour,
@@ -157,8 +164,10 @@
                                                              m_protectNewsEndHourEdit[newsIndex],
                                                              m_protectNewsEndMinuteEdit[newsIndex],
                                                              editable,
+                                                             outSettings.newsWindows[newsIndex].enabled,
+                                                             false,
                                                              "Horario da News " + IntegerToString(newsIndex + 1) + " invalido.",
-                                                             "Fim da News " + IntegerToString(newsIndex + 1) + " deve ser maior que o inicio.",
+                                                             "News " + IntegerToString(newsIndex + 1) + ": Fim deve ser maior que Inicio.",
                                                              startHour,
                                                              startMinute,
                                                              endHour,

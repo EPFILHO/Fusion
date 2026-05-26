@@ -52,11 +52,21 @@
 
       string strategyError = "";
       string filterError = "";
+      string partialError = "";
+      string beError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
+      bool partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
+      bool beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
       bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
       bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
-      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid);
+      m_cfgRiskLotValid = (outSettings.fixedLot > 0.0);
+      m_cfgRiskSLTPValid = (slValid && tpValid);
+      m_cfgRiskPartialValid = partialValid;
+      m_cfgRiskPartialError = partialError;
+      m_cfgRiskBEValid = beValid;
+      m_cfgRiskBEError = beError;
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid && partialValid && beValid);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
@@ -77,6 +87,10 @@
          outStatus = "Magic invalido. Informe um numero inteiro positivo.";
       else if(!magicUnique)
          outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+      else if(!partialValid)
+         outStatus = partialError;
+      else if(!beValid)
+         outStatus = beError;
       else
          outStatus = (strategyError != "" ? strategyError : (filterError != "" ? filterError : "Perfil invalido."));
       return m_configInputsValid;
@@ -252,12 +266,16 @@
       bool protectionValid = true;
       bool strategyValid = true;
       bool filterValid = true;
+      bool partialValid = true;
+      bool beValid = true;
       bool magicValid = false;
       bool magicUnique = false;
       string magicConflictProfile = "";
       string protectionError = "";
       string strategyError = "";
       string filterError = "";
+      string partialError = "";
+      string beError = "";
       double parsedLot = 0.0;
       int parsedSL = 0;
       int parsedTP = 0;
@@ -284,17 +302,25 @@
                              strategyError,
                              filterValid,
                              filterError);
+      partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
+      beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
 
-      m_cfgRiskValid = (lotValid && slValid && tpValid);
+      m_cfgRiskValid = (lotValid && slValid && tpValid && partialValid && beValid);
+      m_cfgRiskLotValid = lotValid;
+      m_cfgRiskSLTPValid = (slValid && tpValid);
+      m_cfgRiskPartialValid = partialValid;
+      m_cfgRiskPartialError = partialError;
+      m_cfgRiskBEValid = beValid;
+      m_cfgRiskBEError = beError;
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && slValid && tpValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
       CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSL, parsedTP, parsedMagic);
       ApplyStrategyStatus(strategyValid, strategyError);
       ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      bool configStatusValid = profileValid && lotValid && slValid && tpValid && protectionValid && magicValid && magicUnique;
+      bool configStatusValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && protectionValid && magicValid && magicUnique;
       ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,

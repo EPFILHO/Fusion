@@ -56,8 +56,7 @@ private:
 
    bool              ModeValid(const ENUM_RSI_FILTER_MODE mode) const
      {
-      return (mode == RSI_FILTER_ADVANCED ||
-              mode == RSI_FILTER_DIRECTION ||
+      return (mode == RSI_FILTER_DIRECTION ||
               mode == RSI_FILTER_NEUTRAL ||
               mode == RSI_FILTER_EXTREMES);
      }
@@ -82,11 +81,8 @@ private:
 
    void              ApplyModeDefaults(SEASettings &settings,const ENUM_RSI_FILTER_MODE mode) const
      {
-      if(mode != RSI_FILTER_ADVANCED)
-        {
-         settings.rsiFilterBuyMin = DefaultBuyLevel(mode);
-         settings.rsiFilterSellMax = DefaultSellLevel(mode);
-        }
+      settings.rsiFilterBuyMin = DefaultBuyLevel(mode);
+      settings.rsiFilterSellMax = DefaultSellLevel(mode);
      }
 
    bool              UsesSecondLevel(const ENUM_RSI_FILTER_MODE mode) const
@@ -120,11 +116,6 @@ private:
          m_buyMin.SetLabelText("Sobrevenda");
          m_sellMax.SetLabelText("Sobrecompra");
         }
-      else
-        {
-         m_buyMin.SetLabelText("Min Compra");
-         m_sellMax.SetLabelText("Max Venda");
-        }
      }
 
    string            RuleHint(const SEASettings &settings) const
@@ -135,7 +126,7 @@ private:
          return "Neutro: bloqueia o meio; BUY so acima, SELL so abaixo.";
       if(settings.rsiFilterMode == RSI_FILTER_EXTREMES)
          return "Extremos: bloqueia qualquer entrada nas zonas extremas.";
-      return "Avancado: BUY exige RSI >= Min; SELL exige RSI <= Max.";
+      return "Direcao: BUY so acima da linha; SELL so abaixo.";
      }
 
    string            DetailHint(const SEASettings &settings) const
@@ -148,37 +139,12 @@ private:
       if(settings.rsiFilterMode == RSI_FILTER_EXTREMES)
          return "Bloqueia RSI <= " + IntegerToString(settings.rsiFilterBuyMin) +
                 " ou >= " + IntegerToString(settings.rsiFilterSellMax) + ".";
-
-      string buyMin = IntegerToString(settings.rsiFilterBuyMin);
-      string sellMax = IntegerToString(settings.rsiFilterSellMax);
-      if(settings.rsiFilterBuyMin > settings.rsiFilterSellMax)
-         return "Entre " + sellMax + " e " + buyMin + ", BUY e SELL ficam bloqueados.";
-      if(settings.rsiFilterBuyMin < settings.rsiFilterSellMax)
-         return "Entre " + buyMin + " e " + sellMax + ", BUY e SELL podem passar.";
-      return "Iguais em " + buyMin + ": BUY >= " + buyMin + "; SELL <= " + sellMax + ".";
+      return "Linha " + IntegerToString(settings.rsiFilterBuyMin) + ": acima favorece compra; abaixo favorece venda.";
      }
 
    string            NoteHint(const SEASettings &settings) const
      {
-      if(settings.rsiFilterMode == RSI_FILTER_ADVANCED &&
-         settings.rsiFilterBuyMin == 0 && settings.rsiFilterSellMax == 100)
-         return "Observacao: 0/100 praticamente desativa o filtro.";
-      if(settings.rsiFilterMode == RSI_FILTER_ADVANCED)
-        {
-         if(settings.rsiFilterBuyMin == settings.rsiFilterSellMax)
-            return "Com niveis iguais, repete modo Direcao nesse nivel.";
-         if(settings.rsiFilterBuyMin > settings.rsiFilterSellMax)
-            return "Mais seletivo: cria uma faixa central bloqueada.";
-         return "Mais permissivo; use com cautela.";
-        }
       return "Filtro nao abre ordem; apenas aprova ou bloqueia entradas.";
-     }
-
-   bool              NoteIsWarning(const SEASettings &settings) const
-     {
-      return (settings.rsiFilterMode == RSI_FILTER_ADVANCED &&
-              ((settings.rsiFilterBuyMin == 0 && settings.rsiFilterSellMax == 100) ||
-               settings.rsiFilterBuyMin < settings.rsiFilterSellMax));
      }
 
    void              SyncGuidance(const SEASettings &settings,const bool editable)
@@ -191,7 +157,7 @@ private:
       m_zoneHint.Text(DetailHint(settings));
       m_zoneHint.Color(textColor);
       m_noteHint.Text(note);
-      m_noteHint.Color(NoteIsWarning(settings) ? FUSION_CLR_WARN : textColor);
+      m_noteHint.Color(textColor);
      }
 
 public:
@@ -376,7 +342,7 @@ public:
      {
       ENUM_RSI_FILTER_MODE mode = (ENUM_RSI_FILTER_MODE)m_mode.Value();
       if(!ModeValid(mode))
-         mode = RSI_FILTER_ADVANCED;
+         mode = RSI_FILTER_DIRECTION;
 
       if(m_period.Matches(objectName))
          m_period.SanitizeRange(14, 1, 1000, 4);

@@ -18,6 +18,7 @@ private:
                                                  m_settings.newsWindows[index].startMinute,
                                                  m_settings.newsWindows[index].endHour,
                                                  m_settings.newsWindows[index].endMinute,
+                                                 false,
                                                  now);
      }
 
