@@ -106,6 +106,14 @@ public:
       else
          newSL = NormalizeDouble(state.entryPrice - (settings.breakevenOffsetPoints * spec.point), spec.digits);
 
+      if(state.stopLoss > 0.0)
+        {
+         if(state.type == POSITION_TYPE_BUY && newSL <= state.stopLoss)
+            return false;
+         if(state.type == POSITION_TYPE_SELL && newSL >= state.stopLoss)
+            return false;
+        }
+
       return true;
      }
 

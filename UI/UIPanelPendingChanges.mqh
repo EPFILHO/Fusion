@@ -32,6 +32,8 @@
          return true;
       if(m_draftSettings.useBreakeven != m_committedSettings.useBreakeven)
          return true;
+      if(m_draftSettings.useTrailing != m_committedSettings.useTrailing)
+         return true;
 
       if(m_configRiskCreated)
         {
@@ -60,6 +62,10 @@
             return true;
          if(RiskIntegerPending(m_cfgRiskBreakevenOffsetEdit, m_committedSettings.breakevenOffsetPoints))
             return true;
+         if(RiskIntegerPending(m_cfgRiskTrailingStartEdit, m_committedSettings.trailingStartPoints))
+            return true;
+         if(RiskIntegerPending(m_cfgRiskTrailingStepEdit, m_committedSettings.trailingStepPoints))
+            return true;
         }
       else
         {
@@ -80,6 +86,10 @@
          if(m_draftSettings.breakevenTriggerPoints != m_committedSettings.breakevenTriggerPoints)
             return true;
          if(m_draftSettings.breakevenOffsetPoints != m_committedSettings.breakevenOffsetPoints)
+            return true;
+         if(m_draftSettings.trailingStartPoints != m_committedSettings.trailingStartPoints)
+            return true;
+         if(m_draftSettings.trailingStepPoints != m_committedSettings.trailingStepPoints)
             return true;
         }
 

@@ -58,6 +58,8 @@
       m_cfgRiskPartialError = "";
       m_cfgRiskBEValid = true;
       m_cfgRiskBEError = "";
+      m_cfgRiskTrailingValid = true;
+      m_cfgRiskTrailingError = "";
       m_cfgProtectionValid = true;
       m_cfgSystemValid = true;
       m_cfgStatusText = "";

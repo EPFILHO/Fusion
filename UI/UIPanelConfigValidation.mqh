@@ -54,10 +54,12 @@
       string filterError = "";
       string partialError = "";
       string beError = "";
+      string trailingError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
       bool partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
       bool beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
+      bool trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
       bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
       bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
       m_cfgRiskLotValid = (outSettings.fixedLot > 0.0);
@@ -66,7 +68,9 @@
       m_cfgRiskPartialError = partialError;
       m_cfgRiskBEValid = beValid;
       m_cfgRiskBEError = beError;
-      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid && partialValid && beValid);
+      m_cfgRiskTrailingValid = trailingValid;
+      m_cfgRiskTrailingError = trailingError;
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid && partialValid && beValid && trailingValid);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
@@ -91,6 +95,8 @@
          outStatus = partialError;
       else if(!beValid)
          outStatus = beError;
+      else if(!trailingValid)
+         outStatus = trailingError;
       else
          outStatus = (strategyError != "" ? strategyError : (filterError != "" ? filterError : "Perfil invalido."));
       return m_configInputsValid;
@@ -268,6 +274,7 @@
       bool filterValid = true;
       bool partialValid = true;
       bool beValid = true;
+      bool trailingValid = true;
       bool magicValid = false;
       bool magicUnique = false;
       string magicConflictProfile = "";
@@ -276,6 +283,7 @@
       string filterError = "";
       string partialError = "";
       string beError = "";
+      string trailingError = "";
       double parsedLot = 0.0;
       int parsedSL = 0;
       int parsedTP = 0;
@@ -304,23 +312,26 @@
                              filterError);
       partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
       beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
+      trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
 
-      m_cfgRiskValid = (lotValid && slValid && tpValid && partialValid && beValid);
+      m_cfgRiskValid = (lotValid && slValid && tpValid && partialValid && beValid && trailingValid);
       m_cfgRiskLotValid = lotValid;
       m_cfgRiskSLTPValid = (slValid && tpValid);
       m_cfgRiskPartialValid = partialValid;
       m_cfgRiskPartialError = partialError;
       m_cfgRiskBEValid = beValid;
       m_cfgRiskBEError = beError;
+      m_cfgRiskTrailingValid = trailingValid;
+      m_cfgRiskTrailingError = trailingError;
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && trailingValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
       CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSL, parsedTP, parsedMagic);
       ApplyStrategyStatus(strategyValid, strategyError);
       ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      bool configStatusValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && protectionValid && magicValid && magicUnique;
+      bool configStatusValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && trailingValid && protectionValid && magicValid && magicUnique;
       ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,

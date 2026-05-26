@@ -47,6 +47,14 @@
    CLabel                     m_cfgRiskBreakevenFoot2;
    CLabel                     m_cfgRiskTrailingHdr;
    CLabel                     m_cfgRiskTrailingDesc;
+   CLabel                     m_cfgRiskTrailingEnabledLbl;
+   CButton                    m_cfgRiskTrailingEnabledBtn;
+   CLabel                     m_cfgRiskTrailingStartLbl;
+   CEdit                      m_cfgRiskTrailingStartEdit;
+   CLabel                     m_cfgRiskTrailingStepLbl;
+   CEdit                      m_cfgRiskTrailingStepEdit;
+   CLabel                     m_cfgRiskTrailingFoot1;
+   CLabel                     m_cfgRiskTrailingFoot2;
 
    bool                       RiskSubtabHasError(const ENUM_FUSION_RISK_PAGE page) const
      {
@@ -58,6 +66,8 @@
          return !m_cfgRiskPartialValid;
       if(page == FUSION_RISK_BREAKEVEN)
          return !m_cfgRiskBEValid;
+      if(page == FUSION_RISK_TRAILING)
+         return !m_cfgRiskTrailingValid;
       return false;
      }
 
@@ -213,6 +223,53 @@
       return false;
      }
 
+   bool                       ValidateRiskTrailingSettings(SEASettings &settings,const bool editable,string &error)
+     {
+      error = "";
+
+      int startPoints = settings.trailingStartPoints;
+      int stepPoints = settings.trailingStepPoints;
+      bool startParsed = true;
+      bool stepParsed = true;
+
+      if(editable && m_configRiskCreated)
+        {
+         startParsed = RiskIntegerEditValue(m_cfgRiskTrailingStartEdit, startPoints);
+         stepParsed = RiskIntegerEditValue(m_cfgRiskTrailingStepEdit, stepPoints);
+         if(startParsed)
+            settings.trailingStartPoints = startPoints;
+         if(stepParsed)
+            settings.trailingStepPoints = stepPoints;
+        }
+
+      bool startValid = (!settings.useTrailing || (startParsed && startPoints > 0 && startPoints <= 100000));
+      bool stepValid = (!settings.useTrailing || (stepParsed && stepPoints > 0 && stepPoints <= 100000));
+      bool valid = (startValid && stepValid);
+
+      if(m_configRiskCreated)
+        {
+         bool trailingEditable = (editable && settings.useTrailing);
+         FusionApplyToggleButtonStyle(m_cfgRiskTrailingEnabledBtn, settings.useTrailing, editable);
+         FusionApplyEditStyle(m_cfgRiskTrailingStartEdit, startValid, trailingEditable);
+         FusionApplyEditStyle(m_cfgRiskTrailingStepEdit, stepValid, trailingEditable);
+         m_cfgRiskTrailingEnabledLbl.Color(!editable ? FUSION_CLR_MUTED : (valid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTrailingStartLbl.Color(!trailingEditable ? FUSION_CLR_MUTED : (startValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTrailingStepLbl.Color(!trailingEditable ? FUSION_CLR_MUTED : (stepValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+        }
+
+      if(valid)
+         return true;
+
+      if(!startValid)
+         error = "Trailing Inicio deve ser maior que 0 e ate 100000.";
+      else if(!stepValid)
+         error = "Trailing Passo deve ser maior que 0 e ate 100000.";
+      else
+         error = "Corrija o Trailing.";
+
+      return false;
+     }
+
    void                       SyncRiskControls(void)
      {
       if(!m_configRiskCreated)
@@ -227,6 +284,8 @@
       m_cfgRiskTP2DistanceEdit.Text(IntegerToString(m_draftSettings.tp2.distancePoints));
       m_cfgRiskBreakevenTriggerEdit.Text(IntegerToString(m_draftSettings.breakevenTriggerPoints));
       m_cfgRiskBreakevenOffsetEdit.Text(IntegerToString(m_draftSettings.breakevenOffsetPoints));
+      m_cfgRiskTrailingStartEdit.Text(IntegerToString(m_draftSettings.trailingStartPoints));
+      m_cfgRiskTrailingStepEdit.Text(IntegerToString(m_draftSettings.trailingStepPoints));
      }
 
    void                       ApplyRiskTabStyles(void)
@@ -362,7 +421,23 @@
 
       if(!AddLabel(m_cfgRiskTrailingHdr, "Fusion_cfg_risk_trailing_hdr", 22, 188, 260, 206, "Trailing", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_cfgRiskTrailingDesc, "Fusion_cfg_risk_trailing_desc", 22, 214, 520, 232, "Proxima fatia: inicio e passo em pontos.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskTrailingDesc, "Fusion_cfg_risk_trailing_desc", 22, 214, 520, 232, "Move o SL acompanhando o preco apos atingir o inicio em lucro.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskTrailingEnabledLbl, "Fusion_cfg_risk_trailing_enabled_lbl", 22, 250, 160, 268, "Ativo", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_cfgRiskTrailingEnabledBtn, "Fusion_cfg_risk_trailing_enabled_btn", 200, 248, 310, 272, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_cfgRiskTrailingStartLbl, "Fusion_cfg_risk_trailing_start_lbl", 22, 288, 170, 306, "Inicio (pts)", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskTrailingStartEdit, "Fusion_cfg_risk_trailing_start_edit", 200, 286, 310, 310, "150"))
+         return false;
+      if(!AddLabel(m_cfgRiskTrailingStepLbl, "Fusion_cfg_risk_trailing_step_lbl", 22, 326, 170, 344, "Passo (pts)", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskTrailingStepEdit, "Fusion_cfg_risk_trailing_step_edit", 200, 324, 310, 348, "80"))
+         return false;
+      if(!AddLabel(m_cfgRiskTrailingFoot1, "Fusion_cfg_risk_trailing_foot_1", 22, 462, 520, 480, "Trailing apenas ajusta o SL da posicao aberta.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskTrailingFoot2, "Fusion_cfg_risk_trailing_foot_2", 22, 486, 520, 504, "Passo define a distancia entre preco atual e novo SL.", FUSION_CLR_MUTED, 8))
          return false;
 
       return true;
@@ -428,6 +503,14 @@
      {
       SetVisible(m_cfgRiskTrailingHdr, visible);
       SetVisible(m_cfgRiskTrailingDesc, visible);
+      SetVisible(m_cfgRiskTrailingEnabledLbl, visible);
+      SetVisible(m_cfgRiskTrailingEnabledBtn, visible);
+      SetVisible(m_cfgRiskTrailingStartLbl, visible);
+      SetVisible(m_cfgRiskTrailingStartEdit, visible);
+      SetVisible(m_cfgRiskTrailingStepLbl, visible);
+      SetVisible(m_cfgRiskTrailingStepEdit, visible);
+      SetVisible(m_cfgRiskTrailingFoot1, visible);
+      SetVisible(m_cfgRiskTrailingFoot2, visible);
      }
 
    void                       SetAllRiskPagesVisible(const bool visible)
@@ -525,6 +608,8 @@
       if(HandleRiskBooleanToggle(objectName, m_cfgRiskTP2EnabledBtn, m_draftSettings.tp2.enabled, m_draftSettings.usePartialTP))
          return true;
       if(HandleRiskBooleanToggle(objectName, m_cfgRiskBreakevenEnabledBtn, m_draftSettings.useBreakeven, true))
+         return true;
+      if(HandleRiskBooleanToggle(objectName, m_cfgRiskTrailingEnabledBtn, m_draftSettings.useTrailing, true))
          return true;
       return false;
      }

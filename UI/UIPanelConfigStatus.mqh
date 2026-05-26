@@ -48,6 +48,8 @@
             return m_cfgRiskPartialError;
          if(m_riskPage == FUSION_RISK_BREAKEVEN && !m_cfgRiskBEValid)
             return m_cfgRiskBEError;
+         if(m_riskPage == FUSION_RISK_TRAILING && !m_cfgRiskTrailingValid)
+            return m_cfgRiskTrailingError;
          return "";
         }
 

@@ -42,6 +42,8 @@ private:
    string                     m_cfgRiskPartialError;
    bool                       m_cfgRiskBEValid;
    string                     m_cfgRiskBEError;
+   bool                       m_cfgRiskTrailingValid;
+   string                     m_cfgRiskTrailingError;
    bool                       m_cfgProtectionValid;
    bool                       m_cfgSystemValid;
    bool                       m_hasCommittedSettings;

@@ -748,20 +748,22 @@ private:
       double newSL = 0.0;
       if(m_riskManager.CalculateBreakevenSL(m_positionState, m_settings, SymbolSpec(), currentPrice, newSL))
         {
+         double oldSL = m_positionState.stopLoss;
          if(m_executionService.ModifyStops(m_positionState, newSL, m_positionState.takeProfit))
            {
             m_positionState.breakevenActive = true;
-            m_logger.Trade("RISK", "Breakeven activated");
+            m_logger.Trade("RISK", "Breakeven activated SL " + DoubleToString(oldSL, SymbolSpec().digits) + " -> " + DoubleToString(newSL, SymbolSpec().digits));
             PersistChartState();
            }
         }
 
       if(m_riskManager.CalculateTrailingSL(m_positionState, m_settings, SymbolSpec(), currentPrice, newSL))
         {
+         double oldSL = m_positionState.stopLoss;
          if(m_executionService.ModifyStops(m_positionState, newSL, m_positionState.takeProfit))
            {
             m_positionState.trailingActive = true;
-            m_logger.Trade("RISK", "Trailing stop updated");
+            m_logger.Trade("RISK", "Trailing stop updated SL " + DoubleToString(oldSL, SymbolSpec().digits) + " -> " + DoubleToString(newSL, SymbolSpec().digits));
             PersistChartState();
            }
         }
@@ -1045,7 +1047,11 @@ private:
       uint signalDoneTick = GetTickCount();
 
       if(!m_runtimeBlocked)
-         m_executionService.SyncPosition(m_positionState);
+        {
+         bool positionSynced = m_executionService.SyncPosition(m_positionState);
+         if(positionSynced && m_positionState.hasPosition)
+            m_logger.Info("SYNC", "Posicao aberta detectada e ressincronizada.");
+        }
 
       if(!m_runtimeBlocked)
          RefreshTradePermissionState();

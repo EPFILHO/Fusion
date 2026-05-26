@@ -49,6 +49,10 @@
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskBreakevenOffsetEdit.Name())
          return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTrailingStartEdit.Name())
+         return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskTrailingStepEdit.Name())
+         return true;
       if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          return true;
       if(IsProtectionDeferredEdit(objectName))
@@ -161,6 +165,10 @@
          NormalizeIntegerEdit(m_cfgRiskBreakevenTriggerEdit, m_draftSettings.breakevenTriggerPoints, true, 6);
       else if(m_configRiskCreated && objectName == m_cfgRiskBreakevenOffsetEdit.Name())
          NormalizeIntegerEdit(m_cfgRiskBreakevenOffsetEdit, m_draftSettings.breakevenOffsetPoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTrailingStartEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskTrailingStartEdit, m_draftSettings.trailingStartPoints, true, 6);
+      else if(m_configRiskCreated && objectName == m_cfgRiskTrailingStepEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskTrailingStepEdit, m_draftSettings.trailingStepPoints, true, 6);
       else if(m_configSystemCreated && objectName == m_cfgSystemMagicEdit.Name())
          NormalizeIntegerEdit(m_cfgSystemMagicEdit, m_draftSettings.magicNumber, false, 10);
      }
