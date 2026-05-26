@@ -147,17 +147,17 @@ input group "========== 010 - RISCO GLOBAL =========="
 input double inp_FixedLot                  = 0.10;      // Lote fixo
 input int    inp_FixedSLPoints             = 200;       // Stop loss fixo em pontos; 0 desliga
 input int    inp_FixedTPPoints             = 400;       // Take profit fixo em pontos; 0 desliga
-input bool   inp_UsePartialTP              = false;     // Flag reservada para TP parcial
-input bool   inp_EnableTP1                 = false;     // Flag reservada para TP1
+input bool   inp_UsePartialTP              = false;     // Ativar TP parcial
+input bool   inp_EnableTP1                 = false;     // Ativar TP1
 input double inp_TP1Percent                = 50.0;      // Percentual de volume do TP1
 input int    inp_TP1DistancePoints         = 150;       // Distancia do TP1 em pontos
-input bool   inp_EnableTP2                 = false;     // Flag reservada para TP2
+input bool   inp_EnableTP2                 = false;     // Ativar TP2
 input double inp_TP2Percent                = 25.0;      // Percentual de volume do TP2
 input int    inp_TP2DistancePoints         = 300;       // Distancia do TP2 em pontos
-input bool   inp_UseTrailing               = false;     // Flag reservada para trailing stop
+input bool   inp_UseTrailing               = false;     // Ativar trailing stop
 input int    inp_TrailingStartPoints       = 150;       // Inicio do trailing em pontos
 input int    inp_TrailingStepPoints        = 80;        // Passo do trailing em pontos
-input bool   inp_UseBreakeven              = false;     // Flag reservada para breakeven
+input bool   inp_UseBreakeven              = false;     // Ativar breakeven
 input int    inp_BreakevenTriggerPoints    = 120;       // Gatilho do breakeven em pontos
 input int    inp_BreakevenOffsetPoints     = 10;        // Offset do breakeven em pontos
 

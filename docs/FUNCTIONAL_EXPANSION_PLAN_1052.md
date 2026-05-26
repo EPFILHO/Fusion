@@ -69,7 +69,7 @@ As paginas de `FILTERS` tambem devem continuar concretas por filtro.
 Campos esperados para expansao:
 
 - `Trend Filter`: toggle, periodo da MA, timeframe, metodo e preco. Implementado com painel concreto, validacao e leitura de buffer em serie.
-- `RSI Filter`: toggle, modo, periodo, timeframe, niveis, preco e rodape explicativo. Implementado com modos `Direcao`, `Neutro`, `Extremos` e `Avancado`, validacao 0..100 dos niveis e leitura do RSI no candle fechado.
+- `RSI Filter`: toggle, modo, periodo, timeframe, niveis, preco e rodape explicativo. Foi implementado com modos `Direcao`, `Neutro`, `Extremos` e `Avancado`; na 1.053 o modo `Avancado` foi removido da GUI para reduzir confusao.
 - `Bollinger Filter`: novo filtro separado da estrategia Bollinger, com settings proprios e sem compartilhar campos ambiguos com `bb*` da estrategia.
 
 Revisao tecnica da expansao:
@@ -88,7 +88,7 @@ Direcao para `Bollinger Filter`:
 
 ## Risco Global
 
-Antes de overrides por estrategia, a 1.052 deve expor e validar somente o risco global que ja existe em `SEASettings` e `CRiskManager`.
+Antes de overrides por estrategia, a 1.052/1.053 deve expor e validar somente o risco global que ja existe em `SEASettings` e `CRiskManager`.
 
 Campos:
 
@@ -108,6 +108,13 @@ Validacoes iniciais de GUI:
 - trailing exige start e step positivos quando ativo.
 
 `stopsLevel` e `freezeLevel` ficam fora desta primeira etapa.
+
+Status na 1.053:
+
+- concluido: `CONFIG > RISK` foi dividido em `LOTE`, `SL/TP`, `TP PARCIAL`, `BREAKEVEN` e `TRAILING`;
+- concluido: TP parcial, BE e trailing foram expostos na GUI e testados em conjunto;
+- concluido: BE nao piora SL ja protegido pelo trailing;
+- pendente: stops/freeze level, ATR/range, overrides por estrategia e risco por estrategia.
 
 ## Observabilidade Operacional
 
@@ -137,9 +144,9 @@ Pendencias para uma fatia futura, sem misturar com estrategia/filtro/risco:
 3. Concluido: expandir GUI e validacao da `RSI` strategy.
 4. Concluido: expandir GUI e validacao da `Bollinger` strategy.
 5. Concluido: expandir GUI e validacao de `Trend Filter` e `RSI Filter`.
-6. Migrado para 1.053: fazer uma limpeza curta/segura sem mudar comportamento.
-7. Migrado para 1.053: adicionar `Bollinger Filter`.
-8. Migrado para 1.053: expor e validar o risco global completo.
+6. Concluido na 1.053: fazer uma limpeza curta/segura sem mudar comportamento.
+7. Concluido na 1.053: adicionar `Bollinger Filter`.
+8. Concluido na 1.053: expor e validar o risco global basico.
 
 ## Smoke Tests Minimos
 

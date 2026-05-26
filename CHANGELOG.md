@@ -17,6 +17,7 @@
 - `CONFIG > RISK > TRAILING` passou a expor ativacao, inicio em pontos e passo em pontos com validacao propria.
 - Breakeven agora ignora ajustes que piorariam um SL ja protegido pelo trailing; logs de breakeven/trailing passaram a mostrar `SL antigo -> SL novo`.
 - Ao iniciar com posicao aberta do mesmo ativo/magic, o EA agora registra que a posicao foi ressincronizada.
+- Atualizados handoff/arquitetura/plano funcional para refletir o checkpoint atual da 1.053 e removidos comentarios obsoletos de inputs de risco marcados como "reservados".
 - Comentarios enviados pelo EA em entradas, fechamentos e parciais agora passam pelo prefixo unico `EP Fusion - `.
 - A `VM` agora aparece no `STATUS`/rodape quando armada e fica documentada como reversao direta sem filtros/direcao, mantendo guards operacionais ativos.
 - Refinados textos e rodapes de `CONFIG > PROTECT`: resumo de sinais descartados, `Contagem Streak`, explicacao de sinais bloqueados, `Direcao` x `VM`, `Overnight` e `Fechar no fim`.

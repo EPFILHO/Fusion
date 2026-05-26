@@ -100,6 +100,14 @@ Calcula plano de entrada e gestao de posicao:
 
 Este modulo nao envia ordens. Ele calcula o que deve ser feito.
 
+Na 1.053, o risco global basico ja esta exposto na GUI em subtabs proprias de `CONFIG > RISK`: `LOTE`, `SL/TP`, `TP PARCIAL`, `BREAKEVEN` e `TRAILING`.
+
+`TP PARCIAL`, `BREAKEVEN` e `TRAILING` gerenciam apenas posicao aberta; nenhum deles gera entrada. O fluxo atual em posicao aberta executa TP parcial antes dos ajustes de SL. Depois disso, o BE pode mover o SL para entrada ou lucro minimo, e o trailing pode continuar melhorando o SL conforme o preco anda.
+
+O BE nao deve piorar um SL ja protegido pelo trailing. Para compra, novo SL precisa ser maior que o SL atual. Para venda, novo SL precisa ser menor que o SL atual.
+
+No trailing atual, `Passo` significa distancia entre o preco atual e o novo SL, nao incremento minimo entre uma modificacao e outra.
+
 ### `Protection`
 
 Bloqueia entradas ou forca saidas com base em regras de seguranca:
@@ -235,19 +243,19 @@ As paginas de estrategias e filtros devem preferir campos fechados para selecao 
 
 ## Prioridade Atual de Arquitetura
 
-A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. O painel ficou dividido em partials com responsabilidades mais claras, sem remover os guardrails de `CFusionHitGroup` e sem reabrir a regressao dos ComboBoxes.
+A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 completou a expansao funcional principal de estrategias/filtros, e a 1.053 avancou para `Bollinger Filter` separado, descarte fixo de sinais bloqueados e risco global basico na GUI.
 
-O proximo salto da 1.052 deve ser expansao funcional planejada, nao novo refactor aleatorio:
+O foco arquitetural atual e estabilizar o que ja esta funcionando antes de abrir uma nova frente grande:
 
-- completar a GUI e validacao das estrategias/filtros alem da MA;
-- adicionar Bollinger tambem como filtro, com settings proprios;
-- expor e validar o risco global que ja existe no core: SL, TP, TP parcial, breakeven e trailing;
-- manter risco por estrategia fora da primeira etapa da 1.052, mas desenhar a GUI e os componentes para serem reaproveitaveis depois;
-- evitar limpar "simetria" de `STRATS`/`FILTERS` antes de saber a forma final das paginas de estrategia e filtro.
+- preservar o padrao de GUI estabilizado com `CFusionHitGroup`;
+- manter filtros como validadores de sinal, nunca como geradores de entrada;
+- manter `Risk` calculando plano/ajustes e `Execution` enviando/modificando ordens;
+- melhorar documentacao, observabilidade e validacoes sem mexer no comportamento validado;
+- deixar risco por estrategia, ATR/range e overrides para depois.
 
 O modelo multi-timeframe por modulo ja foi incorporado ao fluxo principal de configuracao, restore, save/load de perfil e defaults internos. O timeframe atual do grafico continua sendo contexto visual do chart, nao regra operacional global.
 
-Refactors em `EAApplication.mqh` continuam desejaveis, mas devem esperar o desenho de estrategia/filtro/risco. A regra para a 1.052 e simples: primeiro desenhar as novas responsabilidades, depois mover codigo em fatias pequenas e compiladas.
+Refactors em `EAApplication.mqh` continuam desejaveis, mas devem esperar casos claros. A regra atual e simples: primeiro estabilizar o comportamento validado, depois mover codigo em fatias pequenas e compiladas.
 
 ## Hot Reload
 
@@ -259,14 +267,15 @@ No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde qu
 
 ## Proximas Evolucoes Arquiteturais
 
-- Completar campos e validacoes de RSI, Bollinger strategy, Trend Filter, RSI Filter e Bollinger Filter.
-- Expor risco global completo na GUI antes de criar overrides por estrategia.
+- Refinar `PROTECT > STREAK`, limites diarios e drawdown com acoes mais explicitas.
+- Melhorar telemetria de `STATUS`: ultimo sinal, origem, filtro/bloqueio, motivo e resultado.
+- Avaliar reducao/rate limit dos logs de trailing se virarem ruido em mercado rapido.
 - Criar componentes de risco reaproveitaveis para futura composicao por estrategia.
-- Criar um modelo estruturado para status de bloqueios.
 - Expor estatisticas reais para `RESULTS` e `STATS`.
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
 - Transformar trailing, breakeven, drawdown, streak e limites diarios em submodulos mais independentes se a complexidade aumentar.
 - Ampliar validacoes de volume, stops, freeze level e distancia minima.
+- Discutir somente depois: risco por estrategia, ATR/range, overrides e modo percentil do Bollinger Filter.
 
 ## Nota de Persistencia por Grafico
 
