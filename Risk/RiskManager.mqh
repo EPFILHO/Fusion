@@ -29,6 +29,17 @@ private:
       return NormalizeDouble(normalized, digits);
      }
 
+   bool     PartialVolumePlanValid(const SRiskPlan &plan,const double reserved,const SSymbolSpec &spec) const
+     {
+      if(spec.volumeMin <= 0.0)
+         return false;
+      if(reserved <= 0.0)
+         return false;
+      if((plan.volume - reserved) + 0.0000001 < spec.volumeMin)
+         return false;
+      return true;
+     }
+
 public:
                      CRiskManager(void)
      {
@@ -71,16 +82,26 @@ public:
            {
             plan.tp1Volume = NormalizeVolumeToSpec(plan.volume * (settings.tp1.percent / 100.0), spec);
             plan.tp1Price  = NormalizeDouble(entryPrice + (direction * settings.tp1.distancePoints * spec.point), spec.digits);
+            if(plan.tp1Volume <= 0.0 || plan.tp1Volume + 0.0000001 >= plan.volume)
+               return false;
             reserved      += plan.tp1Volume;
            }
 
          if(settings.tp2.enabled)
            {
             double requested = NormalizeVolumeToSpec(plan.volume * (settings.tp2.percent / 100.0), spec);
-            double remaining = MathMax(spec.volumeMin, plan.volume - reserved);
+            double remaining = plan.volume - reserved;
+            if(requested <= 0.0 || remaining <= spec.volumeMin)
+               return false;
             plan.tp2Volume = MathMin(requested, remaining);
             plan.tp2Price  = NormalizeDouble(entryPrice + (direction * settings.tp2.distancePoints * spec.point), spec.digits);
+            if(plan.tp2Volume <= 0.0 || plan.tp2Volume + 0.0000001 >= remaining)
+               return false;
+            reserved      += plan.tp2Volume;
            }
+
+         if(!PartialVolumePlanValid(plan, reserved, spec))
+            return false;
         }
 
       return true;

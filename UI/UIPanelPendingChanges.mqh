@@ -26,6 +26,8 @@
      {
       if(m_draftSettings.usePartialTP != m_committedSettings.usePartialTP)
          return true;
+      if(m_draftSettings.freeFinalTP != m_committedSettings.freeFinalTP)
+         return true;
       if(m_draftSettings.tp1.enabled != m_committedSettings.tp1.enabled)
          return true;
       if(m_draftSettings.tp2.enabled != m_committedSettings.tp2.enabled)
@@ -112,7 +114,9 @@
       else if(m_draftSettings.magicNumber != m_committedSettings.magicNumber)
          return true;
 
-      return (m_draftSettings.conflictMode != m_committedSettings.conflictMode);
+      if(m_draftSettings.conflictMode != m_committedSettings.conflictMode)
+         return true;
+      return (m_draftSettings.debugLogs != m_committedSettings.debugLogs);
      }
 
    bool                       HasSignalTogglePendingChanges(void)
@@ -265,11 +269,21 @@
          return true;
       if(MathAbs(m_draftSettings.maxDrawdown - m_committedSettings.maxDrawdown) > 0.0000001)
          return true;
-      if(m_draftSettings.enableStreak != m_committedSettings.enableStreak)
+      if(m_draftSettings.lossStreakEnabled != m_committedSettings.lossStreakEnabled)
          return true;
       if(m_draftSettings.maxLossStreak != m_committedSettings.maxLossStreak)
          return true;
+      if(m_draftSettings.lossStreakAction != m_committedSettings.lossStreakAction)
+         return true;
+      if(m_draftSettings.lossStreakPauseMinutes != m_committedSettings.lossStreakPauseMinutes)
+         return true;
+      if(m_draftSettings.winStreakEnabled != m_committedSettings.winStreakEnabled)
+         return true;
       if(m_draftSettings.maxWinStreak != m_committedSettings.maxWinStreak)
+         return true;
+      if(m_draftSettings.winStreakAction != m_committedSettings.winStreakAction)
+         return true;
+      if(m_draftSettings.winStreakPauseMinutes != m_committedSettings.winStreakPauseMinutes)
          return true;
 
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)

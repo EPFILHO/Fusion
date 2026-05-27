@@ -97,12 +97,32 @@
      {
       SetVisible(m_protectStreakHdr, visible);
       SetVisible(m_protectStreakDesc, visible);
-      SetVisible(m_protectStreakEnabledLbl, visible);
-      SetVisible(m_protectStreakEnabledBtn, visible);
+      SetVisible(m_protectStreakLossHdr, visible);
+      SetVisible(m_protectStreakLossEnabledLbl, visible);
+      SetVisible(m_protectStreakLossEnabledBtn, visible);
       SetVisible(m_protectStreakLossLbl, visible);
       SetVisible(m_protectStreakLossEdit, visible);
+      SetVisible(m_protectStreakLossPauseMinutesLbl, visible);
+      SetVisible(m_protectStreakLossPauseMinutesEdit, visible);
+      SetVisible(m_protectStreakWinHdr, visible);
+      SetVisible(m_protectStreakWinEnabledLbl, visible);
+      SetVisible(m_protectStreakWinEnabledBtn, visible);
       SetVisible(m_protectStreakWinLbl, visible);
       SetVisible(m_protectStreakWinEdit, visible);
+      SetVisible(m_protectStreakWinPauseMinutesLbl, visible);
+      SetVisible(m_protectStreakWinPauseMinutesEdit, visible);
+      SetVisible(m_protectStreakFoot1, visible);
+      SetVisible(m_protectStreakFoot2, visible);
+      if(visible)
+        {
+         m_protectStreakLossAction.Show();
+         m_protectStreakWinAction.Show();
+        }
+      else
+        {
+         m_protectStreakLossAction.Hide();
+         m_protectStreakWinAction.Hide();
+        }
      }
 
    void                       SetAllProtectionPagesVisible(const bool visible)

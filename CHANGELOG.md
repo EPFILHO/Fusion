@@ -3,7 +3,7 @@
 ## 1.053 - 2026-05-24
 - Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.
 - Adicionado `Bollinger Filter` separado da estrategia Bollinger, com settings/persistencia/inputs proprios usando prefixo `bbFilter*`.
-- A persistencia foi atualizada para `schemaVersion=8` e teve aliases/migracoes antigas removidos (`maMethod`, `maPrice`, spread legado, overnight inferido e RSI Filter antigo).
+- A persistencia foi atualizada para `schemaVersion=9` e teve aliases/migracoes antigas removidos (`maMethod`, `maPrice`, spread legado, overnight inferido e RSI Filter antigo).
 - O novo filtro herda de `CFilterBase`, usa handle proprio de `iBands` e apenas aprova/bloqueia sinais recebidos, sem gerar entradas.
 - Implementado anti-squeeze por largura das bandas nos modos `Absoluto` e `Relativo %`; o modo `Percentil` ficou fora desta fatia ate alinhamento explicito.
 - `FILTERS > BB` ganhou painel concreto com toggle, modo, periodo, timeframe, desvio, preco, limite minimo, validacoes e rodape claro.
@@ -16,8 +16,24 @@
 - `CONFIG > RISK > BREAKEVEN` passou a expor ativacao, gatilho em pontos e offset em pontos com validacao propria.
 - `CONFIG > RISK > TRAILING` passou a expor ativacao, inicio em pontos e passo em pontos com validacao propria.
 - Breakeven agora ignora ajustes que piorariam um SL ja protegido pelo trailing; logs de breakeven/trailing passaram a mostrar `SL antigo -> SL novo`.
+- `CONFIG > RISK > TP PARCIAL` ganhou `TP Final Livre`; `TP1` liga/desliga o modulo, `TP2` depende dele e o TP final pode ser removido apos o ultimo parcial ativo quando o trailing estiver ativo.
 - Ao iniciar com posicao aberta do mesmo ativo/magic, o EA agora registra que a posicao foi ressincronizada.
 - Atualizados handoff/arquitetura/plano funcional para refletir o checkpoint atual da 1.053 e removidos comentarios obsoletos de inputs de risco marcados como "reservados".
+- `CONFIG > PROTECT > STREAK` passou a separar Loss e Win, cada um com ativacao, limite, acao `PAUSAR`/`PARAR DIA`, minutos proprios e validacoes independentes.
+- Removida a chave geral redundante `inp_EnableStreak` dos inputs; o modulo Streak passa a derivar seu estado de Loss/Win ativos.
+- Logs de pausa por Streak ficaram menos verbosos: registram o inicio, marcos de 30/10 minutos conforme a duracao restante e os 5 minutos finais.
+- Avisos operacionais de protecao tambem passam a aparecer no status superior quando aplicavel, alem da area `Aviso` da aba `STATUS`.
+- Ao restaurar o EA rodando apos troca de timeframe e sem posicao aberta, sinais ja presentes sao primeados/descartados para evitar reentrada no mesmo candle.
+- Versao central atualizada para `1.053`, refletindo o ciclo atual no titulo da GUI e no `#property version`.
+- `CONFIG > SYSTEM` ganhou toggle `Logs Debug`, expondo a chave `debugLogs` do perfil para diagnostico controlado.
+- Estado operacional do Streak agora e salvo/restaurado no chart state: contadores, pausas, bloqueios de dia e reset por dia.
+- Status superior mostra bloqueio de pausa por Streak sem contador de minutos; o tempo restante segue detalhado em `STATUS > Aviso`.
+- Ao liberar um bloqueio de Streak, o EA registra a liberacao, informa que aguarda novo sinal de entrada e descarta sinais presentes naquele tick.
+- Corrigida a transicao de aviso do Streak para nao registrar liberacao enquanto apenas o contador de minutos muda, mantendo status superior e `STATUS > Aviso` coerentes.
+- Status superior do Streak foi encurtado e a largura do painel aumentada levemente para melhorar encaixe visual.
+- Reduzido ruido de `DEBUG/SIGNAL` durante bloqueios repetidos: Streak fica concentrado em `PROTECT` e outros motivos sao limitados por mudanca/intervalo.
+- Bloqueios de Streak ja ativados passam a valer ate expirar ou virar o dia, mesmo que o EA seja pausado e as configuracoes sejam editadas.
+- Removido o campo derivado `enableStreak`; Streak agora depende diretamente de Loss/Win independentes, sem chave redundante.
 - Comentarios enviados pelo EA em entradas, fechamentos e parciais agora passam pelo prefixo unico `EP Fusion - `.
 - A `VM` agora aparece no `STATUS`/rodape quando armada e fica documentada como reversao direta sem filtros/direcao, mantendo guards operacionais ativos.
 - Refinados textos e rodapes de `CONFIG > PROTECT`: resumo de sinais descartados, `Contagem Streak`, explicacao de sinais bloqueados, `Direcao` x `VM`, `Overnight` e `Fechar no fim`.

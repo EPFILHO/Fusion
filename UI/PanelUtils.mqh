@@ -338,6 +338,23 @@ bool FusionPopulateBBFilterWidthModeCombo(CComboBox &combo)
    return true;
   }
 
+string FusionStreakActionName(const ENUM_STREAK_ACTION action)
+  {
+   if(action == STREAK_ACTION_STOP_DAY)
+      return "Parar dia";
+   return "Pausar";
+  }
+
+bool FusionPopulateStreakActionCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(2);
+   if(!combo.AddItem(FusionStreakActionName(STREAK_ACTION_PAUSE), (long)STREAK_ACTION_PAUSE))
+      return false;
+   if(!combo.AddItem(FusionStreakActionName(STREAK_ACTION_STOP_DAY), (long)STREAK_ACTION_STOP_DAY))
+      return false;
+   return true;
+  }
+
 string FusionBBModeName(const ENUM_BB_SIGNAL_MODE mode)
   {
    switch(mode)
@@ -485,6 +502,23 @@ string FusionFormatVolume(const double volume,const SSymbolSpec &spec)
    if(digits < 2)
       digits = 2;
    return DoubleToString(volume, digits);
+  }
+
+string FusionTopRuntimeNoticeText(const string notice)
+  {
+   if(notice == "Bloqueio de streak liberado. EA aguarda novo sinal de entrada.")
+      return "Streak liberado; aguardando sinal.";
+
+   if(StringFind(notice, "Bloqueio por ") != 0 ||
+      StringFind(notice, " streak em pausa (") <= 0)
+      return notice;
+
+   if(StringFind(notice, "Bloqueio por loss streak") == 0)
+      return "Loss streak em pausa.";
+   if(StringFind(notice, "Bloqueio por win streak") == 0)
+      return "Win streak em pausa.";
+
+   return "Streak em pausa.";
   }
 
 bool FusionIsDecimalText(const string text,const bool allowZero=true)

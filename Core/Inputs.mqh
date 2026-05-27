@@ -137,9 +137,14 @@ input double inp_MaxDailyLoss              = 0.0;       // Perda diaria maxima; 
 input double inp_MaxDailyGain              = 0.0;       // Ganho diario maximo; 0 desliga limite
 input bool   inp_EnableDrawdown            = false;     // Ativar protecao de drawdown
 input double inp_MaxDrawdown               = 0.0;       // Valor maximo de drawdown
-input bool   inp_EnableStreak              = false;     // Ativar protecao por sequencia
+input bool   inp_EnableLossStreak          = false;     // Ativar limite por perdas seguidas
 input int    inp_MaxLossStreak             = 0;         // Maximo de perdas seguidas; 0 desliga limite
+input ENUM_STREAK_ACTION inp_LossStreakAction = STREAK_ACTION_PAUSE; // Acao ao atingir perdas
+input int    inp_LossStreakPauseMinutes    = 30;        // Pausa apos perdas, em minutos
+input bool   inp_EnableWinStreak           = false;     // Ativar limite por ganhos seguidos
 input int    inp_MaxWinStreak              = 0;         // Maximo de ganhos seguidos; 0 desliga limite
+input ENUM_STREAK_ACTION inp_WinStreakAction = STREAK_ACTION_STOP_DAY; // Acao ao atingir ganhos
+input int    inp_WinStreakPauseMinutes     = 30;        // Pausa apos ganhos, em minutos
 
 input group " "
 //--- Configuracoes globais usadas pelos modulos de risco/execucao
@@ -147,13 +152,13 @@ input group "========== 010 - RISCO GLOBAL =========="
 input double inp_FixedLot                  = 0.10;      // Lote fixo
 input int    inp_FixedSLPoints             = 200;       // Stop loss fixo em pontos; 0 desliga
 input int    inp_FixedTPPoints             = 400;       // Take profit fixo em pontos; 0 desliga
-input bool   inp_UsePartialTP              = false;     // Ativar TP parcial
 input bool   inp_EnableTP1                 = false;     // Ativar TP1
 input double inp_TP1Percent                = 50.0;      // Percentual de volume do TP1
 input int    inp_TP1DistancePoints         = 150;       // Distancia do TP1 em pontos
 input bool   inp_EnableTP2                 = false;     // Ativar TP2
 input double inp_TP2Percent                = 25.0;      // Percentual de volume do TP2
 input int    inp_TP2DistancePoints         = 300;       // Distancia do TP2 em pontos
+input bool   inp_FreeFinalTP               = false;     // TP final livre apos parcial; requer trailing ativo
 input bool   inp_UseTrailing               = false;     // Ativar trailing stop
 input int    inp_TrailingStartPoints       = 150;       // Inicio do trailing em pontos
 input int    inp_TrailingStepPoints        = 80;        // Passo do trailing em pontos
@@ -282,19 +287,30 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.maxDailyGain           = inp_MaxDailyGain;
    settings.enableDrawdown         = inp_EnableDrawdown;
    settings.maxDrawdown            = inp_MaxDrawdown;
-   settings.enableStreak           = inp_EnableStreak;
+   settings.lossStreakEnabled      = inp_EnableLossStreak;
    settings.maxLossStreak          = inp_MaxLossStreak;
+   settings.lossStreakAction       = inp_LossStreakAction;
+   settings.lossStreakPauseMinutes = inp_LossStreakPauseMinutes;
+   settings.winStreakEnabled       = inp_EnableWinStreak;
    settings.maxWinStreak           = inp_MaxWinStreak;
+   settings.winStreakAction        = inp_WinStreakAction;
+   settings.winStreakPauseMinutes  = inp_WinStreakPauseMinutes;
    settings.fixedLot               = inp_FixedLot;
    settings.fixedSLPoints          = inp_FixedSLPoints;
    settings.fixedTPPoints          = inp_FixedTPPoints;
-   settings.usePartialTP           = inp_UsePartialTP;
    settings.tp1.enabled            = inp_EnableTP1;
    settings.tp1.percent            = inp_TP1Percent;
    settings.tp1.distancePoints     = inp_TP1DistancePoints;
    settings.tp2.enabled            = inp_EnableTP2;
    settings.tp2.percent            = inp_TP2Percent;
    settings.tp2.distancePoints     = inp_TP2DistancePoints;
+   settings.freeFinalTP            = inp_FreeFinalTP;
+   if(!settings.tp1.enabled)
+     {
+      settings.tp2.enabled = false;
+      settings.freeFinalTP = false;
+     }
+   settings.usePartialTP           = settings.tp1.enabled;
    settings.useTrailing            = inp_UseTrailing;
    settings.trailingStartPoints    = inp_TrailingStartPoints;
    settings.trailingStepPoints     = inp_TrailingStepPoints;

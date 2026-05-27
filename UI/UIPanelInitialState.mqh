@@ -45,6 +45,8 @@
       m_snapshot.dailyClosedProfit = 0.0;
       m_snapshot.lossStreak = 0;
       m_snapshot.winStreak = 0;
+      m_snapshot.streakProtectionBlocked = false;
+      m_snapshot.streakProtectionBlockReason = "";
       m_snapshot.drawdownProtectionActive = false;
      }
 

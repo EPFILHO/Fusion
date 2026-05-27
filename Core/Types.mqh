@@ -85,6 +85,12 @@ enum ENUM_NEWS_WINDOW_ACTION
    NEWS_ACTION_CLOSE_AND_BLOCK
   };
 
+enum ENUM_STREAK_ACTION
+  {
+   STREAK_ACTION_PAUSE = 0,
+   STREAK_ACTION_STOP_DAY
+  };
+
 enum ENUM_UI_COMMAND
   {
    UI_COMMAND_NONE = 0,
@@ -159,13 +165,19 @@ struct SEASettings
    double                   maxDailyGain;
    bool                     enableDrawdown;
    double                   maxDrawdown;
-   bool                     enableStreak;
+   bool                     lossStreakEnabled;
    int                      maxLossStreak;
+   ENUM_STREAK_ACTION       lossStreakAction;
+   int                      lossStreakPauseMinutes;
+   bool                     winStreakEnabled;
    int                      maxWinStreak;
+   ENUM_STREAK_ACTION       winStreakAction;
+   int                      winStreakPauseMinutes;
    double                   fixedLot;
    int                      fixedSLPoints;
    int                      fixedTPPoints;
    bool                     usePartialTP;
+   bool                     freeFinalTP;
    SPartialTPConfig         tp1;
    SPartialTPConfig         tp2;
    bool                     useTrailing;
@@ -283,6 +295,17 @@ struct SPositionRuntimeState
    double             dayPeakProjectedProfit;
   };
 
+struct SStreakRuntimeState
+  {
+   int      dayKey;
+   int      lossStreak;
+   int      winStreak;
+   bool     lossStopDayBlocked;
+   bool     winStopDayBlocked;
+   datetime lossPauseUntil;
+   datetime winPauseUntil;
+  };
+
 struct SClosedTradeSummary
   {
    bool   found;
@@ -335,6 +358,8 @@ struct SUIPanelSnapshot
    double dailyClosedProfit;
    int    lossStreak;
    int    winStreak;
+   bool   streakProtectionBlocked;
+   string streakProtectionBlockReason;
    bool   drawdownProtectionActive;
   };
 
@@ -362,7 +387,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 8;
+   settings.schemaVersion         = 9;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -396,13 +421,19 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maxDailyGain          = 0.0;
    settings.enableDrawdown        = false;
    settings.maxDrawdown           = 0.0;
-   settings.enableStreak          = false;
+   settings.lossStreakEnabled     = false;
    settings.maxLossStreak         = 0;
+   settings.lossStreakAction      = STREAK_ACTION_PAUSE;
+   settings.lossStreakPauseMinutes= 30;
+   settings.winStreakEnabled      = false;
    settings.maxWinStreak          = 0;
+   settings.winStreakAction       = STREAK_ACTION_STOP_DAY;
+   settings.winStreakPauseMinutes = 30;
    settings.fixedLot              = 0.10;
    settings.fixedSLPoints         = 200;
    settings.fixedTPPoints         = 400;
    settings.usePartialTP          = false;
+   settings.freeFinalTP           = false;
    settings.tp1.enabled           = false;
    settings.tp1.percent           = 50.0;
    settings.tp1.distancePoints    = 150;
@@ -521,6 +552,17 @@ void ResetPositionRuntimeState(SPositionRuntimeState &state)
    state.tp2Price             = 0.0;
    state.tp2Volume            = 0.0;
    state.dayPeakProjectedProfit = 0.0;
+  }
+
+void ResetStreakRuntimeState(SStreakRuntimeState &state)
+  {
+   state.dayKey = 0;
+   state.lossStreak = 0;
+   state.winStreak = 0;
+   state.lossStopDayBlocked = false;
+   state.winStopDayBlocked = false;
+   state.lossPauseUntil = 0;
+   state.winPauseUntil = 0;
   }
 
 #endif

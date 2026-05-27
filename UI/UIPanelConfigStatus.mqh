@@ -97,6 +97,11 @@
          status = m_snapshot.tradePermissionReason;
          statusColor = FUSION_CLR_WARN;
         }
+      else if(m_snapshot.runtimeNotice != "")
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice);
+         statusColor = FUSION_CLR_WARN;
+        }
       else if(m_snapshot.hasPosition)
         {
          status = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";

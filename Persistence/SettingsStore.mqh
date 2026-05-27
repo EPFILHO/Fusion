@@ -87,13 +87,19 @@ private:
       WriteLine(handle, "maxDailyGain", DoubleToString(settings.maxDailyGain, 2));
       WriteLine(handle, "enableDrawdown", IntegerToString((int)settings.enableDrawdown));
       WriteLine(handle, "maxDrawdown", DoubleToString(settings.maxDrawdown, 2));
-      WriteLine(handle, "enableStreak", IntegerToString((int)settings.enableStreak));
+      WriteLine(handle, "lossStreakEnabled", IntegerToString((int)settings.lossStreakEnabled));
       WriteLine(handle, "maxLossStreak", IntegerToString(settings.maxLossStreak));
+      WriteLine(handle, "lossStreakAction", IntegerToString((int)settings.lossStreakAction));
+      WriteLine(handle, "lossStreakPauseMinutes", IntegerToString(settings.lossStreakPauseMinutes));
+      WriteLine(handle, "winStreakEnabled", IntegerToString((int)settings.winStreakEnabled));
       WriteLine(handle, "maxWinStreak", IntegerToString(settings.maxWinStreak));
+      WriteLine(handle, "winStreakAction", IntegerToString((int)settings.winStreakAction));
+      WriteLine(handle, "winStreakPauseMinutes", IntegerToString(settings.winStreakPauseMinutes));
       WriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 4));
       WriteLine(handle, "fixedSLPoints", IntegerToString(settings.fixedSLPoints));
       WriteLine(handle, "fixedTPPoints", IntegerToString(settings.fixedTPPoints));
       WriteLine(handle, "usePartialTP", IntegerToString((int)settings.usePartialTP));
+      WriteLine(handle, "freeFinalTP", IntegerToString((int)settings.freeFinalTP));
       WriteLine(handle, "tp1.enabled", IntegerToString((int)settings.tp1.enabled));
       WriteLine(handle, "tp1.percent", DoubleToString(settings.tp1.percent, 2));
       WriteLine(handle, "tp1.distancePoints", IntegerToString(settings.tp1.distancePoints));
@@ -234,13 +240,19 @@ private:
       else if(key == "maxDailyGain") settings.maxDailyGain = StringToDouble(value);
       else if(key == "enableDrawdown") settings.enableDrawdown = (bool)StringToInteger(value);
       else if(key == "maxDrawdown") settings.maxDrawdown = StringToDouble(value);
-      else if(key == "enableStreak") settings.enableStreak = (bool)StringToInteger(value);
+      else if(key == "lossStreakEnabled") settings.lossStreakEnabled = (bool)StringToInteger(value);
       else if(key == "maxLossStreak") settings.maxLossStreak = (int)StringToInteger(value);
+      else if(key == "lossStreakAction") settings.lossStreakAction = (ENUM_STREAK_ACTION)StringToInteger(value);
+      else if(key == "lossStreakPauseMinutes") settings.lossStreakPauseMinutes = (int)StringToInteger(value);
+      else if(key == "winStreakEnabled") settings.winStreakEnabled = (bool)StringToInteger(value);
       else if(key == "maxWinStreak") settings.maxWinStreak = (int)StringToInteger(value);
+      else if(key == "winStreakAction") settings.winStreakAction = (ENUM_STREAK_ACTION)StringToInteger(value);
+      else if(key == "winStreakPauseMinutes") settings.winStreakPauseMinutes = (int)StringToInteger(value);
       else if(key == "fixedLot") settings.fixedLot = StringToDouble(value);
       else if(key == "fixedSLPoints") settings.fixedSLPoints = (int)StringToInteger(value);
       else if(key == "fixedTPPoints") settings.fixedTPPoints = (int)StringToInteger(value);
       else if(key == "usePartialTP") settings.usePartialTP = (bool)StringToInteger(value);
+      else if(key == "freeFinalTP") settings.freeFinalTP = (bool)StringToInteger(value);
       else if(key == "tp1.enabled") settings.tp1.enabled = (bool)StringToInteger(value);
       else if(key == "tp1.percent") settings.tp1.percent = StringToDouble(value);
       else if(key == "tp1.distancePoints") settings.tp1.distancePoints = (int)StringToInteger(value);
@@ -306,7 +318,46 @@ private:
       else if(key == "bbFilterMinWidthPercent") settings.bbFilterMinWidthPercent = StringToDouble(value);
      }
 
-   void              ApplyRuntimeField(const string key,const string value,string &activeProfileName,bool &started,SPositionRuntimeState &state) const
+   ENUM_STREAK_ACTION NormalizeStreakAction(const ENUM_STREAK_ACTION action,const ENUM_STREAK_ACTION fallback) const
+     {
+      if(action == STREAK_ACTION_PAUSE || action == STREAK_ACTION_STOP_DAY)
+         return action;
+      return fallback;
+     }
+
+   void              NormalizeStreakSettings(SEASettings &settings) const
+     {
+      if(settings.maxLossStreak < 0)
+         settings.maxLossStreak = 0;
+      if(settings.maxWinStreak < 0)
+         settings.maxWinStreak = 0;
+      if(settings.lossStreakPauseMinutes < 0)
+         settings.lossStreakPauseMinutes = 0;
+      if(settings.winStreakPauseMinutes < 0)
+         settings.winStreakPauseMinutes = 0;
+
+      settings.lossStreakAction = NormalizeStreakAction(settings.lossStreakAction, STREAK_ACTION_PAUSE);
+      settings.winStreakAction = NormalizeStreakAction(settings.winStreakAction, STREAK_ACTION_STOP_DAY);
+
+     }
+
+   void              NormalizeRiskSettings(SEASettings &settings) const
+     {
+      if(!settings.tp1.enabled)
+        {
+         settings.tp2.enabled = false;
+         settings.freeFinalTP = false;
+        }
+
+      settings.usePartialTP = settings.tp1.enabled;
+     }
+
+   void              ApplyRuntimeField(const string key,
+                                       const string value,
+                                       string &activeProfileName,
+                                       bool &started,
+                                       SPositionRuntimeState &state,
+                                       SStreakRuntimeState &streakState) const
      {
       if(key == "activeProfileName") activeProfileName = value;
       else if(key == "started") started = (bool)StringToInteger(value);
@@ -324,6 +375,13 @@ private:
       else if(key == "state.tp2Price") state.tp2Price = StringToDouble(value);
       else if(key == "state.tp2Volume") state.tp2Volume = StringToDouble(value);
       else if(key == "state.dayPeakProjectedProfit") state.dayPeakProjectedProfit = StringToDouble(value);
+      else if(key == "streak.dayKey") streakState.dayKey = (int)StringToInteger(value);
+      else if(key == "streak.lossStreak") streakState.lossStreak = (int)StringToInteger(value);
+      else if(key == "streak.winStreak") streakState.winStreak = (int)StringToInteger(value);
+      else if(key == "streak.lossStopDayBlocked") streakState.lossStopDayBlocked = (bool)StringToInteger(value);
+      else if(key == "streak.winStopDayBlocked") streakState.winStopDayBlocked = (bool)StringToInteger(value);
+      else if(key == "streak.lossPauseUntil") streakState.lossPauseUntil = (datetime)StringToInteger(value);
+      else if(key == "streak.winPauseUntil") streakState.winPauseUntil = (datetime)StringToInteger(value);
      }
 
    void              ApplyContextField(const string key,const string value,SChartStateContext &context) const
@@ -479,10 +537,17 @@ public:
         }
 
       FileClose(handle);
+      NormalizeStreakSettings(settings);
+      NormalizeRiskSettings(settings);
       return true;
      }
 
-   bool              SaveChartState(const SChartStateContext &context,const string activeProfileName,const bool started,const SEASettings &settings,const SPositionRuntimeState &state)
+   bool              SaveChartState(const SChartStateContext &context,
+                                    const string activeProfileName,
+                                    const bool started,
+                                    const SEASettings &settings,
+                                    const SPositionRuntimeState &state,
+                                    const SStreakRuntimeState &streakState)
      {
       EnsureFolders();
 
@@ -514,16 +579,30 @@ public:
       WriteLine(handle, "state.tp2Price", DoubleToString(state.tp2Price, 8));
       WriteLine(handle, "state.tp2Volume", DoubleToString(state.tp2Volume, 4));
       WriteLine(handle, "state.dayPeakProjectedProfit", DoubleToString(state.dayPeakProjectedProfit, 2));
+      WriteLine(handle, "streak.dayKey", IntegerToString(streakState.dayKey));
+      WriteLine(handle, "streak.lossStreak", IntegerToString(streakState.lossStreak));
+      WriteLine(handle, "streak.winStreak", IntegerToString(streakState.winStreak));
+      WriteLine(handle, "streak.lossStopDayBlocked", IntegerToString((int)streakState.lossStopDayBlocked));
+      WriteLine(handle, "streak.winStopDayBlocked", IntegerToString((int)streakState.winStopDayBlocked));
+      WriteLine(handle, "streak.lossPauseUntil", IntegerToString((long)streakState.lossPauseUntil));
+      WriteLine(handle, "streak.winPauseUntil", IntegerToString((long)streakState.winPauseUntil));
 
       FileClose(handle);
       return true;
      }
 
-   bool              LoadChartState(const ulong chartId,SChartStateContext &context,string &activeProfileName,bool &started,SEASettings &settings,SPositionRuntimeState &state)
+   bool              LoadChartState(const ulong chartId,
+                                    SChartStateContext &context,
+                                    string &activeProfileName,
+                                    bool &started,
+                                    SEASettings &settings,
+                                    SPositionRuntimeState &state,
+                                    SStreakRuntimeState &streakState)
      {
       EnsureFolders();
       SetDefaultSettings(settings);
       ResetPositionRuntimeState(state);
+      ResetStreakRuntimeState(streakState);
       context.chartId = chartId;
       context.symbol = "";
       context.timeframe = "";
@@ -547,11 +626,13 @@ public:
             continue;
 
          ApplySetting(key, value, settings);
-         ApplyRuntimeField(key, value, activeProfileName, started, state);
+         ApplyRuntimeField(key, value, activeProfileName, started, state, streakState);
          ApplyContextField(key, value, context);
         }
 
       FileClose(handle);
+      NormalizeStreakSettings(settings);
+      NormalizeRiskSettings(settings);
       return true;
      }
   };

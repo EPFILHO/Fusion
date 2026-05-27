@@ -196,6 +196,9 @@
         {
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
          m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, editable);
+         m_cfgSystemDebugLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemFoot1.Color(FUSION_CLR_MUTED);
         }
      }
 
@@ -302,6 +305,14 @@
                                  magicUnique,
                                  magicConflictProfile);
       ApplyConfigScalarStyles(editable, lotValid, slValid, tpValid, magicValid, magicUnique);
+      if(lotValid)
+         outSettings.fixedLot = parsedLot;
+      if(slValid)
+         outSettings.fixedSLPoints = parsedSL;
+      if(tpValid)
+         outSettings.fixedTPPoints = parsedTP;
+      if(magicValid)
+         outSettings.magicNumber = parsedMagic;
       ValidateConfigSections(outSettings,
                              editable,
                              protectionValid,

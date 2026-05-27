@@ -185,17 +185,68 @@
          return false;
       if(!AddLabel(m_protectStreakDesc, "Fusion_protect_streak_desc", 22, 214, 520, 232, "Bloqueia novas entradas apos sequencias configuradas.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_protectStreakEnabledLbl, "Fusion_protect_streak_enabled_lbl", 22, 250, 160, 268, "Ativo", FUSION_CLR_LABEL))
+      if(!AddLabel(m_protectStreakLossHdr, "Fusion_protect_streak_loss_hdr", 22, 250, 180, 268, "Loss Streak", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddButton(m_protectStreakEnabledBtn, "Fusion_protect_streak_enabled_btn", 200, 248, 310, 272, "OFF", FUSION_CLR_BAD))
+      if(!AddLabel(m_protectStreakLossEnabledLbl, "Fusion_protect_streak_loss_enabled_lbl", 22, 282, 100, 300, "Ativo", FUSION_CLR_LABEL))
          return false;
-      if(!AddLabel(m_protectStreakLossLbl, "Fusion_protect_streak_loss_lbl", 22, 288, 180, 306, "Max Loss", FUSION_CLR_LABEL))
+      if(!AddButton(m_protectStreakLossEnabledBtn, "Fusion_protect_streak_loss_enabled_btn", 112, 280, 202, 304, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddEdit(m_protectStreakLossEdit, "Fusion_protect_streak_loss_edit", 200, 286, 310, 310, "0"))
+      if(!AddLabel(m_protectStreakLossLbl, "Fusion_protect_streak_loss_lbl", 22, 320, 100, 338, "Max Loss", FUSION_CLR_LABEL))
          return false;
-      if(!AddLabel(m_protectStreakWinLbl, "Fusion_protect_streak_win_lbl", 22, 326, 180, 344, "Max Win", FUSION_CLR_LABEL))
+      if(!AddEdit(m_protectStreakLossEdit, "Fusion_protect_streak_loss_edit", 112, 318, 202, 342, "0"))
          return false;
-      if(!AddEdit(m_protectStreakWinEdit, "Fusion_protect_streak_win_edit", 200, 324, 310, 348, "0"))
+      if(!m_protectStreakLossAction.Create(GetPointer(this),
+                                           m_chartId,
+                                           m_subWindow,
+                                           "Fusion_protect_streak_loss_action",
+                                           "Acao",
+                                           FUSION_SELECTION_STREAK_ACTION,
+                                           22,
+                                           358,
+                                           100,
+                                           376,
+                                           112,
+                                           356,
+                                           202,
+                                           380))
+         return false;
+      if(!AddLabel(m_protectStreakLossPauseMinutesLbl, "Fusion_protect_streak_loss_pause_min_lbl", 22, 396, 100, 414, "Pausa min", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_protectStreakLossPauseMinutesEdit, "Fusion_protect_streak_loss_pause_min_edit", 112, 394, 202, 418, "30"))
+         return false;
+
+      if(!AddLabel(m_protectStreakWinHdr, "Fusion_protect_streak_win_hdr", 298, 250, 456, 268, "Win Streak", FUSION_CLR_VALUE, 9))
+         return false;
+      if(!AddLabel(m_protectStreakWinEnabledLbl, "Fusion_protect_streak_win_enabled_lbl", 298, 282, 376, 300, "Ativo", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_protectStreakWinEnabledBtn, "Fusion_protect_streak_win_enabled_btn", 388, 280, 478, 304, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_protectStreakWinLbl, "Fusion_protect_streak_win_lbl", 298, 320, 376, 338, "Max Win", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_protectStreakWinEdit, "Fusion_protect_streak_win_edit", 388, 318, 478, 342, "0"))
+         return false;
+      if(!m_protectStreakWinAction.Create(GetPointer(this),
+                                          m_chartId,
+                                          m_subWindow,
+                                          "Fusion_protect_streak_win_action",
+                                          "Acao",
+                                          FUSION_SELECTION_STREAK_ACTION,
+                                          298,
+                                          358,
+                                          376,
+                                          376,
+                                          388,
+                                          356,
+                                          478,
+                                          380))
+         return false;
+      if(!AddLabel(m_protectStreakWinPauseMinutesLbl, "Fusion_protect_streak_win_pause_min_lbl", 298, 396, 376, 414, "Pausa min", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_protectStreakWinPauseMinutesEdit, "Fusion_protect_streak_win_pause_min_edit", 388, 394, 478, 418, "30"))
+         return false;
+      if(!AddLabel(m_protectStreakFoot1, "Fusion_protect_streak_foot_1", 22, 462, 520, 480, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectStreakFoot2, "Fusion_protect_streak_foot_2", 22, 486, 520, 504, "", FUSION_CLR_MUTED, 8))
          return false;
 
       return true;

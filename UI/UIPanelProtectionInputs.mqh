@@ -162,6 +162,8 @@
             objectName == m_protectDayGainEdit.Name() ||
             objectName == m_protectDrawdownValueEdit.Name() ||
             objectName == m_protectStreakLossEdit.Name() ||
+            objectName == m_protectStreakLossPauseMinutesEdit.Name() ||
+            objectName == m_protectStreakWinPauseMinutesEdit.Name() ||
             objectName == m_protectStreakWinEdit.Name())
             return true;
 
@@ -247,9 +249,19 @@
          NormalizeIntegerEdit(m_protectStreakLossEdit, m_draftSettings.maxLossStreak, true);
          return true;
         }
+      if(objectName == m_protectStreakLossPauseMinutesEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectStreakLossPauseMinutesEdit, m_draftSettings.lossStreakPauseMinutes, true);
+         return true;
+        }
       if(objectName == m_protectStreakWinEdit.Name())
         {
          NormalizeIntegerEdit(m_protectStreakWinEdit, m_draftSettings.maxWinStreak, true);
+         return true;
+        }
+      if(objectName == m_protectStreakWinPauseMinutesEdit.Name())
+        {
+         NormalizeIntegerEdit(m_protectStreakWinPauseMinutesEdit, m_draftSettings.winStreakPauseMinutes, true);
          return true;
         }
 

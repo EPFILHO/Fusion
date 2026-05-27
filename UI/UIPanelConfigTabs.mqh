@@ -40,13 +40,19 @@
      {
       if(!AddLabel(m_cfgSystemHdr, "Fusion_cfg_system_hdr", 22, 160, 300, 180, "Sistema e Persistencia", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_cfgSystemMagicLbl, "Fusion_cfg_magic_lbl", 22, 198, 170, 216, "Magic", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemMagicLbl, "Fusion_cfg_magic_lbl", 22, 198, 170, 216, "Magic Number do EA", FUSION_CLR_LABEL))
          return false;
       if(!AddEdit(m_cfgSystemMagicEdit, "Fusion_cfg_magic_edit", 200, 196, 340, 220, "0"))
          return false;
       if(!AddLabel(m_cfgSystemConflictLbl, "Fusion_cfg_conflict_lbl", 22, 236, 170, 254, "Resolver", FUSION_CLR_LABEL))
          return false;
       if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORITY", FUSION_CLR_PANEL))
+         return false;
+      if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 274, 170, 292, "Logs Debug", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 462, 520, 480, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -65,6 +71,7 @@
       m_configSystemCreated = true;
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
       return true;
      }
 
@@ -80,6 +87,29 @@
       m_draftSettings.conflictMode = (m_draftSettings.conflictMode == CONFLICT_PRIORITY) ? CONFLICT_CANCEL : CONFLICT_PRIORITY;
       RefreshConfigValidation();
       return true;
+     }
+
+   bool                       HandleConfigSystemDebugClick(const string objectName)
+     {
+      if(!m_configSystemCreated || objectName != m_cfgSystemDebugBtn.Name())
+         return false;
+
+      ReleaseButton(m_cfgSystemDebugBtn);
+      if(!CanEditActiveProfile())
+         return true;
+
+      m_draftSettings.debugLogs = !m_draftSettings.debugLogs;
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleConfigSystemClick(const string objectName)
+     {
+      if(HandleConfigSystemConflictClick(objectName))
+         return true;
+      if(HandleConfigSystemDebugClick(objectName))
+         return true;
+      return false;
      }
 
    bool                       EnsureConfigTabCreated(void)

@@ -17,6 +17,7 @@
             FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
          else
             FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
+         FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
         }
       if(m_activeTab == FUSION_TAB_PROFILES)
          UpdateProfileListView();
@@ -75,6 +76,8 @@
      {
       if(m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION))
          RefreshProtectionTheme();
+      if(m_configSystemCreated && IsConfigPageVisible(FUSION_CFG_SYSTEM))
+         FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
      }
 
    void                       SetConfigVisible(const bool visible)
@@ -114,6 +117,9 @@
          SetVisible(m_cfgSystemMagicEdit, systemVisible);
          SetVisible(m_cfgSystemConflictLbl, systemVisible);
          SetVisible(m_cfgSystemConflictBtn, systemVisible);
+         SetVisible(m_cfgSystemDebugLbl, systemVisible);
+         SetVisible(m_cfgSystemDebugBtn, systemVisible);
+         SetVisible(m_cfgSystemFoot1, systemVisible);
         }
       if(visible)
          RestoreConfigStatus();

@@ -72,12 +72,24 @@
 
    CLabel                     m_protectStreakHdr;
    CLabel                     m_protectStreakDesc;
-   CLabel                     m_protectStreakEnabledLbl;
-   CButton                    m_protectStreakEnabledBtn;
+   CLabel                     m_protectStreakLossHdr;
+   CLabel                     m_protectStreakLossEnabledLbl;
+   CButton                    m_protectStreakLossEnabledBtn;
    CLabel                     m_protectStreakLossLbl;
    CEdit                      m_protectStreakLossEdit;
+   CSelectionComboField       m_protectStreakLossAction;
+   CLabel                     m_protectStreakLossPauseMinutesLbl;
+   CEdit                      m_protectStreakLossPauseMinutesEdit;
+   CLabel                     m_protectStreakWinHdr;
+   CLabel                     m_protectStreakWinEnabledLbl;
+   CButton                    m_protectStreakWinEnabledBtn;
    CLabel                     m_protectStreakWinLbl;
    CEdit                      m_protectStreakWinEdit;
+   CSelectionComboField       m_protectStreakWinAction;
+   CLabel                     m_protectStreakWinPauseMinutesLbl;
+   CEdit                      m_protectStreakWinPauseMinutesEdit;
+   CLabel                     m_protectStreakFoot1;
+   CLabel                     m_protectStreakFoot2;
 
    string                     ProtectNewsActionText(const ENUM_NEWS_WINDOW_ACTION action) const
      {
@@ -92,6 +104,7 @@
       else
          FusionApplyActionButtonStyle(button, action == NEWS_ACTION_CLOSE_AND_BLOCK ? FUSION_CLR_WARN : FUSION_CLR_ACTION_LOAD, true);
      }
+
    bool                       ProtectSubtabHasError(const ENUM_FUSION_PROTECT_PAGE page) const
      {
       if(page == FUSION_PROTECT_GENERAL)
@@ -121,6 +134,14 @@
      {
       m_protectDirection.Sync((long)m_draftSettings.tradeDirection, editable);
       m_protectDirection.RaiseRuntimeObjects(3900);
+     }
+
+   void                       SyncProtectionStreakActionCombos(const bool editable)
+     {
+      m_protectStreakLossAction.Sync((long)m_draftSettings.lossStreakAction, editable && m_draftSettings.lossStreakEnabled);
+      m_protectStreakWinAction.Sync((long)m_draftSettings.winStreakAction, editable && m_draftSettings.winStreakEnabled);
+      m_protectStreakLossAction.RaiseRuntimeObjects(3910);
+      m_protectStreakWinAction.RaiseRuntimeObjects(3920);
      }
 
 #include "UIPanelProtectionInputs.mqh"
@@ -218,11 +239,48 @@
       return true;
      }
 
+   bool                       HandleProtectionStreakActionChange(const string objectName)
+     {
+      if(m_protectStreakLossAction.Matches(objectName))
+        {
+         if(!TryBeginActiveProfileEdit() || StreakConfigLocked() || !m_draftSettings.lossStreakEnabled)
+           {
+            SyncProtectionStreakActionCombos(CanEditActiveProfile() && !StreakConfigLocked());
+            return true;
+           }
+
+         m_draftSettings.lossStreakAction = (ENUM_STREAK_ACTION)m_protectStreakLossAction.Value();
+         RefreshConfigValidation();
+         SyncProtectionStreakActionCombos(CanEditActiveProfile() && !StreakConfigLocked());
+         return true;
+        }
+
+      if(m_protectStreakWinAction.Matches(objectName))
+        {
+         if(!TryBeginActiveProfileEdit() || StreakConfigLocked() || !m_draftSettings.winStreakEnabled)
+           {
+            SyncProtectionStreakActionCombos(CanEditActiveProfile() && !StreakConfigLocked());
+            return true;
+           }
+
+         m_draftSettings.winStreakAction = (ENUM_STREAK_ACTION)m_protectStreakWinAction.Value();
+         RefreshConfigValidation();
+         SyncProtectionStreakActionCombos(CanEditActiveProfile() && !StreakConfigLocked());
+         return true;
+        }
+
+      return false;
+     }
+
    bool                       HandleProtectionChange(const int id,const string objectName)
      {
       if(id != CHARTEVENT_CUSTOM + ON_CHANGE || !m_configProtectionCreated)
          return false;
-      return HandleProtectionDirectionChange(objectName);
+      if(HandleProtectionDirectionChange(objectName))
+         return true;
+      if(HandleProtectionStreakActionChange(objectName))
+         return true;
+      return false;
      }
 
    bool                       HandleProtectionPageClick(const string objectName)
@@ -263,7 +321,22 @@
       if(HandleProtectionBooleanToggle(objectName, m_protectDrawdownEnabledBtn, m_draftSettings.enableDrawdown))
          return true;
 
-      if(HandleProtectionBooleanToggle(objectName, m_protectStreakEnabledBtn, m_draftSettings.enableStreak))
+      if(StreakConfigLocked() &&
+         (objectName == m_protectStreakLossEnabledBtn.Name() ||
+          objectName == m_protectStreakWinEnabledBtn.Name()))
+        {
+         if(objectName == m_protectStreakLossEnabledBtn.Name())
+            ReleaseButton(m_protectStreakLossEnabledBtn);
+         else
+            ReleaseButton(m_protectStreakWinEnabledBtn);
+         RefreshConfigValidation();
+         return true;
+        }
+
+      if(HandleProtectionBooleanToggle(objectName, m_protectStreakLossEnabledBtn, m_draftSettings.lossStreakEnabled))
+         return true;
+
+      if(HandleProtectionBooleanToggle(objectName, m_protectStreakWinEnabledBtn, m_draftSettings.winStreakEnabled))
          return true;
 
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)

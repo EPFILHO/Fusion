@@ -18,7 +18,8 @@ enum ENUM_FUSION_SELECTION_COMBO_KIND
    FUSION_SELECTION_BB_MODE,
    FUSION_SELECTION_TRADE_DIRECTION,
    FUSION_SELECTION_RSI_FILTER_MODE,
-   FUSION_SELECTION_BB_FILTER_MODE
+   FUSION_SELECTION_BB_FILTER_MODE,
+   FUSION_SELECTION_STREAK_ACTION
   };
 
 class CSelectionComboField
@@ -50,6 +51,8 @@ private:
          return FusionPopulateRSIFilterModeCombo(m_combo);
       if(m_kind == FUSION_SELECTION_BB_FILTER_MODE)
          return FusionPopulateBBFilterWidthModeCombo(m_combo);
+      if(m_kind == FUSION_SELECTION_STREAK_ACTION)
+         return FusionPopulateStreakActionCombo(m_combo);
       return FusionPopulateRSIExitModeCombo(m_combo);
      }
 

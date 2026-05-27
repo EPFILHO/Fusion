@@ -44,6 +44,8 @@
          SetSharedParentStatus(m_snapshot.tradePermissionReason, FUSION_CLR_WARN);
       else if(m_snapshot.pendingReverseExit)
          SetSharedParentStatus("VM armada: reversao direta; guards ativos.", FUSION_CLR_WARN);
+      else if(m_snapshot.runtimeNotice != "")
+         SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice), FUSION_CLR_WARN);
       else if(HasParentTabError())
          SetSharedParentStatus("Corrija aba(s) em vermelho.", FUSION_CLR_BAD);
       else if(ProfileEditMode())

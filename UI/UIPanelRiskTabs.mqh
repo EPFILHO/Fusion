@@ -17,8 +17,6 @@
 
    CLabel                     m_cfgRiskPartialHdr;
    CLabel                     m_cfgRiskPartialDesc;
-   CLabel                     m_cfgRiskPartialEnabledLbl;
-   CButton                    m_cfgRiskPartialEnabledBtn;
    CLabel                     m_cfgRiskTP1Hdr;
    CLabel                     m_cfgRiskTP1EnabledLbl;
    CButton                    m_cfgRiskTP1EnabledBtn;
@@ -33,8 +31,11 @@
    CEdit                      m_cfgRiskTP2PercentEdit;
    CLabel                     m_cfgRiskTP2DistanceLbl;
    CEdit                      m_cfgRiskTP2DistanceEdit;
+   CLabel                     m_cfgRiskFreeTPLbl;
+   CButton                    m_cfgRiskFreeTPBtn;
    CLabel                     m_cfgRiskPartialFoot1;
    CLabel                     m_cfgRiskPartialFoot2;
+   CLabel                     m_cfgRiskPartialFoot3;
    CLabel                     m_cfgRiskBreakevenHdr;
    CLabel                     m_cfgRiskBreakevenDesc;
    CLabel                     m_cfgRiskBreakevenEnabledLbl;
@@ -91,6 +92,152 @@
       return (value >= 0);
      }
 
+   double                     RiskNormalizeVolumeToSpec(const double volume,const SSymbolSpec &spec) const
+     {
+      if(spec.volumeStep <= 0.0)
+         return volume;
+
+      double normalized = MathRound(volume / spec.volumeStep) * spec.volumeStep;
+      normalized = MathMax(spec.volumeMin, normalized);
+      normalized = MathMin(spec.volumeMax, normalized);
+
+      double temp = spec.volumeStep;
+      int digits = 0;
+      while(digits < 8 && MathAbs(temp - MathRound(temp)) > 0.0000001)
+        {
+         temp *= 10.0;
+         digits++;
+        }
+
+      return NormalizeDouble(normalized, digits);
+     }
+
+   bool                       RiskPartialVolumePlanValid(const double fixedLot,
+                                                         const bool tp1Active,
+                                                         const double tp1Percent,
+                                                         const bool tp2Active,
+                                                         const double tp2Percent,
+                                                         string &volumeError) const
+     {
+      volumeError = "";
+      if(!tp1Active)
+         return true;
+
+      SSymbolSpec spec = m_snapshot.symbolSpec;
+      if(spec.volumeMin <= 0.0 || spec.volumeStep <= 0.0 || spec.volumeMax <= 0.0)
+        {
+         volumeError = "Especificacao de lote do ativo indisponivel.";
+         return false;
+        }
+
+      double entryVolume = RiskNormalizeVolumeToSpec(fixedLot, spec);
+      if(entryVolume < spec.volumeMin || entryVolume > spec.volumeMax)
+        {
+         volumeError = "Lote invalido para validar TP Parcial.";
+         return false;
+        }
+
+      double tp1Volume = RiskNormalizeVolumeToSpec(entryVolume * (tp1Percent / 100.0), spec);
+      if(tp1Volume < spec.volumeMin || tp1Volume + 0.0000001 >= entryVolume)
+        {
+         volumeError = "TP1 precisa fechar lote parcial valido e deixar saldo.";
+         return false;
+        }
+
+      double reserved = tp1Volume;
+      if(tp2Active)
+        {
+         double tp2Volume = RiskNormalizeVolumeToSpec(entryVolume * (tp2Percent / 100.0), spec);
+         if(tp2Volume < spec.volumeMin)
+           {
+            volumeError = "TP2 precisa fechar lote parcial valido.";
+            return false;
+           }
+         reserved += tp2Volume;
+        }
+
+      if((entryVolume - reserved) + 0.0000001 < spec.volumeMin)
+        {
+         volumeError = "TP parcial precisa deixar lote minimo aberto.";
+         return false;
+        }
+
+      return true;
+     }
+
+   void                       ApplyRiskPartialFooter(const SEASettings &settings,
+                                                     const bool tp1Active,
+                                                     const bool tp2Active,
+                                                     const double tp1Percent,
+                                                     const double tp2Percent,
+                                                     const bool percentValuesValid,
+                                                     const bool partialVolumeValid,
+                                                     const string volumeError,
+                                                     const bool freeTPRequiresBase)
+     {
+      if(!m_configRiskCreated)
+         return;
+
+      if(!tp1Active)
+        {
+         m_cfgRiskPartialFoot1.Text("TP1 ON ativa o TP parcial; TP2 depende dele.");
+         m_cfgRiskPartialFoot2.Text("Volumes sao ajustados ao lote minimo e passo do ativo.");
+         m_cfgRiskPartialFoot3.Text("Ative TP1 para ver o plano real de volumes.");
+         m_cfgRiskPartialFoot1.Color(FUSION_CLR_MUTED);
+         m_cfgRiskPartialFoot2.Color(FUSION_CLR_MUTED);
+         m_cfgRiskPartialFoot3.Color(FUSION_CLR_MUTED);
+         return;
+        }
+
+      if(!percentValuesValid)
+        {
+         m_cfgRiskPartialFoot1.Text("Informe percentuais validos para calcular o plano real.");
+         m_cfgRiskPartialFoot2.Text("Volumes sao ajustados ao lote minimo e passo do ativo.");
+         m_cfgRiskPartialFoot3.Text("Ajuste os % ate o plano ficar valido.");
+         m_cfgRiskPartialFoot1.Color(FUSION_CLR_BAD);
+         m_cfgRiskPartialFoot2.Color(FUSION_CLR_MUTED);
+         m_cfgRiskPartialFoot3.Color(FUSION_CLR_MUTED);
+         return;
+        }
+
+      SSymbolSpec spec = m_snapshot.symbolSpec;
+      if(spec.volumeMin <= 0.0 || spec.volumeStep <= 0.0 || spec.volumeMax <= 0.0)
+        {
+         m_cfgRiskPartialFoot1.Text("Especificacao de lote do ativo indisponivel.");
+         m_cfgRiskPartialFoot2.Text("Nao foi possivel calcular o plano real.");
+         m_cfgRiskPartialFoot3.Text("Confirme se o ativo esta sincronizado no MT5.");
+         m_cfgRiskPartialFoot1.Color(FUSION_CLR_BAD);
+         m_cfgRiskPartialFoot2.Color(FUSION_CLR_MUTED);
+         m_cfgRiskPartialFoot3.Color(FUSION_CLR_MUTED);
+         return;
+        }
+
+      double entryVolume = RiskNormalizeVolumeToSpec(settings.fixedLot, spec);
+      double tp1Volume = RiskNormalizeVolumeToSpec(entryVolume * (tp1Percent / 100.0), spec);
+      double tp2Volume = tp2Active ? RiskNormalizeVolumeToSpec(entryVolume * (tp2Percent / 100.0), spec) : 0.0;
+      double remaining = entryVolume - tp1Volume - tp2Volume;
+
+      string planText = "Plano real: TP1 " + FusionFormatVolume(tp1Volume, spec);
+      if(tp2Active)
+         planText += " | TP2 " + FusionFormatVolume(tp2Volume, spec);
+      planText += " | resta " + FusionFormatVolume(remaining, spec) + ".";
+
+      m_cfgRiskPartialFoot1.Text(planText);
+      m_cfgRiskPartialFoot2.Text("Min " + FusionFormatVolume(spec.volumeMin, spec) +
+                                 " | passo " + FusionFormatVolume(spec.volumeStep, spec) +
+                                 " | lote base " + FusionFormatVolume(entryVolume, spec) + ".");
+      if(settings.freeFinalTP)
+         m_cfgRiskPartialFoot3.Text(freeTPRequiresBase ? "TP Final Livre: restante sai pelo trailing." : "TP Final Livre exige trailing ativo.");
+      else if(!partialVolumeValid && volumeError != "")
+         m_cfgRiskPartialFoot3.Text(volumeError);
+      else
+         m_cfgRiskPartialFoot3.Text("Ajuste os % ate o plano real ficar valido.");
+
+      m_cfgRiskPartialFoot1.Color(partialVolumeValid ? FUSION_CLR_MUTED : FUSION_CLR_BAD);
+      m_cfgRiskPartialFoot2.Color(FUSION_CLR_MUTED);
+      m_cfgRiskPartialFoot3.Color((partialVolumeValid && freeTPRequiresBase) ? FUSION_CLR_MUTED : FUSION_CLR_BAD);
+     }
+
    bool                       ValidateRiskPartialSettings(SEASettings &settings,const bool editable,string &error)
      {
       error = "";
@@ -120,44 +267,71 @@
             settings.tp2.distancePoints = tp2Distance;
         }
 
-      bool tp1Active = (settings.usePartialTP && settings.tp1.enabled);
-      bool tp2Active = (settings.usePartialTP && settings.tp2.enabled);
-      bool hasTarget = (!settings.usePartialTP || tp1Active || tp2Active);
+      if(!settings.tp1.enabled)
+        {
+         settings.tp2.enabled = false;
+         settings.freeFinalTP = false;
+        }
+      settings.usePartialTP = settings.tp1.enabled;
+
+      bool partialActive = settings.usePartialTP;
+      bool tp1Active = settings.tp1.enabled;
+      bool tp2Active = (settings.tp1.enabled && settings.tp2.enabled);
       bool tp1PercentValid = (!tp1Active || (tp1PercentParsed && tp1Percent > 0.0 && tp1Percent <= 100.0));
       bool tp2PercentValid = (!tp2Active || (tp2PercentParsed && tp2Percent > 0.0 && tp2Percent <= 100.0));
       bool tp1DistanceValid = (!tp1Active || (tp1DistanceParsed && tp1Distance > 0));
       bool tp2DistanceValid = (!tp2Active || (tp2DistanceParsed && tp2Distance > 0));
       double activePercent = (tp1Active ? tp1Percent : 0.0) + (tp2Active ? tp2Percent : 0.0);
-      bool totalPercentValid = (!settings.usePartialTP || activePercent <= 100.0 + 0.0000001);
+      bool totalPercentValid = (!partialActive || activePercent <= 100.0 + 0.0000001);
+      bool freeTPRequiresBase = (!partialActive || !settings.freeFinalTP ||
+                                 (tp1Active && settings.useTrailing));
+      string volumeError = "";
+      bool partialVolumeValid = RiskPartialVolumePlanValid(settings.fixedLot,
+                                                           tp1Active,
+                                                           tp1Percent,
+                                                           tp2Active,
+                                                           tp2Percent,
+                                                           volumeError);
+      bool percentValuesValid = (tp1PercentParsed && (!tp2Active || tp2PercentParsed));
 
-      bool valid = (hasTarget && tp1PercentValid && tp2PercentValid &&
-                    tp1DistanceValid && tp2DistanceValid && totalPercentValid);
+      bool valid = (tp1PercentValid && tp2PercentValid &&
+                    tp1DistanceValid && tp2DistanceValid && totalPercentValid &&
+                    freeTPRequiresBase && partialVolumeValid);
 
       if(m_configRiskCreated)
         {
-         bool partialEditable = (editable && settings.usePartialTP);
-         FusionApplyToggleButtonStyle(m_cfgRiskPartialEnabledBtn, settings.usePartialTP, editable);
-         FusionApplyToggleButtonStyle(m_cfgRiskTP1EnabledBtn, settings.tp1.enabled, partialEditable);
-         FusionApplyToggleButtonStyle(m_cfgRiskTP2EnabledBtn, settings.tp2.enabled, partialEditable);
-         FusionApplyEditStyle(m_cfgRiskTP1PercentEdit, tp1PercentValid && totalPercentValid, partialEditable && settings.tp1.enabled);
-         FusionApplyEditStyle(m_cfgRiskTP1DistanceEdit, tp1DistanceValid, partialEditable && settings.tp1.enabled);
-         FusionApplyEditStyle(m_cfgRiskTP2PercentEdit, tp2PercentValid && totalPercentValid, partialEditable && settings.tp2.enabled);
-         FusionApplyEditStyle(m_cfgRiskTP2DistanceEdit, tp2DistanceValid, partialEditable && settings.tp2.enabled);
-         m_cfgRiskPartialEnabledLbl.Color(!editable ? FUSION_CLR_MUTED : (valid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_cfgRiskTP1EnabledLbl.Color(!partialEditable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
-         m_cfgRiskTP2EnabledLbl.Color(!partialEditable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
-         m_cfgRiskTP1PercentLbl.Color(!partialEditable || !settings.tp1.enabled ? FUSION_CLR_MUTED : ((tp1PercentValid && totalPercentValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_cfgRiskTP1DistanceLbl.Color(!partialEditable || !settings.tp1.enabled ? FUSION_CLR_MUTED : (tp1DistanceValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_cfgRiskTP2PercentLbl.Color(!partialEditable || !settings.tp2.enabled ? FUSION_CLR_MUTED : ((tp2PercentValid && totalPercentValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         m_cfgRiskTP2DistanceLbl.Color(!partialEditable || !settings.tp2.enabled ? FUSION_CLR_MUTED : (tp2DistanceValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         bool tp1Editable = editable;
+         bool tp2Editable = (editable && settings.tp1.enabled);
+         bool freeTPEditable = (editable && settings.tp1.enabled);
+         FusionApplyToggleButtonStyle(m_cfgRiskTP1EnabledBtn, settings.tp1.enabled, tp1Editable);
+         FusionApplyToggleButtonStyle(m_cfgRiskTP2EnabledBtn, settings.tp2.enabled, tp2Editable);
+         FusionApplyToggleButtonStyle(m_cfgRiskFreeTPBtn, settings.freeFinalTP, freeTPEditable);
+         FusionApplyEditStyle(m_cfgRiskTP1PercentEdit, tp1PercentValid && totalPercentValid && partialVolumeValid, tp1Editable && tp1Active);
+         FusionApplyEditStyle(m_cfgRiskTP1DistanceEdit, tp1DistanceValid, tp1Editable && tp1Active);
+         FusionApplyEditStyle(m_cfgRiskTP2PercentEdit, tp2PercentValid && totalPercentValid && partialVolumeValid, tp2Editable && tp2Active);
+         FusionApplyEditStyle(m_cfgRiskTP2DistanceEdit, tp2DistanceValid, tp2Editable && tp2Active);
+         m_cfgRiskTP1EnabledLbl.Color(!tp1Editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgRiskTP2EnabledLbl.Color(!tp2Editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgRiskTP1PercentLbl.Color(!tp1Editable || !tp1Active ? FUSION_CLR_MUTED : ((tp1PercentValid && totalPercentValid && partialVolumeValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTP1DistanceLbl.Color(!tp1Editable || !tp1Active ? FUSION_CLR_MUTED : (tp1DistanceValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTP2PercentLbl.Color(!tp2Editable || !tp2Active ? FUSION_CLR_MUTED : ((tp2PercentValid && totalPercentValid && partialVolumeValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTP2DistanceLbl.Color(!tp2Editable || !tp2Active ? FUSION_CLR_MUTED : (tp2DistanceValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskFreeTPLbl.Color(!freeTPEditable ? FUSION_CLR_MUTED : (freeTPRequiresBase ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         ApplyRiskPartialFooter(settings,
+                                tp1Active,
+                                tp2Active,
+                                tp1Percent,
+                                tp2Percent,
+                                percentValuesValid,
+                                partialVolumeValid,
+                                volumeError,
+                                freeTPRequiresBase);
         }
 
       if(valid)
          return true;
 
-      if(!hasTarget)
-         error = "TP Parcial exige TP1 ou TP2 ativo.";
-      else if(!tp1PercentValid)
+      if(!tp1PercentValid)
          error = "TP1 % deve ser maior que 0 e ate 100.";
       else if(!tp2PercentValid)
          error = "TP2 % deve ser maior que 0 e ate 100.";
@@ -167,6 +341,10 @@
          error = "TP2 Dist deve ser maior que 0.";
       else if(!totalPercentValid)
          error = "Soma de TP1 % e TP2 % deve ser ate 100.";
+      else if(!freeTPRequiresBase)
+         error = "TP Final Livre exige TP1 e Trailing ativos.";
+      else if(!partialVolumeValid)
+         error = volumeError;
       else
          error = "Corrija o TP Parcial.";
 
@@ -358,44 +536,46 @@
          return false;
       if(!AddLabel(m_cfgRiskPartialDesc, "Fusion_cfg_risk_partial_desc", 22, 214, 520, 232, "Fecha partes da posicao em alvos globais antes do TP final.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgRiskPartialEnabledLbl, "Fusion_cfg_risk_partial_enabled_lbl", 22, 250, 160, 268, "Ativo", FUSION_CLR_LABEL))
+
+      if(!AddLabel(m_cfgRiskTP1Hdr, "Fusion_cfg_risk_tp1_hdr", 22, 250, 180, 268, "TP1", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddButton(m_cfgRiskPartialEnabledBtn, "Fusion_cfg_risk_partial_enabled_btn", 200, 248, 310, 272, "OFF", FUSION_CLR_BAD))
+      if(!AddLabel(m_cfgRiskTP1EnabledLbl, "Fusion_cfg_risk_tp1_enabled_lbl", 22, 280, 100, 298, "Ativo", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_cfgRiskTP1EnabledBtn, "Fusion_cfg_risk_tp1_enabled_btn", 112, 278, 202, 302, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_cfgRiskTP1PercentLbl, "Fusion_cfg_risk_tp1_pct_lbl", 22, 318, 100, 336, "Volume %", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskTP1PercentEdit, "Fusion_cfg_risk_tp1_pct_edit", 112, 316, 202, 340, "50.00"))
+         return false;
+      if(!AddLabel(m_cfgRiskTP1DistanceLbl, "Fusion_cfg_risk_tp1_dist_lbl", 22, 356, 100, 374, "Dist pts", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskTP1DistanceEdit, "Fusion_cfg_risk_tp1_dist_edit", 112, 354, 202, 378, "150"))
          return false;
 
-      if(!AddLabel(m_cfgRiskTP1Hdr, "Fusion_cfg_risk_tp1_hdr", 22, 292, 180, 310, "TP1", FUSION_CLR_VALUE, 9))
+      if(!AddLabel(m_cfgRiskTP2Hdr, "Fusion_cfg_risk_tp2_hdr", 298, 250, 456, 268, "TP2", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_cfgRiskTP1EnabledLbl, "Fusion_cfg_risk_tp1_enabled_lbl", 22, 322, 100, 340, "Ativo", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgRiskTP2EnabledLbl, "Fusion_cfg_risk_tp2_enabled_lbl", 298, 280, 376, 298, "Ativo", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_cfgRiskTP1EnabledBtn, "Fusion_cfg_risk_tp1_enabled_btn", 112, 320, 202, 344, "OFF", FUSION_CLR_BAD))
+      if(!AddButton(m_cfgRiskTP2EnabledBtn, "Fusion_cfg_risk_tp2_enabled_btn", 388, 278, 478, 302, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgRiskTP1PercentLbl, "Fusion_cfg_risk_tp1_pct_lbl", 22, 360, 100, 378, "Volume %", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgRiskTP2PercentLbl, "Fusion_cfg_risk_tp2_pct_lbl", 298, 318, 376, 336, "Volume %", FUSION_CLR_LABEL))
          return false;
-      if(!AddEdit(m_cfgRiskTP1PercentEdit, "Fusion_cfg_risk_tp1_pct_edit", 112, 358, 202, 382, "50.00"))
+      if(!AddEdit(m_cfgRiskTP2PercentEdit, "Fusion_cfg_risk_tp2_pct_edit", 388, 316, 478, 340, "25.00"))
          return false;
-      if(!AddLabel(m_cfgRiskTP1DistanceLbl, "Fusion_cfg_risk_tp1_dist_lbl", 22, 398, 100, 416, "Dist pts", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgRiskTP2DistanceLbl, "Fusion_cfg_risk_tp2_dist_lbl", 298, 356, 376, 374, "Dist pts", FUSION_CLR_LABEL))
          return false;
-      if(!AddEdit(m_cfgRiskTP1DistanceEdit, "Fusion_cfg_risk_tp1_dist_edit", 112, 396, 202, 420, "150"))
+      if(!AddEdit(m_cfgRiskTP2DistanceEdit, "Fusion_cfg_risk_tp2_dist_edit", 388, 354, 478, 378, "300"))
          return false;
-
-      if(!AddLabel(m_cfgRiskTP2Hdr, "Fusion_cfg_risk_tp2_hdr", 298, 292, 456, 310, "TP2", FUSION_CLR_VALUE, 9))
+      if(!AddLabel(m_cfgRiskFreeTPLbl, "Fusion_cfg_risk_free_tp_lbl", 22, 432, 110, 450, "TP Final Livre", FUSION_CLR_LABEL, 8))
          return false;
-      if(!AddLabel(m_cfgRiskTP2EnabledLbl, "Fusion_cfg_risk_tp2_enabled_lbl", 298, 322, 376, 340, "Ativo", FUSION_CLR_LABEL))
-         return false;
-      if(!AddButton(m_cfgRiskTP2EnabledBtn, "Fusion_cfg_risk_tp2_enabled_btn", 388, 320, 478, 344, "OFF", FUSION_CLR_BAD))
-         return false;
-      if(!AddLabel(m_cfgRiskTP2PercentLbl, "Fusion_cfg_risk_tp2_pct_lbl", 298, 360, 376, 378, "Volume %", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskTP2PercentEdit, "Fusion_cfg_risk_tp2_pct_edit", 388, 358, 478, 382, "25.00"))
-         return false;
-      if(!AddLabel(m_cfgRiskTP2DistanceLbl, "Fusion_cfg_risk_tp2_dist_lbl", 298, 398, 376, 416, "Dist pts", FUSION_CLR_LABEL))
-         return false;
-      if(!AddEdit(m_cfgRiskTP2DistanceEdit, "Fusion_cfg_risk_tp2_dist_edit", 388, 396, 478, 420, "300"))
+      if(!AddButton(m_cfgRiskFreeTPBtn, "Fusion_cfg_risk_free_tp_btn", 112, 430, 202, 454, "OFF", FUSION_CLR_BAD))
          return false;
 
-      if(!AddLabel(m_cfgRiskPartialFoot1, "Fusion_cfg_risk_partial_foot_1", 22, 462, 520, 480, "TP Parcial nao abre trade; apenas gerencia posicao aberta.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskPartialFoot1, "Fusion_cfg_risk_partial_foot_1", 22, 484, 520, 502, "TP1 ON ativa o TP parcial; TP2 depende dele.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgRiskPartialFoot2, "Fusion_cfg_risk_partial_foot_2", 22, 486, 520, 504, "A soma dos percentuais ativos deve ficar ate 100%.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskPartialFoot2, "Fusion_cfg_risk_partial_foot_2", 22, 508, 520, 526, "TP Final Livre remove o TP final apos o ultimo parcial.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskPartialFoot3, "Fusion_cfg_risk_partial_foot_3", 22, 532, 520, 550, "Requer trailing ativo; o restante passa a sair pelo trailing.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_cfgRiskBreakevenHdr, "Fusion_cfg_risk_be_hdr", 22, 188, 260, 206, "Breakeven", FUSION_CLR_VALUE, 9))
@@ -465,8 +645,6 @@
      {
       SetVisible(m_cfgRiskPartialHdr, visible);
       SetVisible(m_cfgRiskPartialDesc, visible);
-      SetVisible(m_cfgRiskPartialEnabledLbl, visible);
-      SetVisible(m_cfgRiskPartialEnabledBtn, visible);
       SetVisible(m_cfgRiskTP1Hdr, visible);
       SetVisible(m_cfgRiskTP1EnabledLbl, visible);
       SetVisible(m_cfgRiskTP1EnabledBtn, visible);
@@ -481,8 +659,11 @@
       SetVisible(m_cfgRiskTP2PercentEdit, visible);
       SetVisible(m_cfgRiskTP2DistanceLbl, visible);
       SetVisible(m_cfgRiskTP2DistanceEdit, visible);
+      SetVisible(m_cfgRiskFreeTPLbl, visible);
+      SetVisible(m_cfgRiskFreeTPBtn, visible);
       SetVisible(m_cfgRiskPartialFoot1, visible);
       SetVisible(m_cfgRiskPartialFoot2, visible);
+      SetVisible(m_cfgRiskPartialFoot3, visible);
      }
 
    void                       SetRiskBreakevenVisible(const bool visible)
@@ -580,18 +761,52 @@
       return true;
      }
 
-   bool                       HandleRiskPartialToggle(const string objectName)
+   bool                       HandleRiskTP1Toggle(const string objectName)
      {
-      if(objectName != m_cfgRiskPartialEnabledBtn.Name())
+      if(objectName != m_cfgRiskTP1EnabledBtn.Name())
          return false;
 
-      ReleaseButton(m_cfgRiskPartialEnabledBtn);
+      ReleaseButton(m_cfgRiskTP1EnabledBtn);
       if(!CanEditActiveProfile())
          return true;
 
-      m_draftSettings.usePartialTP = !m_draftSettings.usePartialTP;
-      if(m_draftSettings.usePartialTP && !m_draftSettings.tp1.enabled && !m_draftSettings.tp2.enabled)
-         m_draftSettings.tp1.enabled = true;
+      m_draftSettings.tp1.enabled = !m_draftSettings.tp1.enabled;
+      if(!m_draftSettings.tp1.enabled)
+        {
+         m_draftSettings.tp2.enabled = false;
+         m_draftSettings.freeFinalTP = false;
+        }
+      m_draftSettings.usePartialTP = m_draftSettings.tp1.enabled;
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleRiskTP2Toggle(const string objectName)
+     {
+      if(objectName != m_cfgRiskTP2EnabledBtn.Name())
+         return false;
+
+      ReleaseButton(m_cfgRiskTP2EnabledBtn);
+      if(!CanEditActiveProfile() || !m_draftSettings.tp1.enabled)
+         return true;
+
+      m_draftSettings.tp2.enabled = !m_draftSettings.tp2.enabled;
+      m_draftSettings.usePartialTP = m_draftSettings.tp1.enabled;
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleRiskFreeTPToggle(const string objectName)
+     {
+      if(objectName != m_cfgRiskFreeTPBtn.Name())
+         return false;
+
+      ReleaseButton(m_cfgRiskFreeTPBtn);
+      if(!CanEditActiveProfile() || !m_draftSettings.tp1.enabled)
+         return true;
+
+      m_draftSettings.freeFinalTP = !m_draftSettings.freeFinalTP;
+      m_draftSettings.usePartialTP = m_draftSettings.tp1.enabled;
       RefreshConfigValidation();
       return true;
      }
@@ -601,11 +816,11 @@
       if(!m_configRiskCreated)
          return false;
 
-      if(HandleRiskPartialToggle(objectName))
+      if(HandleRiskTP1Toggle(objectName))
          return true;
-      if(HandleRiskBooleanToggle(objectName, m_cfgRiskTP1EnabledBtn, m_draftSettings.tp1.enabled, m_draftSettings.usePartialTP))
+      if(HandleRiskTP2Toggle(objectName))
          return true;
-      if(HandleRiskBooleanToggle(objectName, m_cfgRiskTP2EnabledBtn, m_draftSettings.tp2.enabled, m_draftSettings.usePartialTP))
+      if(HandleRiskFreeTPToggle(objectName))
          return true;
       if(HandleRiskBooleanToggle(objectName, m_cfgRiskBreakevenEnabledBtn, m_draftSettings.useBreakeven, true))
          return true;

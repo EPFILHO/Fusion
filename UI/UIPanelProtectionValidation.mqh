@@ -17,6 +17,54 @@
       return (text != FusionNormalizeDecimalText(DoubleToString(committedValue, 2)));
      }
 
+   bool                       StreakConfigLocked(void) const
+     {
+      return m_snapshot.streakProtectionBlocked;
+     }
+
+   string                     StreakConfigLockMessage(void) const
+     {
+      if(m_snapshot.streakProtectionBlockReason != "")
+         return "Streak em bloqueio: edicao suspensa ate liberar.";
+      return "Streak em bloqueio: edicao suspensa ate liberar.";
+     }
+
+   bool                       HasStreakPendingChanges(void)
+     {
+      if(m_draftSettings.lossStreakEnabled != m_committedSettings.lossStreakEnabled)
+         return true;
+      if(m_draftSettings.lossStreakAction != m_committedSettings.lossStreakAction)
+         return true;
+      if(m_draftSettings.winStreakEnabled != m_committedSettings.winStreakEnabled)
+         return true;
+      if(m_draftSettings.winStreakAction != m_committedSettings.winStreakAction)
+         return true;
+
+      if(m_configProtectionCreated)
+        {
+         if(ProtectionIntegerEditPending(m_protectStreakLossEdit, m_committedSettings.maxLossStreak))
+            return true;
+         if(ProtectionIntegerEditPending(m_protectStreakLossPauseMinutesEdit, m_committedSettings.lossStreakPauseMinutes))
+            return true;
+         if(ProtectionIntegerEditPending(m_protectStreakWinEdit, m_committedSettings.maxWinStreak))
+            return true;
+         if(ProtectionIntegerEditPending(m_protectStreakWinPauseMinutesEdit, m_committedSettings.winStreakPauseMinutes))
+            return true;
+         return false;
+        }
+
+      if(m_draftSettings.maxLossStreak != m_committedSettings.maxLossStreak)
+         return true;
+      if(m_draftSettings.lossStreakPauseMinutes != m_committedSettings.lossStreakPauseMinutes)
+         return true;
+      if(m_draftSettings.maxWinStreak != m_committedSettings.maxWinStreak)
+         return true;
+      if(m_draftSettings.winStreakPauseMinutes != m_committedSettings.winStreakPauseMinutes)
+         return true;
+
+      return false;
+     }
+
    bool                       ValidateProtectionTimeWindow(CEdit &startHourEdit,
                                                            CEdit &startMinuteEdit,
                                                            CEdit &endHourEdit,
@@ -106,9 +154,7 @@
          return true;
       if(ProtectionMoneyEditPending(m_protectDrawdownValueEdit, m_committedSettings.maxDrawdown))
          return true;
-      if(ProtectionIntegerEditPending(m_protectStreakLossEdit, m_committedSettings.maxLossStreak))
-         return true;
-      if(ProtectionIntegerEditPending(m_protectStreakWinEdit, m_committedSettings.maxWinStreak))
+      if(HasStreakPendingChanges())
          return true;
 
       return false;
@@ -216,17 +262,73 @@
 
       string streakLossText = FusionTrimCopy(LiveEditText(m_protectStreakLossEdit));
       string streakWinText = FusionTrimCopy(LiveEditText(m_protectStreakWinEdit));
-      bool streakLossValid = FusionIsIntegerText(streakLossText, true) && (int)StringToInteger(streakLossText) >= 0;
-      bool streakWinValid = FusionIsIntegerText(streakWinText, true) && (int)StringToInteger(streakWinText) >= 0;
-      FusionApplyEditStyle(m_protectStreakLossEdit, streakLossValid, editable);
-      FusionApplyEditStyle(m_protectStreakWinEdit, streakWinValid, editable);
+      string streakLossPauseText = FusionTrimCopy(LiveEditText(m_protectStreakLossPauseMinutesEdit));
+      string streakWinPauseText = FusionTrimCopy(LiveEditText(m_protectStreakWinPauseMinutesEdit));
+      bool rawLossParsed = FusionIsIntegerText(streakLossText, true) && (int)StringToInteger(streakLossText) >= 0;
+      bool rawWinParsed = FusionIsIntegerText(streakWinText, true) && (int)StringToInteger(streakWinText) >= 0;
+      bool rawLossPauseParsed = FusionIsIntegerText(streakLossPauseText, true) && (int)StringToInteger(streakLossPauseText) >= 0;
+      bool rawWinPauseParsed = FusionIsIntegerText(streakWinPauseText, true) && (int)StringToInteger(streakWinPauseText) >= 0;
+      int parsedLossStreak = rawLossParsed ? (int)StringToInteger(streakLossText) : 0;
+      int parsedWinStreak = rawWinParsed ? (int)StringToInteger(streakWinText) : 0;
+      int parsedLossPause = rawLossPauseParsed ? (int)StringToInteger(streakLossPauseText) : 0;
+      int parsedWinPause = rawWinPauseParsed ? (int)StringToInteger(streakWinPauseText) : 0;
+      bool streakLossParsed = (!outSettings.lossStreakEnabled || rawLossParsed);
+      bool streakWinParsed = (!outSettings.winStreakEnabled || rawWinParsed);
+      bool lossLimitValid = streakLossParsed && (!outSettings.lossStreakEnabled || parsedLossStreak > 0);
+      bool winLimitValid = streakWinParsed && (!outSettings.winStreakEnabled || parsedWinStreak > 0);
+      bool lossPauseRequired = (outSettings.lossStreakEnabled && outSettings.lossStreakAction == STREAK_ACTION_PAUSE);
+      bool winPauseRequired = (outSettings.winStreakEnabled && outSettings.winStreakAction == STREAK_ACTION_PAUSE);
+      bool streakLossPauseParsed = (!lossPauseRequired || rawLossPauseParsed);
+      bool streakWinPauseParsed = (!winPauseRequired || rawWinPauseParsed);
+      bool lossPauseValid = streakLossPauseParsed && (!lossPauseRequired || parsedLossPause > 0);
+      bool winPauseValid = streakWinPauseParsed && (!winPauseRequired || parsedWinPause > 0);
+      bool streakLocked = StreakConfigLocked();
+      bool streakEditAllowed = (editable && !streakLocked);
+      bool lossEditable = (streakEditAllowed && outSettings.lossStreakEnabled);
+      bool winEditable = (streakEditAllowed && outSettings.winStreakEnabled);
+      FusionApplyEditStyle(m_protectStreakLossEdit, lossLimitValid, lossEditable);
+      FusionApplyEditStyle(m_protectStreakLossPauseMinutesEdit,
+                           lossPauseValid,
+                           lossEditable && outSettings.lossStreakAction == STREAK_ACTION_PAUSE);
+      FusionApplyEditStyle(m_protectStreakWinEdit, winLimitValid, winEditable);
+      FusionApplyEditStyle(m_protectStreakWinPauseMinutesEdit,
+                           winPauseValid,
+                           winEditable && outSettings.winStreakAction == STREAK_ACTION_PAUSE);
+      m_protectStreakLossAction.Sync((long)outSettings.lossStreakAction, lossEditable);
+      m_protectStreakWinAction.Sync((long)outSettings.winStreakAction, winEditable);
+      m_protectStreakLossAction.RaiseRuntimeObjects(3910);
+      m_protectStreakWinAction.RaiseRuntimeObjects(3920);
+      m_protectStreakLossHdr.Color(!streakEditAllowed ? FUSION_CLR_MUTED : ((lossLimitValid && lossPauseValid) ? FUSION_CLR_VALUE : FUSION_CLR_BAD));
+      m_protectStreakWinHdr.Color(!streakEditAllowed ? FUSION_CLR_MUTED : ((winLimitValid && winPauseValid) ? FUSION_CLR_VALUE : FUSION_CLR_BAD));
+      m_protectStreakLossEnabledLbl.Color(!streakEditAllowed ? FUSION_CLR_MUTED : ((lossLimitValid && lossPauseValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectStreakWinEnabledLbl.Color(!streakEditAllowed ? FUSION_CLR_MUTED : ((winLimitValid && winPauseValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectStreakLossLbl.Color(!lossEditable ? FUSION_CLR_MUTED : (lossLimitValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectStreakWinLbl.Color(!winEditable ? FUSION_CLR_MUTED : (winLimitValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectStreakLossPauseMinutesLbl.Color(!(lossEditable && outSettings.lossStreakAction == STREAK_ACTION_PAUSE) ? FUSION_CLR_MUTED : (lossPauseValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectStreakWinPauseMinutesLbl.Color(!(winEditable && outSettings.winStreakAction == STREAK_ACTION_PAUSE) ? FUSION_CLR_MUTED : (winPauseValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       string streakError = "";
-      if(!streakLossValid)
+      if(streakLocked && HasStreakPendingChanges())
+         streakError = StreakConfigLockMessage();
+      else if(!streakLossParsed)
          streakError = "Max Loss deve ser zero ou inteiro positivo.";
-      else if(!streakWinValid)
+      else if(outSettings.lossStreakEnabled && parsedLossStreak <= 0)
+         streakError = "Loss Streak ON requer Max Loss maior que 0.";
+      else if(!streakLossPauseParsed)
+         streakError = "Pausa Loss deve ser zero ou inteiro positivo.";
+      else if(lossPauseRequired && parsedLossPause <= 0)
+         streakError = "Pausa Loss deve ser maior que 0 quando acao for PAUSAR.";
+      else if(!streakWinParsed)
          streakError = "Max Win deve ser zero ou inteiro positivo.";
-      outSettings.maxLossStreak = streakLossValid ? (int)StringToInteger(streakLossText) : 0;
-      outSettings.maxWinStreak = streakWinValid ? (int)StringToInteger(streakWinText) : 0;
+      else if(outSettings.winStreakEnabled && parsedWinStreak <= 0)
+         streakError = "Win Streak ON requer Max Win maior que 0.";
+      else if(!streakWinPauseParsed)
+         streakError = "Pausa Win deve ser zero ou inteiro positivo.";
+      else if(winPauseRequired && parsedWinPause <= 0)
+         streakError = "Pausa Win deve ser maior que 0 quando acao for PAUSAR.";
+      outSettings.maxLossStreak = parsedLossStreak;
+      outSettings.lossStreakPauseMinutes = parsedLossPause;
+      outSettings.maxWinStreak = parsedWinStreak;
+      outSettings.winStreakPauseMinutes = parsedWinPause;
 
       m_protectPageValid[(int)FUSION_PROTECT_GENERAL] = true;
       m_protectPageValid[(int)FUSION_PROTECT_SPREAD] = spreadValid;
@@ -234,7 +336,7 @@
       m_protectPageValid[(int)FUSION_PROTECT_NEWS] = newsValid;
       m_protectPageValid[(int)FUSION_PROTECT_DAY] = (dayTradesValid && dayLossValid && dayGainValid);
       m_protectPageValid[(int)FUSION_PROTECT_DRAWDOWN] = (ddValueValid && ddDependencyValid);
-      m_protectPageValid[(int)FUSION_PROTECT_STREAK] = (streakLossValid && streakWinValid);
+      m_protectPageValid[(int)FUSION_PROTECT_STREAK] = (lossLimitValid && winLimitValid && lossPauseValid && winPauseValid && streakError == "");
 
       m_protectPageError[(int)FUSION_PROTECT_GENERAL] = "";
       m_protectPageError[(int)FUSION_PROTECT_SPREAD] = spreadError;

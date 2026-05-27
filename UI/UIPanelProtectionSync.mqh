@@ -40,11 +40,27 @@
                                  "Fechar no fim ON: fecha posicoes ao termino da sessao." :
                                  "Fechar no fim OFF: nao fecha posicoes pelo fim da sessao.");
       m_protectSessionFoot3.Text("Fora da janela, novas entradas ficam bloqueadas.");
+
+      if(StreakConfigLocked())
+        {
+         m_protectStreakFoot1.Text("Streak em bloqueio: edicao suspensa ate liberar.");
+         m_protectStreakFoot2.Text("Pausar o EA nao remove nem permite alterar este bloqueio.");
+         m_protectStreakFoot1.Color(FUSION_CLR_WARN);
+         m_protectStreakFoot2.Color(FUSION_CLR_WARN);
+        }
+      else
+        {
+         m_protectStreakFoot1.Text("Loss e Win sao independentes; cada lado pode ficar OFF.");
+         m_protectStreakFoot2.Text("PAUSAR bloqueia por minutos; PARAR DIA libera no proximo dia.");
+         m_protectStreakFoot1.Color(FUSION_CLR_MUTED);
+         m_protectStreakFoot2.Color(FUSION_CLR_MUTED);
+        }
      }
 
    void                       RefreshProtectionTheme(void)
      {
       bool editable = CanEditActiveProfile();
+      bool streakEditable = (editable && !StreakConfigLocked());
 
       ApplyProtectionTabStyles();
 
@@ -65,7 +81,9 @@
 
       FusionApplyToggleButtonStyle(m_protectDayEnabledBtn, m_draftSettings.enableDailyLimits, editable);
       FusionApplyToggleButtonStyle(m_protectDrawdownEnabledBtn, m_draftSettings.enableDrawdown, editable);
-      FusionApplyToggleButtonStyle(m_protectStreakEnabledBtn, m_draftSettings.enableStreak, editable);
+      FusionApplyToggleButtonStyle(m_protectStreakLossEnabledBtn, m_draftSettings.lossStreakEnabled, streakEditable);
+      FusionApplyToggleButtonStyle(m_protectStreakWinEnabledBtn, m_draftSettings.winStreakEnabled, streakEditable);
+      SyncProtectionStreakActionCombos(streakEditable);
      }
 
    void                       SyncProtectionControls(void)
@@ -90,7 +108,9 @@
       m_protectDayGainEdit.Text(DoubleToString(m_draftSettings.maxDailyGain, 2));
       m_protectDrawdownValueEdit.Text(DoubleToString(m_draftSettings.maxDrawdown, 2));
       m_protectStreakLossEdit.Text(IntegerToString(m_draftSettings.maxLossStreak));
+      m_protectStreakLossPauseMinutesEdit.Text(IntegerToString(m_draftSettings.lossStreakPauseMinutes));
       m_protectStreakWinEdit.Text(IntegerToString(m_draftSettings.maxWinStreak));
+      m_protectStreakWinPauseMinutesEdit.Text(IntegerToString(m_draftSettings.winStreakPauseMinutes));
      }
 
 #endif

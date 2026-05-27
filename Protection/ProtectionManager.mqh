@@ -72,6 +72,16 @@ public:
       return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
      }
 
+   void              ExportStreakState(SStreakRuntimeState &state) const
+     {
+      m_streakProtection.ExportState(state);
+     }
+
+   void              ImportStreakState(const SStreakRuntimeState &state)
+     {
+      m_streakProtection.ImportState(state);
+     }
+
    bool              IsDirectionAllowed(const ENUM_SIGNAL_TYPE signal,string &reason) const
      {
       reason = "";
@@ -174,6 +184,11 @@ public:
    int               WinStreak(void) const
      {
       return m_streakProtection.WinStreak();
+     }
+
+   bool              IsStreakProtectionBlocked(string &reason) const
+     {
+      return m_streakProtection.IsBlocking(reason);
      }
 
    bool              IsDrawdownProtectionActive(void) const

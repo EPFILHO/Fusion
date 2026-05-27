@@ -62,6 +62,7 @@
         {
          m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
          m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+         FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
         }
       if(m_profilesEditCreated)
          m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));

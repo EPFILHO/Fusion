@@ -64,6 +64,8 @@ private:
    string                  m_entryBlockNoticeReason;
    string                  m_lastClosedStrategyId;
    datetime                m_lastClosedStrategyBarTime;
+   string                  m_lastDiscardDebugReason;
+   datetime                m_lastDiscardDebugTime;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -217,6 +219,9 @@ private:
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
       snapshot.lossStreak       = m_protectionManager.LossStreak();
       snapshot.winStreak        = m_protectionManager.WinStreak();
+      string streakBlockReason = "";
+      snapshot.streakProtectionBlocked = m_protectionManager.IsStreakProtectionBlocked(streakBlockReason);
+      snapshot.streakProtectionBlockReason = streakBlockReason;
       snapshot.drawdownProtectionActive = m_protectionManager.IsDrawdownProtectionActive();
       return snapshot;
      }
@@ -244,7 +249,10 @@ private:
             context.periodValue = m_chartContext.periodValue;
         }
 
-      m_settingsStore.SaveChartState(context, m_activeProfileName, m_started, m_settings, m_positionState);
+      SStreakRuntimeState streakState;
+      ResetStreakRuntimeState(streakState);
+      m_protectionManager.ExportStreakState(streakState);
+      m_settingsStore.SaveChartState(context, m_activeProfileName, m_started, m_settings, m_positionState, streakState);
      }
 
    void                    ApplyRuntimeBlock(const string reason)
@@ -269,6 +277,89 @@ private:
       return (StringFind(notice, "Janela de news ") == 0);
      }
 
+   bool                    IsStreakPauseProtectionNotice(const string notice) const
+     {
+      return (StringFind(notice, "Bloqueio por ") == 0 &&
+              StringFind(notice, " streak em pausa (") > 0);
+     }
+
+   bool                    IsStreakProtectionNotice(const string notice) const
+     {
+      return (StringFind(notice, "Bloqueio por loss streak") == 0 ||
+              StringFind(notice, "Bloqueio por win streak") == 0);
+     }
+
+   bool                    SameStreakPauseProtectionNotice(const string previous,const string current) const
+     {
+      if(!IsStreakPauseProtectionNotice(previous) || !IsStreakPauseProtectionNotice(current))
+         return false;
+
+      int previousOpen = StringFind(previous, "(");
+      int currentOpen = StringFind(current, "(");
+      if(previousOpen <= 0 || currentOpen <= 0)
+         return false;
+
+      return (StringSubstr(previous, 0, previousOpen) == StringSubstr(current, 0, currentOpen));
+     }
+
+   int                     StreakPauseMinutesFromNotice(const string notice) const
+     {
+      int open = StringFind(notice, "(");
+      if(open < 0)
+         return 0;
+
+      int marker = StringFind(notice, " min", open);
+      if(marker <= open)
+         return 0;
+
+      return (int)StringToInteger(StringSubstr(notice, open + 1, marker - open - 1));
+     }
+
+   bool                    ShouldLogStreakPauseNotice(const string notice,const bool firstNotice) const
+     {
+      if(firstNotice)
+         return true;
+
+      int minutesLeft = StreakPauseMinutesFromNotice(notice);
+      if(minutesLeft <= 0)
+         return false;
+      if(minutesLeft <= 5)
+         return true;
+      if(minutesLeft < 30)
+         return ((minutesLeft % 10) == 0);
+      return ((minutesLeft % 30) == 0);
+     }
+
+   bool                    ShouldLogProtectionNotice(const string notice,const bool firstNotice) const
+     {
+      if(IsStreakPauseProtectionNotice(notice))
+         return ShouldLogStreakPauseNotice(notice, firstNotice);
+      return true;
+     }
+
+   bool                    ShouldLogDiscardedSignalDebug(const string reason)
+     {
+      if(reason == "")
+         return false;
+      if(IsStreakProtectionNotice(reason))
+         return false;
+
+      datetime now = TimeCurrent();
+      if(now <= 0)
+         now = TimeLocal();
+
+      if(reason != m_lastDiscardDebugReason ||
+         m_lastDiscardDebugTime <= 0 ||
+         now - m_lastDiscardDebugTime >= 60)
+        {
+         m_lastDiscardDebugReason = reason;
+         m_lastDiscardDebugTime = now;
+         return true;
+        }
+
+      return false;
+     }
+
    void                    LogProtectionNoticeCleared(const string notice)
      {
       if(IsSessionProtectionNotice(notice))
@@ -282,17 +373,42 @@ private:
          m_logger.Info("PROTECT", "Bloqueio de news removido: " + notice);
          return;
         }
+
+      if(IsStreakProtectionNotice(notice))
+        {
+         m_logger.Info("PROTECT", "Bloqueio de streak liberado. EA aguarda novo sinal de entrada.");
+         return;
+        }
      }
 
-   void                    ClearProtectionNotice(void)
+   bool                    IsStreakReleaseNotice(const string notice) const
+     {
+      return (notice == "Bloqueio de streak liberado. EA aguarda novo sinal de entrada.");
+     }
+
+   void                    ClearStreakReleaseNotice(void)
+     {
+      if(IsStreakReleaseNotice(m_runtimeNotice))
+         m_runtimeNotice = "";
+     }
+
+   bool                    ClearProtectionNotice(const bool announceRelease=false)
      {
       if(!m_protectionNoticeActive)
-         return;
+         return false;
 
-      LogProtectionNoticeCleared(m_protectionNoticeReason);
+      bool releasedStreak = IsStreakProtectionNotice(m_protectionNoticeReason);
+      if(announceRelease)
+         LogProtectionNoticeCleared(m_protectionNoticeReason);
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
-      m_runtimeNotice = m_tradePermissionGuard.IsBlocked() ? m_tradePermissionGuard.Notice() : "";
+      if(m_tradePermissionGuard.IsBlocked())
+         m_runtimeNotice = m_tradePermissionGuard.Notice();
+      else if(announceRelease && releasedStreak)
+         m_runtimeNotice = "Bloqueio de streak liberado. EA aguarda novo sinal de entrada.";
+      else
+         m_runtimeNotice = "";
+      return (announceRelease && releasedStreak);
      }
 
    void                    ApplyProtectionNotice(const string notice)
@@ -303,8 +419,11 @@ private:
          return;
         }
 
+      bool firstNotice = (!m_protectionNoticeActive ||
+                          (IsStreakPauseProtectionNotice(notice) &&
+                           !SameStreakPauseProtectionNotice(m_protectionNoticeReason, notice)));
       bool changed = (!m_protectionNoticeActive || m_protectionNoticeReason != notice);
-      if(changed && m_protectionNoticeActive)
+      if(changed && m_protectionNoticeActive && !IsStreakProtectionNotice(m_protectionNoticeReason))
          LogProtectionNoticeCleared(m_protectionNoticeReason);
 
       m_protectionNoticeActive = true;
@@ -312,7 +431,7 @@ private:
       if(!m_tradePermissionGuard.IsBlocked())
          m_runtimeNotice = notice;
 
-      if(changed)
+      if(changed && ShouldLogProtectionNotice(notice, firstNotice))
         {
          m_logger.Warn("PROTECT", notice);
         }
@@ -333,7 +452,7 @@ private:
          return;
 
       m_signalManager.PrimeEntryStates();
-      if(reason != "")
+      if(ShouldLogDiscardedSignalDebug(reason))
          m_logger.Debug("SIGNAL", "Sinais descartados durante bloqueio: " + reason);
      }
 
@@ -591,7 +710,11 @@ private:
          return false;
         }
 
-      ClearProtectionNotice();
+      if(ClearProtectionNotice(true))
+        {
+         m_signalManager.PrimeEntryStates();
+         return false;
+        }
 
       if(checkReentryBlock)
         {
@@ -624,11 +747,28 @@ private:
 
       if(m_executionService.PlaceEntry(decision.signal, plan, decision, m_positionState))
         {
+         ClearStreakReleaseNotice();
          PersistChartState();
          return true;
         }
 
       return false;
+     }
+
+   void                    RefreshProtectionNoticeNow(const bool discardExistingSignals)
+     {
+      string blockReason = "";
+      if(m_protectionManager.CanOpen(_Symbol, blockReason))
+        {
+         bool releasedStreak = ClearProtectionNotice(true);
+         if(releasedStreak && discardExistingSignals)
+            m_signalManager.PrimeEntryStates();
+         return;
+        }
+
+      ApplyProtectionNotice(blockReason);
+      if(discardExistingSignals)
+         DiscardBlockedEntrySignals(blockReason);
      }
 
    void                    TryPlacePendingReverseExit(void)
@@ -660,6 +800,9 @@ private:
       SPositionRuntimeState previous = m_positionState;
       m_executionService.SyncPosition(m_positionState);
 
+      if(m_positionState.hasPosition)
+         ClearStreakReleaseNotice();
+
       if(previous.hasPosition && !m_positionState.hasPosition)
         {
          RecordClosedStrategyBar(previous.ownerStrategyId);
@@ -676,6 +819,36 @@ private:
          if(!m_started)
             ReleaseRunningInstance();
         }
+     }
+
+   bool                    LastActivePartialTPExecuted(void) const
+     {
+      if(!m_settings.usePartialTP || !m_positionState.tp1Executed)
+         return false;
+      if(m_positionState.tp2Volume > 0.0 && m_positionState.tp2Price > 0.0)
+         return m_positionState.tp2Executed;
+      return true;
+     }
+
+   bool                    TryRemoveFreeFinalTakeProfit(void)
+     {
+      if(!m_settings.usePartialTP || !m_settings.freeFinalTP || !m_settings.useTrailing)
+         return false;
+      if(!LastActivePartialTPExecuted() || !m_positionState.trailingActive)
+         return false;
+      if(m_positionState.takeProfit <= 0.0)
+         return false;
+
+      double oldTP = m_positionState.takeProfit;
+      if(m_executionService.ModifyStops(m_positionState, m_positionState.stopLoss, 0.0))
+        {
+         int digits = SymbolSpec().digits;
+         m_logger.Trade("RISK", "TP Final Livre ativado apos parcial. TP final removido " + DoubleToString(oldTP, digits) + " -> 0");
+         return true;
+        }
+
+      m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final apos parcial.");
+      return false;
      }
 
    void                    ManageOpenPosition(void)
@@ -723,6 +896,7 @@ private:
                m_positionState.realizedPartialProfit += partialProfit;
                m_protectionManager.OnPartialRealized(partialProfit);
                m_logger.Trade("PARTIAL", "TP1 executed");
+               TryRemoveFreeFinalTakeProfit();
                PersistChartState();
                return;
               }
@@ -739,6 +913,7 @@ private:
                m_positionState.realizedPartialProfit += partialProfit;
                m_protectionManager.OnPartialRealized(partialProfit);
                m_logger.Trade("PARTIAL", "TP2 executed");
+               TryRemoveFreeFinalTakeProfit();
                PersistChartState();
                return;
               }
@@ -764,9 +939,13 @@ private:
            {
             m_positionState.trailingActive = true;
             m_logger.Trade("RISK", "Trailing stop updated SL " + DoubleToString(oldSL, SymbolSpec().digits) + " -> " + DoubleToString(newSL, SymbolSpec().digits));
+            TryRemoveFreeFinalTakeProfit();
             PersistChartState();
            }
         }
+
+      if(TryRemoveFreeFinalTakeProfit())
+         PersistChartState();
 
       string ownerName = "";
       string shortName = "";
@@ -837,6 +1016,7 @@ private:
             m_signalManager.PrimeEntryStates();
             ClearEntryBlockNotice();
             m_started = true;
+            RefreshProtectionNoticeNow(false);
             m_logger.Info("UI", "EA iniciado pelo painel.");
            }
          RefreshProfileBlockReasons();
@@ -937,6 +1117,8 @@ private:
       m_entryBlockNoticeReason = "";
       m_lastClosedStrategyId   = "";
       m_lastClosedStrategyBarTime = 0;
+      m_lastDiscardDebugReason = "";
+      m_lastDiscardDebugTime = 0;
       m_pendingReverseExit.Reset();
      }
 
@@ -958,6 +1140,8 @@ private:
       m_protectionNoticeReason = "";
       m_entryBlockNoticeActive = false;
       m_entryBlockNoticeReason = "";
+      m_lastDiscardDebugReason = "";
+      m_lastDiscardDebugTime = 0;
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&
@@ -983,11 +1167,14 @@ private:
       string restoredProfile = "";
       bool restoredStarted = false;
       bool restoredStateApplied = false;
+      bool restoredRunningAfterChartChange = false;
       SPositionRuntimeState restoredState;
+      SStreakRuntimeState restoredStreakState;
       ResetPositionRuntimeState(restoredState);
+      ResetStreakRuntimeState(restoredStreakState);
 
       if(m_settings.autoRestoreChartState &&
-         m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState))
+         m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState, restoredStreakState))
         {
          if(ShouldRestoreSavedState(restoredContext))
            {
@@ -1023,6 +1210,9 @@ private:
               {
                // Troca de timeframe deve preservar o estado operacional; outros restores em real/demo exigem clique manual.
                m_started = (m_settings.isTester || (restoredContext.deinitReason == REASON_CHARTCHANGE && restoredStarted));
+               restoredRunningAfterChartChange = (!m_settings.isTester &&
+                                                  m_started &&
+                                                  restoredContext.deinitReason == REASON_CHARTCHANGE);
               }
            }
         }
@@ -1037,6 +1227,8 @@ private:
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
       m_protectionManager.Init(&m_logger, m_settings);
+      if(restoredStateApplied)
+         m_protectionManager.ImportStreakState(restoredStreakState);
       m_executionService.Init(&m_logger, &m_normalizer, _Symbol, m_settings);
 
       RegisterModules();
@@ -1051,6 +1243,12 @@ private:
          bool positionSynced = m_executionService.SyncPosition(m_positionState);
          if(positionSynced && m_positionState.hasPosition)
             m_logger.Info("SYNC", "Posicao aberta detectada e ressincronizada.");
+        }
+
+      if(restoredRunningAfterChartChange && !m_positionState.hasPosition)
+        {
+         m_signalManager.PrimeEntryStates();
+         m_logger.Info("SIGNAL", "Sinais existentes descartados apos troca de timeframe; aguardando novo sinal.");
         }
 
       if(!m_runtimeBlocked)
@@ -1164,7 +1362,12 @@ private:
          return;
         }
 
-      ClearProtectionNotice();
+      if(ClearProtectionNotice(true))
+        {
+         ClearEntryBlockNotice();
+         m_signalManager.PrimeEntryStates();
+         return;
+        }
 
       SSignalDecision decision;
       ResetSignalDecision(decision);

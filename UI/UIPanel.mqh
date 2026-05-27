@@ -108,6 +108,9 @@ private:
    CEdit                      m_cfgSystemMagicEdit;
    CLabel                     m_cfgSystemConflictLbl;
    CButton                    m_cfgSystemConflictBtn;
+   CLabel                     m_cfgSystemDebugLbl;
+   CButton                    m_cfgSystemDebugBtn;
+   CLabel                     m_cfgSystemFoot1;
    CLabel                     m_cfgStatus;
 
 #include "UIPanelConfigValidation.mqh"
@@ -154,7 +157,7 @@ private:
      {
       if(HandleTopActionClick(objectName))
          return true;
-      if(HandleConfigSystemConflictClick(objectName))
+      if(HandleConfigSystemClick(objectName))
          return true;
       if(HandleRiskClick(objectName))
          return true;
@@ -344,6 +347,10 @@ public:
       bool wasEditBlocked = !ActiveProfileEditable();
       bool nowCanEditActiveProfile = ActiveProfileEditable(snapshot);
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
+      bool noticeStateChanged = (snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
+                                 snapshot.entryBlockReason != m_snapshot.entryBlockReason);
+      bool streakStateChanged = (snapshot.streakProtectionBlocked != m_snapshot.streakProtectionBlocked ||
+                                 snapshot.streakProtectionBlockReason != m_snapshot.streakProtectionBlockReason);
       bool permissionStateChanged = runtimeStateChanged ||
                                     snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                                      snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
@@ -365,12 +372,13 @@ public:
                            MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
                            snapshot.lossStreak != m_snapshot.lossStreak ||
                            snapshot.winStreak != m_snapshot.winStreak ||
+                           streakStateChanged ||
                            snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive;
       m_snapshot = snapshot;
       if(editBlockExited)
          RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
-      UpdateActiveTabContent(permissionStateChanged || editBlockExited);
+      UpdateActiveTabContent(permissionStateChanged || noticeStateChanged || streakStateChanged || editBlockExited);
       if(redrawNeeded)
          ChartRedraw();
      }
