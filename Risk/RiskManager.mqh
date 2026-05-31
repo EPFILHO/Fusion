@@ -40,6 +40,117 @@ private:
       return true;
      }
 
+   bool     CurrentPrices(const SSymbolSpec &spec,double &bid,double &ask) const
+     {
+      bid = 0.0;
+      ask = 0.0;
+      if(spec.symbol == "")
+         return false;
+
+      bid = SymbolInfoDouble(spec.symbol, SYMBOL_BID);
+      ask = SymbolInfoDouble(spec.symbol, SYMBOL_ASK);
+      return (bid > 0.0 && ask > 0.0 && ask >= bid);
+     }
+
+   double   CurrentSpreadPoints(const SSymbolSpec &spec,const double bid,const double ask) const
+     {
+      if(spec.point <= 0.0)
+         return 0.0;
+      return MathMax(0.0, (ask - bid) / spec.point);
+     }
+
+   double   StopLossDistancePoints(const SEASettings &settings,const double spreadPoints) const
+     {
+      if(settings.fixedSLPoints <= 0)
+         return 0.0;
+
+      double distance = (double)settings.fixedSLPoints;
+      if(settings.compensateSLSpread)
+         distance += spreadPoints;
+      return distance;
+     }
+
+   double   TakeProfitDistancePoints(const SEASettings &settings,const double spreadPoints) const
+     {
+      if(settings.fixedTPPoints <= 0)
+         return 0.0;
+
+      double distance = (double)settings.fixedTPPoints;
+      if(settings.compensateTPSpread)
+         distance -= spreadPoints;
+      return distance;
+     }
+
+   bool     PlannedStopsAllowed(const ENUM_SIGNAL_TYPE signal,
+                                const SSymbolSpec &spec,
+                                const double bid,
+                                const double ask,
+                                const double stopLoss,
+                                const double takeProfit,
+                                string &reason) const
+     {
+     reason = "";
+      if(spec.point <= 0.0 || bid <= 0.0 || ask <= 0.0)
+        {
+         reason = "Especificacao/preco indisponivel.";
+         return false;
+        }
+
+      double slDistance = 0.0;
+      double tpDistance = 0.0;
+
+      if(signal == SIGNAL_BUY)
+        {
+         if(stopLoss > 0.0 && stopLoss >= bid)
+           {
+            reason = "SL fora do lado valido do Bid atual.";
+            return false;
+           }
+         if(takeProfit > 0.0 && takeProfit <= bid)
+           {
+            reason = "TP fora do lado valido do Bid atual.";
+            return false;
+           }
+         if(stopLoss > 0.0)
+            slDistance = (bid - stopLoss) / spec.point;
+         if(takeProfit > 0.0)
+            tpDistance = (takeProfit - bid) / spec.point;
+        }
+      else
+        {
+         if(stopLoss > 0.0 && stopLoss <= ask)
+           {
+            reason = "SL fora do lado valido do Ask atual.";
+            return false;
+           }
+         if(takeProfit > 0.0 && takeProfit >= ask)
+           {
+            reason = "TP fora do lado valido do Ask atual.";
+            return false;
+           }
+         if(stopLoss > 0.0)
+            slDistance = (stopLoss - ask) / spec.point;
+         if(takeProfit > 0.0)
+            tpDistance = (ask - takeProfit) / spec.point;
+        }
+
+      if(spec.stopsLevel <= 0)
+         return true;
+
+      if(stopLoss > 0.0 && slDistance + 0.0000001 < spec.stopsLevel)
+        {
+         reason = "SL abaixo do stopsLevel com spread atual.";
+         return false;
+        }
+      if(takeProfit > 0.0 && tpDistance + 0.0000001 < spec.stopsLevel)
+        {
+         reason = "TP abaixo do stopsLevel com spread atual.";
+         return false;
+        }
+
+      return true;
+     }
+
 public:
                      CRiskManager(void)
      {
@@ -66,13 +177,50 @@ public:
       if(plan.volume <= 0.0)
          return false;
 
+      double bid = 0.0;
+      double ask = 0.0;
+      bool pricesReady = CurrentPrices(spec, bid, ask);
+      if(!pricesReady && (settings.fixedSLPoints > 0 || settings.fixedTPPoints > 0))
+        {
+         if(m_logger != NULL)
+            m_logger.Warn("RISK", "SL/TP nao pode ser validado com Bid/Ask atual.");
+         return false;
+        }
+
       double direction = (signal == SIGNAL_BUY) ? 1.0 : -1.0;
+      double effectiveEntryPrice = entryPrice;
+      double spreadPoints = 0.0;
+      if(pricesReady)
+        {
+         effectiveEntryPrice = (signal == SIGNAL_BUY) ? ask : bid;
+         spreadPoints = CurrentSpreadPoints(spec, bid, ask);
+        }
 
       if(settings.fixedSLPoints > 0)
-         plan.stopLoss = NormalizeDouble(entryPrice - (direction * settings.fixedSLPoints * spec.point), spec.digits);
+        {
+         double slDistance = StopLossDistancePoints(settings, spreadPoints);
+         plan.stopLoss = NormalizeDouble(effectiveEntryPrice - (direction * slDistance * spec.point), spec.digits);
+        }
 
       if(settings.fixedTPPoints > 0)
-         plan.takeProfit = NormalizeDouble(entryPrice + (direction * settings.fixedTPPoints * spec.point), spec.digits);
+        {
+         double tpDistance = TakeProfitDistancePoints(settings, spreadPoints);
+         if(tpDistance <= 0.0)
+           {
+            if(m_logger != NULL)
+               m_logger.Warn("RISK", "TP fixo menor que o spread atual com compensacao ativa.");
+            return false;
+           }
+         plan.takeProfit = NormalizeDouble(effectiveEntryPrice + (direction * tpDistance * spec.point), spec.digits);
+        }
+
+      string stopsReason = "";
+      if(pricesReady && !PlannedStopsAllowed(signal, spec, bid, ask, plan.stopLoss, plan.takeProfit, stopsReason))
+        {
+         if(m_logger != NULL)
+            m_logger.Warn("RISK", "SL/TP invalido para stopsLevel/spread atual: " + stopsReason);
+         return false;
+        }
 
       if(settings.usePartialTP)
         {
@@ -81,7 +229,7 @@ public:
          if(settings.tp1.enabled)
            {
             plan.tp1Volume = NormalizeVolumeToSpec(plan.volume * (settings.tp1.percent / 100.0), spec);
-            plan.tp1Price  = NormalizeDouble(entryPrice + (direction * settings.tp1.distancePoints * spec.point), spec.digits);
+            plan.tp1Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp1.distancePoints * spec.point), spec.digits);
             if(plan.tp1Volume <= 0.0 || plan.tp1Volume + 0.0000001 >= plan.volume)
                return false;
             reserved      += plan.tp1Volume;
@@ -94,7 +242,7 @@ public:
             if(requested <= 0.0 || remaining <= spec.volumeMin)
                return false;
             plan.tp2Volume = MathMin(requested, remaining);
-            plan.tp2Price  = NormalizeDouble(entryPrice + (direction * settings.tp2.distancePoints * spec.point), spec.digits);
+            plan.tp2Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp2.distancePoints * spec.point), spec.digits);
             if(plan.tp2Volume <= 0.0 || plan.tp2Volume + 0.0000001 >= remaining)
                return false;
             reserved      += plan.tp2Volume;

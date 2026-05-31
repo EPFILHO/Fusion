@@ -61,6 +61,10 @@
    CEdit                      m_protectDayLossEdit;
    CLabel                     m_protectDayGainLbl;
    CEdit                      m_protectDayGainEdit;
+   CSelectionComboField       m_protectDayProfitAction;
+   CLabel                     m_protectDayFoot1;
+   CLabel                     m_protectDayFoot2;
+   CLabel                     m_protectDayFoot3;
 
    CLabel                     m_protectDrawdownHdr;
    CLabel                     m_protectDrawdownDesc;
@@ -68,7 +72,11 @@
    CButton                    m_protectDrawdownEnabledBtn;
    CLabel                     m_protectDrawdownValueLbl;
    CEdit                      m_protectDrawdownValueEdit;
+   CSelectionComboField       m_protectDrawdownType;
+   CSelectionComboField       m_protectDrawdownPeakMode;
    CLabel                     m_protectDrawdownNote;
+   CLabel                     m_protectDrawdownFoot2;
+   CLabel                     m_protectDrawdownFoot3;
 
    CLabel                     m_protectStreakHdr;
    CLabel                     m_protectStreakDesc;
@@ -112,6 +120,32 @@
       return !m_protectPageValid[(int)page];
      }
 
+   bool                       ProtectSubtabHasOperationalWarning(const ENUM_FUSION_PROTECT_PAGE page) const
+     {
+      if(page == FUSION_PROTECT_SESSION)
+         return (m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked);
+      if(page == FUSION_PROTECT_NEWS)
+        {
+         bool hasEnabledNewsWindow = false;
+         for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+           {
+            if(m_draftSettings.newsWindows[newsIndex].enabled)
+              {
+               hasEnabledNewsWindow = true;
+               break;
+              }
+           }
+         return (hasEnabledNewsWindow && m_snapshot.newsProtectionBlocked);
+        }
+      if(page == FUSION_PROTECT_DAY)
+         return m_snapshot.dailyLimitsBlocked;
+      if(page == FUSION_PROTECT_DRAWDOWN)
+         return m_snapshot.drawdownConfigLocked;
+      if(page == FUSION_PROTECT_STREAK)
+         return m_snapshot.streakProtectionBlocked;
+      return false;
+     }
+
    string                     ProtectSubtabError(const ENUM_FUSION_PROTECT_PAGE page) const
      {
       return m_protectPageError[(int)page];
@@ -125,6 +159,8 @@
             FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], true);
          else if(ProtectSubtabHasError((ENUM_FUSION_PROTECT_PAGE)tabIndex))
             FusionApplyActionButtonStyle(m_protectTabs[tabIndex], FUSION_CLR_BAD, true);
+         else if(ProtectSubtabHasOperationalWarning((ENUM_FUSION_PROTECT_PAGE)tabIndex))
+            FusionApplyActionButtonStyle(m_protectTabs[tabIndex], FUSION_CLR_WARN, true);
          else
             FusionApplyPrimaryButtonStyle(m_protectTabs[tabIndex], false);
         }
@@ -142,6 +178,20 @@
       m_protectStreakWinAction.Sync((long)m_draftSettings.winStreakAction, editable && m_draftSettings.winStreakEnabled);
       m_protectStreakLossAction.RaiseRuntimeObjects(3910);
       m_protectStreakWinAction.RaiseRuntimeObjects(3920);
+     }
+
+   void                       SyncProtectionDayActionCombo(const bool editable)
+     {
+      m_protectDayProfitAction.Sync((long)m_draftSettings.profitTargetAction, editable && m_draftSettings.enableDailyLimits);
+      m_protectDayProfitAction.RaiseRuntimeObjects(3905);
+     }
+
+   void                       SyncProtectionDrawdownCombos(const bool editable)
+     {
+      m_protectDrawdownType.Sync((long)m_draftSettings.drawdownType, editable && m_draftSettings.enableDrawdown);
+      m_protectDrawdownPeakMode.Sync((long)m_draftSettings.drawdownPeakMode, editable && m_draftSettings.enableDrawdown);
+      m_protectDrawdownType.RaiseRuntimeObjects(3908);
+      m_protectDrawdownPeakMode.RaiseRuntimeObjects(3909);
      }
 
 #include "UIPanelProtectionInputs.mqh"
@@ -222,6 +272,40 @@
       return true;
      }
 
+   bool                       HandleProtectionDayToggle(const string objectName)
+     {
+      if(objectName != m_protectDayEnabledBtn.Name())
+         return false;
+
+      ReleaseButton(m_protectDayEnabledBtn);
+      if(!CanEditActiveProfile() || DailyConfigLocked())
+        {
+         RefreshConfigValidation();
+         return true;
+        }
+
+      m_draftSettings.enableDailyLimits = !m_draftSettings.enableDailyLimits;
+      RefreshConfigValidation();
+      return true;
+     }
+
+   bool                       HandleProtectionDrawdownToggle(const string objectName)
+     {
+      if(objectName != m_protectDrawdownEnabledBtn.Name())
+         return false;
+
+      ReleaseButton(m_protectDrawdownEnabledBtn);
+      if(!CanEditActiveProfile() || DrawdownConfigLocked())
+        {
+         RefreshConfigValidation();
+         return true;
+        }
+
+      m_draftSettings.enableDrawdown = !m_draftSettings.enableDrawdown;
+      RefreshConfigValidation();
+      return true;
+     }
+
    bool                       HandleProtectionDirectionChange(const string objectName)
      {
       if(!m_protectDirection.Matches(objectName))
@@ -272,11 +356,65 @@
       return false;
      }
 
+   bool                       HandleProtectionDayActionChange(const string objectName)
+     {
+      if(!m_protectDayProfitAction.Matches(objectName))
+         return false;
+
+      if(!TryBeginActiveProfileEdit() || DailyConfigLocked() || !m_draftSettings.enableDailyLimits)
+        {
+         SyncProtectionDayActionCombo(CanEditActiveProfile() && !DailyConfigLocked());
+         return true;
+        }
+
+      m_draftSettings.profitTargetAction = (ENUM_PROFIT_TARGET_ACTION)m_protectDayProfitAction.Value();
+      RefreshConfigValidation();
+      SyncProtectionDayActionCombo(CanEditActiveProfile() && !DailyConfigLocked());
+      return true;
+     }
+
+   bool                       HandleProtectionDrawdownComboChange(const string objectName)
+     {
+      if(m_protectDrawdownType.Matches(objectName))
+        {
+         if(!TryBeginActiveProfileEdit() || DrawdownConfigLocked() || !m_draftSettings.enableDrawdown)
+           {
+            SyncProtectionDrawdownCombos(CanEditActiveProfile() && !DrawdownConfigLocked());
+            return true;
+           }
+
+         m_draftSettings.drawdownType = (ENUM_DRAWDOWN_TYPE)m_protectDrawdownType.Value();
+         RefreshConfigValidation();
+         SyncProtectionDrawdownCombos(CanEditActiveProfile() && !DrawdownConfigLocked());
+         return true;
+        }
+
+      if(m_protectDrawdownPeakMode.Matches(objectName))
+        {
+         if(!TryBeginActiveProfileEdit() || DrawdownConfigLocked() || !m_draftSettings.enableDrawdown)
+           {
+            SyncProtectionDrawdownCombos(CanEditActiveProfile() && !DrawdownConfigLocked());
+            return true;
+           }
+
+         m_draftSettings.drawdownPeakMode = (ENUM_DRAWDOWN_PEAK_MODE)m_protectDrawdownPeakMode.Value();
+         RefreshConfigValidation();
+         SyncProtectionDrawdownCombos(CanEditActiveProfile() && !DrawdownConfigLocked());
+         return true;
+        }
+
+      return false;
+     }
+
    bool                       HandleProtectionChange(const int id,const string objectName)
      {
       if(id != CHARTEVENT_CUSTOM + ON_CHANGE || !m_configProtectionCreated)
          return false;
       if(HandleProtectionDirectionChange(objectName))
+         return true;
+      if(HandleProtectionDayActionChange(objectName))
+         return true;
+      if(HandleProtectionDrawdownComboChange(objectName))
          return true;
       if(HandleProtectionStreakActionChange(objectName))
          return true;
@@ -306,6 +444,12 @@
       if(HandleProtectionSpreadToggle(objectName))
          return true;
 
+      if(HandleProtectionDayToggle(objectName))
+         return true;
+
+      if(HandleProtectionDrawdownToggle(objectName))
+         return true;
+
       if(HandleProtectionBooleanToggle(objectName, m_protectSessionEnabledBtn, m_draftSettings.enableSessionFilter))
          return true;
 
@@ -313,12 +457,6 @@
          return true;
 
       if(HandleProtectionBooleanToggle(objectName, m_protectSessionOvernightBtn, m_draftSettings.sessionOvernight))
-         return true;
-
-      if(HandleProtectionBooleanToggle(objectName, m_protectDayEnabledBtn, m_draftSettings.enableDailyLimits))
-         return true;
-
-      if(HandleProtectionBooleanToggle(objectName, m_protectDrawdownEnabledBtn, m_draftSettings.enableDrawdown))
          return true;
 
       if(StreakConfigLocked() &&

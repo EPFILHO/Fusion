@@ -91,6 +91,24 @@ enum ENUM_STREAK_ACTION
    STREAK_ACTION_STOP_DAY
   };
 
+enum ENUM_PROFIT_TARGET_ACTION
+  {
+   PROFIT_ACTION_PARAR = 0,
+   PROFIT_ACTION_ATIVAR_DD
+  };
+
+enum ENUM_DRAWDOWN_TYPE
+  {
+   DD_TIPO_FINANCEIRO = 0,
+   DD_TIPO_PERCENTUAL
+  };
+
+enum ENUM_DRAWDOWN_PEAK_MODE
+  {
+   DD_PICO_REALIZADO = 0,
+   DD_PICO_FLUTUANTE
+  };
+
 enum ENUM_UI_COMMAND
   {
    UI_COMMAND_NONE = 0,
@@ -163,8 +181,11 @@ struct SEASettings
    int                      maxDailyTrades;
    double                   maxDailyLoss;
    double                   maxDailyGain;
+   ENUM_PROFIT_TARGET_ACTION profitTargetAction;
    bool                     enableDrawdown;
    double                   maxDrawdown;
+   ENUM_DRAWDOWN_TYPE       drawdownType;
+   ENUM_DRAWDOWN_PEAK_MODE  drawdownPeakMode;
    bool                     lossStreakEnabled;
    int                      maxLossStreak;
    ENUM_STREAK_ACTION       lossStreakAction;
@@ -176,6 +197,8 @@ struct SEASettings
    double                   fixedLot;
    int                      fixedSLPoints;
    int                      fixedTPPoints;
+   bool                     compensateSLSpread;
+   bool                     compensateTPSpread;
    bool                     usePartialTP;
    bool                     freeFinalTP;
    SPartialTPConfig         tp1;
@@ -306,6 +329,24 @@ struct SStreakRuntimeState
    datetime winPauseUntil;
   };
 
+struct SDailyLimitsRuntimeState
+  {
+   int    dayKey;
+   int    dailyTradeCount;
+   double dailyClosedProfit;
+   bool   tradesLimitReached;
+   bool   lossLimitReached;
+   bool   gainLimitReached;
+  };
+
+struct SDrawdownRuntimeState
+  {
+   int    dayKey;
+   bool   protectionActive;
+   bool   limitReached;
+   double peakProjectedProfit;
+  };
+
 struct SClosedTradeSummary
   {
    bool   found;
@@ -356,11 +397,20 @@ struct SUIPanelSnapshot
    string tradePermissionReason;
    int    dailyTradeCount;
    double dailyClosedProfit;
+   bool   dailyLimitsBlocked;
+   string dailyLimitsBlockReason;
+   bool   sessionProtectionBlocked;
+   string sessionProtectionBlockReason;
+   bool   newsProtectionBlocked;
+   string newsProtectionBlockReason;
    int    lossStreak;
    int    winStreak;
    bool   streakProtectionBlocked;
    string streakProtectionBlockReason;
    bool   drawdownProtectionActive;
+   bool   drawdownLimitReached;
+   bool   drawdownConfigLocked;
+   string drawdownConfigLockReason;
   };
 
 struct SUICommand
@@ -387,7 +437,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 9;
+   settings.schemaVersion         = 12;
    settings.panelEnabled          = true;
    settings.autoRestoreChartState = true;
    settings.autoSaveChartState    = true;
@@ -419,8 +469,11 @@ void SetDefaultSettings(SEASettings &settings)
    settings.maxDailyTrades        = 0;
    settings.maxDailyLoss          = 0.0;
    settings.maxDailyGain          = 0.0;
+   settings.profitTargetAction    = PROFIT_ACTION_PARAR;
    settings.enableDrawdown        = false;
    settings.maxDrawdown           = 0.0;
+   settings.drawdownType          = DD_TIPO_FINANCEIRO;
+   settings.drawdownPeakMode      = DD_PICO_FLUTUANTE;
    settings.lossStreakEnabled     = false;
    settings.maxLossStreak         = 0;
    settings.lossStreakAction      = STREAK_ACTION_PAUSE;
@@ -432,6 +485,8 @@ void SetDefaultSettings(SEASettings &settings)
    settings.fixedLot              = 0.10;
    settings.fixedSLPoints         = 200;
    settings.fixedTPPoints         = 400;
+   settings.compensateSLSpread    = false;
+   settings.compensateTPSpread    = false;
    settings.usePartialTP          = false;
    settings.freeFinalTP           = false;
    settings.tp1.enabled           = false;
@@ -563,6 +618,24 @@ void ResetStreakRuntimeState(SStreakRuntimeState &state)
    state.winStopDayBlocked = false;
    state.lossPauseUntil = 0;
    state.winPauseUntil = 0;
+  }
+
+void ResetDailyLimitsRuntimeState(SDailyLimitsRuntimeState &state)
+  {
+   state.dayKey = 0;
+   state.dailyTradeCount = 0;
+   state.dailyClosedProfit = 0.0;
+   state.tradesLimitReached = false;
+   state.lossLimitReached = false;
+   state.gainLimitReached = false;
+  }
+
+void ResetDrawdownRuntimeState(SDrawdownRuntimeState &state)
+  {
+   state.dayKey = 0;
+   state.protectionActive = false;
+   state.limitReached = false;
+   state.peakProjectedProfit = 0.0;
   }
 
 #endif

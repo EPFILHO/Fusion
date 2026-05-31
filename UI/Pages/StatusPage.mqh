@@ -18,6 +18,14 @@ private:
    CLabel            m_noticeTitle;
    CLabel            m_noticeLines[FUSION_STATUS_NOTICE_LINE_COUNT];
 
+   bool              HasEnabledNewsWindow(const SEASettings &settings) const
+     {
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+         if(settings.newsWindows[newsIndex].enabled)
+            return true;
+      return false;
+     }
+
    bool              AddLabel(CFusionPanel *parent,CLabel &label,const long chartId,const int subwin,
                               const string name,const int x1,const int y1,const int x2,const int y2,
                               const string text,const color clr,const int size=9)
@@ -167,6 +175,30 @@ public:
         {
          noticeTitle = "ENTRADA BLOQUEADA";
          noticeText = snapshot.entryBlockReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
+      else if(snapshot.dailyLimitsBlocked)
+        {
+         noticeTitle = "LIMITE DIARIO";
+         noticeText = snapshot.dailyLimitsBlockReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
+      else if(snapshot.drawdownLimitReached)
+        {
+         noticeTitle = "DRAWDOWN";
+         noticeText = snapshot.drawdownConfigLockReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
+      else if(snapshot.settings.enableSessionFilter && snapshot.sessionProtectionBlocked)
+        {
+         noticeTitle = "SESSAO";
+         noticeText = snapshot.sessionProtectionBlockReason;
+         noticeColor = FUSION_CLR_WARN;
+        }
+      else if(HasEnabledNewsWindow(snapshot.settings) && snapshot.newsProtectionBlocked)
+        {
+         noticeTitle = "NEWS";
+         noticeText = snapshot.newsProtectionBlockReason;
          noticeColor = FUSION_CLR_WARN;
         }
       else if(snapshot.runtimeNotice != "")

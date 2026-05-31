@@ -217,12 +217,44 @@ private:
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
+      string dailyBlockReason = "";
+      snapshot.dailyLimitsBlocked = m_protectionManager.IsDailyLimitsBlocked(dailyBlockReason);
+      snapshot.dailyLimitsBlockReason = dailyBlockReason;
+      string sessionBlockReason = "";
+      snapshot.sessionProtectionBlocked = false;
+      snapshot.sessionProtectionBlockReason = "";
+      if(m_settings.enableSessionFilter)
+        {
+         snapshot.sessionProtectionBlocked = m_protectionManager.IsSessionProtectionBlocked(sessionBlockReason);
+         snapshot.sessionProtectionBlockReason = sessionBlockReason;
+        }
+      string newsBlockReason = "";
+      snapshot.newsProtectionBlocked = false;
+      snapshot.newsProtectionBlockReason = "";
+      bool hasEnabledNewsWindow = false;
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+        {
+         if(m_settings.newsWindows[newsIndex].enabled)
+           {
+            hasEnabledNewsWindow = true;
+            break;
+           }
+        }
+      if(hasEnabledNewsWindow)
+        {
+         snapshot.newsProtectionBlocked = m_protectionManager.IsNewsProtectionBlocked(newsBlockReason);
+         snapshot.newsProtectionBlockReason = newsBlockReason;
+        }
       snapshot.lossStreak       = m_protectionManager.LossStreak();
       snapshot.winStreak        = m_protectionManager.WinStreak();
       string streakBlockReason = "";
       snapshot.streakProtectionBlocked = m_protectionManager.IsStreakProtectionBlocked(streakBlockReason);
       snapshot.streakProtectionBlockReason = streakBlockReason;
+      string drawdownLockReason = "";
       snapshot.drawdownProtectionActive = m_protectionManager.IsDrawdownProtectionActive();
+      snapshot.drawdownLimitReached = m_protectionManager.IsDrawdownLimitReached();
+      snapshot.drawdownConfigLocked = m_protectionManager.IsDrawdownConfigLocked(drawdownLockReason);
+      snapshot.drawdownConfigLockReason = drawdownLockReason;
       return snapshot;
      }
 
@@ -250,9 +282,22 @@ private:
         }
 
       SStreakRuntimeState streakState;
+      SDailyLimitsRuntimeState dailyState;
+      SDrawdownRuntimeState drawdownState;
       ResetStreakRuntimeState(streakState);
+      ResetDailyLimitsRuntimeState(dailyState);
+      ResetDrawdownRuntimeState(drawdownState);
       m_protectionManager.ExportStreakState(streakState);
-      m_settingsStore.SaveChartState(context, m_activeProfileName, m_started, m_settings, m_positionState, streakState);
+      m_protectionManager.ExportDailyLimitsState(dailyState);
+      m_protectionManager.ExportDrawdownState(drawdownState);
+      m_settingsStore.SaveChartState(context,
+                                     m_activeProfileName,
+                                     m_started,
+                                     m_settings,
+                                     m_positionState,
+                                     streakState,
+                                     dailyState,
+                                     drawdownState);
      }
 
    void                    ApplyRuntimeBlock(const string reason)
@@ -275,6 +320,44 @@ private:
    bool                    IsNewsProtectionNotice(const string notice) const
      {
       return (StringFind(notice, "Janela de news ") == 0);
+     }
+
+   bool                    HasEnabledNewsWindow(const SEASettings &settings) const
+     {
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+         if(settings.newsWindows[newsIndex].enabled)
+            return true;
+      return false;
+     }
+
+   bool                    ProtectionNoticeAllowedBySettings(const string notice,const SEASettings &settings) const
+     {
+      if(IsSessionProtectionNotice(notice))
+         return settings.enableSessionFilter;
+      if(IsNewsProtectionNotice(notice))
+         return HasEnabledNewsWindow(settings);
+      return true;
+     }
+
+   void                    ClearProtectionNoticeDisabledBySettings(void)
+     {
+      if(m_protectionNoticeActive &&
+         !ProtectionNoticeAllowedBySettings(m_protectionNoticeReason, m_settings))
+        {
+         m_protectionNoticeActive = false;
+         m_protectionNoticeReason = "";
+        }
+
+      if(m_runtimeNotice != "" &&
+         !ProtectionNoticeAllowedBySettings(m_runtimeNotice, m_settings))
+        {
+         m_runtimeNotice = m_tradePermissionGuard.IsBlocked() ? m_tradePermissionGuard.Notice() : "";
+        }
+     }
+
+   bool                    IsSpreadProtectionNotice(const string notice) const
+     {
+      return (StringFind(notice, "Bloqueio por Spread:") == 0);
      }
 
    bool                    IsStreakPauseProtectionNotice(const string notice) const
@@ -411,7 +494,7 @@ private:
       return (announceRelease && releasedStreak);
      }
 
-   void                    ApplyProtectionNotice(const string notice)
+   void                    ApplyProtectionNotice(const string notice,const bool allowLog=true,const bool forceLog=false)
      {
       if(notice == "")
         {
@@ -431,7 +514,7 @@ private:
       if(!m_tradePermissionGuard.IsBlocked())
          m_runtimeNotice = notice;
 
-      if(changed && ShouldLogProtectionNotice(notice, firstNotice))
+      if(allowLog && (changed || forceLog) && ShouldLogProtectionNotice(notice, firstNotice))
         {
          m_logger.Warn("PROTECT", notice);
         }
@@ -674,6 +757,7 @@ private:
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_executionService.Reload(m_settings);
       m_protectionManager.Reload(m_settings, scope);
+      ClearProtectionNoticeDisabledBySettings();
       return m_signalManager.ReloadAll(m_settings, scope);
      }
 
@@ -705,7 +789,7 @@ private:
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
         {
          ClearEntryBlockNotice();
-         ApplyProtectionNotice(blockReason);
+         ApplyProtectionNotice(blockReason, true, IsSpreadProtectionNotice(blockReason));
          DiscardBlockedEntrySignals(blockReason);
          return false;
         }
@@ -766,7 +850,7 @@ private:
          return;
         }
 
-      ApplyProtectionNotice(blockReason);
+      ApplyProtectionNotice(blockReason, !IsSpreadProtectionNotice(blockReason));
       if(discardExistingSignals)
          DiscardBlockedEntrySignals(blockReason);
      }
@@ -1170,11 +1254,23 @@ private:
       bool restoredRunningAfterChartChange = false;
       SPositionRuntimeState restoredState;
       SStreakRuntimeState restoredStreakState;
+      SDailyLimitsRuntimeState restoredDailyState;
+      SDrawdownRuntimeState restoredDrawdownState;
       ResetPositionRuntimeState(restoredState);
       ResetStreakRuntimeState(restoredStreakState);
+      ResetDailyLimitsRuntimeState(restoredDailyState);
+      ResetDrawdownRuntimeState(restoredDrawdownState);
 
       if(m_settings.autoRestoreChartState &&
-         m_settingsStore.LoadChartState(m_chartContext.chartId, restoredContext, restoredProfile, restoredStarted, restoredSettings, restoredState, restoredStreakState))
+         m_settingsStore.LoadChartState(m_chartContext.chartId,
+                                        restoredContext,
+                                        restoredProfile,
+                                        restoredStarted,
+                                        restoredSettings,
+                                        restoredState,
+                                        restoredStreakState,
+                                        restoredDailyState,
+                                        restoredDrawdownState))
         {
          if(ShouldRestoreSavedState(restoredContext))
            {
@@ -1228,7 +1324,11 @@ private:
       m_riskManager.Init(&m_logger);
       m_protectionManager.Init(&m_logger, m_settings);
       if(restoredStateApplied)
+        {
          m_protectionManager.ImportStreakState(restoredStreakState);
+         m_protectionManager.ImportDailyLimitsState(restoredDailyState);
+         m_protectionManager.ImportDrawdownState(restoredDrawdownState);
+        }
       m_executionService.Init(&m_logger, &m_normalizer, _Symbol, m_settings);
 
       RegisterModules();
@@ -1357,7 +1457,7 @@ private:
       if(!m_protectionManager.CanOpen(_Symbol, blockReason))
         {
          ClearEntryBlockNotice();
-         ApplyProtectionNotice(blockReason);
+         ApplyProtectionNotice(blockReason, !IsSpreadProtectionNotice(blockReason));
          DiscardBlockedEntrySignals(blockReason);
          return;
         }

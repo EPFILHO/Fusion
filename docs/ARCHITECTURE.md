@@ -108,6 +108,8 @@ O BE nao deve piorar um SL ja protegido pelo trailing. Para compra, novo SL prec
 
 No trailing atual, `Passo` significa distancia entre o preco atual e o novo SL, nao incremento minimo entre uma modificacao e outra.
 
+SL/TP fixos de entrada respeitam `stopsLevel` quando o ativo/corretora informa esse minimo. A defesa final do motor usa Bid/Ask e spread atual do tick antes de enviar a entrada. `Compensar Spread SL` soma o spread ao SL e aumenta o risco nominal; `Compensar Spread TP` subtrai o spread do TP e diminui o alvo nominal. `freezeLevel` ainda deve ser tratado em fatia propria para modificacoes de SL, principalmente BE e trailing.
+
 ### `Protection`
 
 Bloqueia entradas ou forca saidas com base em regras de seguranca:

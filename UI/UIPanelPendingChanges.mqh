@@ -32,6 +32,10 @@
          return true;
       if(m_draftSettings.tp2.enabled != m_committedSettings.tp2.enabled)
          return true;
+      if(m_draftSettings.compensateSLSpread != m_committedSettings.compensateSLSpread)
+         return true;
+      if(m_draftSettings.compensateTPSpread != m_committedSettings.compensateTPSpread)
+         return true;
       if(m_draftSettings.useBreakeven != m_committedSettings.useBreakeven)
          return true;
       if(m_draftSettings.useTrailing != m_committedSettings.useTrailing)
@@ -265,9 +269,15 @@
          return true;
       if(MathAbs(m_draftSettings.maxDailyGain - m_committedSettings.maxDailyGain) > 0.0000001)
          return true;
+      if(m_draftSettings.profitTargetAction != m_committedSettings.profitTargetAction)
+         return true;
       if(m_draftSettings.enableDrawdown != m_committedSettings.enableDrawdown)
          return true;
       if(MathAbs(m_draftSettings.maxDrawdown - m_committedSettings.maxDrawdown) > 0.0000001)
+         return true;
+      if(m_draftSettings.drawdownType != m_committedSettings.drawdownType)
+         return true;
+      if(m_draftSettings.drawdownPeakMode != m_committedSettings.drawdownPeakMode)
          return true;
       if(m_draftSettings.lossStreakEnabled != m_committedSettings.lossStreakEnabled)
          return true;

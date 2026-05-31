@@ -85,8 +85,11 @@ private:
       WriteLine(handle, "maxDailyTrades", IntegerToString(settings.maxDailyTrades));
       WriteLine(handle, "maxDailyLoss", DoubleToString(settings.maxDailyLoss, 2));
       WriteLine(handle, "maxDailyGain", DoubleToString(settings.maxDailyGain, 2));
+      WriteLine(handle, "profitTargetAction", IntegerToString((int)settings.profitTargetAction));
       WriteLine(handle, "enableDrawdown", IntegerToString((int)settings.enableDrawdown));
       WriteLine(handle, "maxDrawdown", DoubleToString(settings.maxDrawdown, 2));
+      WriteLine(handle, "drawdownType", IntegerToString((int)settings.drawdownType));
+      WriteLine(handle, "drawdownPeakMode", IntegerToString((int)settings.drawdownPeakMode));
       WriteLine(handle, "lossStreakEnabled", IntegerToString((int)settings.lossStreakEnabled));
       WriteLine(handle, "maxLossStreak", IntegerToString(settings.maxLossStreak));
       WriteLine(handle, "lossStreakAction", IntegerToString((int)settings.lossStreakAction));
@@ -98,6 +101,8 @@ private:
       WriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 4));
       WriteLine(handle, "fixedSLPoints", IntegerToString(settings.fixedSLPoints));
       WriteLine(handle, "fixedTPPoints", IntegerToString(settings.fixedTPPoints));
+      WriteLine(handle, "compensateSLSpread", IntegerToString((int)settings.compensateSLSpread));
+      WriteLine(handle, "compensateTPSpread", IntegerToString((int)settings.compensateTPSpread));
       WriteLine(handle, "usePartialTP", IntegerToString((int)settings.usePartialTP));
       WriteLine(handle, "freeFinalTP", IntegerToString((int)settings.freeFinalTP));
       WriteLine(handle, "tp1.enabled", IntegerToString((int)settings.tp1.enabled));
@@ -238,8 +243,11 @@ private:
       else if(key == "maxDailyTrades") settings.maxDailyTrades = (int)StringToInteger(value);
       else if(key == "maxDailyLoss") settings.maxDailyLoss = StringToDouble(value);
       else if(key == "maxDailyGain") settings.maxDailyGain = StringToDouble(value);
+      else if(key == "profitTargetAction") settings.profitTargetAction = (ENUM_PROFIT_TARGET_ACTION)StringToInteger(value);
       else if(key == "enableDrawdown") settings.enableDrawdown = (bool)StringToInteger(value);
       else if(key == "maxDrawdown") settings.maxDrawdown = StringToDouble(value);
+      else if(key == "drawdownType") settings.drawdownType = (ENUM_DRAWDOWN_TYPE)StringToInteger(value);
+      else if(key == "drawdownPeakMode") settings.drawdownPeakMode = (ENUM_DRAWDOWN_PEAK_MODE)StringToInteger(value);
       else if(key == "lossStreakEnabled") settings.lossStreakEnabled = (bool)StringToInteger(value);
       else if(key == "maxLossStreak") settings.maxLossStreak = (int)StringToInteger(value);
       else if(key == "lossStreakAction") settings.lossStreakAction = (ENUM_STREAK_ACTION)StringToInteger(value);
@@ -251,6 +259,8 @@ private:
       else if(key == "fixedLot") settings.fixedLot = StringToDouble(value);
       else if(key == "fixedSLPoints") settings.fixedSLPoints = (int)StringToInteger(value);
       else if(key == "fixedTPPoints") settings.fixedTPPoints = (int)StringToInteger(value);
+      else if(key == "compensateSLSpread") settings.compensateSLSpread = (bool)StringToInteger(value);
+      else if(key == "compensateTPSpread") settings.compensateTPSpread = (bool)StringToInteger(value);
       else if(key == "usePartialTP") settings.usePartialTP = (bool)StringToInteger(value);
       else if(key == "freeFinalTP") settings.freeFinalTP = (bool)StringToInteger(value);
       else if(key == "tp1.enabled") settings.tp1.enabled = (bool)StringToInteger(value);
@@ -325,6 +335,34 @@ private:
       return fallback;
      }
 
+   ENUM_PROFIT_TARGET_ACTION NormalizeProfitTargetAction(const ENUM_PROFIT_TARGET_ACTION action) const
+     {
+      if(action == PROFIT_ACTION_ATIVAR_DD)
+         return action;
+      return PROFIT_ACTION_PARAR;
+     }
+
+   ENUM_DRAWDOWN_TYPE NormalizeDrawdownType(const ENUM_DRAWDOWN_TYPE value) const
+     {
+      if(value == DD_TIPO_PERCENTUAL)
+         return value;
+      return DD_TIPO_FINANCEIRO;
+     }
+
+   ENUM_DRAWDOWN_PEAK_MODE NormalizeDrawdownPeakMode(const ENUM_DRAWDOWN_PEAK_MODE value) const
+     {
+      if(value == DD_PICO_REALIZADO)
+         return value;
+      return DD_PICO_FLUTUANTE;
+     }
+
+   void              NormalizeProtectionSettings(SEASettings &settings) const
+     {
+      settings.profitTargetAction = NormalizeProfitTargetAction(settings.profitTargetAction);
+      settings.drawdownType = NormalizeDrawdownType(settings.drawdownType);
+      settings.drawdownPeakMode = NormalizeDrawdownPeakMode(settings.drawdownPeakMode);
+     }
+
    void              NormalizeStreakSettings(SEASettings &settings) const
      {
       if(settings.maxLossStreak < 0)
@@ -357,7 +395,9 @@ private:
                                        string &activeProfileName,
                                        bool &started,
                                        SPositionRuntimeState &state,
-                                       SStreakRuntimeState &streakState) const
+                                       SStreakRuntimeState &streakState,
+                                       SDailyLimitsRuntimeState &dailyState,
+                                       SDrawdownRuntimeState &drawdownState) const
      {
       if(key == "activeProfileName") activeProfileName = value;
       else if(key == "started") started = (bool)StringToInteger(value);
@@ -382,6 +422,16 @@ private:
       else if(key == "streak.winStopDayBlocked") streakState.winStopDayBlocked = (bool)StringToInteger(value);
       else if(key == "streak.lossPauseUntil") streakState.lossPauseUntil = (datetime)StringToInteger(value);
       else if(key == "streak.winPauseUntil") streakState.winPauseUntil = (datetime)StringToInteger(value);
+      else if(key == "day.dayKey") dailyState.dayKey = (int)StringToInteger(value);
+      else if(key == "day.dailyTradeCount") dailyState.dailyTradeCount = (int)StringToInteger(value);
+      else if(key == "day.dailyClosedProfit") dailyState.dailyClosedProfit = StringToDouble(value);
+      else if(key == "day.tradesLimitReached") dailyState.tradesLimitReached = (bool)StringToInteger(value);
+      else if(key == "day.lossLimitReached") dailyState.lossLimitReached = (bool)StringToInteger(value);
+      else if(key == "day.gainLimitReached") dailyState.gainLimitReached = (bool)StringToInteger(value);
+      else if(key == "drawdown.dayKey") drawdownState.dayKey = (int)StringToInteger(value);
+      else if(key == "drawdown.protectionActive") drawdownState.protectionActive = (bool)StringToInteger(value);
+      else if(key == "drawdown.limitReached") drawdownState.limitReached = (bool)StringToInteger(value);
+      else if(key == "drawdown.peakProjectedProfit") drawdownState.peakProjectedProfit = StringToDouble(value);
      }
 
    void              ApplyContextField(const string key,const string value,SChartStateContext &context) const
@@ -537,6 +587,7 @@ public:
         }
 
       FileClose(handle);
+      NormalizeProtectionSettings(settings);
       NormalizeStreakSettings(settings);
       NormalizeRiskSettings(settings);
       return true;
@@ -547,7 +598,9 @@ public:
                                     const bool started,
                                     const SEASettings &settings,
                                     const SPositionRuntimeState &state,
-                                    const SStreakRuntimeState &streakState)
+                                    const SStreakRuntimeState &streakState,
+                                    const SDailyLimitsRuntimeState &dailyState,
+                                    const SDrawdownRuntimeState &drawdownState)
      {
       EnsureFolders();
 
@@ -586,6 +639,16 @@ public:
       WriteLine(handle, "streak.winStopDayBlocked", IntegerToString((int)streakState.winStopDayBlocked));
       WriteLine(handle, "streak.lossPauseUntil", IntegerToString((long)streakState.lossPauseUntil));
       WriteLine(handle, "streak.winPauseUntil", IntegerToString((long)streakState.winPauseUntil));
+      WriteLine(handle, "day.dayKey", IntegerToString(dailyState.dayKey));
+      WriteLine(handle, "day.dailyTradeCount", IntegerToString(dailyState.dailyTradeCount));
+      WriteLine(handle, "day.dailyClosedProfit", DoubleToString(dailyState.dailyClosedProfit, 2));
+      WriteLine(handle, "day.tradesLimitReached", IntegerToString((int)dailyState.tradesLimitReached));
+      WriteLine(handle, "day.lossLimitReached", IntegerToString((int)dailyState.lossLimitReached));
+      WriteLine(handle, "day.gainLimitReached", IntegerToString((int)dailyState.gainLimitReached));
+      WriteLine(handle, "drawdown.dayKey", IntegerToString(drawdownState.dayKey));
+      WriteLine(handle, "drawdown.protectionActive", IntegerToString((int)drawdownState.protectionActive));
+      WriteLine(handle, "drawdown.limitReached", IntegerToString((int)drawdownState.limitReached));
+      WriteLine(handle, "drawdown.peakProjectedProfit", DoubleToString(drawdownState.peakProjectedProfit, 2));
 
       FileClose(handle);
       return true;
@@ -597,12 +660,16 @@ public:
                                     bool &started,
                                     SEASettings &settings,
                                     SPositionRuntimeState &state,
-                                    SStreakRuntimeState &streakState)
+                                    SStreakRuntimeState &streakState,
+                                    SDailyLimitsRuntimeState &dailyState,
+                                    SDrawdownRuntimeState &drawdownState)
      {
       EnsureFolders();
       SetDefaultSettings(settings);
       ResetPositionRuntimeState(state);
       ResetStreakRuntimeState(streakState);
+      ResetDailyLimitsRuntimeState(dailyState);
+      ResetDrawdownRuntimeState(drawdownState);
       context.chartId = chartId;
       context.symbol = "";
       context.timeframe = "";
@@ -626,11 +693,12 @@ public:
             continue;
 
          ApplySetting(key, value, settings);
-         ApplyRuntimeField(key, value, activeProfileName, started, state, streakState);
+         ApplyRuntimeField(key, value, activeProfileName, started, state, streakState, dailyState, drawdownState);
          ApplyContextField(key, value, context);
         }
 
       FileClose(handle);
+      NormalizeProtectionSettings(settings);
       NormalizeStreakSettings(settings);
       NormalizeRiskSettings(settings);
       return true;

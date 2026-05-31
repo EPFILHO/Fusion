@@ -80,6 +80,13 @@
       SetVisible(m_protectDayLossEdit, visible);
       SetVisible(m_protectDayGainLbl, visible);
       SetVisible(m_protectDayGainEdit, visible);
+      SetVisible(m_protectDayFoot1, visible);
+      SetVisible(m_protectDayFoot2, visible);
+      SetVisible(m_protectDayFoot3, visible);
+      if(visible)
+         m_protectDayProfitAction.Show();
+      else
+         m_protectDayProfitAction.Hide();
      }
 
    void                       SetProtectionDrawdownVisible(const bool visible)
@@ -91,6 +98,18 @@
       SetVisible(m_protectDrawdownValueLbl, visible);
       SetVisible(m_protectDrawdownValueEdit, visible);
       SetVisible(m_protectDrawdownNote, visible);
+      SetVisible(m_protectDrawdownFoot2, visible);
+      SetVisible(m_protectDrawdownFoot3, visible);
+      if(visible)
+        {
+         m_protectDrawdownType.Show();
+         m_protectDrawdownPeakMode.Show();
+        }
+      else
+        {
+         m_protectDrawdownType.Hide();
+         m_protectDrawdownPeakMode.Hide();
+        }
      }
 
    void                       SetProtectionStreakVisible(const bool visible)

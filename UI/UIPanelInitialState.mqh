@@ -43,11 +43,20 @@
       m_snapshot.tradePermissionReason = "";
       m_snapshot.dailyTradeCount = 0;
       m_snapshot.dailyClosedProfit = 0.0;
+      m_snapshot.dailyLimitsBlocked = false;
+      m_snapshot.dailyLimitsBlockReason = "";
+      m_snapshot.sessionProtectionBlocked = false;
+      m_snapshot.sessionProtectionBlockReason = "";
+      m_snapshot.newsProtectionBlocked = false;
+      m_snapshot.newsProtectionBlockReason = "";
       m_snapshot.lossStreak = 0;
       m_snapshot.winStreak = 0;
       m_snapshot.streakProtectionBlocked = false;
       m_snapshot.streakProtectionBlockReason = "";
       m_snapshot.drawdownProtectionActive = false;
+      m_snapshot.drawdownLimitReached = false;
+      m_snapshot.drawdownConfigLocked = false;
+      m_snapshot.drawdownConfigLockReason = "";
      }
 
    void                       ResetPanelValidationState(void)
@@ -56,6 +65,7 @@
       m_cfgRiskValid = true;
       m_cfgRiskLotValid = true;
       m_cfgRiskSLTPValid = true;
+      m_cfgRiskSLTPError = "";
       m_cfgRiskPartialValid = true;
       m_cfgRiskPartialError = "";
       m_cfgRiskBEValid = true;

@@ -1,3 +1,11 @@
+   bool                       HasDraftEnabledNewsWindow(void) const
+     {
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+         if(m_draftSettings.newsWindows[newsIndex].enabled)
+            return true;
+      return false;
+     }
+
    bool                       HasSelectedStrategy(const SEASettings &settings) const
      {
       return (settings.useMACross || settings.useRSI || settings.useBollinger);
@@ -181,6 +189,31 @@
          status = m_snapshot.tradePermissionReason;
          statusColor = FUSION_CLR_WARN;
         }
+      else if(m_snapshot.dailyLimitsBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.dailyLimitsBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.drawdownLimitReached)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.sessionProtectionBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(HasDraftEnabledNewsWindow() && m_snapshot.newsProtectionBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.newsProtectionBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.runtimeNotice != "")
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice);
+         statusColor = FUSION_CLR_WARN;
+        }
       else if(m_snapshot.hasPosition)
         {
          status = "Posicao aberta: estrategias somente leitura.";
@@ -237,6 +270,31 @@
       else if(m_snapshot.tradePermissionBlocked)
         {
          status = m_snapshot.tradePermissionReason;
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.dailyLimitsBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.dailyLimitsBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.drawdownLimitReached)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.sessionProtectionBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(HasDraftEnabledNewsWindow() && m_snapshot.newsProtectionBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.newsProtectionBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.runtimeNotice != "")
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice);
          statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.hasPosition)

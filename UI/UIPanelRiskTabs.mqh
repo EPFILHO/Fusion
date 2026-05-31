@@ -14,6 +14,13 @@
    CEdit                      m_cfgRiskSLEdit;
    CLabel                     m_cfgRiskTPLbl;
    CEdit                      m_cfgRiskTPEdit;
+   CLabel                     m_cfgRiskSLCompLbl;
+   CButton                    m_cfgRiskSLCompBtn;
+   CLabel                     m_cfgRiskTPCompLbl;
+   CButton                    m_cfgRiskTPCompBtn;
+   CLabel                     m_cfgRiskSLTPFoot1;
+   CLabel                     m_cfgRiskSLTPFoot2;
+   CLabel                     m_cfgRiskSLTPFoot3;
 
    CLabel                     m_cfgRiskPartialHdr;
    CLabel                     m_cfgRiskPartialDesc;
@@ -90,6 +97,99 @@
          return false;
       value = (int)StringToInteger(text);
       return (value >= 0);
+     }
+
+   bool                       RiskDistanceMeetsStopsLevel(const int points) const
+     {
+      if(points <= 0)
+         return true;
+
+      int stopsLevel = m_snapshot.symbolSpec.stopsLevel;
+      if(stopsLevel <= 0)
+         return true;
+
+      return (points >= stopsLevel);
+     }
+
+   void                       ApplyRiskSLTPFooter(const SEASettings &settings,const bool valid,const string error)
+     {
+      if(!m_configRiskCreated)
+         return;
+
+      int stopsLevel = m_snapshot.symbolSpec.stopsLevel;
+      if(!valid && error != "")
+        {
+         m_cfgRiskSLTPFoot1.Text(error);
+         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_BAD);
+        }
+      else if(settings.fixedSLPoints <= 0)
+        {
+         m_cfgRiskSLTPFoot1.Text("ATENCAO: operar sem SL e ARRISCADO.");
+         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_BAD);
+        }
+      else if(stopsLevel > 0)
+        {
+         m_cfgRiskSLTPFoot1.Text("Minimo do ativo: " + IntegerToString(stopsLevel) + " pts. Use 0 para desligar.");
+         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_MUTED);
+        }
+      else
+        {
+         m_cfgRiskSLTPFoot1.Text("Ativo sem minimo de stops informado; 0 desliga SL/TP.");
+         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_MUTED);
+        }
+
+      m_cfgRiskSLTPFoot2.Text("EA valida Bid/Ask, spread atual e minimo da corretora.");
+      m_cfgRiskSLTPFoot2.Color(FUSION_CLR_MUTED);
+      if(settings.compensateSLSpread && settings.compensateTPSpread)
+         m_cfgRiskSLTPFoot3.Text("Compensar ON: SL soma spread; TP subtrai spread.");
+      else if(settings.compensateSLSpread)
+         m_cfgRiskSLTPFoot3.Text("Compensar SL ON: soma spread; risco nominal aumenta.");
+      else if(settings.compensateTPSpread)
+         m_cfgRiskSLTPFoot3.Text("Compensar TP ON: subtrai spread; alvo nominal diminui.");
+      else
+         m_cfgRiskSLTPFoot3.Text("Sem compensar: usa as distancias exatas configuradas.");
+      m_cfgRiskSLTPFoot3.Color(FUSION_CLR_MUTED);
+     }
+
+   bool                       ValidateRiskSLTPSettings(const SEASettings &settings,
+                                                       const bool slBaseValid,
+                                                       const int slPoints,
+                                                       const bool tpBaseValid,
+                                                       const int tpPoints,
+                                                       const bool editable,
+                                                       string &error)
+     {
+      error = "";
+
+      bool slStopsValid = (slBaseValid && RiskDistanceMeetsStopsLevel(slPoints));
+      bool tpStopsValid = (tpBaseValid && RiskDistanceMeetsStopsLevel(tpPoints));
+      bool slValid = (slBaseValid && slStopsValid);
+      bool tpValid = (tpBaseValid && tpStopsValid);
+      bool valid = (slValid && tpValid);
+
+      if(!slBaseValid)
+         error = "SL Fixo invalido. Use 0 a 100000 pontos.";
+      else if(!tpBaseValid)
+         error = "TP Fixo invalido. Use 0 a 100000 pontos.";
+      else if(!slStopsValid)
+         error = "SL Fixo abaixo do minimo do ativo: " + IntegerToString(m_snapshot.symbolSpec.stopsLevel) + " pts.";
+      else if(!tpStopsValid)
+         error = "TP Fixo abaixo do minimo do ativo: " + IntegerToString(m_snapshot.symbolSpec.stopsLevel) + " pts.";
+
+      if(m_configRiskCreated)
+        {
+         FusionApplyEditStyle(m_cfgRiskSLEdit, slValid, editable);
+         FusionApplyEditStyle(m_cfgRiskTPEdit, tpValid, editable);
+         FusionApplyToggleButtonStyle(m_cfgRiskSLCompBtn, settings.compensateSLSpread, editable);
+         FusionApplyToggleButtonStyle(m_cfgRiskTPCompBtn, settings.compensateTPSpread, editable);
+         m_cfgRiskSLLbl.Color(!editable ? FUSION_CLR_MUTED : (slValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskTPLbl.Color(!editable ? FUSION_CLR_MUTED : (tpValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         m_cfgRiskSLCompLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgRiskTPCompLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         ApplyRiskSLTPFooter(settings, valid, error);
+        }
+
+      return valid;
      }
 
    double                     RiskNormalizeVolumeToSpec(const double volume,const SSymbolSpec &spec) const
@@ -531,6 +631,20 @@
          return false;
       if(!AddEdit(m_cfgRiskTPEdit, "Fusion_cfg_tp_edit", 200, 286, 310, 310, "0"))
          return false;
+      if(!AddLabel(m_cfgRiskSLCompLbl, "Fusion_cfg_sl_comp_lbl", 22, 326, 190, 344, "Compensar Spread SL", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_cfgRiskSLCompBtn, "Fusion_cfg_sl_comp_btn", 200, 324, 310, 348, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_cfgRiskTPCompLbl, "Fusion_cfg_tp_comp_lbl", 22, 364, 190, 382, "Compensar Spread TP", FUSION_CLR_LABEL))
+         return false;
+      if(!AddButton(m_cfgRiskTPCompBtn, "Fusion_cfg_tp_comp_btn", 200, 362, 310, 386, "OFF", FUSION_CLR_BAD))
+         return false;
+      if(!AddLabel(m_cfgRiskSLTPFoot1, "Fusion_cfg_risk_sltp_foot_1", 22, 424, 540, 442, "0 desliga SL/TP; valores > 0 respeitam o minimo do ativo.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskSLTPFoot2, "Fusion_cfg_risk_sltp_foot_2", 22, 448, 540, 466, "EA valida Bid/Ask, spread atual e minimo da corretora.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskSLTPFoot3, "Fusion_cfg_risk_sltp_foot_3", 22, 472, 540, 490, "Sem compensar: usa as distancias exatas configuradas.", FUSION_CLR_MUTED, 8))
+         return false;
 
       if(!AddLabel(m_cfgRiskPartialHdr, "Fusion_cfg_risk_partial_hdr", 22, 188, 260, 206, "TP Parcial", FUSION_CLR_VALUE, 9))
          return false;
@@ -639,6 +753,13 @@
       SetVisible(m_cfgRiskSLEdit, visible);
       SetVisible(m_cfgRiskTPLbl, visible);
       SetVisible(m_cfgRiskTPEdit, visible);
+      SetVisible(m_cfgRiskSLCompLbl, visible);
+      SetVisible(m_cfgRiskSLCompBtn, visible);
+      SetVisible(m_cfgRiskTPCompLbl, visible);
+      SetVisible(m_cfgRiskTPCompBtn, visible);
+      SetVisible(m_cfgRiskSLTPFoot1, visible);
+      SetVisible(m_cfgRiskSLTPFoot2, visible);
+      SetVisible(m_cfgRiskSLTPFoot3, visible);
      }
 
    void                       SetRiskPartialVisible(const bool visible)
@@ -821,6 +942,10 @@
       if(HandleRiskTP2Toggle(objectName))
          return true;
       if(HandleRiskFreeTPToggle(objectName))
+         return true;
+      if(HandleRiskBooleanToggle(objectName, m_cfgRiskSLCompBtn, m_draftSettings.compensateSLSpread, true))
+         return true;
+      if(HandleRiskBooleanToggle(objectName, m_cfgRiskTPCompBtn, m_draftSettings.compensateTPSpread, true))
          return true;
       if(HandleRiskBooleanToggle(objectName, m_cfgRiskBreakevenEnabledBtn, m_draftSettings.useBreakeven, true))
          return true;

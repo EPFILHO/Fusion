@@ -40,6 +40,11 @@ public:
       return true;
      }
 
+   bool              IsBlocking(string &reason) const
+     {
+      return !CanOpen(reason);
+     }
+
    bool              ShouldForceClose(string &reason) const
      {
       reason = "";

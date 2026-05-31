@@ -34,7 +34,7 @@
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
-      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "Drawdown", "Contagem Streak"};
+      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "DD", "Contagem Streak"};
       int generalY = 226;
       for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
@@ -165,8 +165,23 @@
          return false;
       if(!AddEdit(m_protectDayGainEdit, "Fusion_protect_day_gain_edit", 200, 362, 310, 386, "0.00"))
          return false;
+      if(!m_protectDayProfitAction.Create(GetPointer(this),
+                                           m_chartId,
+                                           m_subWindow,
+                                           "Fusion_protect_day_action_",
+                                           "Acao Ganho",
+                                           FUSION_SELECTION_PROFIT_TARGET_ACTION,
+                                           22, 402, 180, 420,
+                                           200, 400, 330, 424))
+         return false;
+      if(!AddLabel(m_protectDayFoot1, "Fusion_protect_day_foot_1", 22, 448, 520, 466, "Campos em zero ficam sem limite.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDayFoot2, "Fusion_protect_day_foot_2", 22, 472, 520, 490, "ATIVAR DD exige DRAWDOWN ON com Max DD > 0.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDayFoot3, "Fusion_protect_day_foot_3", 22, 496, 520, 514, "Contadores e P/L persistem e resetam no novo dia.", FUSION_CLR_MUTED, 8))
+         return false;
 
-      if(!AddLabel(m_protectDrawdownHdr, "Fusion_protect_dd_hdr", 22, 188, 280, 206, "Protecao de Drawdown", FUSION_CLR_VALUE, 9))
+      if(!AddLabel(m_protectDrawdownHdr, "Fusion_protect_dd_hdr", 22, 188, 280, 206, "Protecao de Drawdown (DD)", FUSION_CLR_VALUE, 9))
          return false;
       if(!AddLabel(m_protectDrawdownDesc, "Fusion_protect_dd_desc", 22, 214, 520, 232, "Protege o lucro do dia depois que a meta diaria e atingida.", FUSION_CLR_MUTED, 8))
          return false;
@@ -178,7 +193,29 @@
          return false;
       if(!AddEdit(m_protectDrawdownValueEdit, "Fusion_protect_dd_value_edit", 200, 286, 310, 310, "0.00"))
          return false;
-      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 330, 520, 366, "Requer DAY ativo com Max Ganho > 0.", FUSION_CLR_WARN, 8))
+      if(!m_protectDrawdownType.Create(GetPointer(this),
+                                        m_chartId,
+                                        m_subWindow,
+                                        "Fusion_protect_dd_type_",
+                                        "Tipo DD",
+                                        FUSION_SELECTION_DRAWDOWN_TYPE,
+                                        22, 326, 180, 344,
+                                        200, 324, 330, 348))
+         return false;
+      if(!m_protectDrawdownPeakMode.Create(GetPointer(this),
+                                            m_chartId,
+                                            m_subWindow,
+                                            "Fusion_protect_dd_peak_",
+                                            "Pico DD",
+                                            FUSION_SELECTION_DRAWDOWN_PEAK_MODE,
+                                            22, 364, 180, 382,
+                                            200, 362, 330, 386))
+         return false;
+      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 410, 550, 428, "Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.", FUSION_CLR_WARN, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownFoot2, "Fusion_protect_dd_foot_2", 22, 434, 550, 452, "Financeiro: valor; Percentual: % do pico.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownFoot3, "Fusion_protect_dd_foot_3", 22, 458, 550, 476, "Pico Flutuante mantem o comportamento atual.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_protectStreakHdr, "Fusion_protect_streak_hdr", 22, 188, 280, 206, "Protecao de Streak", FUSION_CLR_VALUE, 9))

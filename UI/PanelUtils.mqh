@@ -355,6 +355,57 @@ bool FusionPopulateStreakActionCombo(CComboBox &combo)
    return true;
   }
 
+string FusionProfitTargetActionName(const ENUM_PROFIT_TARGET_ACTION action)
+  {
+   if(action == PROFIT_ACTION_ATIVAR_DD)
+      return "Ativar DD";
+   return "Parar";
+  }
+
+bool FusionPopulateProfitTargetActionCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(2);
+   if(!combo.AddItem(FusionProfitTargetActionName(PROFIT_ACTION_PARAR), (long)PROFIT_ACTION_PARAR))
+      return false;
+   if(!combo.AddItem(FusionProfitTargetActionName(PROFIT_ACTION_ATIVAR_DD), (long)PROFIT_ACTION_ATIVAR_DD))
+      return false;
+   return true;
+  }
+
+string FusionDrawdownTypeName(const ENUM_DRAWDOWN_TYPE value)
+  {
+   if(value == DD_TIPO_PERCENTUAL)
+      return "Percentual";
+   return "Financeiro";
+  }
+
+bool FusionPopulateDrawdownTypeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(2);
+   if(!combo.AddItem(FusionDrawdownTypeName(DD_TIPO_FINANCEIRO), (long)DD_TIPO_FINANCEIRO))
+      return false;
+   if(!combo.AddItem(FusionDrawdownTypeName(DD_TIPO_PERCENTUAL), (long)DD_TIPO_PERCENTUAL))
+      return false;
+   return true;
+  }
+
+string FusionDrawdownPeakModeName(const ENUM_DRAWDOWN_PEAK_MODE value)
+  {
+   if(value == DD_PICO_REALIZADO)
+      return "Realizado";
+   return "Flutuante";
+  }
+
+bool FusionPopulateDrawdownPeakModeCombo(CComboBox &combo)
+  {
+   combo.ListViewItems(2);
+   if(!combo.AddItem(FusionDrawdownPeakModeName(DD_PICO_REALIZADO), (long)DD_PICO_REALIZADO))
+      return false;
+   if(!combo.AddItem(FusionDrawdownPeakModeName(DD_PICO_FLUTUANTE), (long)DD_PICO_FLUTUANTE))
+      return false;
+   return true;
+  }
+
 string FusionBBModeName(const ENUM_BB_SIGNAL_MODE mode)
   {
    switch(mode)
@@ -395,9 +446,9 @@ string FusionTPSLExitZeroNotice(const SEASettings &settings)
    bool slZero = (settings.fixedSLPoints <= 0);
    bool tpZero = (settings.fixedTPPoints <= 0);
    if(slZero && tpZero)
-      return "Saida TP/SL ativa com SL e TP fixos zerados.";
+      return "ATENCAO: saida TP/SL ativa com SL e TP zerados.";
    if(slZero)
-      return "Saida TP/SL ativa com SL fixo zerado.";
+      return "ATENCAO: operar sem SL e ARRISCADO.";
    if(tpZero)
       return "Saida TP/SL ativa com TP fixo zerado.";
    return "";
@@ -508,6 +559,18 @@ string FusionTopRuntimeNoticeText(const string notice)
   {
    if(notice == "Bloqueio de streak liberado. EA aguarda novo sinal de entrada.")
       return "Streak liberado; aguardando sinal.";
+   if(notice == "Limite diario de trades atingido.")
+      return "Limite diario: trades atingido.";
+   if(notice == "Limite diario de perda atingido.")
+      return "Limite diario: perda atingida.";
+   if(notice == "Limite diario de perda projetada atingido.")
+      return "Limite diario: perda projetada.";
+   if(notice == "Meta diaria de ganho atingida.")
+      return "Meta diaria atingida.";
+   if(notice == "Limite de drawdown diario atingido.")
+      return "DD diario atingido.";
+   if(notice == "DD ativo: edicao suspensa ate o novo dia.")
+      return "DD ativo.";
 
    if(StringFind(notice, "Bloqueio por ") != 0 ||
       StringFind(notice, " streak em pausa (") <= 0)

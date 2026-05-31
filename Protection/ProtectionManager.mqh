@@ -33,11 +33,11 @@ private:
       state.dayPeakProjectedProfit = 0.0;
      }
 
-   void              TryActivateDrawdown(const double projectedProfit,SPositionRuntimeState &state)
+   void              TryActivateDrawdown(const double dailyClosedProfit,const double projectedProfit,SPositionRuntimeState &state)
      {
-      m_drawdownProtection.Activate(projectedProfit);
+      m_drawdownProtection.Activate(dailyClosedProfit, projectedProfit);
       if(m_drawdownProtection.IsProtectionActive())
-         state.dayPeakProjectedProfit = projectedProfit;
+         state.dayPeakProjectedProfit = m_drawdownProtection.PeakProfit();
      }
 
 public:
@@ -82,6 +82,26 @@ public:
       m_streakProtection.ImportState(state);
      }
 
+   void              ExportDailyLimitsState(SDailyLimitsRuntimeState &state) const
+     {
+      m_dailyLimitsProtection.ExportState(state);
+     }
+
+   void              ImportDailyLimitsState(const SDailyLimitsRuntimeState &state)
+     {
+      m_dailyLimitsProtection.ImportState(state);
+     }
+
+   void              ExportDrawdownState(SDrawdownRuntimeState &state) const
+     {
+      m_drawdownProtection.ExportState(state);
+     }
+
+   void              ImportDrawdownState(const SDrawdownRuntimeState &state)
+     {
+      m_drawdownProtection.ImportState(state);
+     }
+
    bool              IsDirectionAllowed(const ENUM_SIGNAL_TYPE signal,string &reason) const
      {
       reason = "";
@@ -123,7 +143,7 @@ public:
       if(!m_dailyLimitsProtection.CanOpen(reason, activateDrawdown))
          return false;
       if(activateDrawdown)
-         m_drawdownProtection.Activate(m_dailyLimitsProtection.DailyClosedProfit());
+         m_drawdownProtection.Activate(m_dailyLimitsProtection.DailyClosedProfit(), m_dailyLimitsProtection.DailyClosedProfit());
 
       if(!m_drawdownProtection.CanOpen(reason))
          return false;
@@ -141,7 +161,7 @@ public:
       if(m_dailyLimitsProtection.ShouldForceClose(floatingProfit, reason, activateDrawdown, projectedProfit))
          return true;
       if(activateDrawdown)
-         TryActivateDrawdown(projectedProfit, state);
+         TryActivateDrawdown(m_dailyLimitsProtection.DailyClosedProfit(), projectedProfit, state);
 
       if(m_drawdownProtection.ShouldForceClose(m_dailyLimitsProtection.DailyClosedProfit(), floatingProfit, reason))
          return true;
@@ -189,6 +209,31 @@ public:
    bool              IsStreakProtectionBlocked(string &reason) const
      {
       return m_streakProtection.IsBlocking(reason);
+     }
+
+   bool              IsSessionProtectionBlocked(string &reason) const
+     {
+      return m_sessionProtection.IsBlocking(reason);
+     }
+
+   bool              IsNewsProtectionBlocked(string &reason) const
+     {
+      return m_newsProtection.IsBlocking(reason);
+     }
+
+   bool              IsDailyLimitsBlocked(string &reason) const
+     {
+      return m_dailyLimitsProtection.IsBlocking(reason);
+     }
+
+   bool              IsDrawdownConfigLocked(string &reason) const
+     {
+      return m_drawdownProtection.IsConfigLocked(reason);
+     }
+
+   bool              IsDrawdownLimitReached(void) const
+     {
+      return m_drawdownProtection.IsLimitReached();
      }
 
    bool              IsDrawdownProtectionActive(void) const

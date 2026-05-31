@@ -52,25 +52,34 @@
 
       string strategyError = "";
       string filterError = "";
+      string sltpError = "";
       string partialError = "";
       string beError = "";
       string trailingError = "";
       bool strategyValid = ValidateStrategyPanels(outSettings, editable, strategyError);
       bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
+      bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
+      bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
+      bool sltpValid = ValidateRiskSLTPSettings(outSettings,
+                                                slValid,
+                                                outSettings.fixedSLPoints,
+                                                tpValid,
+                                                outSettings.fixedTPPoints,
+                                                editable,
+                                                sltpError);
       bool partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
       bool beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
       bool trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
-      bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
-      bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
       m_cfgRiskLotValid = (outSettings.fixedLot > 0.0);
-      m_cfgRiskSLTPValid = (slValid && tpValid);
+      m_cfgRiskSLTPValid = sltpValid;
+      m_cfgRiskSLTPError = sltpError;
       m_cfgRiskPartialValid = partialValid;
       m_cfgRiskPartialError = partialError;
       m_cfgRiskBEValid = beValid;
       m_cfgRiskBEError = beError;
       m_cfgRiskTrailingValid = trailingValid;
       m_cfgRiskTrailingError = trailingError;
-      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slValid && tpValid && partialValid && beValid && trailingValid);
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && sltpValid && partialValid && beValid && trailingValid);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
@@ -91,6 +100,8 @@
          outStatus = "Magic invalido. Informe um numero inteiro positivo.";
       else if(!magicUnique)
          outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
+      else if(!sltpValid)
+         outStatus = sltpError;
       else if(!partialValid)
          outStatus = partialError;
       else if(!beValid)
@@ -284,6 +295,7 @@
       string protectionError = "";
       string strategyError = "";
       string filterError = "";
+      string sltpError = "";
       string partialError = "";
       string beError = "";
       string trailingError = "";
@@ -313,6 +325,13 @@
          outSettings.fixedTPPoints = parsedTP;
       if(magicValid)
          outSettings.magicNumber = parsedMagic;
+      bool sltpValid = ValidateRiskSLTPSettings(outSettings,
+                                                slValid,
+                                                parsedSL,
+                                                tpValid,
+                                                parsedTP,
+                                                editable,
+                                                sltpError);
       ValidateConfigSections(outSettings,
                              editable,
                              protectionValid,
@@ -325,9 +344,10 @@
       beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
       trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
 
-      m_cfgRiskValid = (lotValid && slValid && tpValid && partialValid && beValid && trailingValid);
+      m_cfgRiskValid = (lotValid && sltpValid && partialValid && beValid && trailingValid);
       m_cfgRiskLotValid = lotValid;
-      m_cfgRiskSLTPValid = (slValid && tpValid);
+      m_cfgRiskSLTPValid = sltpValid;
+      m_cfgRiskSLTPError = sltpError;
       m_cfgRiskPartialValid = partialValid;
       m_cfgRiskPartialError = partialError;
       m_cfgRiskBEValid = beValid;
@@ -336,13 +356,13 @@
       m_cfgRiskTrailingError = trailingError;
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && trailingValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
+      m_configInputsValid = profileValid && lotValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
       CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSL, parsedTP, parsedMagic);
       ApplyStrategyStatus(strategyValid, strategyError);
       ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      bool configStatusValid = profileValid && lotValid && slValid && tpValid && partialValid && beValid && trailingValid && protectionValid && magicValid && magicUnique;
+      bool configStatusValid = profileValid && lotValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && magicValid && magicUnique;
       ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,

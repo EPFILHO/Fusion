@@ -3,7 +3,7 @@
 ## 1.053 - 2026-05-24
 - Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.
 - Adicionado `Bollinger Filter` separado da estrategia Bollinger, com settings/persistencia/inputs proprios usando prefixo `bbFilter*`.
-- A persistencia foi atualizada para `schemaVersion=9` e teve aliases/migracoes antigas removidos (`maMethod`, `maPrice`, spread legado, overnight inferido e RSI Filter antigo).
+- A persistencia foi atualizada para `schemaVersion=12` e teve aliases/migracoes antigas removidos (`maMethod`, `maPrice`, spread legado, overnight inferido e RSI Filter antigo).
 - O novo filtro herda de `CFilterBase`, usa handle proprio de `iBands` e apenas aprova/bloqueia sinais recebidos, sem gerar entradas.
 - Implementado anti-squeeze por largura das bandas nos modos `Absoluto` e `Relativo %`; o modo `Percentil` ficou fora desta fatia ate alinhamento explicito.
 - `FILTERS > BB` ganhou painel concreto com toggle, modo, periodo, timeframe, desvio, preco, limite minimo, validacoes e rodape claro.
@@ -32,9 +32,25 @@
 - Corrigida a transicao de aviso do Streak para nao registrar liberacao enquanto apenas o contador de minutos muda, mantendo status superior e `STATUS > Aviso` coerentes.
 - Status superior do Streak foi encurtado e a largura do painel aumentada levemente para melhorar encaixe visual.
 - Reduzido ruido de `DEBUG/SIGNAL` durante bloqueios repetidos: Streak fica concentrado em `PROTECT` e outros motivos sao limitados por mudanca/intervalo.
+- Reduzido ruido do log de spread: `PROTECT` registra `Bloqueio por Spread` apenas quando uma entrada efetiva e bloqueada.
+- `STRATS` e `FILTERS` agora priorizam avisos operacionais de Streak no status superior, em vez de mostrar apenas a mensagem generica de edicao suspensa.
 - Bloqueios de Streak ja ativados passam a valer ate expirar ou virar o dia, mesmo que o EA seja pausado e as configuracoes sejam editadas.
 - Removido o campo derivado `enableStreak`; Streak agora depende diretamente de Loss/Win independentes, sem chave redundante.
+- Estado operacional de limites diarios e drawdown agora e salvo/restaurado no chart state, incluindo contagem, P/L diario, DD ativo/atingido e pico projetado.
+- Rodapes de `CONFIG > PROTECT > DAY` e `CONFIG > PROTECT > DRAWDOWN` passaram a indicar persistencia no grafico e reset automatico no novo dia.
+- Limites diarios atingidos agora ficam travados ate o novo dia operacional; pausar o EA ou tentar editar `DAY` nao libera a operacao do grafico ativo.
+- DD ativo/atingido agora trava a subaba `DRAWDOWN` ate o novo dia; `DD atingido` bloqueia novas entradas mesmo que o usuario pause o EA ou tente alterar/desligar a protecao.
+- `CONFIG > PROTECT > DAY` ganhou `Acao Ganho` (`PARAR`/`ATIVAR DD`), com validacao cruzada para permitir DD apenas quando `DRAWDOWN` estiver ativo e configurado.
+- Rodape de `DAY` agora explicita que campos em zero ficam sem limite.
+- `CONFIG > PROTECT > DRAWDOWN` ganhou tipo `Financeiro`/`Percentual` e modo de pico `Realizado`/`Flutuante`; o default `Flutuante` preserva o comportamento ja validado.
+- Abas/subabas de `CONFIG > PROTECT` agora usam amarelo para destacar bloqueios operacionais ativos de Session, News, DAY, DD e Streak, sem misturar com vermelho de erro de configuracao.
+- Status superior e `STATUS > Aviso` agora priorizam bloqueios operacionais de Session/News antes das mensagens verdes de EA pronto.
+- Flags visuais de Session/News foram blindadas para sumir quando a protecao correspondente estiver OFF ou pendente de salvamento.
+- Ao salvar Session/News OFF, avisos operacionais antigos dessas protecoes agora sao limpos tambem no motor, evitando status superior residual.
 - Comentarios enviados pelo EA em entradas, fechamentos e parciais agora passam pelo prefixo unico `EP Fusion - `.
+- `CONFIG > RISK > SL/TP` passou a validar `stopsLevel` do ativo/corretora para SL e TP fixos acima de zero, mantendo `0=off`.
+- `CONFIG > RISK > SL/TP` ganhou opcoes `Compensar Spread SL` e `Compensar Spread TP`, com aviso claro quando SL fica zerado.
+- `CRiskManager` ganhou defesa final contra SL/TP invalidos pelo `stopsLevel` considerando Bid/Ask e spread atual; `freezeLevel` ficou registrado para BE/trailing em fatia propria.
 - A `VM` agora aparece no `STATUS`/rodape quando armada e fica documentada como reversao direta sem filtros/direcao, mantendo guards operacionais ativos.
 - Refinados textos e rodapes de `CONFIG > PROTECT`: resumo de sinais descartados, `Contagem Streak`, explicacao de sinais bloqueados, `Direcao` x `VM`, `Overnight` e `Fechar no fim`.
 - O `RSI Filter` deixou de expor o modo `Avancado`; ficam apenas `Direcao`, `Neutro` e `Extremos`.

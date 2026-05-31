@@ -38,6 +38,7 @@ private:
    bool                       m_cfgRiskValid;
    bool                       m_cfgRiskLotValid;
    bool                       m_cfgRiskSLTPValid;
+   string                     m_cfgRiskSLTPError;
    bool                       m_cfgRiskPartialValid;
    string                     m_cfgRiskPartialError;
    bool                       m_cfgRiskBEValid;
@@ -305,6 +306,7 @@ public:
       if(!m_created)
          return;
 
+      m_snapshot.settings        = settings;
       m_snapshot.symbolSpec      = spec;
       m_snapshot.activeProfileName = profileName;
       m_snapshot.fixedLot        = settings.fixedLot;
@@ -317,6 +319,26 @@ public:
       m_snapshot.useTrendFilter  = settings.useTrendFilter;
       m_snapshot.useRSIFilter    = settings.useRSIFilter;
       m_snapshot.bbFilterEnabled = settings.bbFilterEnabled;
+      if(!settings.enableSessionFilter)
+        {
+         m_snapshot.sessionProtectionBlocked = false;
+         m_snapshot.sessionProtectionBlockReason = "";
+        }
+
+      bool hasEnabledNewsWindow = false;
+      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+        {
+         if(settings.newsWindows[newsIndex].enabled)
+           {
+            hasEnabledNewsWindow = true;
+            break;
+           }
+        }
+      if(!hasEnabledNewsWindow)
+        {
+         m_snapshot.newsProtectionBlocked = false;
+         m_snapshot.newsProtectionBlockReason = "";
+        }
 
       m_committedSettings        = settings;
       m_draftSettings            = settings;
@@ -351,6 +373,16 @@ public:
                                  snapshot.entryBlockReason != m_snapshot.entryBlockReason);
       bool streakStateChanged = (snapshot.streakProtectionBlocked != m_snapshot.streakProtectionBlocked ||
                                  snapshot.streakProtectionBlockReason != m_snapshot.streakProtectionBlockReason);
+      bool dailyStateChanged = (snapshot.dailyLimitsBlocked != m_snapshot.dailyLimitsBlocked ||
+                                snapshot.dailyLimitsBlockReason != m_snapshot.dailyLimitsBlockReason);
+      bool sessionStateChanged = (snapshot.sessionProtectionBlocked != m_snapshot.sessionProtectionBlocked ||
+                                  snapshot.sessionProtectionBlockReason != m_snapshot.sessionProtectionBlockReason);
+      bool newsStateChanged = (snapshot.newsProtectionBlocked != m_snapshot.newsProtectionBlocked ||
+                               snapshot.newsProtectionBlockReason != m_snapshot.newsProtectionBlockReason);
+      bool drawdownStateChanged = (snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive ||
+                                   snapshot.drawdownLimitReached != m_snapshot.drawdownLimitReached ||
+                                   snapshot.drawdownConfigLocked != m_snapshot.drawdownConfigLocked ||
+                                   snapshot.drawdownConfigLockReason != m_snapshot.drawdownConfigLockReason);
       bool permissionStateChanged = runtimeStateChanged ||
                                     snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                                      snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
@@ -370,15 +402,18 @@ public:
                            snapshot.tradePermissionReason != m_snapshot.tradePermissionReason ||
                            snapshot.dailyTradeCount != m_snapshot.dailyTradeCount ||
                            MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) > 0.0000001 ||
+                           dailyStateChanged ||
+                           sessionStateChanged ||
+                           newsStateChanged ||
                            snapshot.lossStreak != m_snapshot.lossStreak ||
                            snapshot.winStreak != m_snapshot.winStreak ||
                            streakStateChanged ||
-                           snapshot.drawdownProtectionActive != m_snapshot.drawdownProtectionActive;
+                           drawdownStateChanged;
       m_snapshot = snapshot;
       if(editBlockExited)
          RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
-      UpdateActiveTabContent(permissionStateChanged || noticeStateChanged || streakStateChanged || editBlockExited);
+      UpdateActiveTabContent(permissionStateChanged || noticeStateChanged || streakStateChanged || dailyStateChanged || sessionStateChanged || newsStateChanged || drawdownStateChanged || editBlockExited);
       if(redrawNeeded)
          ChartRedraw();
      }

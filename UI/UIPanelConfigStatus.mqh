@@ -39,6 +39,8 @@
             return "Lote Fixo invalido. Ajuste o volume.";
          if(m_riskPage == FUSION_RISK_SLTP)
            {
+            if(!m_cfgRiskSLTPValid && m_cfgRiskSLTPError != "")
+               return m_cfgRiskSLTPError;
             if(!slValid)
                return "SL Fixo invalido. Use 0 a 100000 pontos.";
             if(!tpValid)
@@ -97,22 +99,66 @@
          status = m_snapshot.tradePermissionReason;
          statusColor = FUSION_CLR_WARN;
         }
-      else if(m_snapshot.runtimeNotice != "")
+      else if(m_snapshot.dailyLimitsBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.dailyLimitsBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.drawdownLimitReached)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.drawdownConfigLocked &&
+              m_configPage == FUSION_CFG_PROTECTION &&
+              m_protectPage == FUSION_PROTECT_DRAWDOWN)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(dirty && m_configInputsValid)
+        {
+         status = "Alteracoes pendentes. Salve para aplicar no EA.";
+         statusColor = FUSION_CLR_GOOD;
+        }
+      else if(m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked)
+        {
+         status = FusionTopRuntimeNoticeText(m_snapshot.sessionProtectionBlockReason);
+         statusColor = FUSION_CLR_WARN;
+        }
+      else if(m_snapshot.newsProtectionBlocked)
+        {
+         bool hasEnabledNewsWindow = false;
+         for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
+           {
+            if(m_draftSettings.newsWindows[newsIndex].enabled)
+              {
+               hasEnabledNewsWindow = true;
+               break;
+              }
+           }
+         if(hasEnabledNewsWindow)
+           {
+            status = FusionTopRuntimeNoticeText(m_snapshot.newsProtectionBlockReason);
+            statusColor = FUSION_CLR_WARN;
+           }
+        }
+      if(status == "" && m_snapshot.runtimeNotice != "")
         {
          status = FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice);
          statusColor = FUSION_CLR_WARN;
         }
-      else if(m_snapshot.hasPosition)
+      else if(status == "" && m_snapshot.hasPosition)
         {
          status = "Posicao aberta: gerenciamento ativo, edicao bloqueada.";
          statusColor = FUSION_CLR_WARN;
         }
-      else if(m_snapshot.started)
+      else if(status == "" && m_snapshot.started)
         {
          status = "EA rodando: pause antes de editar configuracoes.";
          statusColor = FUSION_CLR_WARN;
         }
-      else if(!configStatusValid)
+      else if(status == "" && !configStatusValid)
         {
          if(!profileValid)
             status = "Perfil invalido. Carregue ou crie outro.";
@@ -129,47 +175,42 @@
            }
          statusColor = FUSION_CLR_BAD;
         }
-      else if(m_snapshot.startBlockedReason != "")
+      else if(status == "" && m_snapshot.startBlockedReason != "")
         {
          status = ProfileBlockStatusText();
          statusColor = FUSION_CLR_WARN;
         }
-      else if(m_snapshot.activeProfileBlockedReason != "")
+      else if(status == "" && m_snapshot.activeProfileBlockedReason != "")
         {
          status = ProfileBlockStatusText();
          statusColor = FUSION_CLR_WARN;
         }
-      else if(HasProfileTabError())
+      else if(status == "" && HasProfileTabError())
         {
          status = "Corrija aba(s) em vermelho.";
          statusColor = FUSION_CLR_BAD;
         }
-      else if(ProfileEditMode())
+      else if(status == "" && ProfileEditMode())
         {
          status = "Conclua ou cancele PERFIS.";
          statusColor = FUSION_CLR_WARN;
         }
-      else if(tpslNotice != "")
+      else if(status == "" && tpslNotice != "")
         {
          status = tpslNotice;
          statusColor = FUSION_CLR_WARN;
         }
-      else if(dirty && m_configInputsValid)
-        {
-         status = "Alteracoes pendentes. Salve para aplicar no EA.";
-         statusColor = FUSION_CLR_GOOD;
-        }
-      else if(!m_configInputsValid)
+      else if(status == "" && !m_configInputsValid)
         {
          status = "Corrija aba(s) em vermelho.";
          statusColor = FUSION_CLR_BAD;
         }
-      else if(m_snapshot.started)
+      else if(status == "" && m_snapshot.started)
         {
          status = "EA em execucao com configuracao salva.";
          statusColor = FUSION_CLR_WARN;
         }
-      else
+      else if(status == "")
         {
          status = "Configuracoes OK. EA pronto para operar.";
          statusColor = FUSION_CLR_GOOD;

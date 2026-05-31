@@ -172,7 +172,7 @@ Out of scope for 1.050:
 
 Deferred operational hardening notes:
 
-- Validate entry SL/TP and breakeven/trailing stop changes against broker `stopsLevel`/`freezeLevel`; important, but it changes execution decisions and should be handled outside GUI cleanup.
+- Entry SL/TP now validates broker `stopsLevel` with Bid/Ask and current spread; `freezeLevel` remains deferred for breakeven/trailing stop modifications outside GUI cleanup.
 - Consider an explicit derived runtime-state enum for readability around `m_started`, `m_runtimeBlocked`, and `hasPosition`; maintenance comfort, not an operational risk.
 - Adjust protection logging for session/news windows so repeated blocking does not warn every minute. Preferred behavior: log once when a protection window/block starts and once when it clears/ends.
 - Design risk settings for global defaults plus optional per-strategy overrides before adding strategy-specific SL/TP, partial TP, breakeven, or trailing behavior.

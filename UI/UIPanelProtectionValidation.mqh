@@ -29,6 +29,71 @@
       return "Streak em bloqueio: edicao suspensa ate liberar.";
      }
 
+   bool                       DailyConfigLocked(void) const
+     {
+      return m_snapshot.dailyLimitsBlocked;
+     }
+
+   string                     DailyConfigLockMessage(void) const
+     {
+      return "DAY em bloqueio: edicao suspensa ate o novo dia.";
+     }
+
+   bool                       HasDayPendingChanges(void)
+     {
+      if(m_draftSettings.enableDailyLimits != m_committedSettings.enableDailyLimits)
+         return true;
+      if(m_draftSettings.profitTargetAction != m_committedSettings.profitTargetAction)
+         return true;
+
+      if(m_configProtectionCreated)
+        {
+         if(ProtectionIntegerEditPending(m_protectDayTradesEdit, m_committedSettings.maxDailyTrades))
+            return true;
+         if(ProtectionMoneyEditPending(m_protectDayLossEdit, m_committedSettings.maxDailyLoss))
+            return true;
+         if(ProtectionMoneyEditPending(m_protectDayGainEdit, m_committedSettings.maxDailyGain))
+            return true;
+         return false;
+        }
+
+      if(m_draftSettings.maxDailyTrades != m_committedSettings.maxDailyTrades)
+         return true;
+      if(MathAbs(m_draftSettings.maxDailyLoss - m_committedSettings.maxDailyLoss) > 0.0000001)
+         return true;
+      if(MathAbs(m_draftSettings.maxDailyGain - m_committedSettings.maxDailyGain) > 0.0000001)
+         return true;
+
+      return false;
+     }
+
+   bool                       DrawdownConfigLocked(void) const
+     {
+      return m_snapshot.drawdownConfigLocked;
+     }
+
+   string                     DrawdownConfigLockMessage(void) const
+     {
+      if(m_snapshot.drawdownConfigLockReason != "")
+         return m_snapshot.drawdownConfigLockReason;
+      return "DD ativo: edicao suspensa ate o novo dia.";
+     }
+
+   bool                       HasDrawdownPendingChanges(void)
+     {
+      if(m_draftSettings.enableDrawdown != m_committedSettings.enableDrawdown)
+         return true;
+      if(m_draftSettings.drawdownType != m_committedSettings.drawdownType)
+         return true;
+      if(m_draftSettings.drawdownPeakMode != m_committedSettings.drawdownPeakMode)
+         return true;
+
+      if(m_configProtectionCreated)
+         return ProtectionMoneyEditPending(m_protectDrawdownValueEdit, m_committedSettings.maxDrawdown);
+
+      return (MathAbs(m_draftSettings.maxDrawdown - m_committedSettings.maxDrawdown) > 0.0000001);
+     }
+
    bool                       HasStreakPendingChanges(void)
      {
       if(m_draftSettings.lossStreakEnabled != m_committedSettings.lossStreakEnabled)
@@ -152,7 +217,13 @@
          return true;
       if(ProtectionMoneyEditPending(m_protectDayGainEdit, m_committedSettings.maxDailyGain))
          return true;
+      if(m_draftSettings.profitTargetAction != m_committedSettings.profitTargetAction)
+         return true;
       if(ProtectionMoneyEditPending(m_protectDrawdownValueEdit, m_committedSettings.maxDrawdown))
+         return true;
+      if(m_draftSettings.drawdownType != m_committedSettings.drawdownType)
+         return true;
+      if(m_draftSettings.drawdownPeakMode != m_committedSettings.drawdownPeakMode)
          return true;
       if(HasStreakPendingChanges())
          return true;
@@ -231,34 +302,76 @@
       string dayTradesText = FusionTrimCopy(LiveEditText(m_protectDayTradesEdit));
       string dayLossText = FusionNormalizeDecimalText(LiveEditText(m_protectDayLossEdit));
       string dayGainText = FusionNormalizeDecimalText(LiveEditText(m_protectDayGainEdit));
+      outSettings.profitTargetAction = (ENUM_PROFIT_TARGET_ACTION)m_protectDayProfitAction.Value();
       bool dayTradesValid = FusionIsIntegerText(dayTradesText, true) && (int)StringToInteger(dayTradesText) >= 0;
       bool dayLossValid = ProtectionMoneyValue(dayLossText, true, outSettings.maxDailyLoss);
       bool dayGainValid = ProtectionMoneyValue(dayGainText, true, outSettings.maxDailyGain);
-      FusionApplyEditStyle(m_protectDayTradesEdit, dayTradesValid, editable);
-      FusionApplyEditStyle(m_protectDayLossEdit, dayLossValid, editable);
-      FusionApplyEditStyle(m_protectDayGainEdit, dayGainValid, editable);
+      bool ddNeedsDailyGain = (outSettings.enableDrawdown &&
+                               outSettings.enableDailyLimits &&
+                               outSettings.profitTargetAction == PROFIT_ACTION_ATIVAR_DD);
+      bool dayGainRequirementValid = (!ddNeedsDailyGain || outSettings.maxDailyGain > 0.0);
+      bool dayLocked = DailyConfigLocked();
+      bool dayEditAllowed = (editable && !dayLocked);
+      FusionApplyEditStyle(m_protectDayTradesEdit, dayTradesValid, dayEditAllowed);
+      FusionApplyEditStyle(m_protectDayLossEdit, dayLossValid, dayEditAllowed);
+      FusionApplyEditStyle(m_protectDayGainEdit, dayGainValid && dayGainRequirementValid, dayEditAllowed);
+      m_protectDayEnabledLbl.Color(!dayEditAllowed ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+      m_protectDayTradesLbl.Color(!dayEditAllowed ? FUSION_CLR_MUTED : (dayTradesValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectDayLossLbl.Color(!dayEditAllowed ? FUSION_CLR_MUTED : (dayLossValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+      m_protectDayGainLbl.Color(!dayEditAllowed ? FUSION_CLR_MUTED : ((dayGainValid && dayGainRequirementValid) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
       string dayError = "";
-      if(!dayTradesValid)
+      if(dayLocked && HasDayPendingChanges())
+         dayError = DailyConfigLockMessage();
+      else if(!dayTradesValid)
          dayError = "Max Trades deve ser zero ou inteiro positivo.";
       else if(!dayLossValid)
          dayError = "Max Perda diario invalido.";
       else if(!dayGainValid)
          dayError = "Max Ganho diario invalido.";
+      else if(!dayGainRequirementValid)
+         dayError = "DD ON exige Max Ganho > 0 no DAY.";
       outSettings.maxDailyTrades = dayTradesValid ? (int)StringToInteger(dayTradesText) : 0;
 
       string ddText = FusionNormalizeDecimalText(LiveEditText(m_protectDrawdownValueEdit));
+      outSettings.drawdownType = (ENUM_DRAWDOWN_TYPE)m_protectDrawdownType.Value();
+      outSettings.drawdownPeakMode = (ENUM_DRAWDOWN_PEAK_MODE)m_protectDrawdownPeakMode.Value();
       bool ddValueValid = ProtectionMoneyValue(ddText, true, outSettings.maxDrawdown);
       if(ddValueValid && outSettings.enableDrawdown && outSettings.maxDrawdown <= 0.0)
          ddValueValid = false;
+      if(ddValueValid &&
+         outSettings.enableDrawdown &&
+         outSettings.drawdownType == DD_TIPO_PERCENTUAL &&
+         outSettings.maxDrawdown > 100.0)
+         ddValueValid = false;
+      bool dayRequestsDrawdown = (outSettings.enableDailyLimits &&
+                                  outSettings.profitTargetAction == PROFIT_ACTION_ATIVAR_DD);
+      bool profitActionValid = (!dayRequestsDrawdown ||
+                                (outSettings.enableDrawdown && outSettings.maxDrawdown > 0.0));
       bool ddDependencyValid = (!outSettings.enableDrawdown) ||
-                               (outSettings.enableDailyLimits && outSettings.maxDailyGain > 0.0);
-      FusionApplyEditStyle(m_protectDrawdownValueEdit, ddValueValid && ddDependencyValid, editable);
-      m_protectDrawdownNote.Color(ddDependencyValid ? FUSION_CLR_WARN : FUSION_CLR_BAD);
+                               (outSettings.enableDailyLimits &&
+                                outSettings.maxDailyGain > 0.0 &&
+                                outSettings.profitTargetAction == PROFIT_ACTION_ATIVAR_DD);
+      bool drawdownLocked = DrawdownConfigLocked();
+      bool drawdownEditAllowed = (editable && !drawdownLocked);
+      FusionApplyEditStyle(m_protectDrawdownValueEdit, ddValueValid && ddDependencyValid, drawdownEditAllowed);
+      m_protectDrawdownType.Sync((long)outSettings.drawdownType, drawdownEditAllowed && outSettings.enableDrawdown);
+      m_protectDrawdownPeakMode.Sync((long)outSettings.drawdownPeakMode, drawdownEditAllowed && outSettings.enableDrawdown);
+      m_protectDrawdownType.RaiseRuntimeObjects(3908);
+      m_protectDrawdownPeakMode.RaiseRuntimeObjects(3909);
+      m_protectDrawdownNote.Color(drawdownLocked ? FUSION_CLR_WARN : (ddDependencyValid ? FUSION_CLR_WARN : FUSION_CLR_BAD));
       string drawdownError = "";
-      if(!ddValueValid)
-         drawdownError = outSettings.enableDrawdown ? "Max DD deve ser > 0 quando ativo." : "Max DD deve ser zero ou valor positivo.";
+      if(!profitActionValid && dayError == "")
+         dayError = "ATIVAR DD requer DD ON com Max DD > 0.";
+      if(drawdownLocked && HasDrawdownPendingChanges())
+         drawdownError = DrawdownConfigLockMessage();
+      else if(!ddValueValid)
+         drawdownError = (outSettings.enableDrawdown && outSettings.drawdownType == DD_TIPO_PERCENTUAL) ?
+                         "Max DD percentual deve ser > 0 e <= 100." :
+                         (outSettings.enableDrawdown ? "Max DD deve ser > 0 quando ativo." : "Max DD deve ser zero ou valor positivo.");
+      else if(!profitActionValid)
+         drawdownError = "ATIVAR DD requer DD ON com Max DD > 0.";
       else if(!ddDependencyValid)
-         drawdownError = "Drawdown requer DAY ativo com Max Ganho > 0.";
+         drawdownError = "DD requer DAY ON, Max Ganho > 0 e ATIVAR DD.";
 
       string streakLossText = FusionTrimCopy(LiveEditText(m_protectStreakLossEdit));
       string streakWinText = FusionTrimCopy(LiveEditText(m_protectStreakWinEdit));
@@ -334,8 +447,8 @@
       m_protectPageValid[(int)FUSION_PROTECT_SPREAD] = spreadValid;
       m_protectPageValid[(int)FUSION_PROTECT_SESSION] = sessionFieldsValid;
       m_protectPageValid[(int)FUSION_PROTECT_NEWS] = newsValid;
-      m_protectPageValid[(int)FUSION_PROTECT_DAY] = (dayTradesValid && dayLossValid && dayGainValid);
-      m_protectPageValid[(int)FUSION_PROTECT_DRAWDOWN] = (ddValueValid && ddDependencyValid);
+      m_protectPageValid[(int)FUSION_PROTECT_DAY] = (dayTradesValid && dayLossValid && dayGainValid && dayGainRequirementValid && profitActionValid && dayError == "");
+      m_protectPageValid[(int)FUSION_PROTECT_DRAWDOWN] = (ddValueValid && ddDependencyValid && profitActionValid && drawdownError == "");
       m_protectPageValid[(int)FUSION_PROTECT_STREAK] = (lossLimitValid && winLimitValid && lossPauseValid && winPauseValid && streakError == "");
 
       m_protectPageError[(int)FUSION_PROTECT_GENERAL] = "";

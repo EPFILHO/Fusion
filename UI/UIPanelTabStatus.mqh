@@ -9,6 +9,27 @@
       return false;
      }
 
+   bool                       HasProtectionOperationalWarning(void) const
+     {
+      return (m_snapshot.dailyLimitsBlocked ||
+              (m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked) ||
+              (HasDraftEnabledNewsWindow() && m_snapshot.newsProtectionBlocked) ||
+              m_snapshot.drawdownConfigLocked ||
+              m_snapshot.streakProtectionBlocked);
+     }
+
+   bool                       ConfigSubtabHasOperationalWarning(const ENUM_FUSION_CONFIG_PAGE page) const
+     {
+      if(page == FUSION_CFG_PROTECTION)
+         return HasProtectionOperationalWarning();
+      return false;
+     }
+
+   bool                       HasConfigTabOperationalWarning(void) const
+     {
+      return HasProtectionOperationalWarning();
+     }
+
    bool                       HasConfigTabError(void) const
      {
       return (!m_cfgRiskValid || !m_cfgProtectionValid || !m_cfgSystemValid);
@@ -44,6 +65,14 @@
          SetSharedParentStatus(m_snapshot.tradePermissionReason, FUSION_CLR_WARN);
       else if(m_snapshot.pendingReverseExit)
          SetSharedParentStatus("VM armada: reversao direta; guards ativos.", FUSION_CLR_WARN);
+      else if(m_snapshot.dailyLimitsBlocked)
+         SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.dailyLimitsBlockReason), FUSION_CLR_WARN);
+      else if(m_snapshot.drawdownLimitReached)
+         SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason), FUSION_CLR_WARN);
+      else if(m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked)
+         SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.sessionProtectionBlockReason), FUSION_CLR_WARN);
+      else if(HasDraftEnabledNewsWindow() && m_snapshot.newsProtectionBlocked)
+         SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.newsProtectionBlockReason), FUSION_CLR_WARN);
       else if(m_snapshot.runtimeNotice != "")
          SetSharedParentStatus(FusionTopRuntimeNoticeText(m_snapshot.runtimeNotice), FUSION_CLR_WARN);
       else if(HasParentTabError())
@@ -96,6 +125,8 @@
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
          else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
+         else if(i == (int)FUSION_TAB_CONFIG && HasConfigTabOperationalWarning())
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_WARN, true);
          else
             FusionApplyPrimaryButtonStyle(m_tabs[i], false);
         }
@@ -111,7 +142,9 @@
                FusionApplyPrimaryButtonStyle(m_configTabs[i], true);
             else if(ConfigSubtabHasError((ENUM_FUSION_CONFIG_PAGE)i))
                FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_BAD, true);
-           else
+            else if(ConfigSubtabHasOperationalWarning((ENUM_FUSION_CONFIG_PAGE)i))
+               FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_WARN, true);
+            else
                FusionApplyPrimaryButtonStyle(m_configTabs[i], false);
            }
          if(m_configRiskCreated)
