@@ -28,6 +28,7 @@
                                                                    const string profileForMagicCheck,
                                                                    string &outStatus)
      {
+      outSettings.slippagePoints = m_draftSettings.slippagePoints;
       outSettings.fixedLot = m_draftSettings.fixedLot;
       outSettings.fixedSLPoints = m_draftSettings.fixedSLPoints;
       outSettings.fixedTPPoints = m_draftSettings.fixedTPPoints;
@@ -60,6 +61,7 @@
       bool filterValid = ValidateFilterPanels(outSettings, editable, filterError);
       bool slValid = (outSettings.fixedSLPoints >= 0 && outSettings.fixedSLPoints <= 100000);
       bool tpValid = (outSettings.fixedTPPoints >= 0 && outSettings.fixedTPPoints <= 100000);
+      bool slippageValid = (outSettings.slippagePoints >= 0 && outSettings.slippagePoints <= 100000);
       bool sltpValid = ValidateRiskSLTPSettings(outSettings,
                                                 slValid,
                                                 outSettings.fixedSLPoints,
@@ -70,7 +72,8 @@
       bool partialValid = ValidateRiskPartialSettings(outSettings, editable, partialError);
       bool beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
       bool trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
-      m_cfgRiskLotValid = (outSettings.fixedLot > 0.0);
+      m_cfgRiskLotValid = (outSettings.fixedLot > 0.0 && slippageValid);
+      m_cfgRiskLotError = !slippageValid ? "Slippage invalido. Use 0 a 100000 pontos." : "";
       m_cfgRiskSLTPValid = sltpValid;
       m_cfgRiskSLTPError = sltpError;
       m_cfgRiskPartialValid = partialValid;
@@ -79,7 +82,7 @@
       m_cfgRiskBEError = beError;
       m_cfgRiskTrailingValid = trailingValid;
       m_cfgRiskTrailingError = trailingError;
-      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && sltpValid && partialValid && beValid && trailingValid);
+      m_cfgRiskValid = (outSettings.fixedLot > 0.0 && slippageValid && sltpValid && partialValid && beValid && trailingValid);
       m_cfgProtectionValid = true;
       m_cfgSystemValid = (magicValid && magicUnique && outSettings.magicNumber > 0);
       m_configInputsValid = (profileValid &&
@@ -102,6 +105,8 @@
          outStatus = "Magic ja usado pelo perfil " + magicConflictProfile + ".";
       else if(!sltpValid)
          outStatus = sltpError;
+      else if(!slippageValid)
+         outStatus = m_cfgRiskLotError;
       else if(!partialValid)
          outStatus = partialError;
       else if(!beValid)
@@ -117,6 +122,8 @@
                                                         const string profileForMagicCheck,
                                                         bool &lotValid,
                                                         double &parsedLot,
+                                                        bool &slippageValid,
+                                                        int &parsedSlippage,
                                                         bool &slValid,
                                                         int &parsedSL,
                                                         bool &tpValid,
@@ -128,6 +135,8 @@
      {
       lotValid = false;
       parsedLot = 0.0;
+      slippageValid = false;
+      parsedSlippage = 0;
       slValid = false;
       parsedSL = 0;
       tpValid = false;
@@ -149,6 +158,14 @@
             lotValid = (parsedLot <= (m_snapshot.symbolSpec.volumeMax + 0.0000001));
          if(lotValid)
             lotValid = FusionIsVolumeAligned(parsedLot, m_snapshot.symbolSpec);
+        }
+
+      string slippageText = (editable && m_configRiskCreated) ? FusionTrimCopy(LiveEditText(m_cfgRiskSlippageEdit))
+                                                              : IntegerToString(m_draftSettings.slippagePoints);
+      if(FusionIsIntegerText(slippageText, true))
+        {
+         parsedSlippage = (int)StringToInteger(slippageText);
+         slippageValid = (parsedSlippage >= 0 && parsedSlippage <= 100000);
         }
 
       string slText = (editable && m_configRiskCreated) ? FusionTrimCopy(LiveEditText(m_cfgRiskSLEdit))
@@ -188,6 +205,7 @@
 
    void                       ApplyConfigScalarStyles(const bool editable,
                                                       const bool lotValid,
+                                                      const bool slippageValid,
                                                       const bool slValid,
                                                       const bool tpValid,
                                                       const bool magicValid,
@@ -197,6 +215,9 @@
         {
          FusionApplyEditStyle(m_cfgRiskLotEdit, lotValid, editable);
          m_cfgRiskLotLbl.Color(!editable ? FUSION_CLR_MUTED : (lotValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         FusionApplyEditStyle(m_cfgRiskSlippageEdit, slippageValid, editable);
+         m_cfgRiskSlippageLbl.Color(!editable ? FUSION_CLR_MUTED : (slippageValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
+         ApplyRiskLotFooter(lotValid, slippageValid, editable);
          FusionApplyEditStyle(m_cfgRiskSLEdit, slValid, editable);
          m_cfgRiskSLLbl.Color(!editable ? FUSION_CLR_MUTED : (slValid ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
          FusionApplyEditStyle(m_cfgRiskTPEdit, tpValid, editable);
@@ -251,6 +272,7 @@
    void                       CommitValidConfigDraft(SEASettings &outSettings,
                                                       const bool editable,
                                                       const double parsedLot,
+                                                      const int parsedSlippage,
                                                       const int parsedSL,
                                                       const int parsedTP,
                                                       const int parsedMagic)
@@ -259,6 +281,7 @@
          return;
 
       outSettings.fixedLot = parsedLot;
+      outSettings.slippagePoints = parsedSlippage;
       outSettings.fixedSLPoints = parsedSL;
       outSettings.fixedTPPoints = parsedTP;
       outSettings.magicNumber = parsedMagic;
@@ -281,6 +304,7 @@
          return BuildPendingSettingsWithoutConfigTab(outSettings, profileValid, editable, profileForMagicCheck, outStatus);
 
       bool lotValid = false;
+      bool slippageValid = false;
       bool slValid = false;
       bool tpValid = false;
       bool protectionValid = true;
@@ -300,6 +324,7 @@
       string beError = "";
       string trailingError = "";
       double parsedLot = 0.0;
+      int parsedSlippage = 0;
       int parsedSL = 0;
       int parsedTP = 0;
       int parsedMagic = 0;
@@ -308,6 +333,8 @@
                                  profileForMagicCheck,
                                  lotValid,
                                  parsedLot,
+                                 slippageValid,
+                                 parsedSlippage,
                                  slValid,
                                  parsedSL,
                                  tpValid,
@@ -316,9 +343,11 @@
                                  parsedMagic,
                                  magicUnique,
                                  magicConflictProfile);
-      ApplyConfigScalarStyles(editable, lotValid, slValid, tpValid, magicValid, magicUnique);
+      ApplyConfigScalarStyles(editable, lotValid, slippageValid, slValid, tpValid, magicValid, magicUnique);
       if(lotValid)
          outSettings.fixedLot = parsedLot;
+      if(slippageValid)
+         outSettings.slippagePoints = parsedSlippage;
       if(slValid)
          outSettings.fixedSLPoints = parsedSL;
       if(tpValid)
@@ -344,8 +373,9 @@
       beValid = ValidateRiskBreakevenSettings(outSettings, editable, beError);
       trailingValid = ValidateRiskTrailingSettings(outSettings, editable, trailingError);
 
-      m_cfgRiskValid = (lotValid && sltpValid && partialValid && beValid && trailingValid);
-      m_cfgRiskLotValid = lotValid;
+      m_cfgRiskValid = (lotValid && slippageValid && sltpValid && partialValid && beValid && trailingValid);
+      m_cfgRiskLotValid = (lotValid && slippageValid);
+      m_cfgRiskLotError = !slippageValid ? "Slippage invalido. Use 0 a 100000 pontos." : "";
       m_cfgRiskSLTPValid = sltpValid;
       m_cfgRiskSLTPError = sltpError;
       m_cfgRiskPartialValid = partialValid;
@@ -356,16 +386,17 @@
       m_cfgRiskTrailingError = trailingError;
       m_cfgProtectionValid = protectionValid;
       m_cfgSystemValid = (magicValid && magicUnique);
-      m_configInputsValid = profileValid && lotValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
-      CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSL, parsedTP, parsedMagic);
+      m_configInputsValid = profileValid && lotValid && slippageValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && strategyValid && filterValid && magicValid && magicUnique;
+      CommitValidConfigDraft(outSettings, editable, parsedLot, parsedSlippage, parsedSL, parsedTP, parsedMagic);
       ApplyStrategyStatus(strategyValid, strategyError);
       ApplyFilterStatus(filterValid, filterError);
 
       bool dirty = HasPendingChanges();
-      bool configStatusValid = profileValid && lotValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && magicValid && magicUnique;
+      bool configStatusValid = profileValid && lotValid && slippageValid && sltpValid && partialValid && beValid && trailingValid && protectionValid && magicValid && magicUnique;
       ApplyConfigStatus(configStatusValid,
                         profileValid,
                         lotValid,
+                        slippageValid,
                         slValid,
                         tpValid,
                         magicValid,

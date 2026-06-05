@@ -29,6 +29,22 @@
       m_protectGeneralValues[5].Text(StringFormat("Loss %d | Win %d", m_snapshot.lossStreak, m_snapshot.winStreak));
      }
 
+   void                       SyncDrawdownRuntimeMetrics(void)
+     {
+      m_protectDrawdownPeakRuntimeLbl.Text(m_draftSettings.drawdownPeakMode == DD_PICO_FLUTUANTE ? "Pico atual" : "Base atual");
+      m_protectDrawdownBufferLbl.Text(m_snapshot.drawdownLimitReached ? "Folga atual" : "Folga DD");
+      bool hasDrawdownRuntimeBase = (m_snapshot.drawdownProtectionActive ||
+                                     m_snapshot.drawdownLimitReached ||
+                                     m_snapshot.drawdownPeakProfit > 0.0);
+      color drawdownRuntimeColor = m_snapshot.drawdownLimitReached ? FUSION_CLR_WARN : FUSION_CLR_VALUE;
+      m_protectDrawdownPeakRuntimeValue.Text(hasDrawdownRuntimeBase ? DoubleToString(m_snapshot.drawdownPeakProfit, 2) : "--");
+      m_protectDrawdownPeakRuntimeValue.Color(hasDrawdownRuntimeBase ? drawdownRuntimeColor : FUSION_CLR_MUTED);
+      m_protectDrawdownFloorValue.Text(hasDrawdownRuntimeBase ? DoubleToString(m_snapshot.drawdownFloorProfit, 2) : "--");
+      m_protectDrawdownFloorValue.Color(hasDrawdownRuntimeBase ? drawdownRuntimeColor : FUSION_CLR_MUTED);
+      m_protectDrawdownBufferValue.Text(hasDrawdownRuntimeBase ? DoubleToString(m_snapshot.drawdownBufferProfit, 2) : "--");
+      m_protectDrawdownBufferValue.Color(hasDrawdownRuntimeBase ? (m_snapshot.drawdownBufferProfit <= 0.0 ? FUSION_CLR_BAD : drawdownRuntimeColor) : FUSION_CLR_MUTED);
+     }
+
    void                       SyncProtectionFooters(void)
      {
       m_protectEntryFoot1.Text("Sinais surgidos durante bloqueios sao descartados.");
@@ -63,24 +79,50 @@
 
       if(DrawdownConfigLocked())
         {
-         m_protectDrawdownNote.Text(DrawdownConfigLockMessage());
-         m_protectDrawdownFoot2.Text("Pausar o EA nao remove nem permite alterar este bloqueio.");
-         m_protectDrawdownFoot3.Text("Reset automatico no novo dia operacional.");
-         m_protectDrawdownNote.Color(FUSION_CLR_WARN);
-         m_protectDrawdownFoot2.Color(FUSION_CLR_WARN);
-         m_protectDrawdownFoot3.Color(FUSION_CLR_WARN);
+         if(m_snapshot.drawdownLimitReached)
+           {
+            m_protectDrawdownNote.Text(DrawdownConfigLockMessage());
+            bool hasTriggerDetails = (MathAbs(m_snapshot.drawdownTriggerProfit) > 0.0000001 ||
+                                      MathAbs(m_snapshot.drawdownTriggerDrawdown) > 0.0000001 ||
+                                      MathAbs(m_snapshot.drawdownTriggerBuffer) > 0.0000001);
+            if(hasTriggerDetails)
+              {
+               m_protectDrawdownFoot2.Text(StringFormat("Gatilho: P/L projetado %.2f | DD usado %.2f",
+                                                        m_snapshot.drawdownTriggerProfit,
+                                                        m_snapshot.drawdownTriggerDrawdown));
+               m_protectDrawdownFoot3.Text(StringFormat("Folga no gatilho %.2f; Folga atual acima vem do fechamento.",
+                                                        m_snapshot.drawdownTriggerBuffer));
+              }
+            else
+              {
+               m_protectDrawdownFoot2.Text("DD atingido: detalhe do gatilho indisponivel neste estado.");
+               m_protectDrawdownFoot3.Text("Folga atual acima pode vir do fechamento apos o gatilho.");
+              }
+           }
+         else
+           {
+            m_protectDrawdownNote.Text("DD ativo: protecao de lucro ligada.");
+            m_protectDrawdownFoot2.Text("Novas entradas seguem permitidas ate tocar o Piso DD.");
+            m_protectDrawdownFoot3.Text("Edicao do DD fica suspensa ate o novo dia.");
+           }
+         color drawdownLockColor = m_snapshot.drawdownLimitReached ? FUSION_CLR_WARN : FUSION_CLR_MUTED;
+         m_protectDrawdownNote.Color(drawdownLockColor);
+         m_protectDrawdownFoot2.Color(drawdownLockColor);
+         m_protectDrawdownFoot3.Color(drawdownLockColor);
         }
       else
         {
          m_protectDrawdownNote.Text("Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.");
-         m_protectDrawdownFoot2.Text("Financeiro: valor; Percentual: % do pico.");
+         m_protectDrawdownFoot2.Text("Financeiro: valor; Percentual: % da base.");
          m_protectDrawdownFoot3.Text(m_draftSettings.drawdownPeakMode == DD_PICO_FLUTUANTE ?
-                                     "Pico Flutuante inclui P/L da posicao aberta." :
-                                     "Pico Realizado usa apenas P/L fechado.");
+                                     "Pico Ganho acompanha o maior P/L projetado." :
+                                     "Meta Max.Ganho usa a meta como base fixa.");
          m_protectDrawdownNote.Color(FUSION_CLR_WARN);
          m_protectDrawdownFoot2.Color(FUSION_CLR_MUTED);
          m_protectDrawdownFoot3.Color(FUSION_CLR_MUTED);
         }
+
+      SyncDrawdownRuntimeMetrics();
 
       if(StreakConfigLocked())
         {

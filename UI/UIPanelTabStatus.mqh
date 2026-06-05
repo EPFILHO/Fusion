@@ -14,7 +14,7 @@
       return (m_snapshot.dailyLimitsBlocked ||
               (m_draftSettings.enableSessionFilter && m_snapshot.sessionProtectionBlocked) ||
               (HasDraftEnabledNewsWindow() && m_snapshot.newsProtectionBlocked) ||
-              m_snapshot.drawdownConfigLocked ||
+              m_snapshot.drawdownLimitReached ||
               m_snapshot.streakProtectionBlocked);
      }
 

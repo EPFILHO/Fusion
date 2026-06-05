@@ -13,6 +13,7 @@ private:
    bool        m_tradesLimitReached;
    bool        m_lossLimitReached;
    bool        m_gainLimitReached;
+   string      m_pendingDiagnostic;
 
    bool              UsesDrawdownActivation(void) const
      {
@@ -29,6 +30,65 @@ private:
       m_tradesLimitReached = false;
       m_lossLimitReached = false;
       m_gainLimitReached = false;
+      m_pendingDiagnostic = "";
+     }
+
+   string            MoneyText(const double value) const
+     {
+      return DoubleToString(value, 2);
+     }
+
+   void              SetPendingDiagnostic(const string eventText,
+                                          const string motive,
+                                          const double floatingProfit,
+                                          const double projectedProfit,
+                                          const string limitText)
+     {
+      m_pendingDiagnostic = eventText +
+                            ": motivo=" + motive +
+                            "; P/L fechado=" + MoneyText(m_dailyClosedProfit) +
+                            "; P/L flutuante=" + MoneyText(floatingProfit) +
+                            "; P/L projetado=" + MoneyText(projectedProfit) +
+                            "; limite=" + limitText + ".";
+     }
+
+   void              LatchTradesLimit(const string eventText,const double floatingProfit,const double projectedProfit)
+     {
+      if(m_tradesLimitReached)
+         return;
+
+      m_tradesLimitReached = true;
+      SetPendingDiagnostic(eventText,
+                           "Max Trades",
+                           floatingProfit,
+                           projectedProfit,
+                           IntegerToString(m_settings.maxDailyTrades) + " trades");
+     }
+
+   void              LatchLossLimit(const string eventText,const double floatingProfit,const double projectedProfit)
+     {
+      if(m_lossLimitReached)
+         return;
+
+      m_lossLimitReached = true;
+      SetPendingDiagnostic(eventText,
+                           "Max Perda",
+                           floatingProfit,
+                           projectedProfit,
+                           "-" + MoneyText(m_settings.maxDailyLoss));
+     }
+
+   void              LatchGainLimit(const string eventText,const double floatingProfit,const double projectedProfit)
+     {
+      if(m_gainLimitReached)
+         return;
+
+      m_gainLimitReached = true;
+      SetPendingDiagnostic(eventText,
+                           "Max Ganho",
+                           floatingProfit,
+                           projectedProfit,
+                           MoneyText(m_settings.maxDailyGain));
      }
 
    bool              CurrentBlockReason(string &reason) const
@@ -61,15 +121,15 @@ private:
          return;
 
       if(m_settings.maxDailyTrades > 0 && m_dailyTradeCount >= m_settings.maxDailyTrades)
-         m_tradesLimitReached = true;
+         LatchTradesLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
 
       if(m_settings.maxDailyLoss > 0.0 && m_dailyClosedProfit <= -m_settings.maxDailyLoss)
-         m_lossLimitReached = true;
+         LatchLossLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
 
       if(m_settings.maxDailyGain > 0.0 &&
          m_dailyClosedProfit >= m_settings.maxDailyGain &&
          !UsesDrawdownActivation())
-         m_gainLimitReached = true;
+         LatchGainLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
      }
 
 public:
@@ -139,14 +199,14 @@ public:
 
       if(m_settings.maxDailyTrades > 0 && m_dailyTradeCount >= m_settings.maxDailyTrades)
         {
-         m_tradesLimitReached = true;
+         LatchTradesLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
          reason = "Limite diario de trades atingido.";
          return false;
         }
 
       if(m_settings.maxDailyLoss > 0.0 && m_dailyClosedProfit <= -m_settings.maxDailyLoss)
         {
-         m_lossLimitReached = true;
+         LatchLossLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
          reason = "Limite diario de perda atingido.";
          return false;
         }
@@ -160,7 +220,7 @@ public:
            }
 
          reason = "Meta diaria de ganho atingida.";
-         m_gainLimitReached = true;
+         LatchGainLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
          return false;
         }
 
@@ -173,15 +233,30 @@ public:
       activateDrawdown = false;
       projectedProfit = m_dailyClosedProfit + floatingProfit;
 
-      if(CurrentBlockReason(reason))
+      if(m_lossLimitReached)
+        {
+         reason = "Limite diario de perda projetada atingido.";
+         return true;
+        }
+
+      if(m_gainLimitReached)
+        {
+         reason = "Meta diaria de ganho atingida.";
+         return true;
+        }
+
+      if(m_tradesLimitReached)
+        {
+         reason = "Limite diario de trades atingido.";
          return false;
+        }
 
       if(!m_settings.enableDailyLimits)
          return false;
 
       if(m_settings.maxDailyLoss > 0.0 && projectedProfit <= -m_settings.maxDailyLoss)
         {
-         m_lossLimitReached = true;
+         LatchLossLimit("DAY forcou fechamento", floatingProfit, projectedProfit);
          reason = "Limite diario de perda projetada atingido.";
          return true;
         }
@@ -195,7 +270,7 @@ public:
            }
 
          reason = "Meta diaria de ganho atingida.";
-         m_gainLimitReached = true;
+         LatchGainLimit("DAY forcou fechamento", floatingProfit, projectedProfit);
          return true;
         }
 
@@ -236,6 +311,13 @@ public:
         }
 
       return CurrentBlockReason(reason);
+     }
+
+   bool              ConsumePendingDiagnostic(string &diagnostic)
+     {
+      diagnostic = m_pendingDiagnostic;
+      m_pendingDiagnostic = "";
+      return (diagnostic != "");
      }
   };
 

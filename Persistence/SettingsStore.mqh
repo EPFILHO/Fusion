@@ -432,6 +432,9 @@ private:
       else if(key == "drawdown.protectionActive") drawdownState.protectionActive = (bool)StringToInteger(value);
       else if(key == "drawdown.limitReached") drawdownState.limitReached = (bool)StringToInteger(value);
       else if(key == "drawdown.peakProjectedProfit") drawdownState.peakProjectedProfit = StringToDouble(value);
+      else if(key == "drawdown.triggerProjectedProfit") drawdownState.triggerProjectedProfit = StringToDouble(value);
+      else if(key == "drawdown.triggerDrawdownAmount") drawdownState.triggerDrawdownAmount = StringToDouble(value);
+      else if(key == "drawdown.triggerBufferProfit") drawdownState.triggerBufferProfit = StringToDouble(value);
      }
 
    void              ApplyContextField(const string key,const string value,SChartStateContext &context) const
@@ -649,6 +652,9 @@ public:
       WriteLine(handle, "drawdown.protectionActive", IntegerToString((int)drawdownState.protectionActive));
       WriteLine(handle, "drawdown.limitReached", IntegerToString((int)drawdownState.limitReached));
       WriteLine(handle, "drawdown.peakProjectedProfit", DoubleToString(drawdownState.peakProjectedProfit, 2));
+      WriteLine(handle, "drawdown.triggerProjectedProfit", DoubleToString(drawdownState.triggerProjectedProfit, 2));
+      WriteLine(handle, "drawdown.triggerDrawdownAmount", DoubleToString(drawdownState.triggerDrawdownAmount, 2));
+      WriteLine(handle, "drawdown.triggerBufferProfit", DoubleToString(drawdownState.triggerBufferProfit, 2));
 
       FileClose(handle);
       return true;

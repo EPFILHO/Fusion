@@ -57,6 +57,12 @@
       m_snapshot.drawdownLimitReached = false;
       m_snapshot.drawdownConfigLocked = false;
       m_snapshot.drawdownConfigLockReason = "";
+      m_snapshot.drawdownPeakProfit = 0.0;
+      m_snapshot.drawdownFloorProfit = 0.0;
+      m_snapshot.drawdownBufferProfit = 0.0;
+      m_snapshot.drawdownTriggerProfit = 0.0;
+      m_snapshot.drawdownTriggerDrawdown = 0.0;
+      m_snapshot.drawdownTriggerBuffer = 0.0;
      }
 
    void                       ResetPanelValidationState(void)
@@ -64,6 +70,7 @@
       m_configInputsValid = true;
       m_cfgRiskValid = true;
       m_cfgRiskLotValid = true;
+      m_cfgRiskLotError = "";
       m_cfgRiskSLTPValid = true;
       m_cfgRiskSLTPError = "";
       m_cfgRiskPartialValid = true;

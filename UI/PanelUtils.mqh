@@ -392,8 +392,8 @@ bool FusionPopulateDrawdownTypeCombo(CComboBox &combo)
 string FusionDrawdownPeakModeName(const ENUM_DRAWDOWN_PEAK_MODE value)
   {
    if(value == DD_PICO_REALIZADO)
-      return "Realizado";
-   return "Flutuante";
+      return "Meta Max.Ganho";
+   return "Pico Ganho";
   }
 
 bool FusionPopulateDrawdownPeakModeCombo(CComboBox &combo)
@@ -569,7 +569,7 @@ string FusionTopRuntimeNoticeText(const string notice)
       return "Meta diaria atingida.";
    if(notice == "Limite de drawdown diario atingido.")
       return "DD diario atingido.";
-   if(notice == "DD ativo: edicao suspensa ate o novo dia.")
+   if(notice == "DD ativo: protecao de lucro ligada; novas entradas permitidas.")
       return "DD ativo.";
 
    if(StringFind(notice, "Bloqueio por ") != 0 ||

@@ -66,6 +66,8 @@ private:
    datetime                m_lastClosedStrategyBarTime;
    string                  m_lastDiscardDebugReason;
    datetime                m_lastDiscardDebugTime;
+   string                  m_lastPersistentProtectWarnReason;
+   int                     m_lastPersistentProtectWarnDayKey;
 
    SChartStateContext      CurrentChartContext(void) const
      {
@@ -217,6 +219,10 @@ private:
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
+      double snapshotFloatingProfit = 0.0;
+      if(m_positionState.hasPosition && PositionSelectByTicket(m_positionState.ticket))
+         snapshotFloatingProfit = PositionGetDouble(POSITION_PROFIT);
+      double snapshotProjectedProfit = snapshot.dailyClosedProfit + snapshotFloatingProfit;
       string dailyBlockReason = "";
       snapshot.dailyLimitsBlocked = m_protectionManager.IsDailyLimitsBlocked(dailyBlockReason);
       snapshot.dailyLimitsBlockReason = dailyBlockReason;
@@ -255,6 +261,12 @@ private:
       snapshot.drawdownLimitReached = m_protectionManager.IsDrawdownLimitReached();
       snapshot.drawdownConfigLocked = m_protectionManager.IsDrawdownConfigLocked(drawdownLockReason);
       snapshot.drawdownConfigLockReason = drawdownLockReason;
+      snapshot.drawdownPeakProfit = m_protectionManager.DrawdownPeakProfit();
+      snapshot.drawdownFloorProfit = m_protectionManager.DrawdownFloorProfit();
+      snapshot.drawdownBufferProfit = m_protectionManager.DrawdownBufferProfit(snapshotProjectedProfit);
+      snapshot.drawdownTriggerProfit = m_protectionManager.DrawdownTriggerProfit();
+      snapshot.drawdownTriggerDrawdown = m_protectionManager.DrawdownTriggerDrawdown();
+      snapshot.drawdownTriggerBuffer = m_protectionManager.DrawdownTriggerBuffer();
       return snapshot;
      }
 
@@ -372,6 +384,26 @@ private:
               StringFind(notice, "Bloqueio por win streak") == 0);
      }
 
+   bool                    IsPersistentDailyProtectionNotice(const string notice) const
+     {
+      return (notice == "Limite de drawdown diario atingido." ||
+              notice == "Limite diario de trades atingido." ||
+              notice == "Limite diario de perda atingido." ||
+              notice == "Limite diario de perda projetada atingido." ||
+              notice == "Meta diaria de ganho atingida.");
+     }
+
+   int                     ProtectionWarnDayKey(void) const
+     {
+      datetime now = TimeCurrent();
+      if(now <= 0)
+         now = TimeLocal();
+
+      MqlDateTime parts;
+      TimeToStruct(now, parts);
+      return (parts.year * 10000 + parts.mon * 100 + parts.day);
+     }
+
    bool                    SameStreakPauseProtectionNotice(const string previous,const string current) const
      {
       if(!IsStreakPauseProtectionNotice(previous) || !IsStreakPauseProtectionNotice(current))
@@ -413,10 +445,23 @@ private:
       return ((minutesLeft % 30) == 0);
      }
 
-   bool                    ShouldLogProtectionNotice(const string notice,const bool firstNotice) const
+   bool                    ShouldLogProtectionNotice(const string notice,const bool firstNotice)
      {
       if(IsStreakPauseProtectionNotice(notice))
          return ShouldLogStreakPauseNotice(notice, firstNotice);
+
+      if(IsPersistentDailyProtectionNotice(notice))
+        {
+         int dayKey = ProtectionWarnDayKey();
+         if(m_lastPersistentProtectWarnReason == notice &&
+            m_lastPersistentProtectWarnDayKey == dayKey)
+            return false;
+
+         m_lastPersistentProtectWarnReason = notice;
+         m_lastPersistentProtectWarnDayKey = dayKey;
+         return true;
+        }
+
       return true;
      }
 
@@ -1203,6 +1248,8 @@ private:
       m_lastClosedStrategyBarTime = 0;
       m_lastDiscardDebugReason = "";
       m_lastDiscardDebugTime = 0;
+      m_lastPersistentProtectWarnReason = "";
+      m_lastPersistentProtectWarnDayKey = 0;
       m_pendingReverseExit.Reset();
      }
 
@@ -1226,6 +1273,8 @@ private:
       m_entryBlockNoticeReason = "";
       m_lastDiscardDebugReason = "";
       m_lastDiscardDebugTime = 0;
+      m_lastPersistentProtectWarnReason = "";
+      m_lastPersistentProtectWarnDayKey = 0;
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&
@@ -1367,7 +1416,7 @@ private:
          int x1 = FUSION_PANEL_LEFT;
 
          if(!m_panel.CreatePanel(ChartID(),
-                                  FusionWindowTitle(),
+                                  FusionDialogProgramName(),
                                   0,
                                  x1,
                                  FUSION_PANEL_TOP,

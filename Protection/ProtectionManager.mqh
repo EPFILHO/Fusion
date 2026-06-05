@@ -40,6 +40,16 @@ private:
          state.dayPeakProjectedProfit = m_drawdownProtection.PeakProfit();
      }
 
+   void              LogDailyDiagnostic(void)
+     {
+      if(m_logger == NULL)
+         return;
+
+      string diagnostic = "";
+      if(m_dailyLimitsProtection.ConsumePendingDiagnostic(diagnostic))
+         m_logger.Warn("PROTECT", diagnostic);
+     }
+
 public:
                      CProtectionManager(void)
      {
@@ -141,7 +151,10 @@ public:
 
       bool activateDrawdown = false;
       if(!m_dailyLimitsProtection.CanOpen(reason, activateDrawdown))
+        {
+         LogDailyDiagnostic();
          return false;
+        }
       if(activateDrawdown)
          m_drawdownProtection.Activate(m_dailyLimitsProtection.DailyClosedProfit(), m_dailyLimitsProtection.DailyClosedProfit());
 
@@ -159,7 +172,10 @@ public:
       bool activateDrawdown = false;
       double projectedProfit = 0.0;
       if(m_dailyLimitsProtection.ShouldForceClose(floatingProfit, reason, activateDrawdown, projectedProfit))
+        {
+         LogDailyDiagnostic();
          return true;
+        }
       if(activateDrawdown)
          TryActivateDrawdown(m_dailyLimitsProtection.DailyClosedProfit(), projectedProfit, state);
 
@@ -178,11 +194,14 @@ public:
    void              OnPartialRealized(const double profit)
      {
       m_dailyLimitsProtection.OnPartialRealized(profit);
+      LogDailyDiagnostic();
      }
 
    void              OnPositionClosed(const double totalPositionProfit,const double realizedPartialProfit)
      {
       m_dailyLimitsProtection.OnPositionClosed(totalPositionProfit, realizedPartialProfit);
+      LogDailyDiagnostic();
+      m_drawdownProtection.UpdateAfterProjectedProfit(m_dailyLimitsProtection.DailyClosedProfit());
       m_streakProtection.OnPositionClosed(totalPositionProfit);
      }
 
@@ -239,6 +258,36 @@ public:
    bool              IsDrawdownProtectionActive(void) const
      {
       return m_drawdownProtection.IsProtectionActive();
+     }
+
+   double            DrawdownPeakProfit(void) const
+     {
+      return m_drawdownProtection.PeakProfit();
+     }
+
+   double            DrawdownFloorProfit(void) const
+     {
+      return m_drawdownProtection.DrawdownFloorProfit();
+     }
+
+   double            DrawdownBufferProfit(const double projectedProfit) const
+     {
+      return m_drawdownProtection.DrawdownBufferProfit(projectedProfit);
+     }
+
+   double            DrawdownTriggerProfit(void) const
+     {
+      return m_drawdownProtection.TriggerProfit();
+     }
+
+   double            DrawdownTriggerDrawdown(void) const
+     {
+      return m_drawdownProtection.TriggerDrawdown();
+     }
+
+   double            DrawdownTriggerBuffer(void) const
+     {
+      return m_drawdownProtection.TriggerBuffer();
      }
   };
 

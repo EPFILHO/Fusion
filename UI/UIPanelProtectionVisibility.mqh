@@ -97,6 +97,12 @@
       SetVisible(m_protectDrawdownEnabledBtn, visible);
       SetVisible(m_protectDrawdownValueLbl, visible);
       SetVisible(m_protectDrawdownValueEdit, visible);
+      SetVisible(m_protectDrawdownPeakRuntimeLbl, visible);
+      SetVisible(m_protectDrawdownPeakRuntimeValue, visible);
+      SetVisible(m_protectDrawdownFloorLbl, visible);
+      SetVisible(m_protectDrawdownFloorValue, visible);
+      SetVisible(m_protectDrawdownBufferLbl, visible);
+      SetVisible(m_protectDrawdownBufferValue, visible);
       SetVisible(m_protectDrawdownNote, visible);
       SetVisible(m_protectDrawdownFoot2, visible);
       SetVisible(m_protectDrawdownFoot3, visible);

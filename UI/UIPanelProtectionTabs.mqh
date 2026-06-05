@@ -74,6 +74,12 @@
    CEdit                      m_protectDrawdownValueEdit;
    CSelectionComboField       m_protectDrawdownType;
    CSelectionComboField       m_protectDrawdownPeakMode;
+   CLabel                     m_protectDrawdownPeakRuntimeLbl;
+   CLabel                     m_protectDrawdownPeakRuntimeValue;
+   CLabel                     m_protectDrawdownFloorLbl;
+   CLabel                     m_protectDrawdownFloorValue;
+   CLabel                     m_protectDrawdownBufferLbl;
+   CLabel                     m_protectDrawdownBufferValue;
    CLabel                     m_protectDrawdownNote;
    CLabel                     m_protectDrawdownFoot2;
    CLabel                     m_protectDrawdownFoot3;
@@ -140,7 +146,7 @@
       if(page == FUSION_PROTECT_DAY)
          return m_snapshot.dailyLimitsBlocked;
       if(page == FUSION_PROTECT_DRAWDOWN)
-         return m_snapshot.drawdownConfigLocked;
+         return m_snapshot.drawdownLimitReached;
       if(page == FUSION_PROTECT_STREAK)
          return m_snapshot.streakProtectionBlocked;
       return false;

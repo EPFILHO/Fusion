@@ -33,6 +33,8 @@
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          return true;
+      if(m_configRiskCreated && objectName == m_cfgRiskSlippageEdit.Name())
+         return true;
       if(m_configRiskCreated && objectName == m_cfgRiskSLEdit.Name())
          return true;
       if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())
@@ -149,6 +151,8 @@
      {
       if(m_configRiskCreated && objectName == m_cfgRiskLotEdit.Name())
          NormalizeVolumeEdit(m_cfgRiskLotEdit, m_draftSettings.fixedLot);
+      else if(m_configRiskCreated && objectName == m_cfgRiskSlippageEdit.Name())
+         NormalizeIntegerEdit(m_cfgRiskSlippageEdit, m_draftSettings.slippagePoints, true, 6);
       else if(m_configRiskCreated && objectName == m_cfgRiskSLEdit.Name())
          NormalizeIntegerEdit(m_cfgRiskSLEdit, m_draftSettings.fixedSLPoints, true, 6);
       else if(m_configRiskCreated && objectName == m_cfgRiskTPEdit.Name())

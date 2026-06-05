@@ -58,6 +58,18 @@ private:
       return SymbolInfoDouble(m_symbol, SYMBOL_ASK);
      }
 
+   bool               TryGetDealProfit(const ulong dealTicket,double &profit) const
+     {
+      profit = 0.0;
+      if(dealTicket == 0)
+         return false;
+      if(!HistoryDealSelect(dealTicket))
+         return false;
+
+      profit = HistoryDealGetDouble(dealTicket, DEAL_PROFIT);
+      return true;
+     }
+
    void               CopyRuntimeState(const SPositionRuntimeState &source,SPositionRuntimeState &target) const
      {
       target.ownerStrategyId       = source.ownerStrategyId;
@@ -261,9 +273,12 @@ public:
       if(result.retcode != TRADE_RETCODE_DONE && result.retcode != TRADE_RETCODE_PLACED)
          return false;
 
-      ENUM_ORDER_TYPE closeType = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
-      if(!OrderCalcProfit(closeType, m_symbol, lotToClose, state.entryPrice, request.price, estimatedProfit))
-         estimatedProfit = 0.0;
+      if(!TryGetDealProfit(result.deal, estimatedProfit))
+        {
+         ENUM_ORDER_TYPE closeType = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
+         if(!OrderCalcProfit(closeType, m_symbol, lotToClose, state.entryPrice, request.price, estimatedProfit))
+            estimatedProfit = 0.0;
+        }
       m_needsSync = true;
       return true;
      }

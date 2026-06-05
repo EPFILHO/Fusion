@@ -206,16 +206,28 @@
                                             m_chartId,
                                             m_subWindow,
                                             "Fusion_protect_dd_peak_",
-                                            "Pico DD",
+                                            "Base DD",
                                             FUSION_SELECTION_DRAWDOWN_PEAK_MODE,
                                             22, 364, 180, 382,
                                             200, 362, 330, 386))
          return false;
-      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 410, 550, 428, "Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.", FUSION_CLR_WARN, 8))
+      if(!AddLabel(m_protectDrawdownPeakRuntimeLbl, "Fusion_protect_dd_runtime_peak_lbl", 22, 402, 180, 420, "Base atual", FUSION_CLR_LABEL))
          return false;
-      if(!AddLabel(m_protectDrawdownFoot2, "Fusion_protect_dd_foot_2", 22, 434, 550, 452, "Financeiro: valor; Percentual: % do pico.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_protectDrawdownPeakRuntimeValue, "Fusion_protect_dd_runtime_peak_value", 200, 402, 330, 420, "--", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_protectDrawdownFoot3, "Fusion_protect_dd_foot_3", 22, 458, 550, 476, "Pico Flutuante mantem o comportamento atual.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_protectDrawdownFloorLbl, "Fusion_protect_dd_floor_lbl", 22, 430, 180, 448, "Piso DD", FUSION_CLR_LABEL))
+         return false;
+      if(!AddLabel(m_protectDrawdownFloorValue, "Fusion_protect_dd_floor_value", 200, 430, 330, 448, "--", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownBufferLbl, "Fusion_protect_dd_buffer_lbl", 22, 458, 180, 476, "Folga DD", FUSION_CLR_LABEL))
+         return false;
+      if(!AddLabel(m_protectDrawdownBufferValue, "Fusion_protect_dd_buffer_value", 200, 458, 330, 476, "--", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownNote, "Fusion_protect_dd_note", 22, 492, 550, 510, "Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.", FUSION_CLR_WARN, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownFoot2, "Fusion_protect_dd_foot_2", 22, 516, 550, 534, "Financeiro: valor; Percentual: % da base.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_protectDrawdownFoot3, "Fusion_protect_dd_foot_3", 22, 540, 550, 558, "Pico Ganho acompanha o maior P/L projetado.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_protectStreakHdr, "Fusion_protect_streak_hdr", 22, 188, 280, 206, "Protecao de Streak", FUSION_CLR_VALUE, 9))

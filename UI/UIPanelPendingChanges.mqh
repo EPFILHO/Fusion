@@ -40,6 +40,8 @@
          return true;
       if(m_draftSettings.useTrailing != m_committedSettings.useTrailing)
          return true;
+      if(m_draftSettings.slippagePoints != m_committedSettings.slippagePoints)
+         return true;
 
       if(m_configRiskCreated)
         {
@@ -52,6 +54,8 @@
          else if(lotText != CommittedLotText())
             return true;
 
+         if(RiskIntegerPending(m_cfgRiskSlippageEdit, m_committedSettings.slippagePoints))
+            return true;
          if(RiskIntegerPending(m_cfgRiskSLEdit, m_committedSettings.fixedSLPoints))
             return true;
          if(RiskIntegerPending(m_cfgRiskTPEdit, m_committedSettings.fixedTPPoints))

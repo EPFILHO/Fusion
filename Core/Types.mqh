@@ -345,6 +345,9 @@ struct SDrawdownRuntimeState
    bool   protectionActive;
    bool   limitReached;
    double peakProjectedProfit;
+   double triggerProjectedProfit;
+   double triggerDrawdownAmount;
+   double triggerBufferProfit;
   };
 
 struct SClosedTradeSummary
@@ -411,6 +414,12 @@ struct SUIPanelSnapshot
    bool   drawdownLimitReached;
    bool   drawdownConfigLocked;
    string drawdownConfigLockReason;
+   double drawdownPeakProfit;
+   double drawdownFloorProfit;
+   double drawdownBufferProfit;
+   double drawdownTriggerProfit;
+   double drawdownTriggerDrawdown;
+   double drawdownTriggerBuffer;
   };
 
 struct SUICommand
@@ -636,6 +645,9 @@ void ResetDrawdownRuntimeState(SDrawdownRuntimeState &state)
    state.protectionActive = false;
    state.limitReached = false;
    state.peakProjectedProfit = 0.0;
+   state.triggerProjectedProfit = 0.0;
+   state.triggerDrawdownAmount = 0.0;
+   state.triggerBufferProfit = 0.0;
   }
 
 #endif

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.054 - 2026-05-31
+- Iniciada a 1.054 em pasta propria a partir do commit `a6346c3`, preservando a 1.053 como checkpoint funcional.
+- Versao central atualizada para `1.054`.
+- `CONFIG > RISK > LOTE` passou a expor `Slippage (pts)`, usando a chave existente `slippagePoints`, com validacao `0..100000` e rodape explicando que slippage e tolerancia de execucao, nao garantia de preco.
+- DAY passou a emitir log diagnostico somente quando um limite diario trava novas entradas ou forca fechamento, mostrando P/L fechado, P/L flutuante, P/L projetado, limite configurado e motivo.
+- DAY agora continua tentando forcar fechamento quando Max Perda/Max Ganho ja ficaram travados, evitando que uma tentativa de fechamento recusada vire apenas bloqueio passivo.
+- A GUI passou a usar nome interno estavel no `CAppDialog` e limpar frames antigos `EP Fusion - versao ...` antes de criar o painel, evitando janelas orfas ao trocar de versao.
+- `CONFIG > PROTECT > DRAWDOWN` trocou `Realizado`/`Flutuante` por `Meta Max.Ganho`/`Pico Ganho`; `Meta Max.Ganho` usa o Max Ganho como base fixa do DD, enquanto `Pico Ganho` acompanha o maior P/L projetado depois da ativacao.
+- `CONFIG > PROTECT > DRAWDOWN` passou a mostrar `Base atual`/`Pico atual` com o valor runtime usado pelo DD ativo ou atingido.
+- O lucro realizado em `TP PARCIAL` agora prefere o `DEAL_PROFIT` real do fechamento parcial, evitando que o DD compare o pico contra apenas o flutuante restante quando a estimativa por `OrderCalcProfit` falha ou diverge.
+- DD ativo passou a ser tratado explicitamente como modo de protecao de lucro, nao bloqueio de entrada: `DD atingido` bloqueia o dia, enquanto saidas por TP/SL/trailing acima do `Piso DD` preservam a folga para novas operacoes.
+- `CONFIG > PROTECT > DRAWDOWN` passou a exibir `Piso DD` e `Folga DD` para auditar o high-water mark, a linha de defesa e o espaco restante antes do bloqueio diario.
+- Destaques amarelos de `DRAWDOWN` ficaram reservados para `DD atingido`; `DD ativo` segue visivel na subaba, mas em tom neutro e sem marcar `CONFIG/PROTECT` como bloqueio.
+- Otimizado o refresh da GUI para separar valores runtime do DD de mudancas estruturais, reduzindo repaints/piscadas ao minimizar ou restaurar o painel.
+- `CONFIG > PROTECT > DRAWDOWN` passou a guardar e exibir, quando o DD e atingido, o P/L projetado no gatilho, o DD usado e a folga no tick que disparou o fechamento.
+- Reduzido ruido no Diario: avisos persistentes de DAY/DD passam a registrar `WARN` apenas uma vez por dia por motivo, mantendo status e GUI ativos.
+- Encerrada a rodada de testes de DAY/DD em mercado aberto e registrada a auditoria do checkpoint em `docs/DD_AUDIT_CHECKPOINT_1054.md`, mantendo o reset do novo dia operacional como proxima fatia isolada.
+- Compilado no MetaEditor com `0 errors, 0 warnings` em `compile_1054_initial.log`, `compile_1054_gui_refresh.log`, `compile_1054_dd_trigger_gui.log`, `compile_1054_daily_warn_once.log` e `compile_1054_dd_audit.log`.
+
 ## 1.053 - 2026-05-24
 - Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.
 - Adicionado `Bollinger Filter` separado da estrategia Bollinger, com settings/persistencia/inputs proprios usando prefixo `bbFilter*`.

@@ -37,6 +37,7 @@ private:
    bool                       m_configInputsValid;
    bool                       m_cfgRiskValid;
    bool                       m_cfgRiskLotValid;
+   string                     m_cfgRiskLotError;
    bool                       m_cfgRiskSLTPValid;
    string                     m_cfgRiskSLTPError;
    bool                       m_cfgRiskPartialValid;
@@ -154,6 +155,58 @@ private:
 #include "UIPanelTopActions.mqh"
 #include "UIPanelNavigation.mqh"
 
+   int                        DeleteObjectsByPrefix(const long chartId,const int subwin,const string prefix)
+     {
+      int deleted = 0;
+      int total = ObjectsTotal(chartId, subwin);
+      for(int i = total - 1; i >= 0; --i)
+        {
+         string objectName = ObjectName(chartId, i, subwin);
+         if(StringFind(objectName, prefix) != 0)
+            continue;
+
+         if(ObjectDelete(chartId, objectName))
+            deleted++;
+        }
+      return deleted;
+     }
+
+   bool                       IsFusionDialogCaption(const long chartId,const string objectName,string &prefix) const
+     {
+      prefix = "";
+      int suffixStart = StringLen(objectName) - 7;
+      if(suffixStart < 0 || StringSubstr(objectName, suffixStart) != "Caption")
+         return false;
+
+      string text = ObjectGetString(chartId, objectName, OBJPROP_TEXT);
+      if(StringFind(text, "EP Fusion - versao ") != 0)
+         return false;
+
+      prefix = StringSubstr(objectName, 0, suffixStart);
+      return (prefix != "");
+     }
+
+   void                       CleanupStaleFusionDialogs(const long chartId,const int subwin)
+     {
+      for(int pass = 0; pass < 16; ++pass)
+        {
+         string prefix = "";
+         int total = ObjectsTotal(chartId, subwin);
+         for(int i = total - 1; i >= 0; --i)
+           {
+            string objectName = ObjectName(chartId, i, subwin);
+            if(IsFusionDialogCaption(chartId, objectName, prefix))
+               break;
+           }
+
+         if(prefix == "")
+            return;
+
+         if(DeleteObjectsByPrefix(chartId, subwin, prefix) <= 0)
+            return;
+        }
+     }
+
    bool                       HandlePanelClick(const string objectName)
      {
       if(HandleTopActionClick(objectName))
@@ -233,9 +286,11 @@ public:
       m_subWindow = subwin;
       m_snapshot  = snapshot;
       ClearPendingCommand();
+      CleanupStaleFusionDialogs(chartId, subwin);
 
       if(!Create(chartId, name, subwin, x1, y1, x2, y2))
          return false;
+      Caption(FusionWindowTitle());
 
       m_created = true;
       m_origDragTrade   = (bool)ChartGetInteger(chartId, CHART_DRAG_TRADE_LEVELS);
@@ -363,8 +418,17 @@ public:
 
    void                       Update(const SUIPanelSnapshot &snapshot)
      {
-      if(!m_created || m_minimized)
+      if(!m_created)
          return;
+      if(m_minimized)
+        {
+         bool wasEditBlocked = !ActiveProfileEditable();
+         bool nowCanEditActiveProfile = ActiveProfileEditable(snapshot);
+         m_snapshot = snapshot;
+         if(wasEditBlocked && nowCanEditActiveProfile && m_hasCommittedSettings)
+            RestoreCommittedDraftToControls();
+         return;
+        }
 
       bool wasEditBlocked = !ActiveProfileEditable();
       bool nowCanEditActiveProfile = ActiveProfileEditable(snapshot);
@@ -383,6 +447,12 @@ public:
                                    snapshot.drawdownLimitReached != m_snapshot.drawdownLimitReached ||
                                    snapshot.drawdownConfigLocked != m_snapshot.drawdownConfigLocked ||
                                    snapshot.drawdownConfigLockReason != m_snapshot.drawdownConfigLockReason);
+      bool drawdownRuntimeValuesChanged = (MathAbs(snapshot.drawdownPeakProfit - m_snapshot.drawdownPeakProfit) > 0.0000001 ||
+                                           MathAbs(snapshot.drawdownFloorProfit - m_snapshot.drawdownFloorProfit) > 0.0000001 ||
+                                           MathAbs(snapshot.drawdownBufferProfit - m_snapshot.drawdownBufferProfit) > 0.0000001 ||
+                                           MathAbs(snapshot.drawdownTriggerProfit - m_snapshot.drawdownTriggerProfit) > 0.0000001 ||
+                                           MathAbs(snapshot.drawdownTriggerDrawdown - m_snapshot.drawdownTriggerDrawdown) > 0.0000001 ||
+                                           MathAbs(snapshot.drawdownTriggerBuffer - m_snapshot.drawdownTriggerBuffer) > 0.0000001);
       bool permissionStateChanged = runtimeStateChanged ||
                                     snapshot.runtimeBlocked != m_snapshot.runtimeBlocked ||
                                      snapshot.startBlockedReason != m_snapshot.startBlockedReason ||
@@ -408,12 +478,35 @@ public:
                            snapshot.lossStreak != m_snapshot.lossStreak ||
                            snapshot.winStreak != m_snapshot.winStreak ||
                            streakStateChanged ||
-                           drawdownStateChanged;
+                           drawdownStateChanged ||
+                           drawdownRuntimeValuesChanged;
+      bool activeContentNeedsRefresh = (permissionStateChanged ||
+                                        noticeStateChanged ||
+                                        streakStateChanged ||
+                                        dailyStateChanged ||
+                                        sessionStateChanged ||
+                                        newsStateChanged ||
+                                        drawdownStateChanged ||
+                                        editBlockExited);
+      bool drawdownRuntimeOnlyChanged = (drawdownRuntimeValuesChanged &&
+                                         !activeContentNeedsRefresh &&
+                                         snapshot.dailyTradeCount == m_snapshot.dailyTradeCount &&
+                                         MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) <= 0.0000001 &&
+                                         snapshot.lossStreak == m_snapshot.lossStreak &&
+                                         snapshot.winStreak == m_snapshot.winStreak);
+      bool protectionPageVisible = (m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION));
+      bool drawdownPageVisible = (protectionPageVisible && m_protectPage == FUSION_PROTECT_DRAWDOWN);
       m_snapshot = snapshot;
       if(editBlockExited)
          RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
-      UpdateActiveTabContent(permissionStateChanged || noticeStateChanged || streakStateChanged || dailyStateChanged || sessionStateChanged || newsStateChanged || drawdownStateChanged || editBlockExited);
+      if(drawdownRuntimeOnlyChanged && protectionPageVisible)
+        {
+         if(drawdownPageVisible)
+            SyncDrawdownRuntimeMetrics();
+        }
+      else
+         UpdateActiveTabContent(activeContentNeedsRefresh);
       if(redrawNeeded)
          ChartRedraw();
      }

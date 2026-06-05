@@ -7,6 +7,10 @@
    CLabel                     m_cfgRiskLotDesc;
    CLabel                     m_cfgRiskLotLbl;
    CEdit                      m_cfgRiskLotEdit;
+   CLabel                     m_cfgRiskSlippageLbl;
+   CEdit                      m_cfgRiskSlippageEdit;
+   CLabel                     m_cfgRiskLotFoot1;
+   CLabel                     m_cfgRiskLotFoot2;
 
    CLabel                     m_cfgRiskSLTPHdr;
    CLabel                     m_cfgRiskSLTPDesc;
@@ -97,6 +101,31 @@
          return false;
       value = (int)StringToInteger(text);
       return (value >= 0);
+     }
+
+   void                       ApplyRiskLotFooter(const bool lotValid,const bool slippageValid,const bool editable)
+     {
+      if(!m_configRiskCreated)
+         return;
+
+      if(!lotValid)
+        {
+         m_cfgRiskLotFoot1.Text("Lote Fixo invalido para o ativo atual.");
+         m_cfgRiskLotFoot1.Color(FUSION_CLR_BAD);
+        }
+      else if(!slippageValid)
+        {
+         m_cfgRiskLotFoot1.Text("Slippage invalido. Use 0 a 100000 pontos.");
+         m_cfgRiskLotFoot1.Color(FUSION_CLR_BAD);
+        }
+      else
+        {
+         m_cfgRiskLotFoot1.Text("Slippage e tolerancia de execucao, nao garantia de preco.");
+         m_cfgRiskLotFoot1.Color(FUSION_CLR_MUTED);
+        }
+
+      m_cfgRiskLotFoot2.Text("Use 0 para enviar sem desvio; valido de 0 a 100000 pontos.");
+      m_cfgRiskLotFoot2.Color(editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED_TXT);
      }
 
    bool                       RiskDistanceMeetsStopsLevel(const int points) const
@@ -554,6 +583,7 @@
          return;
 
       m_cfgRiskLotEdit.Text(FusionFormatVolume(m_draftSettings.fixedLot, m_snapshot.symbolSpec));
+      m_cfgRiskSlippageEdit.Text(IntegerToString(m_draftSettings.slippagePoints));
       m_cfgRiskSLEdit.Text(IntegerToString(m_draftSettings.fixedSLPoints));
       m_cfgRiskTPEdit.Text(IntegerToString(m_draftSettings.fixedTPPoints));
       m_cfgRiskTP1PercentEdit.Text(DoubleToString(m_draftSettings.tp1.percent, 2));
@@ -617,6 +647,14 @@
       if(!AddLabel(m_cfgRiskLotLbl, "Fusion_cfg_lot_lbl", 22, 250, 160, 268, "Lote Fixo", FUSION_CLR_LABEL))
          return false;
       if(!AddEdit(m_cfgRiskLotEdit, "Fusion_cfg_lot_edit", 200, 248, 310, 272, "0.10"))
+         return false;
+      if(!AddLabel(m_cfgRiskSlippageLbl, "Fusion_cfg_slippage_lbl", 22, 288, 160, 306, "Slippage (pts)", FUSION_CLR_LABEL))
+         return false;
+      if(!AddEdit(m_cfgRiskSlippageEdit, "Fusion_cfg_slippage_edit", 200, 286, 310, 310, "20"))
+         return false;
+      if(!AddLabel(m_cfgRiskLotFoot1, "Fusion_cfg_risk_lot_foot_1", 22, 424, 540, 442, "Slippage e tolerancia de execucao, nao garantia de preco.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgRiskLotFoot2, "Fusion_cfg_risk_lot_foot_2", 22, 448, 540, 466, "Use 0 para enviar sem desvio; valido de 0 a 100000 pontos.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_cfgRiskSLTPHdr, "Fusion_cfg_risk_sltp_hdr", 22, 188, 260, 206, "Stop Loss e Take Profit", FUSION_CLR_VALUE, 9))
@@ -743,6 +781,10 @@
       SetVisible(m_cfgRiskLotDesc, visible);
       SetVisible(m_cfgRiskLotLbl, visible);
       SetVisible(m_cfgRiskLotEdit, visible);
+      SetVisible(m_cfgRiskSlippageLbl, visible);
+      SetVisible(m_cfgRiskSlippageEdit, visible);
+      SetVisible(m_cfgRiskLotFoot1, visible);
+      SetVisible(m_cfgRiskLotFoot2, visible);
      }
 
    void                       SetRiskSLTPVisible(const bool visible)

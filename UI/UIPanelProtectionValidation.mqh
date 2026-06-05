@@ -76,7 +76,7 @@
      {
       if(m_snapshot.drawdownConfigLockReason != "")
          return m_snapshot.drawdownConfigLockReason;
-      return "DD ativo: edicao suspensa ate o novo dia.";
+      return "DD ativo: protecao de lucro ligada; novas entradas permitidas.";
      }
 
    bool                       HasDrawdownPendingChanges(void)
@@ -358,7 +358,8 @@
       m_protectDrawdownPeakMode.Sync((long)outSettings.drawdownPeakMode, drawdownEditAllowed && outSettings.enableDrawdown);
       m_protectDrawdownType.RaiseRuntimeObjects(3908);
       m_protectDrawdownPeakMode.RaiseRuntimeObjects(3909);
-      m_protectDrawdownNote.Color(drawdownLocked ? FUSION_CLR_WARN : (ddDependencyValid ? FUSION_CLR_WARN : FUSION_CLR_BAD));
+      m_protectDrawdownNote.Color(drawdownLocked ? (m_snapshot.drawdownLimitReached ? FUSION_CLR_WARN : FUSION_CLR_MUTED) :
+                                    (ddDependencyValid ? FUSION_CLR_WARN : FUSION_CLR_BAD));
       string drawdownError = "";
       if(!profitActionValid && dayError == "")
          dayError = "ATIVAR DD requer DD ON com Max DD > 0.";

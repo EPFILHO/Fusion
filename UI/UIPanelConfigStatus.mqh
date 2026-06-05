@@ -27,6 +27,7 @@
      }
 
    string                     CurrentConfigPageError(const bool lotValid,
+                                                     const bool slippageValid,
                                                      const bool slValid,
                                                      const bool tpValid,
                                                      const bool magicValid,
@@ -37,6 +38,8 @@
         {
          if(m_riskPage == FUSION_RISK_LOT && !lotValid)
             return "Lote Fixo invalido. Ajuste o volume.";
+         if(m_riskPage == FUSION_RISK_LOT && !slippageValid)
+            return "Slippage invalido. Use 0 a 100000 pontos.";
          if(m_riskPage == FUSION_RISK_SLTP)
            {
             if(!m_cfgRiskSLTPValid && m_cfgRiskSLTPError != "")
@@ -78,6 +81,7 @@
    void                       ApplyConfigStatus(const bool configStatusValid,
                                                  const bool profileValid,
                                                  const bool lotValid,
+                                                 const bool slippageValid,
                                                  const bool slValid,
                                                  const bool tpValid,
                                                  const bool magicValid,
@@ -105,13 +109,6 @@
          statusColor = FUSION_CLR_WARN;
         }
       else if(m_snapshot.drawdownLimitReached)
-        {
-         status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
-         statusColor = FUSION_CLR_WARN;
-        }
-      else if(m_snapshot.drawdownConfigLocked &&
-              m_configPage == FUSION_CFG_PROTECTION &&
-              m_protectPage == FUSION_PROTECT_DRAWDOWN)
         {
          status = FusionTopRuntimeNoticeText(m_snapshot.drawdownConfigLockReason);
          statusColor = FUSION_CLR_WARN;
@@ -165,6 +162,7 @@
          else
            {
             status = CurrentConfigPageError(lotValid,
+                                            slippageValid,
                                             slValid,
                                             tpValid,
                                             magicValid,
