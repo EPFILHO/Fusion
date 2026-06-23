@@ -122,14 +122,13 @@ Validacao esperada:
 
 ### 4. freezeLevel
 
-Tratar depois de Slippage ou log diagnostico:
+Primeira fatia concluida na 1.054:
 
 - BE;
 - trailing;
-- remocao de TP final livre;
-- futuras modificacoes de SL/TP.
+- remocao de TP final livre.
 
-O objetivo e evitar tentativas de modificacao que a corretora recusaria por proximidade do preco atual.
+O EA agora evita modificacoes de SL/TP quando o SL/TP atual ou desejado esta dentro do `freezeLevel` informado pela corretora. Nesses casos, a mudanca nao altera estado interno e fica para nova tentativa no proximo tick. A validacao em mercado segue em andamento.
 
 ## Limpeza/Otimizacao Cautelosa
 
@@ -181,7 +180,7 @@ Depois da auditoria, as pendencias prioritarias sao:
 1. testar/ajustar DAY/DD em mercado aberto;
 2. adicionar log diagnostico de DAY apenas quando bloquear/forcar fechamento;
 3. expor Slippage na GUI;
-4. tratar freezeLevel para BE/trailing/modificacoes de SL/TP.
+4. validar freezeLevel em mercado e ampliar a cobertura se surgirem novos fluxos de modificacao de SL/TP.
 
 Compile com MetaEditor apos qualquer mudanca de codigo. Nao commit/push sem pedido explicito.
 ```

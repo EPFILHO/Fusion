@@ -108,7 +108,7 @@ O BE nao deve piorar um SL ja protegido pelo trailing. Para compra, novo SL prec
 
 No trailing atual, `Passo` significa distancia entre o preco atual e o novo SL, nao incremento minimo entre uma modificacao e outra.
 
-SL/TP fixos de entrada respeitam `stopsLevel` quando o ativo/corretora informa esse minimo. A defesa final do motor usa Bid/Ask e spread atual do tick antes de enviar a entrada. `Compensar Spread SL` soma o spread ao SL e aumenta o risco nominal; `Compensar Spread TP` subtrai o spread do TP e diminui o alvo nominal. `freezeLevel` ainda deve ser tratado em fatia propria para modificacoes de SL, principalmente BE e trailing.
+SL/TP fixos de entrada respeitam `stopsLevel` quando o ativo/corretora informa esse minimo. A defesa final do motor usa Bid/Ask e spread atual do tick antes de enviar a entrada. `Compensar Spread SL` soma o spread ao SL e aumenta o risco nominal; `Compensar Spread TP` subtrai o spread do TP e diminui o alvo nominal. Modificacoes de SL/TP em posicao aberta respeitam `freezeLevel`: BE, trailing e remocao de TP Final Livre apenas aguardam nova tentativa quando o SL/TP atual ou desejado esta na zona congelada.
 
 ### `Protection`
 
@@ -276,7 +276,7 @@ No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde qu
 - Expor estatisticas reais para `RESULTS` e `STATS`.
 - Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
 - Transformar trailing, breakeven, drawdown, streak e limites diarios em submodulos mais independentes se a complexidade aumentar.
-- Ampliar validacoes de volume, stops, freeze level e distancia minima.
+- Ampliar validacoes de volume, stops, freeze level e distancia minima conforme surgirem novos fluxos de modificacao de ordem.
 - Discutir somente depois: risco por estrategia, ATR/range, overrides e modo percentil do Bollinger Filter.
 
 ## Nota de Persistencia por Grafico

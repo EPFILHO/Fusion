@@ -107,14 +107,14 @@ Validacoes iniciais de GUI:
 - breakeven exige trigger positivo e offset nao negativo quando ativo;
 - trailing exige start e step positivos quando ativo.
 
-`stopsLevel` ja e validado para SL/TP fixos de entrada usando Bid/Ask e spread atual. `freezeLevel` fica para uma fatia posterior de modificacoes de SL, principalmente BE/trailing.
+`stopsLevel` ja e validado para SL/TP fixos de entrada usando Bid/Ask e spread atual. Atualizacao da 1.054: modificacoes de SL/TP em posicao aberta passaram a respeitar `freezeLevel`; BE, trailing e remocao de TP Final Livre aguardam nova tentativa quando a corretora congelaria a alteracao.
 
 Status na 1.053:
 
 - concluido: `CONFIG > RISK` foi dividido em `LOTE`, `SL/TP`, `TP PARCIAL`, `BREAKEVEN` e `TRAILING`;
 - concluido: TP parcial, BE e trailing foram expostos na GUI e testados em conjunto;
 - concluido: BE nao piora SL ja protegido pelo trailing;
-- pendente: freeze level para modificacoes, ATR/range, overrides por estrategia e risco por estrategia.
+- pendente: validar `freezeLevel` em mais cenarios de mercado, ATR/range, overrides por estrategia e risco por estrategia.
 
 ## Observabilidade Operacional
 
