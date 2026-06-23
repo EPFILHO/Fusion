@@ -14,6 +14,9 @@ private:
    int                m_magicNumber;
    int                m_slippagePoints;
    bool               m_needsSync;
+   bool               m_lastModifySkippedByFreeze;
+   string             m_lastFreezeSkipReason;
+   datetime           m_lastFreezeSkipTime;
 
    string             TrimComment(const string text) const
      {
@@ -58,6 +61,89 @@ private:
       return SymbolInfoDouble(m_symbol, SYMBOL_ASK);
      }
 
+   bool               LevelInsideFreeze(const double level,
+                                        const double currentPrice,
+                                        const SSymbolSpec &spec,
+                                        double &distancePoints) const
+     {
+      distancePoints = 0.0;
+      if(level <= 0.0)
+         return false;
+      if(currentPrice <= 0.0 || spec.point <= 0.0 || spec.freezeLevel <= 0)
+         return false;
+
+      distancePoints = MathAbs(level - currentPrice) / spec.point;
+      return (distancePoints + 0.0000001 < spec.freezeLevel);
+     }
+
+   bool               StopsInsideFreeze(const SPositionRuntimeState &state,
+                                        const double newSL,
+                                        const double newTP,
+                                        string &reason) const
+     {
+      reason = "";
+      if(m_normalizer == NULL)
+         return false;
+
+      SSymbolSpec spec;
+      m_normalizer.GetSpec(spec);
+      if(spec.freezeLevel <= 0)
+         return false;
+
+      double currentPrice = CurrentClosePrice(state.type);
+      if(currentPrice <= 0.0 || spec.point <= 0.0)
+        {
+         reason = "preco atual indisponivel para validar freezeLevel.";
+         return true;
+        }
+
+      double distancePoints = 0.0;
+      if(LevelInsideFreeze(state.stopLoss, currentPrice, spec, distancePoints))
+        {
+         reason = "SL atual a " + DoubleToString(distancePoints, 1) +
+                  " pts do preco; freezeLevel=" + IntegerToString(spec.freezeLevel) + " pts.";
+         return true;
+        }
+      if(LevelInsideFreeze(state.takeProfit, currentPrice, spec, distancePoints))
+        {
+         reason = "TP atual a " + DoubleToString(distancePoints, 1) +
+                  " pts do preco; freezeLevel=" + IntegerToString(spec.freezeLevel) + " pts.";
+         return true;
+        }
+      if(LevelInsideFreeze(newSL, currentPrice, spec, distancePoints))
+        {
+         reason = "novo SL a " + DoubleToString(distancePoints, 1) +
+                  " pts do preco; freezeLevel=" + IntegerToString(spec.freezeLevel) + " pts.";
+         return true;
+        }
+      if(LevelInsideFreeze(newTP, currentPrice, spec, distancePoints))
+        {
+         reason = "novo TP a " + DoubleToString(distancePoints, 1) +
+                  " pts do preco; freezeLevel=" + IntegerToString(spec.freezeLevel) + " pts.";
+         return true;
+        }
+
+      return false;
+     }
+
+   void               LogFreezeSkip(const string reason)
+     {
+      datetime now = TimeCurrent();
+      if(now <= 0)
+         now = TimeLocal();
+
+      if(reason == m_lastFreezeSkipReason &&
+         m_lastFreezeSkipTime > 0 &&
+         now - m_lastFreezeSkipTime < 60)
+         return;
+
+      m_lastFreezeSkipReason = reason;
+      m_lastFreezeSkipTime = now;
+
+      if(m_logger != NULL)
+         m_logger.Debug("RISK", "SL/TP dentro do freezeLevel; nova tentativa no proximo tick. " + reason);
+     }
+
    bool               TryGetDealProfit(const ulong dealTicket,double &profit) const
      {
       profit = 0.0;
@@ -95,6 +181,9 @@ public:
       m_magicNumber    = 0;
       m_slippagePoints = 0;
       m_needsSync      = false;
+      m_lastModifySkippedByFreeze = false;
+      m_lastFreezeSkipReason = "";
+      m_lastFreezeSkipTime = 0;
      }
 
    bool              Init(CLogger *logger,CSymbolNormalizer *normalizer,const string symbol,const SEASettings &settings)
@@ -105,6 +194,9 @@ public:
       m_magicNumber    = settings.magicNumber;
       m_slippagePoints = settings.slippagePoints;
       m_needsSync      = false;
+      m_lastModifySkippedByFreeze = false;
+      m_lastFreezeSkipReason = "";
+      m_lastFreezeSkipTime = 0;
       return true;
      }
 
@@ -113,6 +205,7 @@ public:
       m_magicNumber    = settings.magicNumber;
       m_slippagePoints = settings.slippagePoints;
       m_needsSync      = true;
+      m_lastModifySkippedByFreeze = false;
      }
 
    void              MarkNeedsSync(void)
@@ -123,6 +216,11 @@ public:
    bool              NeedsSync(void) const
      {
       return m_needsSync;
+     }
+
+   bool              LastModifySkippedByFreeze(void) const
+     {
+      return m_lastModifySkippedByFreeze;
      }
 
    bool              SyncPosition(SPositionRuntimeState &state)
@@ -285,8 +383,17 @@ public:
 
    bool              ModifyStops(SPositionRuntimeState &state,const double newSL,const double newTP)
      {
+      m_lastModifySkippedByFreeze = false;
       if(!state.hasPosition)
          return false;
+
+      string freezeReason = "";
+      if(StopsInsideFreeze(state, newSL, newTP, freezeReason))
+        {
+         m_lastModifySkippedByFreeze = true;
+         LogFreezeSkip(freezeReason);
+         return false;
+        }
 
       MqlTradeRequest request = {};
       MqlTradeResult  result  = {};

@@ -994,7 +994,8 @@ private:
          return true;
         }
 
-      m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final apos parcial.");
+      if(!m_executionService.LastModifySkippedByFreeze())
+         m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final apos parcial.");
       return false;
      }
 
