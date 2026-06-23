@@ -54,7 +54,7 @@ public:
    bool              Init(const SEASettings &settings)
      {
       CProtectionModuleBase::Init(settings);
-      m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      m_dayKey = FusionProtectionCurrentDayKey();
       return true;
      }
 
@@ -62,7 +62,7 @@ public:
      {
       m_lossStreak = 0;
       m_winStreak = 0;
-      m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      m_dayKey = FusionProtectionCurrentDayKey();
       m_lossStopDayBlocked = false;
       m_winStopDayBlocked = false;
       m_lossPauseUntil = 0;
@@ -82,7 +82,7 @@ public:
 
    void              ImportState(const SStreakRuntimeState &state)
      {
-      int currentDayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      int currentDayKey = FusionProtectionCurrentDayKey();
       if(state.dayKey != currentDayKey)
         {
          ResetDaily();
@@ -131,7 +131,7 @@ public:
    bool              IsBlocking(string &reason) const
      {
       reason = "";
-      if(m_dayKey != FusionProtectionCurrentDayKey(TimeCurrent()))
+      if(m_dayKey != FusionProtectionCurrentDayKey())
          return false;
 
       if(m_lossStopDayBlocked)

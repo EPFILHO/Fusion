@@ -23,14 +23,15 @@ private:
    CDrawdownProtection      m_drawdownProtection;
    CStreakProtection        m_streakProtection;
 
-   void              ResetIfNewDay(SPositionRuntimeState &state)
+   bool              ResetIfNewDay(SPositionRuntimeState &state)
      {
       if(!m_dailyLimitsProtection.ResetIfNewDay())
-         return;
+         return false;
 
       m_streakProtection.ResetDaily();
       m_drawdownProtection.ResetDaily();
       state.dayPeakProjectedProfit = 0.0;
+      return true;
      }
 
    void              TryActivateDrawdown(const double dailyClosedProfit,const double projectedProfit,SPositionRuntimeState &state)
@@ -133,11 +134,13 @@ public:
       return true;
      }
 
+   bool              MaintainOperationalDay(SPositionRuntimeState &state)
+     {
+      return ResetIfNewDay(state);
+     }
+
    bool              CanOpen(const string symbol,string &reason)
      {
-      SPositionRuntimeState emptyState;
-      ResetPositionRuntimeState(emptyState);
-      ResetIfNewDay(emptyState);
       reason = "";
 
       if(!m_streakProtection.CanOpen(reason))
@@ -167,7 +170,6 @@ public:
    bool              ShouldForceClose(SPositionRuntimeState &state,const double floatingProfit,string &reason)
      {
       reason = "";
-      ResetIfNewDay(state);
 
       bool activateDrawdown = false;
       double projectedProfit = 0.0;

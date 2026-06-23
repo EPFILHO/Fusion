@@ -17,7 +17,8 @@
 - `CONFIG > PROTECT > DRAWDOWN` passou a guardar e exibir, quando o DD e atingido, o P/L projetado no gatilho, o DD usado e a folga no tick que disparou o fechamento.
 - Reduzido ruido no Diario: avisos persistentes de DAY/DD passam a registrar `WARN` apenas uma vez por dia por motivo, mantendo status e GUI ativos.
 - Encerrada a rodada de testes de DAY/DD em mercado aberto e registrada a auditoria do checkpoint em `docs/DD_AUDIT_CHECKPOINT_1054.md`, mantendo o reset do novo dia operacional como proxima fatia isolada.
-- Compilado no MetaEditor com `0 errors, 0 warnings` em `compile_1054_initial.log`, `compile_1054_gui_refresh.log`, `compile_1054_dd_trigger_gui.log`, `compile_1054_daily_warn_once.log` e `compile_1054_dd_audit.log`.
+- Corrigido o reset do novo dia operacional sem ticks: DAY/DD/STREAK agora usam hora estimada do servidor com fallbacks, sao mantidos tambem pelo timer com o EA pausado, limpam apenas avisos diarios relacionados, descartam sinais antigos e persistem o estado resetado imediatamente.
+- Compilado no MetaEditor com `0 errors, 0 warnings` em `compile_1054_initial.log`, `compile_1054_gui_refresh.log`, `compile_1054_dd_trigger_gui.log`, `compile_1054_daily_warn_once.log`, `compile_1054_dd_audit.log` e `compile_1054_operational_day_reset.log`.
 
 ## 1.053 - 2026-05-24
 - Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.

@@ -142,13 +142,13 @@ public:
    bool              Init(const SEASettings &settings)
      {
       CProtectionModuleBase::Init(settings);
-      m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      m_dayKey = FusionProtectionCurrentDayKey();
       return true;
      }
 
    bool              ResetIfNewDay(void)
      {
-      int currentKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      int currentKey = FusionProtectionCurrentDayKey();
       if(currentKey == m_dayKey)
          return false;
 
@@ -169,7 +169,7 @@ public:
 
    void              ImportState(const SDailyLimitsRuntimeState &state)
      {
-      int currentDayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      int currentDayKey = FusionProtectionCurrentDayKey();
       if(state.dayKey != currentDayKey)
         {
          m_dayKey = currentDayKey;
@@ -303,7 +303,7 @@ public:
 
    bool              IsBlocking(string &reason) const
      {
-      int currentDayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      int currentDayKey = FusionProtectionCurrentDayKey();
       if(currentDayKey != m_dayKey)
         {
          reason = "";

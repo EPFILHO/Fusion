@@ -102,13 +102,13 @@ public:
    bool              Init(const SEASettings &settings)
      {
       CProtectionModuleBase::Init(settings);
-      m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      m_dayKey = FusionProtectionCurrentDayKey();
       return true;
      }
 
    void              ResetDaily(void)
      {
-      m_dayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      m_dayKey = FusionProtectionCurrentDayKey();
       m_protectionActive = false;
       m_limitReached = false;
       m_peakProjectedProfit = 0.0;
@@ -128,7 +128,7 @@ public:
 
    void              ImportState(const SDrawdownRuntimeState &state)
      {
-      int currentDayKey = FusionProtectionCurrentDayKey(TimeCurrent());
+      int currentDayKey = FusionProtectionCurrentDayKey();
       if(state.dayKey != currentDayKey)
         {
          ResetDaily();

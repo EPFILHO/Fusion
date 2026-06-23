@@ -395,13 +395,7 @@ private:
 
    int                     ProtectionWarnDayKey(void) const
      {
-      datetime now = TimeCurrent();
-      if(now <= 0)
-         now = TimeLocal();
-
-      MqlDateTime parts;
-      TimeToStruct(now, parts);
-      return (parts.year * 10000 + parts.mon * 100 + parts.day);
+      return FusionProtectionCurrentDayKey();
      }
 
    bool                    SameStreakPauseProtectionNotice(const string previous,const string current) const
@@ -572,6 +566,28 @@ private:
 
       m_entryBlockNoticeActive = false;
       m_entryBlockNoticeReason = "";
+     }
+
+   bool                    MaintainOperationalDayState(void)
+     {
+      if(!m_protectionManager.MaintainOperationalDay(m_positionState))
+         return false;
+
+      if(IsPersistentDailyProtectionNotice(m_protectionNoticeReason) ||
+         IsStreakProtectionNotice(m_protectionNoticeReason))
+         ClearProtectionNotice();
+      if(IsPersistentDailyProtectionNotice(m_runtimeNotice) ||
+         IsStreakProtectionNotice(m_runtimeNotice))
+         m_runtimeNotice = "";
+
+      m_lastPersistentProtectWarnReason = "";
+      m_lastPersistentProtectWarnDayKey = 0;
+      if(m_started && !m_positionState.hasPosition)
+         m_signalManager.PrimeEntryStates();
+
+      m_logger.Info("PROTECT", "Novo dia operacional: estados DAY/DD/STREAK resetados.");
+      PersistChartState();
+      return true;
      }
 
    void                    DiscardBlockedEntrySignals(const string reason)
@@ -886,6 +902,8 @@ private:
 
    void                    RefreshProtectionNoticeNow(const bool discardExistingSignals)
      {
+      MaintainOperationalDayState();
+
       string blockReason = "";
       if(m_protectionManager.CanOpen(_Symbol, blockReason))
         {
@@ -1462,6 +1480,7 @@ private:
       if(m_runtimeBlocked)
          return;
 
+      MaintainOperationalDayState();
       SyncPositionState();
 
       if(!RefreshTradePermissionState())
@@ -1535,6 +1554,9 @@ private:
 
    void              OnTimer(void)
      {
+      if(!m_runtimeBlocked)
+         MaintainOperationalDayState();
+
       if((m_started || m_positionState.hasPosition) && !m_settings.isTester)
          m_instanceRegistry.Refresh();
 

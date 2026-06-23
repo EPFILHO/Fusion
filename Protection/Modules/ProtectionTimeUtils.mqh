@@ -8,6 +8,21 @@ int FusionProtectionCurrentDayKey(const datetime value)
    return (parts.year * 1000) + parts.day_of_year;
   }
 
+datetime FusionProtectionReliableTime(void)
+  {
+   datetime now = TimeTradeServer();
+   if(now <= 0)
+      now = TimeCurrent();
+   if(now <= 0)
+      now = TimeLocal();
+   return now;
+  }
+
+int FusionProtectionCurrentDayKey(void)
+  {
+   return FusionProtectionCurrentDayKey(FusionProtectionReliableTime());
+  }
+
 bool FusionProtectionIsInsideClockWindow(const int startHour,
                                          const int startMinute,
                                          const int endHour,
