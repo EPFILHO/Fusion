@@ -69,6 +69,23 @@ private:
    string                  m_lastPersistentProtectWarnReason;
    int                     m_lastPersistentProtectWarnDayKey;
 
+   void                    ResetTransientRuntimeState(void)
+     {
+      m_runtimeBlocked      = false;
+      m_runtimeBlockReason  = "";
+      m_startBlockedReason  = "";
+      m_activeProfileBlockedReason = "";
+      m_runtimeNotice       = "";
+      m_protectionNoticeActive = false;
+      m_protectionNoticeReason = "";
+      m_entryBlockNoticeActive = false;
+      m_entryBlockNoticeReason = "";
+      m_lastDiscardDebugReason = "";
+      m_lastDiscardDebugTime = 0;
+      m_lastPersistentProtectWarnReason = "";
+      m_lastPersistentProtectWarnDayKey = 0;
+     }
+
    SChartStateContext      CurrentChartContext(void) const
      {
       SChartStateContext context;
@@ -171,6 +188,12 @@ private:
       return m_settings.panelEnabled;
      }
 
+   void                    UpdatePanelIfVisible(void)
+     {
+      if(ShouldShowPanel())
+         m_panel.Update(BuildPanelSnapshot());
+     }
+
    void                    RegisterModules(void)
      {
       if(m_modulesRegistered)
@@ -237,16 +260,7 @@ private:
       string newsBlockReason = "";
       snapshot.newsProtectionBlocked = false;
       snapshot.newsProtectionBlockReason = "";
-      bool hasEnabledNewsWindow = false;
-      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
-        {
-         if(m_settings.newsWindows[newsIndex].enabled)
-           {
-            hasEnabledNewsWindow = true;
-            break;
-           }
-        }
-      if(hasEnabledNewsWindow)
+      if(HasEnabledNewsWindow(m_settings))
         {
          snapshot.newsProtectionBlocked = m_protectionManager.IsNewsProtectionBlocked(newsBlockReason);
          snapshot.newsProtectionBlockReason = newsBlockReason;
@@ -1149,14 +1163,12 @@ private:
            {
             if(!RefreshTradePermissionState())
               {
-               if(ShouldShowPanel())
-                  m_panel.Update(BuildPanelSnapshot());
+               UpdatePanelIfVisible();
                return;
               }
             if(StartBlockedByProfilePeer())
               {
-               if(ShouldShowPanel())
-                  m_panel.Update(BuildPanelSnapshot());
+               UpdatePanelIfVisible();
                return;
               }
             if(!RegisterRunningInstance())
@@ -1166,9 +1178,9 @@ private:
             m_started = true;
             RefreshProtectionNoticeNow(false);
             m_logger.Info("UI", "EA iniciado pelo painel.");
-           }
+            }
          RefreshProfileBlockReasons();
-         m_panel.Update(BuildPanelSnapshot());
+         UpdatePanelIfVisible();
          PersistChartState();
          return;
         }
@@ -1254,21 +1266,9 @@ private:
       m_started             = false;
       m_modulesRegistered   = false;
       m_lastNettingWarning  = 0;
-      m_runtimeBlocked      = false;
-      m_runtimeBlockReason  = "";
-      m_startBlockedReason  = "";
-      m_activeProfileBlockedReason = "";
-      m_runtimeNotice       = "";
-      m_protectionNoticeActive = false;
-      m_protectionNoticeReason = "";
-      m_entryBlockNoticeActive = false;
-      m_entryBlockNoticeReason = "";
       m_lastClosedStrategyId   = "";
       m_lastClosedStrategyBarTime = 0;
-      m_lastDiscardDebugReason = "";
-      m_lastDiscardDebugTime = 0;
-      m_lastPersistentProtectWarnReason = "";
-      m_lastPersistentProtectWarnDayKey = 0;
+      ResetTransientRuntimeState();
       m_pendingReverseExit.Reset();
      }
 
@@ -1281,19 +1281,7 @@ private:
       ResolveOperationalTimeframes(m_settings, OperationalFallbackTimeframe());
       m_activeProfileName = m_settings.defaultProfileName;
       m_started = m_settings.isTester;
-      m_runtimeBlocked = false;
-      m_runtimeBlockReason = "";
-      m_startBlockedReason = "";
-      m_activeProfileBlockedReason = "";
-      m_runtimeNotice = "";
-      m_protectionNoticeActive = false;
-      m_protectionNoticeReason = "";
-      m_entryBlockNoticeActive = false;
-      m_entryBlockNoticeReason = "";
-      m_lastDiscardDebugReason = "";
-      m_lastDiscardDebugTime = 0;
-      m_lastPersistentProtectWarnReason = "";
-      m_lastPersistentProtectWarnDayKey = 0;
+      ResetTransientRuntimeState();
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&
@@ -1564,8 +1552,7 @@ private:
       RefreshTradePermissionState();
       RefreshProfileBlockReasons();
 
-      if(ShouldShowPanel())
-         m_panel.Update(BuildPanelSnapshot());
+      UpdatePanelIfVisible();
      }
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
