@@ -194,6 +194,15 @@ private:
          m_panel.Update(BuildPanelSnapshot());
      }
 
+   void                    ReloadPanelSettingsIfVisible(void)
+     {
+      if(!ShouldShowPanel())
+         return;
+
+      m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
+      m_panel.Update(BuildPanelSnapshot());
+     }
+
    void                    RegisterModules(void)
      {
       if(m_modulesRegistered)
@@ -1210,11 +1219,7 @@ private:
             m_activeProfileName = profileName;
          RefreshProfileBlockReasons();
 
-         if(ShouldShowPanel())
-           {
-            m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
-            m_panel.Update(BuildPanelSnapshot());
-           }
+         ReloadPanelSettingsIfVisible();
 
          PersistChartState();
          return;
@@ -1240,11 +1245,7 @@ private:
             m_activeProfileName = profileName;
             RefreshProfileBlockReasons();
 
-            if(ShouldShowPanel())
-              {
-               m_panel.LoadSettings(m_settings, m_activeProfileName, SymbolSpec());
-               m_panel.Update(BuildPanelSnapshot());
-              }
+            ReloadPanelSettingsIfVisible();
 
             PersistChartState();
            }
