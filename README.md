@@ -16,7 +16,7 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 - Camadas de risco e protecao podem forcar saida independentemente da estrategia.
 - Perfis nomeados sao salvos pela GUI para operacao em grafico.
 - Backtests devem priorizar os `input` do MT5 Strategy Tester.
-- Hot reload existe como preocupacao arquitetural, mas edicao em producao fica bloqueada enquanto o EA esta rodando ou gerenciando posicao.
+- O reload de configuracao e controlado a frio: mudancas operacionais exigem pausar o EA ou estar em estado seguro, sem alteracao livre em plena operacao ou durante posicao gerenciada.
 
 ## Modulos
 

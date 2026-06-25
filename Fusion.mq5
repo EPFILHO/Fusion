@@ -4,7 +4,8 @@
 //+------------------------------------------------------------------+
 #include "Core/Version.mqh"
 
-#property copyright "OpenAI / Codex"
+#property copyright "Copyright 2026, EP Filho"
+#property link      "https://github.com/EPFILHO/Fusion"
 #property version   FUSION_APP_VERSION
 #property strict
 
