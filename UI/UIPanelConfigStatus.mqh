@@ -203,11 +203,6 @@
          status = "Corrija aba(s) em vermelho.";
          statusColor = FUSION_CLR_BAD;
         }
-      else if(status == "" && m_snapshot.started)
-        {
-         status = "EA em execucao com configuracao salva.";
-         statusColor = FUSION_CLR_WARN;
-        }
       else if(status == "")
         {
          status = "Configuracoes OK. EA pronto para operar.";
