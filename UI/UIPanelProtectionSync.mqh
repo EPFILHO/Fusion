@@ -22,11 +22,22 @@
             newsEnabled++;
       string newsText = IntegerToString(newsEnabled) + "/" + IntegerToString(FUSION_NEWS_WINDOW_COUNT) + " janelas ativas";
       m_protectGeneralValues[2].Text(newsText);
-      m_protectGeneralValues[3].Text(StringFormat("Trades %d | P/L %.2f", m_snapshot.dailyTradeCount, m_snapshot.dailyClosedProfit));
+
+      string dayText = !m_draftSettings.enableDailyLimits ? "OFF" :
+                       (m_snapshot.dailyLimitsBlocked ? "BLOQUEADO" : "ATIVO");
+      m_protectGeneralValues[3].Text(dayText);
+
       m_protectGeneralValues[4].Text(m_snapshot.drawdownLimitReached ? "ATINGIDO" :
                                      (m_snapshot.drawdownProtectionActive ? "ATIVO" :
-                                      (!m_draftSettings.enableDrawdown ? "OFF" : "Aguardando meta")));
-      m_protectGeneralValues[5].Text(StringFormat("Loss %d | Win %d", m_snapshot.lossStreak, m_snapshot.winStreak));
+                                      (!m_draftSettings.enableDrawdown ? "OFF" : "AGUARDANDO META")));
+
+      bool streakEnabled = (m_draftSettings.lossStreakEnabled || m_draftSettings.winStreakEnabled);
+      string streakText = "OFF";
+      if(streakEnabled && m_snapshot.streakProtectionBlocked)
+         streakText = (StringFind(m_snapshot.streakProtectionBlockReason, "em pausa") >= 0) ? "EM PAUSA" : "BLOQUEADO";
+      else if(streakEnabled)
+         streakText = "ATIVO";
+      m_protectGeneralValues[5].Text(streakText);
      }
 
    void                       SyncDrawdownRuntimeMetrics(void)

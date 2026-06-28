@@ -55,8 +55,6 @@ private:
       bool ok = true;
       ok = WriteLine(handle, "schemaVersion", IntegerToString(settings.schemaVersion)) && ok;
       ok = WriteLine(handle, "panelEnabled", IntegerToString((int)settings.panelEnabled)) && ok;
-      ok = WriteLine(handle, "autoRestoreChartState", IntegerToString((int)settings.autoRestoreChartState)) && ok;
-      ok = WriteLine(handle, "autoSaveChartState", IntegerToString((int)settings.autoSaveChartState)) && ok;
       ok = WriteLine(handle, "defaultProfileName", settings.defaultProfileName) && ok;
       ok = WriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
       ok = WriteLine(handle, "slippagePoints", IntegerToString(settings.slippagePoints)) && ok;
@@ -222,8 +220,6 @@ private:
      {
       if(key == "schemaVersion") settings.schemaVersion = (int)StringToInteger(value);
       else if(key == "panelEnabled") settings.panelEnabled = (bool)StringToInteger(value);
-      else if(key == "autoRestoreChartState") settings.autoRestoreChartState = (bool)StringToInteger(value);
-      else if(key == "autoSaveChartState") settings.autoSaveChartState = (bool)StringToInteger(value);
       else if(key == "defaultProfileName") settings.defaultProfileName = value;
       else if(key == "magicNumber") settings.magicNumber = (int)StringToInteger(value);
       else if(key == "slippagePoints") settings.slippagePoints = (int)StringToInteger(value);
@@ -425,6 +421,10 @@ private:
       else if(key == "streak.winPauseUntil") streakState.winPauseUntil = (datetime)StringToInteger(value);
       else if(key == "day.dayKey") dailyState.dayKey = (int)StringToInteger(value);
       else if(key == "day.dailyTradeCount") dailyState.dailyTradeCount = (int)StringToInteger(value);
+      else if(key == "day.dailyLossCount") dailyState.dailyLossCount = (int)StringToInteger(value);
+      else if(key == "day.dailyWinCount") dailyState.dailyWinCount = (int)StringToInteger(value);
+      else if(key == "day.dailyBreakevenCount") dailyState.dailyBreakevenCount = (int)StringToInteger(value);
+      else if(key == "day.outcomeCountsKnown") dailyState.outcomeCountsKnown = (bool)StringToInteger(value);
       else if(key == "day.dailyClosedProfit") dailyState.dailyClosedProfit = StringToDouble(value);
       else if(key == "day.tradesLimitReached") dailyState.tradesLimitReached = (bool)StringToInteger(value);
       else if(key == "day.lossLimitReached") dailyState.lossLimitReached = (bool)StringToInteger(value);
@@ -646,6 +646,10 @@ public:
       ok = WriteLine(handle, "streak.winPauseUntil", IntegerToString((long)streakState.winPauseUntil)) && ok;
       ok = WriteLine(handle, "day.dayKey", IntegerToString(dailyState.dayKey)) && ok;
       ok = WriteLine(handle, "day.dailyTradeCount", IntegerToString(dailyState.dailyTradeCount)) && ok;
+      ok = WriteLine(handle, "day.dailyLossCount", IntegerToString(dailyState.dailyLossCount)) && ok;
+      ok = WriteLine(handle, "day.dailyWinCount", IntegerToString(dailyState.dailyWinCount)) && ok;
+      ok = WriteLine(handle, "day.dailyBreakevenCount", IntegerToString(dailyState.dailyBreakevenCount)) && ok;
+      ok = WriteLine(handle, "day.outcomeCountsKnown", IntegerToString((int)dailyState.outcomeCountsKnown)) && ok;
       ok = WriteLine(handle, "day.dailyClosedProfit", DoubleToString(dailyState.dailyClosedProfit, 2)) && ok;
       ok = WriteLine(handle, "day.tradesLimitReached", IntegerToString((int)dailyState.tradesLimitReached)) && ok;
       ok = WriteLine(handle, "day.lossLimitReached", IntegerToString((int)dailyState.lossLimitReached)) && ok;

@@ -33,7 +33,7 @@
       else if(m_activeTab == FUSION_TAB_RESULTS)
         {
          if(m_resultsPageCreated)
-            m_resultsPage.Update(m_snapshot, m_committedSettings, m_committedProfileName);
+            m_resultsPage.Update(m_snapshot);
         }
       else if(m_activeTab == FUSION_TAB_STRATEGIES)
         {
@@ -120,6 +120,8 @@
          SetVisible(m_cfgSystemDebugLbl, systemVisible);
          SetVisible(m_cfgSystemDebugBtn, systemVisible);
          SetVisible(m_cfgSystemFoot1, systemVisible);
+         SetVisible(m_cfgSystemFoot2, systemVisible);
+         SetVisible(m_cfgSystemFoot3, systemVisible);
         }
       if(visible)
          RestoreConfigStatus();

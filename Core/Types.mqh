@@ -159,8 +159,6 @@ struct SEASettings
   {
    int                      schemaVersion;
    bool                     panelEnabled;
-   bool                     autoRestoreChartState;
-   bool                     autoSaveChartState;
    string                   defaultProfileName;
    int                      magicNumber;
    int                      slippagePoints;
@@ -333,6 +331,10 @@ struct SDailyLimitsRuntimeState
   {
    int    dayKey;
    int    dailyTradeCount;
+   int    dailyLossCount;
+   int    dailyWinCount;
+   int    dailyBreakevenCount;
+   bool   outcomeCountsKnown;
    double dailyClosedProfit;
    bool   tradesLimitReached;
    bool   lossLimitReached;
@@ -399,7 +401,13 @@ struct SUIPanelSnapshot
    bool   tradePermissionBlocked;
    string tradePermissionReason;
    int    dailyTradeCount;
+   int    dailyLossCount;
+   int    dailyWinCount;
+   int    dailyBreakevenCount;
+   bool   dailyOutcomeCountsKnown;
    double dailyClosedProfit;
+   double dailyFloatingProfit;
+   double dailyProjectedProfit;
    bool   dailyLimitsBlocked;
    string dailyLimitsBlockReason;
    bool   sessionProtectionBlocked;
@@ -448,8 +456,6 @@ void SetDefaultSettings(SEASettings &settings)
   {
    settings.schemaVersion         = 12;
    settings.panelEnabled          = true;
-   settings.autoRestoreChartState = true;
-   settings.autoSaveChartState    = true;
    settings.defaultProfileName    = "default";
    settings.magicNumber           = 10001;
    settings.slippagePoints        = 20;
@@ -633,6 +639,10 @@ void ResetDailyLimitsRuntimeState(SDailyLimitsRuntimeState &state)
   {
    state.dayKey = 0;
    state.dailyTradeCount = 0;
+   state.dailyLossCount = 0;
+   state.dailyWinCount = 0;
+   state.dailyBreakevenCount = 0;
+   state.outcomeCountsKnown = false;
    state.dailyClosedProfit = 0.0;
    state.tradesLimitReached = false;
    state.lossLimitReached = false;

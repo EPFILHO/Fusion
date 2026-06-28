@@ -212,6 +212,26 @@ public:
       return m_dailyLimitsProtection.DailyTradeCount();
      }
 
+   int               DailyLossCount(void) const
+     {
+      return m_dailyLimitsProtection.DailyLossCount();
+     }
+
+   int               DailyWinCount(void) const
+     {
+      return m_dailyLimitsProtection.DailyWinCount();
+     }
+
+   int               DailyBreakevenCount(void) const
+     {
+      return m_dailyLimitsProtection.DailyBreakevenCount();
+     }
+
+   bool              DailyOutcomeCountsKnown(void) const
+     {
+      return m_dailyLimitsProtection.OutcomeCountsKnown();
+     }
+
    double            DailyClosedProfit(void) const
      {
       return m_dailyLimitsProtection.DailyClosedProfit();

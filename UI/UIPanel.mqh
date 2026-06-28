@@ -113,6 +113,8 @@ private:
    CLabel                     m_cfgSystemDebugLbl;
    CButton                    m_cfgSystemDebugBtn;
    CLabel                     m_cfgSystemFoot1;
+   CLabel                     m_cfgSystemFoot2;
+   CLabel                     m_cfgSystemFoot3;
    CLabel                     m_cfgStatus;
 
 #include "UIPanelConfigValidation.mqh"
@@ -439,6 +441,12 @@ public:
                                  snapshot.streakProtectionBlockReason != m_snapshot.streakProtectionBlockReason);
       bool dailyStateChanged = (snapshot.dailyLimitsBlocked != m_snapshot.dailyLimitsBlocked ||
                                 snapshot.dailyLimitsBlockReason != m_snapshot.dailyLimitsBlockReason);
+      bool resultsRuntimeValuesChanged = (snapshot.dailyLossCount != m_snapshot.dailyLossCount ||
+                                          snapshot.dailyWinCount != m_snapshot.dailyWinCount ||
+                                          snapshot.dailyBreakevenCount != m_snapshot.dailyBreakevenCount ||
+                                          snapshot.dailyOutcomeCountsKnown != m_snapshot.dailyOutcomeCountsKnown ||
+                                          MathAbs(snapshot.dailyFloatingProfit - m_snapshot.dailyFloatingProfit) > 0.0000001 ||
+                                          MathAbs(snapshot.dailyProjectedProfit - m_snapshot.dailyProjectedProfit) > 0.0000001);
       bool sessionStateChanged = (snapshot.sessionProtectionBlocked != m_snapshot.sessionProtectionBlocked ||
                                   snapshot.sessionProtectionBlockReason != m_snapshot.sessionProtectionBlockReason);
       bool newsStateChanged = (snapshot.newsProtectionBlocked != m_snapshot.newsProtectionBlocked ||
@@ -478,6 +486,7 @@ public:
                            snapshot.lossStreak != m_snapshot.lossStreak ||
                            snapshot.winStreak != m_snapshot.winStreak ||
                            streakStateChanged ||
+                           (m_activeTab == FUSION_TAB_RESULTS && resultsRuntimeValuesChanged) ||
                            drawdownStateChanged ||
                            drawdownRuntimeValuesChanged;
       bool activeContentNeedsRefresh = (permissionStateChanged ||
@@ -491,6 +500,10 @@ public:
       bool drawdownRuntimeOnlyChanged = (drawdownRuntimeValuesChanged &&
                                          !activeContentNeedsRefresh &&
                                          snapshot.dailyTradeCount == m_snapshot.dailyTradeCount &&
+                                         snapshot.dailyLossCount == m_snapshot.dailyLossCount &&
+                                         snapshot.dailyWinCount == m_snapshot.dailyWinCount &&
+                                         snapshot.dailyBreakevenCount == m_snapshot.dailyBreakevenCount &&
+                                         snapshot.dailyOutcomeCountsKnown == m_snapshot.dailyOutcomeCountsKnown &&
                                          MathAbs(snapshot.dailyClosedProfit - m_snapshot.dailyClosedProfit) <= 0.0000001 &&
                                          snapshot.lossStreak == m_snapshot.lossStreak &&
                                          snapshot.winStreak == m_snapshot.winStreak);

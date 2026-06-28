@@ -42,7 +42,13 @@
       m_snapshot.tradePermissionBlocked = false;
       m_snapshot.tradePermissionReason = "";
       m_snapshot.dailyTradeCount = 0;
+      m_snapshot.dailyLossCount = 0;
+      m_snapshot.dailyWinCount = 0;
+      m_snapshot.dailyBreakevenCount = 0;
+      m_snapshot.dailyOutcomeCountsKnown = false;
       m_snapshot.dailyClosedProfit = 0.0;
+      m_snapshot.dailyFloatingProfit = 0.0;
+      m_snapshot.dailyProjectedProfit = 0.0;
       m_snapshot.dailyLimitsBlocked = false;
       m_snapshot.dailyLimitsBlockReason = "";
       m_snapshot.sessionProtectionBlocked = false;

@@ -72,8 +72,6 @@ input group " "
 input group "========== 002 - PAINEL E PERFIL =========="
 input bool   inp_ShowPanel                 = true;      // Mostrar GUI do Fusion no grafico
 input string inp_DefaultProfileName        = "default"; // Perfil carregado/criado na inicializacao
-input bool   inp_AutoRestoreChartState     = true;      // Restaurar ultimo estado do grafico quando possivel
-input bool   inp_AutoSaveChartState        = true;      // Salvar estado do grafico ao fechar/mudar
 
 input group " "
 //--- Arbitragem de sinais e direcao global de entrada
@@ -255,8 +253,6 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.debugLogs              = inp_EnableDebugLogs;
    settings.panelEnabled           = inp_ShowPanel;
    settings.defaultProfileName     = inp_DefaultProfileName;
-   settings.autoRestoreChartState  = inp_AutoRestoreChartState;
-   settings.autoSaveChartState     = inp_AutoSaveChartState;
    settings.conflictMode           = inp_ConflictMode;
    settings.tradeDirection         = inp_TradeDirection;
    settings.enableSpreadProtection = (inp_EnableSpreadProtection || inp_MaxSpreadPoints > 0);

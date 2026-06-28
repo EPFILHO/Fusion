@@ -44,15 +44,19 @@
          return false;
       if(!AddEdit(m_cfgSystemMagicEdit, "Fusion_cfg_magic_edit", 200, 196, 340, 220, "0"))
          return false;
-      if(!AddLabel(m_cfgSystemConflictLbl, "Fusion_cfg_conflict_lbl", 22, 236, 170, 254, "Resolver", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemConflictLbl, "Fusion_cfg_conflict_lbl", 22, 236, 170, 254, "Resolver Conflito", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORITY", FUSION_CLR_PANEL))
+      if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORIDADE", FUSION_CLR_PANEL))
          return false;
       if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 274, 170, 292, "Logs Debug", FUSION_CLR_LABEL))
          return false;
       if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 462, 520, 480, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 424, 560, 442, "PRIORIDADE: em sinais opostos, o maior numero vence.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot2, "Fusion_cfg_system_foot_2", 22, 446, 560, 464, "CANCELAR: sinais opostos cancelam a entrada.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot3, "Fusion_cfg_system_foot_3", 22, 468, 560, 486, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }

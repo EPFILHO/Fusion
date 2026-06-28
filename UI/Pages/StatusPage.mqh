@@ -92,7 +92,7 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin)
      {
-      string labels[FUSION_STATUS_MAIN_ROW_COUNT] = {"Estado", "Symbol", "Timeframe", "Strategies", "Filters", "Posicao", "Owner", "Resolver"};
+      string labels[FUSION_STATUS_MAIN_ROW_COUNT] = {"Estado", "Ativo Operacional", "TF Operacional", "Estrategias", "Filtros", "Posicao", "Responsavel", "Conflito"};
       int y = 112;
       for(int i = 0; i < FUSION_STATUS_MAIN_ROW_COUNT; ++i)
         {
@@ -121,15 +121,15 @@ public:
 
    void              Update(const SUIPanelSnapshot &snapshot)
      {
-      m_values[0].Text(snapshot.runtimeBlocked ? "BLOCKED" : (snapshot.started ? "RUNNING" : "PAUSED"));
+      m_values[0].Text(snapshot.runtimeBlocked ? "BLOQUEADO" : (snapshot.started ? "RODANDO" : "PAUSADO"));
       m_values[0].Color(snapshot.runtimeBlocked ? FUSION_CLR_BAD : FUSION_CLR_VALUE);
       m_values[1].Text(snapshot.symbol);
       m_values[2].Text(snapshot.timeframe);
       m_values[3].Text(IntegerToString(snapshot.activeStrategies));
       m_values[4].Text(IntegerToString(snapshot.activeFilters));
-      m_values[5].Text(snapshot.hasPosition ? "YES" : "NO");
+      m_values[5].Text(snapshot.hasPosition ? "SIM" : "NAO");
       m_values[6].Text(snapshot.ownerStrategyName == "" ? "--" : snapshot.ownerStrategyName);
-      m_values[7].Text(FusionConflictText(snapshot.conflictMode));
+      m_values[7].Text(snapshot.conflictMode == CONFLICT_PRIORITY ? "PRIORIDADE" : "CANCELAR");
 
       string noticeTitle = "Sem alertas.";
       string noticeText = "Contexto do grafico estavel.";

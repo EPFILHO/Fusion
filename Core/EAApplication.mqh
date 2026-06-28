@@ -217,6 +217,72 @@ private:
       m_modulesRegistered = true;
      }
 
+   string                  ShortTimeframeName(const ENUM_TIMEFRAMES timeframe) const
+     {
+      string name = EnumToString(timeframe);
+      const string prefix = "PERIOD_";
+      if(StringFind(name, prefix) == 0)
+         return StringSubstr(name, StringLen(prefix));
+      return name;
+     }
+
+   string                  OperationalTimeframesSummary(void) const
+     {
+      string summary = "";
+
+      if(m_settings.useMACross)
+        {
+         string fastTimeframe = ShortTimeframeName(m_settings.maFastTimeframe);
+         string slowTimeframe = ShortTimeframeName(m_settings.maSlowTimeframe);
+         summary = "MA " + fastTimeframe;
+         if(slowTimeframe != fastTimeframe)
+            summary += "/" + slowTimeframe;
+        }
+
+      if(m_settings.useRSI)
+        {
+         if(summary != "")
+            summary += " | ";
+         summary += "RSI " + ShortTimeframeName(m_settings.rsiTimeframe);
+        }
+
+      if(m_settings.useBollinger)
+        {
+         if(summary != "")
+            summary += " | ";
+         summary += "BB " + ShortTimeframeName(m_settings.bbTimeframe);
+        }
+
+      return (summary == "" ? "--" : summary);
+     }
+
+   void                    RecoverLegacyDailyOutcomeCounts(SDailyLimitsRuntimeState &dailyState,
+                                                            const SStreakRuntimeState &streakState) const
+     {
+      if(dailyState.outcomeCountsKnown)
+         return;
+
+      if(dailyState.dailyTradeCount <= 0)
+        {
+         dailyState.dailyLossCount = 0;
+         dailyState.dailyWinCount = 0;
+         dailyState.dailyBreakevenCount = 0;
+         dailyState.outcomeCountsKnown = true;
+         return;
+        }
+
+      if(dailyState.dayKey != streakState.dayKey ||
+         streakState.lossStreak < 0 ||
+         streakState.winStreak < 0 ||
+         streakState.lossStreak + streakState.winStreak != dailyState.dailyTradeCount)
+         return;
+
+      dailyState.dailyLossCount = streakState.lossStreak;
+      dailyState.dailyWinCount = streakState.winStreak;
+      dailyState.dailyBreakevenCount = 0;
+      dailyState.outcomeCountsKnown = true;
+     }
+
    SUIPanelSnapshot        BuildPanelSnapshot(void) const
      {
       SUIPanelSnapshot snapshot;
@@ -224,8 +290,8 @@ private:
       snapshot.started          = m_started;
       snapshot.hasPosition      = m_positionState.hasPosition;
       snapshot.activeProfileName= m_activeProfileName;
-      snapshot.symbol           = _Symbol;
-      snapshot.timeframe        = EnumToString((ENUM_TIMEFRAMES)Period());
+      snapshot.symbol           = (m_chartContext.symbol == "" ? _Symbol : m_chartContext.symbol);
+      snapshot.timeframe        = OperationalTimeframesSummary();
       snapshot.symbolSpec       = SymbolSpec();
       snapshot.magicNumber      = m_settings.magicNumber;
       snapshot.activeStrategies = m_signalManager.ActiveStrategyCount();
@@ -250,11 +316,17 @@ private:
       snapshot.tradePermissionBlocked = m_tradePermissionGuard.IsBlocked();
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
       snapshot.dailyTradeCount  = m_protectionManager.DailyTradeCount();
+      snapshot.dailyLossCount   = m_protectionManager.DailyLossCount();
+      snapshot.dailyWinCount    = m_protectionManager.DailyWinCount();
+      snapshot.dailyBreakevenCount = m_protectionManager.DailyBreakevenCount();
+      snapshot.dailyOutcomeCountsKnown = m_protectionManager.DailyOutcomeCountsKnown();
       snapshot.dailyClosedProfit = m_protectionManager.DailyClosedProfit();
       double snapshotFloatingProfit = 0.0;
       if(m_positionState.hasPosition && PositionSelectByTicket(m_positionState.ticket))
          snapshotFloatingProfit = PositionGetDouble(POSITION_PROFIT);
       double snapshotProjectedProfit = snapshot.dailyClosedProfit + snapshotFloatingProfit;
+      snapshot.dailyFloatingProfit = snapshotFloatingProfit;
+      snapshot.dailyProjectedProfit = snapshotProjectedProfit;
       string dailyBlockReason = "";
       snapshot.dailyLimitsBlocked = m_protectionManager.IsDailyLimitsBlocked(dailyBlockReason);
       snapshot.dailyLimitsBlockReason = dailyBlockReason;
@@ -300,7 +372,7 @@ private:
 
    void                    PersistChartState(const int deinitReason)
      {
-      if(!m_settings.autoSaveChartState || m_settings.isTester)
+      if(m_settings.isTester)
          return;
 
       SChartStateContext context = CurrentChartContext();
@@ -976,6 +1048,8 @@ private:
       if(previous.hasPosition && !m_positionState.hasPosition)
         {
          RecordClosedStrategyBar(previous.ownerStrategyId);
+         // Consume signals accumulated while the position was open; pending reverse is stored separately.
+         m_signalManager.PrimeEntryStates();
 
          SClosedTradeSummary summary;
          if(m_executionService.GetClosedTradeSummary(previous.positionId, summary))
@@ -1318,8 +1392,7 @@ private:
       ResetDailyLimitsRuntimeState(restoredDailyState);
       ResetDrawdownRuntimeState(restoredDrawdownState);
 
-      if(m_settings.autoRestoreChartState &&
-         m_settingsStore.LoadChartState(m_chartContext.chartId,
+      if(m_settingsStore.LoadChartState(m_chartContext.chartId,
                                         restoredContext,
                                         restoredProfile,
                                         restoredStarted,
@@ -1382,6 +1455,7 @@ private:
       m_protectionManager.Init(&m_logger, m_settings);
       if(restoredStateApplied)
         {
+         RecoverLegacyDailyOutcomeCounts(restoredDailyState, restoredStreakState);
          m_protectionManager.ImportStreakState(restoredStreakState);
          m_protectionManager.ImportDailyLimitsState(restoredDailyState);
          m_protectionManager.ImportDrawdownState(restoredDrawdownState);

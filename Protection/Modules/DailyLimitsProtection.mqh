@@ -9,6 +9,10 @@ class CDailyLimitsProtection : public CProtectionModuleBase
 private:
    int         m_dayKey;
    int         m_dailyTradeCount;
+   int         m_dailyLossCount;
+   int         m_dailyWinCount;
+   int         m_dailyBreakevenCount;
+   bool        m_outcomeCountsKnown;
    double      m_dailyClosedProfit;
    bool        m_tradesLimitReached;
    bool        m_lossLimitReached;
@@ -26,6 +30,10 @@ private:
    void              ResetDailyState(void)
      {
       m_dailyTradeCount = 0;
+      m_dailyLossCount = 0;
+      m_dailyWinCount = 0;
+      m_dailyBreakevenCount = 0;
+      m_outcomeCountsKnown = true;
       m_dailyClosedProfit = 0.0;
       m_tradesLimitReached = false;
       m_lossLimitReached = false;
@@ -161,6 +169,10 @@ public:
      {
       state.dayKey = m_dayKey;
       state.dailyTradeCount = m_dailyTradeCount;
+      state.dailyLossCount = m_dailyLossCount;
+      state.dailyWinCount = m_dailyWinCount;
+      state.dailyBreakevenCount = m_dailyBreakevenCount;
+      state.outcomeCountsKnown = m_outcomeCountsKnown;
       state.dailyClosedProfit = m_dailyClosedProfit;
       state.tradesLimitReached = m_tradesLimitReached;
       state.lossLimitReached = m_lossLimitReached;
@@ -179,6 +191,13 @@ public:
 
       m_dayKey = state.dayKey;
       m_dailyTradeCount = (state.dailyTradeCount < 0) ? 0 : state.dailyTradeCount;
+      m_dailyLossCount = (state.dailyLossCount < 0) ? 0 : state.dailyLossCount;
+      m_dailyWinCount = (state.dailyWinCount < 0) ? 0 : state.dailyWinCount;
+      m_dailyBreakevenCount = (state.dailyBreakevenCount < 0) ? 0 : state.dailyBreakevenCount;
+      int classifiedTrades = m_dailyLossCount + m_dailyWinCount + m_dailyBreakevenCount;
+      m_outcomeCountsKnown = (state.outcomeCountsKnown && classifiedTrades == m_dailyTradeCount);
+      if(m_dailyTradeCount == 0)
+         m_outcomeCountsKnown = true;
       m_dailyClosedProfit = state.dailyClosedProfit;
       m_tradesLimitReached = state.tradesLimitReached;
       m_lossLimitReached = state.lossLimitReached;
@@ -288,12 +307,38 @@ public:
       double finalPortion = totalPositionProfit - realizedPartialProfit;
       m_dailyClosedProfit += finalPortion;
       m_dailyTradeCount++;
+      if(totalPositionProfit > 0.0)
+         m_dailyWinCount++;
+      else if(totalPositionProfit < 0.0)
+         m_dailyLossCount++;
+      else
+         m_dailyBreakevenCount++;
       UpdateLatchedLimits();
      }
 
    int               DailyTradeCount(void) const
      {
       return m_dailyTradeCount;
+     }
+
+   int               DailyLossCount(void) const
+     {
+      return m_dailyLossCount;
+     }
+
+   int               DailyWinCount(void) const
+     {
+      return m_dailyWinCount;
+     }
+
+   int               DailyBreakevenCount(void) const
+     {
+      return m_dailyBreakevenCount;
+     }
+
+   bool              OutcomeCountsKnown(void) const
+     {
+      return m_outcomeCountsKnown;
      }
 
    double            DailyClosedProfit(void) const

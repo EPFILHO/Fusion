@@ -231,6 +231,8 @@
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, editable);
          m_cfgSystemDebugLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemFoot1.Color(FUSION_CLR_MUTED);
+         m_cfgSystemFoot2.Color(FUSION_CLR_MUTED);
+         m_cfgSystemFoot3.Color(FUSION_CLR_MUTED);
         }
      }
 

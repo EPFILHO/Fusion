@@ -456,7 +456,7 @@ string FusionTPSLExitZeroNotice(const SEASettings &settings)
 
 string FusionConflictText(const ENUM_CONFLICT_RESOLUTION mode)
   {
-   return (mode == CONFLICT_PRIORITY) ? "PRIORITY" : "CANCEL";
+   return (mode == CONFLICT_PRIORITY) ? "PRIORIDADE" : "CANCELAR";
   }
 
 string FusionTrimCopy(const string text)

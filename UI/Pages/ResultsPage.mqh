@@ -6,7 +6,7 @@
 
 class CFusionPanel;
 
-#define FUSION_RESULTS_ROW_COUNT 6
+#define FUSION_RESULTS_ROW_COUNT 8
 
 class CResultsPage
   {
@@ -34,6 +34,15 @@ private:
          control.Hide();
      }
 
+   color             ResultColor(const double value) const
+     {
+      if(value > 0.0000001)
+         return FUSION_CLR_GOOD;
+      if(value < -0.0000001)
+         return FUSION_CLR_BAD;
+      return FUSION_CLR_VALUE;
+     }
+
 public:
                      CResultsPage(void)
      {
@@ -41,7 +50,7 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin)
      {
-      string labels[FUSION_RESULTS_ROW_COUNT] = {"Lote", "Spread", "Magic Number do EA", "Perfil Carregado", "Modo", "Execucao"};
+      string labels[FUSION_RESULTS_ROW_COUNT] = {"P/L Fechado", "P/L Flutuante", "P/L Projetado", "Trades do Dia", "Streak Loss/Win Atual", "Estado DD", "Pico / Piso DD", "Folga DD"};
       int y = 112;
       for(int i = 0; i < FUSION_RESULTS_ROW_COUNT; ++i)
         {
@@ -54,15 +63,46 @@ public:
       return true;
      }
 
-   void              Update(const SUIPanelSnapshot &snapshot,const SEASettings &settings,const string committedProfileName)
+   void              Update(const SUIPanelSnapshot &snapshot)
      {
-      m_values[0].Text(FusionFormatVolume(settings.fixedLot, snapshot.symbolSpec));
-      m_values[1].Text(settings.enableSpreadProtection ? "ON - " + IntegerToString(settings.maxSpreadPoints) + " pts" : "OFF");
-      m_values[2].Text(IntegerToString(settings.magicNumber));
-      m_values[3].Text(committedProfileName == "" ? snapshot.activeProfileName : committedProfileName);
-      m_values[4].Text(snapshot.started ? "EA RODANDO: EDICAO SUSPENSA" : "EDICAO LIBERADA");
-      m_values[5].Text(snapshot.hasPosition ? "EA COM POSICAO" : "EA SEM POSICAO");
-      m_values[5].Color(FUSION_CLR_VALUE);
+      m_values[0].Text(DoubleToString(snapshot.dailyClosedProfit, 2));
+      m_values[0].Color(ResultColor(snapshot.dailyClosedProfit));
+      m_values[1].Text(DoubleToString(snapshot.dailyFloatingProfit, 2));
+      m_values[1].Color(ResultColor(snapshot.dailyFloatingProfit));
+      m_values[2].Text(DoubleToString(snapshot.dailyProjectedProfit, 2));
+      m_values[2].Color(ResultColor(snapshot.dailyProjectedProfit));
+      string dailyTradesText = IntegerToString(snapshot.dailyTradeCount);
+      if(snapshot.dailyOutcomeCountsKnown)
+        {
+         dailyTradesText += StringFormat(" (%d Loss / %d Win", snapshot.dailyLossCount, snapshot.dailyWinCount);
+         if(snapshot.dailyBreakevenCount > 0)
+            dailyTradesText += StringFormat(" / %d BE", snapshot.dailyBreakevenCount);
+         dailyTradesText += ")";
+        }
+      m_values[3].Text(dailyTradesText);
+      m_values[3].Color(FUSION_CLR_VALUE);
+      string lossStreakText = snapshot.settings.lossStreakEnabled ? IntegerToString(snapshot.lossStreak) : "OFF";
+      string winStreakText = snapshot.settings.winStreakEnabled ? IntegerToString(snapshot.winStreak) : "OFF";
+      m_values[4].Text("Loss " + lossStreakText + " | Win " + winStreakText);
+      m_values[4].Color((snapshot.settings.lossStreakEnabled || snapshot.settings.winStreakEnabled) ?
+                        FUSION_CLR_VALUE : FUSION_CLR_MUTED);
+
+      string drawdownState = !snapshot.settings.enableDrawdown ? "OFF" :
+                             (snapshot.drawdownLimitReached ? "ATINGIDO" :
+                              (snapshot.drawdownProtectionActive ? "ATIVO" : "AGUARDANDO META"));
+      m_values[5].Text(drawdownState);
+      m_values[5].Color(snapshot.drawdownLimitReached ? FUSION_CLR_WARN :
+                        (snapshot.settings.enableDrawdown ? FUSION_CLR_VALUE : FUSION_CLR_MUTED));
+
+      bool hasDrawdownBase = (snapshot.drawdownProtectionActive ||
+                              snapshot.drawdownLimitReached ||
+                              snapshot.drawdownPeakProfit > 0.0);
+      m_values[6].Text(hasDrawdownBase ?
+                       StringFormat("%.2f / %.2f", snapshot.drawdownPeakProfit, snapshot.drawdownFloorProfit) : "--");
+      m_values[6].Color(hasDrawdownBase ? FUSION_CLR_VALUE : FUSION_CLR_MUTED);
+      m_values[7].Text(hasDrawdownBase ? DoubleToString(snapshot.drawdownBufferProfit, 2) : "--");
+      m_values[7].Color(!hasDrawdownBase ? FUSION_CLR_MUTED :
+                        (snapshot.drawdownBufferProfit <= 0.0 ? FUSION_CLR_WARN : FUSION_CLR_VALUE));
      }
 
    void              SetVisible(const bool visible)

@@ -34,7 +34,7 @@
 
       if(!AddLabel(m_protectGeneralHdr, "Fusion_protect_general_hdr", 22, 188, 280, 206, "Resumo de Protecao", FUSION_CLR_VALUE, 9))
          return false;
-      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entry", "Session", "News", "Day", "DD", "Contagem Streak"};
+      string generalLabels[FUSION_PROTECT_OVERVIEW_COUNT] = {"Entrada", "Sessao", "News", "DAY", "DD", "Streak"};
       int generalY = 226;
       for(int generalIndex = 0; generalIndex < FUSION_PROTECT_OVERVIEW_COUNT; ++generalIndex)
         {
