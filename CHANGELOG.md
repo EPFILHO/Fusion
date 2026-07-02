@@ -1,6 +1,16 @@
 # Changelog
 
 ## 1.054 - 2026-05-31
+- Fechamentos agora entram em reconciliacao persistente: o EA confirma pelo historico que todo o volume de entrada possui volume de saida correspondente antes de atualizar DAY/DD/STREAK, bloqueia novas entradas durante a espera e repete a consulta por tick, timer e eventos de trade.
+- A reconciliacao usa o horario real do ultimo deal para nao contaminar o novo dia, sobrevive a reinicio/troca de timeframe e cancela a espera se a mesma posicao reaparecer depois de uma oscilacao de conexao.
+- Na inicializacao, o EA agora confere o historico bruto do dia por ativo/magic e repara P/L, Trades, Loss/Win/BE e streak quando o chart state persistido divergir; historico vazio durante desconexao nao sobrescreve o estado salvo.
+- A auditoria diaria bloqueia entradas enquanto estiver pendente, rejeita historico vazio ou com menos trades que o estado confirmado e e rearmada quando o magic muda; a nova identidade reinicia DAY/DD/STREAK antes de reconstruir seus proprios resultados.
+- Troca de magic permanece proibida durante DD diario ativo, inclusive quando feita por salvamento de configuracao, evitando que uma mudanca de identidade apague a protecao em andamento.
+- A troca de magic agora zera explicitamente o runtime DAY/DD/STREAK anterior antes da auditoria da nova identidade, evitando que um magic sem operacoes seja confundido com historico incompleto.
+- `RISK > SL/TP` agora identifica os campos como pontos do MT5, orienta usar a contagem da regua do grafico e mostra o spread atual no rodape; o stopsLevel continua validado internamente sem ser apresentado como distancia operacional sugerida.
+- `RESULTS`, rodapes e diagnosticos de DAY passaram a identificar os valores como `P/L Bruto`; comissao, swap, emolumentos e despesas externas nao sao estimados pelo Fusion.
+- MA Cross multi-timeframe passou a alinhar a MA lenta pelo fechamento de cada barra rapida, usando somente barras lentas ja fechadas e preservando o caminho anterior quando os dois timeframes sao iguais.
+- Bloqueios reais de entrada por SL/TP incompativel com Bid/Ask, spread ou stopsLevel agora sobem para a GUI em vermelho; a aba MA ganhou rodape curto esclarecendo que SL/TP globais coexistem com Sinal Oposto/VM.
 - Iniciada a 1.054 em pasta propria a partir do commit `a6346c3`, preservando a 1.053 como checkpoint funcional.
 - Versao central atualizada para `1.054`.
 - `CONFIG > RISK > LOTE` passou a expor `Slippage (pts)`, usando a chave existente `slippagePoints`, com validacao `0..100000` e rodape explicando que slippage e tolerancia de execucao, nao garantia de preco.
@@ -29,7 +39,8 @@
 - Restauracao e salvamento automaticos do chart state viraram comportamento estrutural fixo: os dois inputs e campos persistidos foram removidos, e perfis existentes foram limpos sem alterar os demais valores.
 - DAY passou a persistir totais diarios separados de Loss, Win e BE, considerando BE somente quando o resultado total for exatamente `0.0`; estados antigos sao migrados apenas quando a streak permite inferencia segura.
 - `RESULTS` agora mostra P/L fechado, flutuante e projetado, trades diarios com totais Loss/Win/BE, streak atual respeitando Loss/Win ON/OFF e metricas runtime do DD.
-- Compilado no MetaEditor com `0 errors, 0 warnings` em `compile_1054_initial.log`, `compile_1054_gui_refresh.log`, `compile_1054_dd_trigger_gui.log`, `compile_1054_daily_warn_once.log`, `compile_1054_dd_audit.log`, `compile_1054_operational_day_reset.log`, `compile_1054_freezelevel_stops.log`, `compile_1054_phase1_transient_reset.log`, `compile_1054_phase1_panel_helpers.log`, `compile_1054_phase1_profile_panel_helper.log`, `compile_1054_identity_reload_docs.log`, `compile_1054_identity_link.log`, `compile_1054_status_operational_context.log`, `compile_1054_discard_signals_after_close.log`, `compile_1054_internal_chart_state.log`, `compile_1054_daily_outcome_counts.log`, `compile_1054_streak_results_visibility.log` e `compile_1054_results_checkpoint_final.log`.
+- Adicionado registro CSV diagnostico de `ENTRY`, `FULL_CLOSE` e `PARTIAL_CLOSE`, sem alterar o fluxo operacional, para observar retcodes reais da corretora antes de decidir sobre uma maquina de estados para `PLACED`/`DONE_PARTIAL`.
+- Compilado no MetaEditor com `0 errors, 0 warnings` em `compile_1054_initial.log`, `compile_1054_gui_refresh.log`, `compile_1054_dd_trigger_gui.log`, `compile_1054_daily_warn_once.log`, `compile_1054_dd_audit.log`, `compile_1054_operational_day_reset.log`, `compile_1054_freezelevel_stops.log`, `compile_1054_phase1_transient_reset.log`, `compile_1054_phase1_panel_helpers.log`, `compile_1054_phase1_profile_panel_helper.log`, `compile_1054_identity_reload_docs.log`, `compile_1054_identity_link.log`, `compile_1054_status_operational_context.log`, `compile_1054_discard_signals_after_close.log`, `compile_1054_internal_chart_state.log`, `compile_1054_daily_outcome_counts.log`, `compile_1054_streak_results_visibility.log`, `compile_1054_results_checkpoint_final.log` e `compile_1054_history_audit_guards_final.log`.
 
 ## 1.053 - 2026-05-24
 - Feita uma limpeza curta sem mudanca funcional: removidos wrappers de access-state sem chamada, removidos helpers antigos do overview de sinais e extraido o log rate-limited de bloqueio `NETTING` no `EAApplication`.

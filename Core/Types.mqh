@@ -261,6 +261,26 @@ struct SEASettings
    bool                     isTester;
   };
 
+bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const SEASettings &candidateSettings)
+  {
+   const double tolerance = 0.0000001;
+   return (currentSettings.magicNumber == candidateSettings.magicNumber &&
+           currentSettings.enableDailyLimits == candidateSettings.enableDailyLimits &&
+           MathAbs(currentSettings.maxDailyGain - candidateSettings.maxDailyGain) <= tolerance &&
+           currentSettings.profitTargetAction == candidateSettings.profitTargetAction &&
+           currentSettings.enableDrawdown == candidateSettings.enableDrawdown &&
+           MathAbs(currentSettings.maxDrawdown - candidateSettings.maxDrawdown) <= tolerance &&
+           currentSettings.drawdownType == candidateSettings.drawdownType &&
+           currentSettings.drawdownPeakMode == candidateSettings.drawdownPeakMode);
+  }
+
+string FusionDrawdownProfileBlockMessage(void)
+  {
+   return "Perfil nao carregado: DD diario ativo. " +
+          "O novo perfil deve manter a mesma regra ate o novo dia. " +
+          "A consistencia no trade comeca por obedecer ao gerenciamento inicial.";
+  }
+
 struct SSignalCandidate
   {
    ENUM_SIGNAL_TYPE signal;
@@ -354,10 +374,28 @@ struct SDrawdownRuntimeState
 
 struct SClosedTradeSummary
   {
-   bool   found;
-   double totalProfit;
-   double finalProfit;
-   int    exitDeals;
+   bool     found;
+   bool     complete;
+   bool     contextMatched;
+   double   totalProfit;
+   double   finalProfit;
+   double   entryVolume;
+   double   exitVolume;
+   int      exitDeals;
+   datetime lastExitTime;
+  };
+
+struct SDailyHistorySummary
+  {
+   bool   complete;
+   int    dayKey;
+   double closedProfit;
+   int    tradeCount;
+   int    lossCount;
+   int    winCount;
+   int    breakevenCount;
+   int    lossStreak;
+   int    winStreak;
   };
 
 struct SChartStateContext
@@ -397,6 +435,8 @@ struct SUIPanelSnapshot
    string activeProfileBlockedReason;
    string runtimeNotice;
    string entryBlockReason;
+   bool   entryBlockIsRiskStops;
+   string entryBlockDetail;
    bool   pendingReverseExit;
    bool   tradePermissionBlocked;
    string tradePermissionReason;

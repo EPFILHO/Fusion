@@ -171,6 +171,12 @@ public:
          noticeText = "Posicao aberta em gerenciamento. Iniciar fica bloqueado ate fechar.";
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.entryBlockIsRiskStops)
+        {
+         noticeTitle = "RISCO SL/TP";
+         noticeText = snapshot.entryBlockReason + " " + snapshot.entryBlockDetail;
+         noticeColor = FUSION_CLR_BAD;
+        }
       else if(snapshot.entryBlockReason != "")
         {
          noticeTitle = "ENTRADA BLOQUEADA";

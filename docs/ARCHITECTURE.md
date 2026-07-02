@@ -79,6 +79,8 @@ Uma estrategia deve:
 
 Uma estrategia nao deve abrir ordem diretamente, alterar lote, nem fazer gestao financeira. Isso fica em `Risk`, `Protection` e `Execution`.
 
+Na MA Cross, o timeframe rapido e o relogio operacional. Quando as medias usam timeframes diferentes, cada valor da MA lenta deve ser o da ultima barra que ja estava fechada no horario de fechamento da barra rapida correspondente. Comparar indices nativos iguais entre timeframes diferentes e proibido, pois esses indices nao representam necessariamente o mesmo instante.
+
 O modo de saida `VM` fecha a posicao pelo sinal contrario da estrategia dona e agenda uma entrada direta na mao oposta apos a sincronizacao do fechamento. Essa reversao nao passa novamente por filtros, resolvedor de entrada, regra de prioridade ou `tradeDirection`; ela ainda respeita guards operacionais como permissao de trading, conflito netting, protecoes globais, risco e execucao. Quando a VM esta armada, o painel deve mostrar essa condicao no `STATUS`/rodape.
 
 ### `Filters`
@@ -141,6 +143,18 @@ Bloqueios operacionais dessas protecoes devem subir para a aba `STATUS` como avi
 Centraliza envio, fechamento parcial, fechamento total, modificacao de stops e sincronizacao de posicao.
 
 Este e o unico lugar que deve conversar diretamente com operacoes de trade de baixo nivel, salvo excecoes justificadas.
+
+A 1.054 registra o resultado bruto das requisicoes de entrada, fechamento total e fechamento parcial em CSV. Esse registro e somente diagnostico: serve para observar retcodes reais da corretora e nao participa de nenhuma decisao operacional. Detalhes em `docs/TRADE_REQUEST_DIAGNOSTICS_1054.md`.
+
+Quando uma posicao desaparece, o fechamento entra em reconciliacao antes de atualizar DAY/DD/STREAK. `ExecutionService` seleciona o historico pelo identificador da posicao e considera o resumo completo somente quando o volume acumulado de saida cobre o volume acumulado de entrada. Enquanto isso, `EAApplication` preserva o estado anterior, bloqueia novas entradas e repete a consulta pelo tick, timer e eventos de trade. O horario do ultimo deal define se o fechamento pertence ao dia operacional atual.
+
+Na inicializacao, uma auditoria adicional compara o chart state com os deals de saida do dia para o ativo/magic carregado. Ela corrige P/L bruto e contadores legados que ja haviam sido persistidos incorretamente antes da reconciliacao existir. A leitura aguarda conexao e nao substitui o estado por um historico ainda incompleto.
+
+Enquanto a auditoria estiver pendente, entradas e viradas de mao aguardam. Uma leitura vazia ou com menos trades que o estado confirmado e tratada como incompleta. Mudanca de magic reinicia o estado operacional ligado a identidade anterior e rearma a auditoria para o novo magic; DD diario ativo impede essa troca.
+
+Esse reinicio por identidade e explicito: DAY, DD, STREAK e o pico projetado da posicao sao zerados antes da leitura do historico do novo magic. Recarregar configuracoes com o mesmo magic continua preservando o runtime corrente.
+
+Os resultados operacionais do Fusion sao P/L bruto de preco (`DEAL_PROFIT` e `POSITION_PROFIT`). Comissao, swap, fee, emolumentos e despesas cobradas fora desses campos nao sao estimados pelo EA e devem ser consultados no extrato da corretora.
 
 ### `Persistence`
 

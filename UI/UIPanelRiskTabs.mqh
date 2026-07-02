@@ -73,7 +73,7 @@
       if(page == FUSION_RISK_LOT)
          return !m_cfgRiskLotValid;
       if(page == FUSION_RISK_SLTP)
-         return !m_cfgRiskSLTPValid;
+         return (!m_cfgRiskSLTPValid || m_snapshot.entryBlockIsRiskStops);
       if(page == FUSION_RISK_PARTIAL)
          return !m_cfgRiskPartialValid;
       if(page == FUSION_RISK_BREAKEVEN)
@@ -140,12 +140,36 @@
       return (points >= stopsLevel);
      }
 
+   string                     CurrentSpreadPointsText(void) const
+     {
+      if(m_snapshot.symbolSpec.symbol == "" || m_snapshot.symbolSpec.point <= 0.0)
+         return "--";
+
+      MqlTick tick;
+      if(!SymbolInfoTick(m_snapshot.symbolSpec.symbol, tick) ||
+         tick.bid <= 0.0 || tick.ask <= 0.0 || tick.ask < tick.bid)
+         return "--";
+
+      long spreadPoints = (long)MathRound((tick.ask - tick.bid) / m_snapshot.symbolSpec.point);
+      return StringFormat("%I64d", spreadPoints);
+     }
+
    void                       ApplyRiskSLTPFooter(const SEASettings &settings,const bool valid,const string error)
      {
       if(!m_configRiskCreated)
          return;
 
-      int stopsLevel = m_snapshot.symbolSpec.stopsLevel;
+      if(m_snapshot.entryBlockIsRiskStops)
+        {
+         m_cfgRiskSLTPFoot1.Text(m_snapshot.entryBlockReason);
+         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_BAD);
+         m_cfgRiskSLTPFoot2.Text(m_snapshot.entryBlockDetail);
+         m_cfgRiskSLTPFoot2.Color(FUSION_CLR_BAD);
+         m_cfgRiskSLTPFoot3.Text("Ajuste distancia/compensacao ou use 0 para desligar.");
+         m_cfgRiskSLTPFoot3.Color(FUSION_CLR_BAD);
+         return;
+        }
+
       if(!valid && error != "")
         {
          m_cfgRiskSLTPFoot1.Text(error);
@@ -156,27 +180,23 @@
          m_cfgRiskSLTPFoot1.Text("ATENCAO: operar sem SL e ARRISCADO.");
          m_cfgRiskSLTPFoot1.Color(FUSION_CLR_BAD);
         }
-      else if(stopsLevel > 0)
-        {
-         m_cfgRiskSLTPFoot1.Text("Minimo do ativo: " + IntegerToString(stopsLevel) + " pts. Use 0 para desligar.");
-         m_cfgRiskSLTPFoot1.Color(FUSION_CLR_MUTED);
-        }
       else
         {
-         m_cfgRiskSLTPFoot1.Text("Ativo sem minimo de stops informado; 0 desliga SL/TP.");
+         m_cfgRiskSLTPFoot1.Text("Informe SL/TP em pontos do MT5; 0 desliga.");
          m_cfgRiskSLTPFoot1.Color(FUSION_CLR_MUTED);
         }
 
-      m_cfgRiskSLTPFoot2.Text("EA valida Bid/Ask, spread atual e minimo da corretora.");
+      m_cfgRiskSLTPFoot2.Text("Use a mesma contagem exibida pela regua do grafico.");
       m_cfgRiskSLTPFoot2.Color(FUSION_CLR_MUTED);
+      string spreadPrefix = "Spread atual: " + CurrentSpreadPointsText() + " pts. ";
       if(settings.compensateSLSpread && settings.compensateTPSpread)
-         m_cfgRiskSLTPFoot3.Text("Compensar ON: SL soma spread; TP subtrai spread.");
+         m_cfgRiskSLTPFoot3.Text(spreadPrefix + "SL soma; TP subtrai.");
       else if(settings.compensateSLSpread)
-         m_cfgRiskSLTPFoot3.Text("Compensar SL ON: soma spread; risco nominal aumenta.");
+         m_cfgRiskSLTPFoot3.Text(spreadPrefix + "SL ON soma; risco aumenta.");
       else if(settings.compensateTPSpread)
-         m_cfgRiskSLTPFoot3.Text("Compensar TP ON: subtrai spread; alvo nominal diminui.");
+         m_cfgRiskSLTPFoot3.Text(spreadPrefix + "TP ON subtrai; alvo diminui.");
       else
-         m_cfgRiskSLTPFoot3.Text("Sem compensar: usa as distancias exatas configuradas.");
+         m_cfgRiskSLTPFoot3.Text(spreadPrefix + "EA valida o minimo da corretora.");
       m_cfgRiskSLTPFoot3.Color(FUSION_CLR_MUTED);
      }
 
@@ -600,9 +620,14 @@
      {
       for(int tabIndex = 0; tabIndex < FUSION_RISK_COUNT; ++tabIndex)
         {
-         if(tabIndex == (int)m_riskPage)
+         ENUM_FUSION_RISK_PAGE page = (ENUM_FUSION_RISK_PAGE)tabIndex;
+         bool runtimeStopsError = (page == FUSION_RISK_SLTP &&
+                                   m_snapshot.entryBlockIsRiskStops);
+         if(runtimeStopsError)
+            FusionApplyActionButtonStyle(m_riskTabs[tabIndex], FUSION_CLR_BAD, true);
+         else if(tabIndex == (int)m_riskPage)
             FusionApplyPrimaryButtonStyle(m_riskTabs[tabIndex], true);
-         else if(RiskSubtabHasError((ENUM_FUSION_RISK_PAGE)tabIndex))
+         else if(RiskSubtabHasError(page))
             FusionApplyActionButtonStyle(m_riskTabs[tabIndex], FUSION_CLR_BAD, true);
          else
             FusionApplyPrimaryButtonStyle(m_riskTabs[tabIndex], false);
@@ -661,11 +686,11 @@
          return false;
       if(!AddLabel(m_cfgRiskSLTPDesc, "Fusion_cfg_risk_sltp_desc", 22, 214, 520, 232, "Distancias fixas aplicadas no envio da ordem.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgRiskSLLbl, "Fusion_cfg_sl_lbl", 22, 250, 170, 268, "SL Fixo (0=off)", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgRiskSLLbl, "Fusion_cfg_sl_lbl", 22, 250, 170, 268, "SL Fixo (pts MT5)", FUSION_CLR_LABEL))
          return false;
       if(!AddEdit(m_cfgRiskSLEdit, "Fusion_cfg_sl_edit", 200, 248, 310, 272, "0"))
          return false;
-      if(!AddLabel(m_cfgRiskTPLbl, "Fusion_cfg_tp_lbl", 22, 288, 170, 306, "TP Fixo (0=off)", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgRiskTPLbl, "Fusion_cfg_tp_lbl", 22, 288, 170, 306, "TP Fixo (pts MT5)", FUSION_CLR_LABEL))
          return false;
       if(!AddEdit(m_cfgRiskTPEdit, "Fusion_cfg_tp_edit", 200, 286, 310, 310, "0"))
          return false;
@@ -677,11 +702,11 @@
          return false;
       if(!AddButton(m_cfgRiskTPCompBtn, "Fusion_cfg_tp_comp_btn", 200, 362, 310, 386, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgRiskSLTPFoot1, "Fusion_cfg_risk_sltp_foot_1", 22, 424, 540, 442, "0 desliga SL/TP; valores > 0 respeitam o minimo do ativo.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskSLTPFoot1, "Fusion_cfg_risk_sltp_foot_1", 22, 424, 540, 442, "Informe SL/TP em pontos do MT5; 0 desliga.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgRiskSLTPFoot2, "Fusion_cfg_risk_sltp_foot_2", 22, 448, 540, 466, "EA valida Bid/Ask, spread atual e minimo da corretora.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskSLTPFoot2, "Fusion_cfg_risk_sltp_foot_2", 22, 448, 540, 466, "Use a mesma contagem exibida pela regua do grafico.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgRiskSLTPFoot3, "Fusion_cfg_risk_sltp_foot_3", 22, 472, 540, 490, "Sem compensar: usa as distancias exatas configuradas.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgRiskSLTPFoot3, "Fusion_cfg_risk_sltp_foot_3", 22, 472, 540, 490, "Spread atual: -- pts. EA valida o minimo da corretora.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_cfgRiskPartialHdr, "Fusion_cfg_risk_partial_hdr", 22, 188, 260, 206, "TP Parcial", FUSION_CLR_VALUE, 9))

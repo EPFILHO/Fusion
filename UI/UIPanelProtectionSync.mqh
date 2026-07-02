@@ -82,7 +82,7 @@
         {
          m_protectDayFoot1.Text("Campos em zero ficam sem limite.");
          m_protectDayFoot2.Text("ATIVAR DD exige DRAWDOWN ON com Max DD > 0.");
-         m_protectDayFoot3.Text("Contadores e P/L persistem e resetam no novo dia.");
+         m_protectDayFoot3.Text("Contadores e P/L bruto persistem e resetam no novo dia.");
          m_protectDayFoot1.Color(FUSION_CLR_MUTED);
          m_protectDayFoot2.Color(FUSION_CLR_MUTED);
          m_protectDayFoot3.Color(FUSION_CLR_MUTED);
@@ -98,7 +98,7 @@
                                       MathAbs(m_snapshot.drawdownTriggerBuffer) > 0.0000001);
             if(hasTriggerDetails)
               {
-               m_protectDrawdownFoot2.Text(StringFormat("Gatilho: P/L projetado %.2f | DD usado %.2f",
+               m_protectDrawdownFoot2.Text(StringFormat("Gatilho: P/L bruto projetado %.2f | DD usado %.2f",
                                                         m_snapshot.drawdownTriggerProfit,
                                                         m_snapshot.drawdownTriggerDrawdown));
                m_protectDrawdownFoot3.Text(StringFormat("Folga no gatilho %.2f; Folga atual acima vem do fechamento.",
@@ -126,7 +126,7 @@
          m_protectDrawdownNote.Text("Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.");
          m_protectDrawdownFoot2.Text("Financeiro: valor; Percentual: % da base.");
          m_protectDrawdownFoot3.Text(m_draftSettings.drawdownPeakMode == DD_PICO_FLUTUANTE ?
-                                     "Pico Ganho acompanha o maior P/L projetado." :
+                                     "Pico Ganho acompanha o maior P/L bruto projetado." :
                                      "Meta Max.Ganho usa a meta como base fixa.");
          m_protectDrawdownNote.Color(FUSION_CLR_WARN);
          m_protectDrawdownFoot2.Color(FUSION_CLR_MUTED);

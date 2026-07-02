@@ -178,7 +178,7 @@
          return false;
       if(!AddLabel(m_protectDayFoot2, "Fusion_protect_day_foot_2", 22, 472, 520, 490, "ATIVAR DD exige DRAWDOWN ON com Max DD > 0.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_protectDayFoot3, "Fusion_protect_day_foot_3", 22, 496, 520, 514, "Contadores e P/L persistem e resetam no novo dia.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_protectDayFoot3, "Fusion_protect_day_foot_3", 22, 496, 520, 514, "Contadores e P/L bruto persistem e resetam no novo dia.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_protectDrawdownHdr, "Fusion_protect_dd_hdr", 22, 188, 280, 206, "Protecao de Drawdown (DD)", FUSION_CLR_VALUE, 9))
@@ -227,7 +227,7 @@
          return false;
       if(!AddLabel(m_protectDrawdownFoot2, "Fusion_protect_dd_foot_2", 22, 516, 550, 534, "Financeiro: valor; Percentual: % da base.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_protectDrawdownFoot3, "Fusion_protect_dd_foot_3", 22, 540, 550, 558, "Pico Ganho acompanha o maior P/L projetado.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_protectDrawdownFoot3, "Fusion_protect_dd_foot_3", 22, 540, 550, 558, "Pico Ganho acompanha o maior P/L bruto projetado.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!AddLabel(m_protectStreakHdr, "Fusion_protect_streak_hdr", 22, 188, 280, 206, "Protecao de Streak", FUSION_CLR_VALUE, 9))

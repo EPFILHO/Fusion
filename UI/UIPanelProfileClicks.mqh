@@ -87,6 +87,21 @@
       return true;
      }
 
+   bool                       ProfileLoadBlockedByActiveDrawdown(const string profileName)
+     {
+      if(!m_snapshot.drawdownConfigLocked)
+         return false;
+
+      SEASettings selectedSettings;
+      if(!m_profileStore.LoadProfile(profileName, selectedSettings))
+         return false;
+      if(FusionDrawdownSettingsCompatible(m_committedSettings, selectedSettings))
+         return false;
+
+      SetProfileStatus(FusionDrawdownProfileBlockMessage(), FUSION_CLR_WARN, true);
+      return true;
+     }
+
    bool                       HandleProfileLoadClick(const string objectName)
      {
       if(objectName != m_profileLoadBtn.Name())
@@ -100,6 +115,8 @@
          RefreshBlockedProfileAction(profileActions);
          return true;
         }
+      if(ProfileLoadBlockedByActiveDrawdown(selectedProfile))
+         return true;
       QueueProfileCommand(UI_COMMAND_LOAD_PROFILE, selectedProfile);
       return true;
      }

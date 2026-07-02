@@ -81,6 +81,18 @@ private:
       return distance;
      }
 
+   string   RuntimeStopsDetail(const SEASettings &settings,
+                               const double spreadPoints,
+                               const string reason) const
+     {
+      bool slIssue = (StringFind(reason, "SL ") == 0);
+      string levelName = slIssue ? "SL" : "TP";
+      int configuredPoints = slIssue ? settings.fixedSLPoints : settings.fixedTPPoints;
+      return levelName + " " + IntegerToString(configuredPoints) +
+             " pts | Spread " + DoubleToString(spreadPoints, 1) +
+             " pts | " + reason;
+     }
+
    bool     PlannedStopsAllowed(const ENUM_SIGNAL_TYPE signal,
                                 const SSymbolSpec &spec,
                                 const double bid,
@@ -163,8 +175,23 @@ public:
       return true;
      }
 
-   bool              BuildEntryPlan(const ENUM_SIGNAL_TYPE signal,const SEASettings &settings,const SSymbolSpec &spec,const double entryPrice,SRiskPlan &plan)
+   bool              BuildEntryPlan(const ENUM_SIGNAL_TYPE signal,
+                                    const SEASettings &settings,
+                                    const SSymbolSpec &spec,
+                                    const double entryPrice,
+                                    SRiskPlan &plan,
+                                    string &runtimeStopsError,
+                                    string &runtimeStopsDetail)
      {
+      runtimeStopsError = "";
+      runtimeStopsDetail = "";
+      if(settings.fixedLot <= 0.0)
+        {
+         if(m_logger != NULL)
+            m_logger.Error("RISK", "Lote fixo deve ser maior que zero; entrada bloqueada.");
+         return false;
+        }
+
       plan.volume       = NormalizeVolumeToSpec(settings.fixedLot, spec);
       plan.stopLoss     = 0.0;
       plan.takeProfit   = 0.0;
@@ -182,6 +209,8 @@ public:
       bool pricesReady = CurrentPrices(spec, bid, ask);
       if(!pricesReady && (settings.fixedSLPoints > 0 || settings.fixedTPPoints > 0))
         {
+         runtimeStopsError = "Entrada bloqueada: SL/TP sem Bid/Ask valido.";
+         runtimeStopsDetail = "Bid/Ask indisponivel para validar os stops.";
          if(m_logger != NULL)
             m_logger.Warn("RISK", "SL/TP nao pode ser validado com Bid/Ask atual.");
          return false;
@@ -207,6 +236,10 @@ public:
          double tpDistance = TakeProfitDistancePoints(settings, spreadPoints);
          if(tpDistance <= 0.0)
            {
+            runtimeStopsError = "Entrada bloqueada: TP invalido para o spread atual.";
+            runtimeStopsDetail = "TP " + IntegerToString(settings.fixedTPPoints) +
+                                 " pts | Spread " + DoubleToString(spreadPoints, 1) +
+                                 " pts | Compensar Spread TP esta ON.";
             if(m_logger != NULL)
                m_logger.Warn("RISK", "TP fixo menor que o spread atual com compensacao ativa.");
             return false;
@@ -217,6 +250,10 @@ public:
       string stopsReason = "";
       if(pricesReady && !PlannedStopsAllowed(signal, spec, bid, ask, plan.stopLoss, plan.takeProfit, stopsReason))
         {
+         bool slIssue = (StringFind(stopsReason, "SL ") == 0);
+         runtimeStopsError = slIssue ? "Entrada bloqueada: SL invalido no preco atual."
+                                     : "Entrada bloqueada: TP invalido no preco atual.";
+         runtimeStopsDetail = RuntimeStopsDetail(settings, spreadPoints, stopsReason);
          if(m_logger != NULL)
             m_logger.Warn("RISK", "SL/TP invalido para stopsLevel/spread atual: " + stopsReason);
          return false;

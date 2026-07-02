@@ -3,6 +3,7 @@
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"
+#include "TradeRequestRecorder.mqh"
 #include "../Normalization/SymbolNormalizer.mqh"
 
 class CExecutionService
@@ -17,6 +18,10 @@ private:
    bool               m_lastModifySkippedByFreeze;
    string             m_lastFreezeSkipReason;
    datetime           m_lastFreezeSkipTime;
+   bool               m_lastModifySkippedByStopsLevel;
+   datetime           m_lastStopsLevelSkipTime;
+   CTradeRequestRecorder m_tradeRequestRecorder;
+   bool               m_tradeRequestRecordWarningShown;
 
    string             TrimComment(const string text) const
      {
@@ -126,6 +131,70 @@ private:
       return false;
      }
 
+   bool               StopsInvalidForStopsLevel(const SPositionRuntimeState &state,
+                                                 const double newSL,
+                                                 const double newTP,
+                                                 string &reason) const
+     {
+      reason = "";
+      if(m_normalizer == NULL)
+         return false;
+
+      SSymbolSpec spec;
+      m_normalizer.GetSpec(spec);
+      if(spec.stopsLevel <= 0)
+         return false;
+
+      double currentPrice = CurrentClosePrice(state.type);
+      if(currentPrice <= 0.0 || spec.point <= 0.0)
+        {
+         reason = "preco atual indisponivel para validar stopsLevel.";
+         return true;
+        }
+
+      double slDistance = 0.0;
+      double tpDistance = 0.0;
+      if(state.type == POSITION_TYPE_BUY)
+        {
+         if(newSL > 0.0)
+            slDistance = (currentPrice - newSL) / spec.point;
+         if(newTP > 0.0)
+            tpDistance = (newTP - currentPrice) / spec.point;
+        }
+      else
+        {
+         if(newSL > 0.0)
+            slDistance = (newSL - currentPrice) / spec.point;
+         if(newTP > 0.0)
+            tpDistance = (currentPrice - newTP) / spec.point;
+        }
+
+      if(newSL > 0.0 && slDistance < -0.0000001)
+        {
+         reason = "SL solicitado esta do lado invalido do preco atual.";
+         return true;
+        }
+      if(newTP > 0.0 && tpDistance < -0.0000001)
+        {
+         reason = "TP solicitado esta do lado invalido do preco atual.";
+         return true;
+        }
+      if(newSL > 0.0 && slDistance + 0.0000001 < spec.stopsLevel)
+        {
+         reason = "SL solicitado a " + DoubleToString(slDistance, 1) +
+                  " pts do preco; stopsLevel=" + IntegerToString(spec.stopsLevel) + " pts.";
+         return true;
+        }
+      if(newTP > 0.0 && tpDistance + 0.0000001 < spec.stopsLevel)
+        {
+         reason = "TP solicitado a " + DoubleToString(tpDistance, 1) +
+                  " pts do preco; stopsLevel=" + IntegerToString(spec.stopsLevel) + " pts.";
+         return true;
+        }
+
+      return false;
+     }
+
    void               LogFreezeSkip(const string reason)
      {
       datetime now = TimeCurrent();
@@ -144,6 +213,38 @@ private:
          m_logger.Debug("RISK", "SL/TP dentro do freezeLevel; nova tentativa no proximo tick. " + reason);
      }
 
+   void               LogStopsLevelSkip(const string reason)
+     {
+      datetime now = TimeCurrent();
+      if(now <= 0)
+         now = TimeLocal();
+
+      if(m_lastStopsLevelSkipTime > 0 &&
+         now - m_lastStopsLevelSkipTime < 60)
+         return;
+
+      m_lastStopsLevelSkipTime = now;
+
+      if(m_logger != NULL)
+         m_logger.Debug("RISK", "SL/TP nao atende stopsLevel; nova tentativa no proximo tick. " + reason);
+     }
+
+   void               RecordTradeRequest(const string eventName,
+                                         const MqlTradeRequest &request,
+                                         const MqlTradeResult &result,
+                                         const bool orderSendOk,
+                                         const int terminalError)
+     {
+      if(m_tradeRequestRecorder.Record(eventName, request, result, orderSendOk, terminalError) ||
+         m_tradeRequestRecordWarningShown)
+         return;
+
+      m_tradeRequestRecordWarningShown = true;
+      if(m_logger != NULL)
+         m_logger.Warn("EXEC_AUDIT", "Nao foi possivel gravar o diagnostico CSV. Erro " +
+                       IntegerToString(m_tradeRequestRecorder.LastError()) + ".");
+     }
+
    bool               TryGetDealProfit(const ulong dealTicket,double &profit) const
      {
       profit = 0.0;
@@ -154,6 +255,21 @@ private:
 
       profit = HistoryDealGetDouble(dealTicket, DEAL_PROFIT);
       return true;
+     }
+
+   bool               IsPositionIdentifierOpen(const ulong positionId) const
+     {
+      if(positionId == 0)
+         return false;
+
+      for(int i = PositionsTotal() - 1; i >= 0; i--)
+        {
+         if(PositionGetSymbol(i) == "")
+            continue;
+         if((ulong)PositionGetInteger(POSITION_IDENTIFIER) == positionId)
+            return true;
+        }
+      return false;
      }
 
    void               CopyRuntimeState(const SPositionRuntimeState &source,SPositionRuntimeState &target) const
@@ -184,6 +300,9 @@ public:
       m_lastModifySkippedByFreeze = false;
       m_lastFreezeSkipReason = "";
       m_lastFreezeSkipTime = 0;
+      m_lastModifySkippedByStopsLevel = false;
+      m_lastStopsLevelSkipTime = 0;
+      m_tradeRequestRecordWarningShown = false;
      }
 
    bool              Init(CLogger *logger,CSymbolNormalizer *normalizer,const string symbol,const SEASettings &settings)
@@ -197,6 +316,10 @@ public:
       m_lastModifySkippedByFreeze = false;
       m_lastFreezeSkipReason = "";
       m_lastFreezeSkipTime = 0;
+      m_lastModifySkippedByStopsLevel = false;
+      m_lastStopsLevelSkipTime = 0;
+      m_tradeRequestRecorder.Init(m_symbol, m_magicNumber);
+      m_tradeRequestRecordWarningShown = false;
       return true;
      }
 
@@ -206,6 +329,8 @@ public:
       m_slippagePoints = settings.slippagePoints;
       m_needsSync      = true;
       m_lastModifySkippedByFreeze = false;
+      m_lastModifySkippedByStopsLevel = false;
+      m_tradeRequestRecorder.Init(m_symbol, m_magicNumber);
      }
 
    void              MarkNeedsSync(void)
@@ -221,6 +346,11 @@ public:
    bool              LastModifySkippedByFreeze(void) const
      {
       return m_lastModifySkippedByFreeze;
+     }
+
+   bool              LastModifySkippedByStopsLevel(void) const
+     {
+      return m_lastModifySkippedByStopsLevel;
      }
 
    bool              SyncPosition(SPositionRuntimeState &state)
@@ -279,7 +409,11 @@ public:
       request.tp           = plan.takeProfit;
       request.comment      = OrderComment(decision.shortName);
 
-      if(!OrderSend(request, result))
+      ResetLastError();
+      bool orderSendOk = OrderSend(request, result);
+      int terminalError = orderSendOk ? 0 : GetLastError();
+      RecordTradeRequest("ENTRY", request, result, orderSendOk, terminalError);
+      if(!orderSendOk)
         {
          if(m_logger != NULL)
             m_logger.Error("EXEC", "OrderSend failed on entry");
@@ -327,7 +461,11 @@ public:
       request.price        = CurrentClosePrice(state.type);
       request.comment      = OrderComment(reason);
 
-      if(!OrderSend(request, result))
+      ResetLastError();
+      bool orderSendOk = OrderSend(request, result);
+      int terminalError = orderSendOk ? 0 : GetLastError();
+      RecordTradeRequest("FULL_CLOSE", request, result, orderSendOk, terminalError);
+      if(!orderSendOk)
         {
          if(m_logger != NULL)
             m_logger.Error("EXEC", "Failed to close position");
@@ -365,7 +503,11 @@ public:
       request.price        = CurrentClosePrice(state.type);
       request.comment      = OrderComment(reason);
 
-      if(!OrderSend(request, result))
+      ResetLastError();
+      bool orderSendOk = OrderSend(request, result);
+      int terminalError = orderSendOk ? 0 : GetLastError();
+      RecordTradeRequest("PARTIAL_CLOSE", request, result, orderSendOk, terminalError);
+      if(!orderSendOk)
          return false;
 
       if(result.retcode != TRADE_RETCODE_DONE && result.retcode != TRADE_RETCODE_PLACED)
@@ -384,6 +526,7 @@ public:
    bool              ModifyStops(SPositionRuntimeState &state,const double newSL,const double newTP)
      {
       m_lastModifySkippedByFreeze = false;
+      m_lastModifySkippedByStopsLevel = false;
       if(!state.hasPosition)
          return false;
 
@@ -392,6 +535,14 @@ public:
         {
          m_lastModifySkippedByFreeze = true;
          LogFreezeSkip(freezeReason);
+         return false;
+        }
+
+      string stopsLevelReason = "";
+      if(StopsInvalidForStopsLevel(state, newSL, newTP, stopsLevelReason))
+        {
+         m_lastModifySkippedByStopsLevel = true;
+         LogStopsLevelSkip(stopsLevelReason);
          return false;
         }
 
@@ -418,14 +569,19 @@ public:
    bool              GetClosedTradeSummary(const ulong positionId,SClosedTradeSummary &summary)
      {
       summary.found       = false;
+      summary.complete    = false;
+      summary.contextMatched = false;
       summary.totalProfit = 0.0;
       summary.finalProfit = 0.0;
+      summary.entryVolume = 0.0;
+      summary.exitVolume  = 0.0;
       summary.exitDeals   = 0;
+      summary.lastExitTime= 0;
 
       if(positionId == 0)
          return false;
 
-      if(!HistorySelect(0, TimeCurrent()))
+      if(!HistorySelectByPosition(positionId))
          return false;
 
       datetime lastExitTime = 0;
@@ -440,6 +596,16 @@ public:
             continue;
 
          long entryType = HistoryDealGetInteger(ticket, DEAL_ENTRY);
+         double volume = HistoryDealGetDouble(ticket, DEAL_VOLUME);
+         if(entryType == DEAL_ENTRY_IN)
+           {
+            if(HistoryDealGetString(ticket, DEAL_SYMBOL) == m_symbol &&
+               (int)HistoryDealGetInteger(ticket, DEAL_MAGIC) == m_magicNumber)
+               summary.contextMatched = true;
+            summary.entryVolume += volume;
+            continue;
+           }
+
          if(entryType != DEAL_ENTRY_OUT && entryType != DEAL_ENTRY_OUT_BY)
             continue;
 
@@ -448,16 +614,149 @@ public:
 
          summary.found = true;
          summary.totalProfit += profit;
+         summary.exitVolume += volume;
          summary.exitDeals++;
 
          if(dealTime >= lastExitTime)
            {
             lastExitTime = dealTime;
+            summary.lastExitTime = dealTime;
             summary.finalProfit = profit;
            }
         }
 
+      double volumeStep = SymbolInfoDouble(m_symbol, SYMBOL_VOLUME_STEP);
+      double tolerance = MathMax(volumeStep * 0.1, 0.00000001);
+      summary.complete = (summary.found &&
+                          summary.entryVolume > 0.0 &&
+                          summary.exitVolume + tolerance >= summary.entryVolume);
       return summary.found;
+     }
+
+   bool              GetDailyHistorySummary(const datetime dayStart,
+                                             const datetime now,
+                                             const int dayKey,
+                                             SDailyHistorySummary &summary)
+     {
+      summary.complete = false;
+      summary.dayKey = dayKey;
+      summary.closedProfit = 0.0;
+      summary.tradeCount = 0;
+      summary.lossCount = 0;
+      summary.winCount = 0;
+      summary.breakevenCount = 0;
+      summary.lossStreak = 0;
+      summary.winStreak = 0;
+
+      if(dayStart <= 0 || now < dayStart || !HistorySelect(dayStart, now))
+         return false;
+
+      ulong positionIds[];
+      double dayProfits[];
+      int positionCount = 0;
+
+      for(int i = 0; i < HistoryDealsTotal(); i++)
+        {
+         ulong ticket = HistoryDealGetTicket(i);
+         if(ticket == 0 || HistoryDealGetString(ticket, DEAL_SYMBOL) != m_symbol)
+            continue;
+
+         long entryType = HistoryDealGetInteger(ticket, DEAL_ENTRY);
+         if(entryType != DEAL_ENTRY_OUT && entryType != DEAL_ENTRY_OUT_BY)
+            continue;
+
+         ulong positionId = (ulong)HistoryDealGetInteger(ticket, DEAL_POSITION_ID);
+         if(positionId == 0)
+            continue;
+
+         int positionIndex = -1;
+         for(int index = 0; index < positionCount; index++)
+           {
+            if(positionIds[index] == positionId)
+              {
+               positionIndex = index;
+               break;
+              }
+           }
+
+         if(positionIndex < 0)
+           {
+            positionIndex = positionCount++;
+            ArrayResize(positionIds, positionCount);
+            ArrayResize(dayProfits, positionCount);
+            positionIds[positionIndex] = positionId;
+            dayProfits[positionIndex] = 0.0;
+           }
+         dayProfits[positionIndex] += HistoryDealGetDouble(ticket, DEAL_PROFIT);
+        }
+
+      double closedProfits[];
+      datetime closeTimes[];
+      int closedCount = 0;
+
+      for(int positionIndex = 0; positionIndex < positionCount; positionIndex++)
+        {
+         SClosedTradeSummary positionSummary;
+         if(!GetClosedTradeSummary(positionIds[positionIndex], positionSummary))
+            return false;
+         if(!positionSummary.contextMatched)
+            continue;
+
+         summary.closedProfit += dayProfits[positionIndex];
+         if(!positionSummary.complete)
+           {
+            if(!IsPositionIdentifierOpen(positionIds[positionIndex]))
+               return false;
+            continue;
+           }
+
+         if(positionSummary.lastExitTime < dayStart || positionSummary.lastExitTime > now)
+            continue;
+
+         ArrayResize(closedProfits, closedCount + 1);
+         ArrayResize(closeTimes, closedCount + 1);
+         closedProfits[closedCount] = positionSummary.totalProfit;
+         closeTimes[closedCount] = positionSummary.lastExitTime;
+         closedCount++;
+        }
+
+      for(int left = 0; left < closedCount - 1; left++)
+        {
+         for(int right = left + 1; right < closedCount; right++)
+           {
+            if(closeTimes[left] <= closeTimes[right])
+               continue;
+            datetime timeSwap = closeTimes[left];
+            closeTimes[left] = closeTimes[right];
+            closeTimes[right] = timeSwap;
+            double profitSwap = closedProfits[left];
+            closedProfits[left] = closedProfits[right];
+            closedProfits[right] = profitSwap;
+           }
+        }
+
+      for(int closedIndex = 0; closedIndex < closedCount; closedIndex++)
+        {
+         double profit = closedProfits[closedIndex];
+         summary.tradeCount++;
+         if(profit > 0.0)
+           {
+            summary.winCount++;
+            summary.winStreak++;
+            summary.lossStreak = 0;
+           }
+         else if(profit < 0.0)
+           {
+            summary.lossCount++;
+            summary.lossStreak++;
+            summary.winStreak = 0;
+           }
+         else
+            summary.breakevenCount++;
+        }
+
+      summary.complete = true;
+      return true;
      }
   };
 

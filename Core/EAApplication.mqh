@@ -62,12 +62,60 @@ private:
    string                  m_protectionNoticeReason;
    bool                    m_entryBlockNoticeActive;
    string                  m_entryBlockNoticeReason;
+   bool                    m_entryBlockNoticeIsRiskStops;
+   string                  m_entryBlockNoticeDetail;
    string                  m_lastClosedStrategyId;
    datetime                m_lastClosedStrategyBarTime;
    string                  m_lastDiscardDebugReason;
    datetime                m_lastDiscardDebugTime;
    string                  m_lastPersistentProtectWarnReason;
    int                     m_lastPersistentProtectWarnDayKey;
+   bool                    m_closeReconciliationPending;
+   SPositionRuntimeState   m_closeReconciliationState;
+   datetime                m_nextCloseReconciliationAttempt;
+   int                     m_closeReconciliationAttempts;
+   bool                    m_closeReconciliationWaitLogged;
+   bool                    m_dailyHistoryAuditPending;
+   datetime                m_nextDailyHistoryAuditAttempt;
+   bool                    m_dailyHistoryAuditWaitLogged;
+
+   void                    ResetCloseReconciliation(void)
+     {
+      m_closeReconciliationPending = false;
+      ResetPositionRuntimeState(m_closeReconciliationState);
+      m_nextCloseReconciliationAttempt = 0;
+      m_closeReconciliationAttempts = 0;
+      m_closeReconciliationWaitLogged = false;
+     }
+
+   void                    ResetDailyHistoryAudit(void)
+     {
+      m_dailyHistoryAuditPending = false;
+      m_nextDailyHistoryAuditAttempt = 0;
+      m_dailyHistoryAuditWaitLogged = false;
+     }
+
+   string                  DailyHistoryAuditNotice(void) const
+     {
+      return "Aguardando conferencia do historico diario.";
+     }
+
+   void                    ApplyDailyHistoryAuditBlock(void)
+     {
+      ApplyEntryBlockNotice(DailyHistoryAuditNotice());
+     }
+
+   void                    ClearDailyHistoryAuditBlock(void)
+     {
+      if(m_entryBlockNoticeActive &&
+         m_entryBlockNoticeReason == DailyHistoryAuditNotice())
+         ClearEntryBlockNotice();
+     }
+
+   bool                    HasManagedOrPendingPosition(void) const
+     {
+      return (m_positionState.hasPosition || m_closeReconciliationPending);
+     }
 
    void                    ResetTransientRuntimeState(void)
      {
@@ -80,6 +128,8 @@ private:
       m_protectionNoticeReason = "";
       m_entryBlockNoticeActive = false;
       m_entryBlockNoticeReason = "";
+      m_entryBlockNoticeIsRiskStops = false;
+      m_entryBlockNoticeDetail = "";
       m_lastDiscardDebugReason = "";
       m_lastDiscardDebugTime = 0;
       m_lastPersistentProtectWarnReason = "";
@@ -288,7 +338,7 @@ private:
       SUIPanelSnapshot snapshot;
       snapshot.settings         = m_settings;
       snapshot.started          = m_started;
-      snapshot.hasPosition      = m_positionState.hasPosition;
+      snapshot.hasPosition      = HasManagedOrPendingPosition();
       snapshot.activeProfileName= m_activeProfileName;
       snapshot.symbol           = (m_chartContext.symbol == "" ? _Symbol : m_chartContext.symbol);
       snapshot.timeframe        = OperationalTimeframesSummary();
@@ -299,7 +349,9 @@ private:
       snapshot.conflictMode     = m_settings.conflictMode;
       snapshot.fixedLot         = m_settings.fixedLot;
       snapshot.maxSpreadPoints  = m_settings.maxSpreadPoints;
-      snapshot.ownerStrategyName= m_positionState.ownerStrategyName;
+      snapshot.ownerStrategyName= m_closeReconciliationPending
+                                  ? m_closeReconciliationState.ownerStrategyName
+                                  : m_positionState.ownerStrategyName;
       snapshot.useMACross       = m_settings.useMACross;
       snapshot.useRSI           = m_settings.useRSI;
       snapshot.useBollinger     = m_settings.useBollinger;
@@ -312,6 +364,10 @@ private:
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
       snapshot.runtimeNotice    = m_runtimeNotice;
       snapshot.entryBlockReason = m_entryBlockNoticeActive ? m_entryBlockNoticeReason : "";
+      snapshot.entryBlockIsRiskStops = (m_entryBlockNoticeActive &&
+                                        m_entryBlockNoticeIsRiskStops);
+      snapshot.entryBlockDetail = snapshot.entryBlockIsRiskStops
+                                  ? m_entryBlockNoticeDetail : "";
       snapshot.pendingReverseExit = m_pendingReverseExit.HasPending();
       snapshot.tradePermissionBlocked = m_tradePermissionGuard.IsBlocked();
       snapshot.tradePermissionReason = m_tradePermissionGuard.Notice();
@@ -397,14 +453,17 @@ private:
       m_protectionManager.ExportStreakState(streakState);
       m_protectionManager.ExportDailyLimitsState(dailyState);
       m_protectionManager.ExportDrawdownState(drawdownState);
+      SPositionRuntimeState stateToPersist = m_closeReconciliationPending
+                                             ? m_closeReconciliationState
+                                             : m_positionState;
       m_settingsStore.SaveChartState(context,
-                                     m_activeProfileName,
-                                     m_started,
-                                     m_settings,
-                                     m_positionState,
-                                     streakState,
-                                     dailyState,
-                                     drawdownState);
+                                      m_activeProfileName,
+                                      m_started,
+                                      m_settings,
+                                      stateToPersist,
+                                      streakState,
+                                      dailyState,
+                                      drawdownState);
      }
 
    void                    ApplyRuntimeBlock(const string reason)
@@ -661,6 +720,8 @@ private:
 
       m_entryBlockNoticeActive = false;
       m_entryBlockNoticeReason = "";
+      m_entryBlockNoticeIsRiskStops = false;
+      m_entryBlockNoticeDetail = "";
      }
 
    bool                    MaintainOperationalDayState(void)
@@ -706,9 +767,26 @@ private:
       bool changed = (!m_entryBlockNoticeActive || m_entryBlockNoticeReason != reason);
       m_entryBlockNoticeActive = true;
       m_entryBlockNoticeReason = reason;
+      m_entryBlockNoticeIsRiskStops = false;
+      m_entryBlockNoticeDetail = "";
 
       if(changed)
          m_logger.Info("SIGNAL", reason);
+     }
+
+   void                    ApplyRiskStopsEntryBlockNotice(const string reason,
+                                                         const string detail)
+     {
+      if(reason == "")
+        {
+         ClearEntryBlockNotice();
+         return;
+        }
+
+      m_entryBlockNoticeActive = true;
+      m_entryBlockNoticeReason = reason;
+      m_entryBlockNoticeIsRiskStops = true;
+      m_entryBlockNoticeDetail = detail;
      }
 
    string                  FormatDirectionBlockReason(const SSignalDecision &decision,const string reason) const
@@ -808,7 +886,7 @@ private:
       if(m_settings.isTester || m_activeProfileName == "")
          return;
 
-      if(m_started || m_positionState.hasPosition)
+      if(m_started || HasManagedOrPendingPosition())
          return;
 
       string reason = "";
@@ -852,6 +930,18 @@ private:
       if(!ProfileBlockedByActiveProfilePeer(profileName, reason))
          return false;
       m_logger.Error("PROFILE", "Perfil " + profileName + " nao salvo: " + reason);
+      return true;
+     }
+
+   bool                    ProfileLoadBlockedByActiveDrawdown(const string profileName,const SEASettings &settings)
+     {
+      string lockReason = "";
+      if(!m_protectionManager.IsDrawdownConfigLocked(lockReason))
+         return false;
+      if(FusionDrawdownSettingsCompatible(m_settings, settings))
+         return false;
+
+      m_logger.Warn("PROFILE", "Perfil " + profileName + ": " + FusionDrawdownProfileBlockMessage());
       return true;
      }
 
@@ -908,13 +998,39 @@ private:
      {
       SEASettings resolvedSettings = settings;
       ResolveOperationalTimeframes(resolvedSettings, OperationalFallbackTimeframe());
+      bool identityChanged = (m_settings.magicNumber != resolvedSettings.magicNumber);
+      if(identityChanged)
+        {
+         string drawdownLockReason = "";
+         if(m_protectionManager.IsDrawdownConfigLocked(drawdownLockReason))
+           {
+            m_logger.Warn("PROFILE", "Magic nao alterado enquanto o DD diario esta ativo.");
+            return false;
+           }
+        }
+
       m_settings = resolvedSettings;
       ConfigureResolver();
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
       m_executionService.Reload(m_settings);
-      m_protectionManager.Reload(m_settings, scope);
+      if(identityChanged)
+        {
+         m_protectionManager.Init(&m_logger, m_settings);
+         m_protectionManager.ResetForIdentityChange(m_positionState);
+        }
+      else
+         m_protectionManager.Reload(m_settings, scope);
       ClearProtectionNoticeDisabledBySettings();
-      return m_signalManager.ReloadAll(m_settings, scope);
+      ClearEntryBlockNotice();
+      bool signalsReloaded = m_signalManager.ReloadAll(m_settings, scope);
+      if(identityChanged)
+        {
+         ResetDailyHistoryAudit();
+         m_dailyHistoryAuditPending = !m_settings.isTester;
+         if(m_dailyHistoryAuditPending)
+            ApplyDailyHistoryAuditBlock();
+        }
+      return signalsReloaded;
      }
 
    bool                    PriceReached(const ENUM_POSITION_TYPE type,const double currentPrice,const double targetPrice) const
@@ -982,8 +1098,15 @@ private:
                           : SymbolInfoDouble(_Symbol, SYMBOL_BID);
 
       SRiskPlan plan;
-      if(!m_riskManager.BuildEntryPlan(decision.signal, m_settings, SymbolSpec(), entryPrice, plan))
+      string runtimeStopsError = "";
+      string runtimeStopsDetail = "";
+      if(!m_riskManager.BuildEntryPlan(decision.signal, m_settings, SymbolSpec(), entryPrice, plan,
+                                       runtimeStopsError, runtimeStopsDetail))
+        {
+         if(runtimeStopsError != "")
+            ApplyRiskStopsEntryBlockNotice(runtimeStopsError, runtimeStopsDetail);
          return false;
+        }
 
       if(m_executionService.PlaceEntry(decision.signal, plan, decision, m_positionState))
         {
@@ -1039,6 +1162,24 @@ private:
 
    void                    SyncPositionState(void)
      {
+      if(m_closeReconciliationPending)
+        {
+         m_positionState = m_closeReconciliationState;
+         bool positionRestored = m_executionService.SyncPosition(m_positionState);
+         if(positionRestored &&
+            m_positionState.positionId == m_closeReconciliationState.positionId)
+           {
+            m_logger.Info("CLOSE_SYNC", "Posicao reapareceu durante a reconciliacao; fechamento pendente cancelado.");
+            ResetCloseReconciliation();
+            ClearEntryBlockNotice();
+            PersistChartState();
+            return;
+           }
+
+         TryReconcileClosedPosition(false);
+         return;
+        }
+
       SPositionRuntimeState previous = m_positionState;
       m_executionService.SyncPosition(m_positionState);
 
@@ -1046,23 +1187,197 @@ private:
          ClearStreakReleaseNotice();
 
       if(previous.hasPosition && !m_positionState.hasPosition)
+         BeginCloseReconciliation(previous, false);
+     }
+
+   void                    BeginCloseReconciliation(const SPositionRuntimeState &closedState,const bool restored)
+     {
+      if(closedState.positionId == 0)
         {
-         RecordClosedStrategyBar(previous.ownerStrategyId);
-         // Consume signals accumulated while the position was open; pending reverse is stored separately.
-         m_signalManager.PrimeEntryStates();
-
-         SClosedTradeSummary summary;
-         if(m_executionService.GetClosedTradeSummary(previous.positionId, summary))
-           {
-            m_protectionManager.OnPositionClosed(summary.totalProfit, previous.realizedPartialProfit);
-            m_logger.Trade("CLOSE", "Position closed. Total profit: " + DoubleToString(summary.totalProfit, 2));
-         }
-
-         ResetPositionRuntimeState(m_positionState);
-         PersistChartState();
-         if(!m_started)
-            ReleaseRunningInstance();
+         m_logger.Error("CLOSE_SYNC", "Posicao desapareceu sem identificador para reconciliar o historico.");
+         return;
         }
+
+      m_closeReconciliationPending = true;
+      m_closeReconciliationState = closedState;
+      m_nextCloseReconciliationAttempt = 0;
+      m_closeReconciliationAttempts = 0;
+      m_closeReconciliationWaitLogged = false;
+      ResetPositionRuntimeState(m_positionState);
+
+      RecordClosedStrategyBar(closedState.ownerStrategyId);
+      // Consume signals accumulated while the position was open; pending reverse is stored separately.
+      m_signalManager.PrimeEntryStates();
+      ApplyEntryBlockNotice("Fechamento aguardando confirmacao completa do historico.");
+      PersistChartState();
+
+      if(restored)
+         m_logger.Info("CLOSE_SYNC", "Fechamento pendente restaurado; conferindo o historico.");
+      TryReconcileClosedPosition(true);
+     }
+
+   bool                    TryReconcileClosedPosition(const bool forceAttempt)
+     {
+      if(!m_closeReconciliationPending)
+         return true;
+
+      datetime now = FusionProtectionReliableTime();
+      if(!forceAttempt && now < m_nextCloseReconciliationAttempt)
+         return false;
+
+      m_closeReconciliationAttempts++;
+      int retrySeconds = (m_closeReconciliationAttempts <= 1) ? 1
+                         : ((m_closeReconciliationAttempts <= 3) ? 2 : 5);
+      m_nextCloseReconciliationAttempt = now + retrySeconds;
+
+      SClosedTradeSummary summary;
+      bool historyFound = m_executionService.GetClosedTradeSummary(m_closeReconciliationState.positionId, summary);
+      if(!historyFound || !summary.complete)
+        {
+         if(!m_closeReconciliationWaitLogged)
+           {
+            string progress = (summary.entryVolume > 0.0)
+                              ? StringFormat(" Volume de saida %.4f/%.4f.", summary.exitVolume, summary.entryVolume)
+                              : "";
+            m_logger.Info("CLOSE_SYNC", "Fechamento detectado; aguardando historico completo." + progress);
+            m_closeReconciliationWaitLogged = true;
+           }
+         return false;
+        }
+
+      int closeDayKey = FusionProtectionCurrentDayKey(summary.lastExitTime);
+      int currentDayKey = FusionProtectionCurrentDayKey();
+      if(closeDayKey == currentDayKey)
+         m_protectionManager.OnPositionClosed(summary.totalProfit,
+                                              m_closeReconciliationState.realizedPartialProfit);
+      else
+        {
+         m_pendingReverseExit.Reset();
+         m_logger.Info("CLOSE_SYNC", "Fechamento reconciliado pertence a outro dia operacional; DAY/DD/STREAK atuais nao foram alterados.");
+        }
+
+      m_logger.Trade("CLOSE", "Posicao fechada. P/L bruto: " + DoubleToString(summary.totalProfit, 2));
+      ResetCloseReconciliation();
+      ResetPositionRuntimeState(m_positionState);
+      ClearEntryBlockNotice();
+      m_signalManager.PrimeEntryStates();
+      PersistChartState();
+      if(!m_started)
+         ReleaseRunningInstance();
+      return true;
+     }
+
+   bool                    TryAuditDailyHistory(const bool forceAttempt)
+     {
+      if(!m_dailyHistoryAuditPending || m_settings.isTester)
+         return true;
+      if(m_closeReconciliationPending)
+         return false;
+
+      datetime now = FusionProtectionReliableTime();
+      if(!forceAttempt && now < m_nextDailyHistoryAuditAttempt)
+         return false;
+      m_nextDailyHistoryAuditAttempt = now + 5;
+
+      if(!TerminalInfoInteger(TERMINAL_CONNECTED))
+        {
+         ApplyDailyHistoryAuditBlock();
+         if(!m_dailyHistoryAuditWaitLogged)
+           {
+            m_logger.Info("HISTORY", "Aguardando conexao para conferir o historico diario.");
+            m_dailyHistoryAuditWaitLogged = true;
+           }
+         return false;
+        }
+
+      MqlDateTime dayParts;
+      if(!TimeToStruct(now, dayParts))
+        {
+         ApplyDailyHistoryAuditBlock();
+         return false;
+        }
+      dayParts.hour = 0;
+      dayParts.min = 0;
+      dayParts.sec = 0;
+      datetime dayStart = StructToTime(dayParts);
+
+      SDailyHistorySummary historySummary;
+      if(!m_executionService.GetDailyHistorySummary(dayStart,
+                                                    now,
+                                                    FusionProtectionCurrentDayKey(now),
+                                                    historySummary) ||
+         !historySummary.complete)
+        {
+         ApplyDailyHistoryAuditBlock();
+         if(!m_dailyHistoryAuditWaitLogged)
+           {
+            m_logger.Info("HISTORY", "Historico diario ainda incompleto; nova conferencia sera feita automaticamente.");
+            m_dailyHistoryAuditWaitLogged = true;
+           }
+         return false;
+        }
+
+      SDailyLimitsRuntimeState dailyState;
+      ResetDailyLimitsRuntimeState(dailyState);
+      m_protectionManager.ExportDailyLimitsState(dailyState);
+      double previousProfit = dailyState.dailyClosedProfit;
+      int previousTrades = dailyState.dailyTradeCount;
+      int previousLossStreak = m_protectionManager.LossStreak();
+      int previousWinStreak = m_protectionManager.WinStreak();
+
+      bool persistedHasActivity = (previousTrades > 0 ||
+                                   MathAbs(previousProfit) > 0.005 ||
+                                   previousLossStreak > 0 ||
+                                   previousWinStreak > 0);
+      bool historyHasActivity = (historySummary.tradeCount > 0 ||
+                                 MathAbs(historySummary.closedProfit) > 0.005);
+      if((persistedHasActivity && !historyHasActivity) ||
+         historySummary.tradeCount < previousTrades)
+        {
+         ApplyDailyHistoryAuditBlock();
+         if(!m_dailyHistoryAuditWaitLogged)
+           {
+            m_logger.Info("HISTORY", "Historico contradiz o estado salvo; aguardando nova conferencia.");
+            m_dailyHistoryAuditWaitLogged = true;
+           }
+         return false;
+        }
+
+      bool changed = (MathAbs(previousProfit - historySummary.closedProfit) > 0.005 ||
+                      previousTrades != historySummary.tradeCount ||
+                      dailyState.dailyLossCount != historySummary.lossCount ||
+                      dailyState.dailyWinCount != historySummary.winCount ||
+                      dailyState.dailyBreakevenCount != historySummary.breakevenCount ||
+                      !dailyState.outcomeCountsKnown ||
+                      previousLossStreak != historySummary.lossStreak ||
+                      previousWinStreak != historySummary.winStreak);
+
+      dailyState.dayKey = historySummary.dayKey;
+      dailyState.dailyClosedProfit = historySummary.closedProfit;
+      dailyState.dailyTradeCount = historySummary.tradeCount;
+      dailyState.dailyLossCount = historySummary.lossCount;
+      dailyState.dailyWinCount = historySummary.winCount;
+      dailyState.dailyBreakevenCount = historySummary.breakevenCount;
+      dailyState.outcomeCountsKnown = true;
+      m_protectionManager.ImportDailyLimitsState(dailyState);
+      m_protectionManager.ReconcileStreakCounts(historySummary.lossStreak,
+                                                historySummary.winStreak);
+      m_protectionManager.ReconcileDrawdownProfit(historySummary.closedProfit);
+
+      m_dailyHistoryAuditPending = false;
+      m_nextDailyHistoryAuditAttempt = 0;
+      ClearDailyHistoryAuditBlock();
+      if(changed)
+        {
+         m_logger.Info("HISTORY",
+                       "Historico diario reconciliado: P/L bruto " +
+                       DoubleToString(previousProfit, 2) + " -> " +
+                       DoubleToString(historySummary.closedProfit, 2) +
+                       "; trades " + IntegerToString(previousTrades) + " -> " +
+                       IntegerToString(historySummary.tradeCount) + ".");
+         PersistChartState();
+        }
+      return true;
      }
 
    bool                    LastActivePartialTPExecuted(void) const
@@ -1091,7 +1406,8 @@ private:
          return true;
         }
 
-      if(!m_executionService.LastModifySkippedByFreeze())
+      if(!m_executionService.LastModifySkippedByFreeze() &&
+         !m_executionService.LastModifySkippedByStopsLevel())
          m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final apos parcial.");
       return false;
      }
@@ -1235,7 +1551,7 @@ private:
 
          if(m_started)
            {
-            if(m_positionState.hasPosition)
+            if(HasManagedOrPendingPosition())
                return;
             m_started = false;
             ClearEntryBlockNotice();
@@ -1244,6 +1560,13 @@ private:
            }
          else
            {
+            if(m_closeReconciliationPending)
+               return;
+            if(m_dailyHistoryAuditPending && !TryAuditDailyHistory(true))
+              {
+               UpdatePanelIfVisible();
+               return;
+              }
             if(!RefreshTradePermissionState())
               {
                UpdatePanelIfVisible();
@@ -1270,6 +1593,12 @@ private:
 
       if(command.type == UI_COMMAND_SAVE_PROFILE)
         {
+         if(m_closeReconciliationPending)
+           {
+            m_logger.Warn("PROFILE", "Perfil nao salvo enquanto o fechamento aguarda confirmacao do historico.");
+            return;
+           }
+
          string profileName = (command.text == "") ? m_activeProfileName : command.text;
          if(profileName == "")
             profileName = m_settings.defaultProfileName;
@@ -1301,6 +1630,12 @@ private:
 
       if(command.type == UI_COMMAND_LOAD_PROFILE)
         {
+         if(m_closeReconciliationPending)
+           {
+            m_logger.Warn("PROFILE", "Perfil nao carregado enquanto o fechamento aguarda confirmacao do historico.");
+            return;
+           }
+
          string profileName = (command.text == "") ? m_activeProfileName : command.text;
          if(profileName == "")
             profileName = m_settings.defaultProfileName;
@@ -1310,6 +1645,8 @@ private:
            {
             loadedSettings.isTester = m_settings.isTester;
             ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
+            if(ProfileLoadBlockedByActiveDrawdown(profileName, loadedSettings))
+               return;
             if(ProfileLoadBlockedByActiveProfile(profileName))
                return;
             if(ProfileLoadBlockedByActiveInstance(profileName, loadedSettings))
@@ -1332,6 +1669,8 @@ private:
      {
       SetDefaultSettings(m_settings);
       ResetPositionRuntimeState(m_positionState);
+      ResetCloseReconciliation();
+      ResetDailyHistoryAudit();
       m_chartContext.chartId = 0;
       m_chartContext.symbol = "";
       m_chartContext.timeframe = "";
@@ -1357,6 +1696,9 @@ private:
       m_activeProfileName = m_settings.defaultProfileName;
       m_started = m_settings.isTester;
       ResetTransientRuntimeState();
+      ResetCloseReconciliation();
+      ResetDailyHistoryAudit();
+      m_dailyHistoryAuditPending = !m_settings.isTester;
 
       if(!m_settings.isTester &&
          m_settings.defaultProfileName != "" &&
@@ -1411,7 +1753,9 @@ private:
                                               : OperationalFallbackTimeframe();
             ResolveOperationalTimeframes(restoredSettings, restoreFallback);
             string restoredActiveProfile = (restoredProfile == "") ? restoredSettings.defaultProfileName : restoredProfile;
-            if(!restoredState.hasPosition)
+            bool restoredDrawdownLocked = (restoredDrawdownState.dayKey == FusionProtectionCurrentDayKey() &&
+                                           (restoredDrawdownState.protectionActive || restoredDrawdownState.limitReached));
+            if(!restoredState.hasPosition && !restoredDrawdownLocked)
               {
                SEASettings canonicalProfileSettings;
                if(TryLoadProfileFromDisk(restoredActiveProfile, restoreFallback, canonicalProfileSettings))
@@ -1471,12 +1815,17 @@ private:
 
       if(!m_runtimeBlocked)
         {
+         SPositionRuntimeState stateBeforeSync = m_positionState;
          bool positionSynced = m_executionService.SyncPosition(m_positionState);
          if(positionSynced && m_positionState.hasPosition)
             m_logger.Info("SYNC", "Posicao aberta detectada e ressincronizada.");
+         else if(stateBeforeSync.hasPosition)
+            BeginCloseReconciliation(stateBeforeSync, true);
+         if(!m_closeReconciliationPending)
+            TryAuditDailyHistory(true);
         }
 
-      if(restoredRunningAfterChartChange && !m_positionState.hasPosition)
+      if(restoredRunningAfterChartChange && !HasManagedOrPendingPosition())
         {
          m_signalManager.PrimeEntryStates();
          m_logger.Info("SIGNAL", "Sinais existentes descartados apos troca de timeframe; aguardando novo sinal.");
@@ -1490,7 +1839,7 @@ private:
       else if(m_runtimeNotice != "" && !m_tradePermissionGuard.IsBlocked())
          m_logger.Warn("CONTEXT", m_runtimeNotice);
 
-      if(!m_runtimeBlocked && (m_started || m_positionState.hasPosition) && !RegisterRunningInstance())
+      if(!m_runtimeBlocked && (m_started || HasManagedOrPendingPosition()) && !RegisterRunningInstance())
          m_started = false;
 
       if(ShouldShowPanel())
@@ -1544,8 +1893,17 @@ private:
       if(m_runtimeBlocked)
          return;
 
-      MaintainOperationalDayState();
       SyncPositionState();
+      MaintainOperationalDayState();
+
+      if(m_closeReconciliationPending)
+         return;
+      TryAuditDailyHistory(false);
+      if(m_dailyHistoryAuditPending)
+        {
+         DiscardBlockedEntrySignals(DailyHistoryAuditNotice());
+         return;
+        }
 
       if(!RefreshTradePermissionState())
         {
@@ -1619,9 +1977,14 @@ private:
    void              OnTimer(void)
      {
       if(!m_runtimeBlocked)
+        {
+         SyncPositionState();
          MaintainOperationalDayState();
+         if(!m_closeReconciliationPending)
+            TryAuditDailyHistory(false);
+        }
 
-      if((m_started || m_positionState.hasPosition) && !m_settings.isTester)
+      if((m_started || HasManagedOrPendingPosition()) && !m_settings.isTester)
          m_instanceRegistry.Refresh();
 
       RefreshTradePermissionState();
@@ -1647,6 +2010,8 @@ private:
       if(m_runtimeBlocked)
          return;
       m_executionService.MarkNeedsSync();
+      if(m_closeReconciliationPending)
+         m_nextCloseReconciliationAttempt = 0;
      }
   };
 

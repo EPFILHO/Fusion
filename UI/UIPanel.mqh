@@ -436,7 +436,9 @@ public:
       bool nowCanEditActiveProfile = ActiveProfileEditable(snapshot);
       bool runtimeStateChanged = (snapshot.started != m_snapshot.started || snapshot.hasPosition != m_snapshot.hasPosition);
       bool noticeStateChanged = (snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
-                                 snapshot.entryBlockReason != m_snapshot.entryBlockReason);
+                                 snapshot.entryBlockReason != m_snapshot.entryBlockReason ||
+                                 snapshot.entryBlockIsRiskStops != m_snapshot.entryBlockIsRiskStops ||
+                                 snapshot.entryBlockDetail != m_snapshot.entryBlockDetail);
       bool streakStateChanged = (snapshot.streakProtectionBlocked != m_snapshot.streakProtectionBlocked ||
                                  snapshot.streakProtectionBlockReason != m_snapshot.streakProtectionBlockReason);
       bool dailyStateChanged = (snapshot.dailyLimitsBlocked != m_snapshot.dailyLimitsBlocked ||
@@ -475,6 +477,8 @@ public:
                            snapshot.activeProfileBlockedReason != m_snapshot.activeProfileBlockedReason ||
                             snapshot.runtimeNotice != m_snapshot.runtimeNotice ||
                             snapshot.entryBlockReason != m_snapshot.entryBlockReason ||
+                            snapshot.entryBlockIsRiskStops != m_snapshot.entryBlockIsRiskStops ||
+                            snapshot.entryBlockDetail != m_snapshot.entryBlockDetail ||
                             snapshot.pendingReverseExit != m_snapshot.pendingReverseExit ||
                             snapshot.tradePermissionBlocked != m_snapshot.tradePermissionBlocked ||
                            snapshot.tradePermissionReason != m_snapshot.tradePermissionReason ||

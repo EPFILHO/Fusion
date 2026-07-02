@@ -83,6 +83,14 @@ public:
       return (scope == RELOAD_HOT || scope == RELOAD_WARM || scope == RELOAD_COLD);
      }
 
+   void              ResetForIdentityChange(SPositionRuntimeState &state)
+     {
+      m_dailyLimitsProtection.ResetDaily();
+      m_streakProtection.ResetDaily();
+      m_drawdownProtection.ResetDaily();
+      state.dayPeakProjectedProfit = 0.0;
+     }
+
    void              ExportStreakState(SStreakRuntimeState &state) const
      {
       m_streakProtection.ExportState(state);
@@ -91,6 +99,16 @@ public:
    void              ImportStreakState(const SStreakRuntimeState &state)
      {
       m_streakProtection.ImportState(state);
+     }
+
+   void              ReconcileStreakCounts(const int lossStreak,const int winStreak)
+     {
+      m_streakProtection.ReconcileCounts(lossStreak, winStreak);
+     }
+
+   void              ReconcileDrawdownProfit(const double closedProfit)
+     {
+      m_drawdownProtection.UpdateAfterProjectedProfit(closedProfit);
      }
 
    void              ExportDailyLimitsState(SDailyLimitsRuntimeState &state) const

@@ -12,21 +12,34 @@ public:
       if(count <= 0)
          return false;
 
-      int bestIndex    = 0;
       int bestPriority = candidates[0].priority;
 
       for(int i = 1; i < count; i++)
         {
          if(candidates[i].priority > bestPriority)
-           {
-            bestIndex    = i;
             bestPriority = candidates[i].priority;
+        }
+
+      int bestIndex = -1;
+      for(int i = 0; i < count; i++)
+        {
+         if(candidates[i].priority != bestPriority)
+            continue;
+
+         if(bestIndex < 0)
+           {
+            bestIndex = i;
+            continue;
            }
-         else if(candidates[i].priority == bestPriority && candidates[i].signal != candidates[bestIndex].signal)
+
+         if(candidates[i].signal != candidates[bestIndex].signal)
            {
             return false;
            }
         }
+
+      if(bestIndex < 0)
+         return false;
 
       decision.signal       = candidates[bestIndex].signal;
       decision.strategyId   = candidates[bestIndex].strategyId;

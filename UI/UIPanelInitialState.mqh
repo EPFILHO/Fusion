@@ -38,6 +38,8 @@
       m_snapshot.activeProfileBlockedReason = "";
       m_snapshot.runtimeNotice = "";
       m_snapshot.entryBlockReason = "";
+      m_snapshot.entryBlockIsRiskStops = false;
+      m_snapshot.entryBlockDetail = "";
       m_snapshot.pendingReverseExit = false;
       m_snapshot.tradePermissionBlocked = false;
       m_snapshot.tradePermissionReason = "";

@@ -129,7 +129,7 @@ input bool   inp_News3ClosePositions       = false;     // Fechar posicoes duran
 input group " "
 //--- Protecoes diarias, drawdown e sequencia
 input group "========== 009 - PROTECAO / LIMITES =========="
-input bool   inp_EnableDailyLimits         = false;     // Ativar limites diarios de trades e P/L
+input bool   inp_EnableDailyLimits         = false;     // Ativar limites diarios de trades e P/L bruto
 input int    inp_MaxDailyTrades            = 0;         // Maximo de trades por dia; 0 desliga limite
 input double inp_MaxDailyLoss              = 0.0;       // Perda diaria maxima; 0 desliga limite
 input double inp_MaxDailyGain              = 0.0;       // Ganho diario maximo; 0 desliga limite

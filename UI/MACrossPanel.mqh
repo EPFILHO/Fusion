@@ -29,6 +29,7 @@ private:
    CIntegerEditField      m_minDistance;
    CSelectionComboField   m_entryMode;
    CSelectionComboField   m_exitMode;
+   CLabel                 m_exitHint;
 
    bool              AddText(CFusionPanel *parent,CLabel &label,const string name,const long chartId,const int subwin,
                              const int x1,const int y1,const int x2,const int y2,const string text,const color clr,const int size=8)
@@ -99,12 +100,14 @@ public:
       if(!m_slowPrice.Create(parent, chartId, subwin, prefix + "slowPrice", "Preco", FUSION_SELECTION_APPLIED_PRICE, x1 + 206, y1 + 264, x1 + 280, y1 + 282, x1 + 292, y1 + 260, x1 + 392, y1 + 284))
          return false;
 
-      if(!m_minDistance.Create(parent, chartId, subwin, prefix + "minDist", "Dist. Min", x1, y1 + 312, x1 + 88, y1 + 330, x1 + 92, y1 + 308, x1 + 192, y1 + 332, 0))
+      if(!m_minDistance.Create(parent, chartId, subwin, prefix + "minDist", "Dist. Min", x1, y1 + 300, x1 + 88, y1 + 318, x1 + 92, y1 + 296, x1 + 192, y1 + 320, 0))
          return false;
 
-      if(!m_entryMode.Create(parent, chartId, subwin, prefix + "entry", "Entrada", FUSION_SELECTION_ENTRY_MODE, x1, y1 + 348, x1 + 88, y1 + 366, x1 + 92, y1 + 344, x1 + 232, y1 + 368))
+      if(!m_entryMode.Create(parent, chartId, subwin, prefix + "entry", "Entrada", FUSION_SELECTION_ENTRY_MODE, x1, y1 + 336, x1 + 88, y1 + 354, x1 + 92, y1 + 332, x1 + 232, y1 + 356))
          return false;
-      if(!m_exitMode.Create(parent, chartId, subwin, prefix + "exit", "Saida", FUSION_SELECTION_EXIT_MODE, x1 + 252, y1 + 348, x1 + 286, y1 + 366, x1 + 292, y1 + 344, x1 + 432, y1 + 368))
+      if(!m_exitMode.Create(parent, chartId, subwin, prefix + "exit", "Saida", FUSION_SELECTION_EXIT_MODE, x1 + 252, y1 + 336, x1 + 286, y1 + 354, x1 + 292, y1 + 332, x1 + 432, y1 + 356))
+         return false;
+      if(!AddText(parent, m_exitHint, prefix + "exit_hint", chartId, subwin, x1, y1 + 374, x2, y1 + 392, "", FUSION_CLR_MUTED, 8))
          return false;
 
       Hide();
@@ -130,6 +133,7 @@ public:
       m_minDistance.Show();
       m_entryMode.Show();
       m_exitMode.Show();
+      m_exitHint.Show();
 
       RaiseCombos();
      }
@@ -153,6 +157,7 @@ public:
       m_minDistance.Hide();
       m_entryMode.Hide();
       m_exitMode.Hide();
+      m_exitHint.Hide();
      }
 
    void              Sync(const SEASettings &settings,const bool editable)
@@ -182,6 +187,11 @@ public:
       m_minDistance.Sync(settings.maMinDistancePoints, editable, distanceValid);
       m_entryMode.Sync((long)settings.maEntryMode, editable);
       m_exitMode.Sync((long)settings.maExitMode, editable);
+      string exitHint = (settings.maExitMode == EXIT_TP_SL)
+                        ? "Saida usa SL/TP globais; 0 desliga cada nivel."
+                        : "SL/TP globais continuam ativos quando configurados acima de 0.";
+      m_exitHint.Text(exitHint);
+      m_exitHint.Color(editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED);
      }
 
    bool              HandleClick(const string objectName,SUICommand &command)

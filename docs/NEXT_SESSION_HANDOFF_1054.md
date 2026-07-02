@@ -130,6 +130,38 @@ Primeira fatia concluida na 1.054:
 
 O EA agora evita modificacoes de SL/TP quando o SL/TP atual ou desejado esta dentro do `freezeLevel` informado pela corretora. Nesses casos, a mudanca nao altera estado interno e fica para nova tentativa no proximo tick. A validacao em mercado segue em andamento.
 
+### 5. Reconciliacao de fechamentos e virada do dia - implementada, em teste
+
+Em 2026-06-30, uma perda de conexao no WIN mostrou uma ocorrencia reproduzivel: o historico continha a parcial de `5/10` contratos, mas o deal final ainda nao estava disponivel. O Fusion encontrou uma saida e registrou prematuramente apenas `155`, enquanto a posicao completa depois apareceu no MT5 com `550`.
+
+A correcao agora:
+
+- preserva o estado da posicao como fechamento pendente;
+- exige que o volume acumulado de saida cubra todo o volume acumulado de entrada;
+- bloqueia novas entradas e VM enquanto o resumo estiver incompleto;
+- repete a consulta no tick, timer e depois de eventos de trade, sem spam de log;
+- persiste a pendencia para reinicio ou troca de timeframe;
+- usa o horario do ultimo deal para nao lançar fechamento antigo em DAY/DD/STREAK do dia atual;
+- cancela a pendencia se a mesma posicao reaparecer apos oscilacao de conexao.
+
+O chart state antigo pode ja conter um P/L incorreto sem qualquer posicao pendente. Por isso, a inicializacao tambem audita os deals de saida do dia por ativo/magic e corrige P/L bruto, Trades, Loss/Win/BE e streak quando houver divergencia. Se o terminal ainda estiver desconectado ou o historico estiver incompleto, a auditoria aguarda e repete automaticamente.
+
+Entradas ficam bloqueadas durante essa espera. Historico vazio ou com menos trades que o estado confirmado nao pode sobrescrever o chart state. Ao trocar de magic com DD inativo, DAY/DD/STREAK sao reiniciados e reconstruidos para a nova identidade; com DD ativo, a troca de magic permanece proibida.
+
+Os valores exibidos pelo Fusion sao `P/L Bruto`. Custos externos, comissao, swap e emolumentos nao sao estimados. Desenho e matriz de testes: `docs/CLOSURE_RECONCILIATION_PLAN_1054.md`.
+
+### 6. Observacao de PLACED/DONE_PARTIAL
+
+Antes de implementar uma maquina de estados de execucao, a 1.054 passa a registrar em CSV os resultados reais de:
+
+- entrada;
+- fechamento total;
+- fechamento parcial.
+
+O registro nao muda o comportamento atual. Ele existe para confirmar se `TRADE_RETCODE_PLACED` e `TRADE_RETCODE_DONE_PARTIAL` aparecem nas corretoras e ativos usados nos testes. Depois de um periodo de coleta, os arquivos devem ser analisados antes de qualquer alteracao no fluxo de execucao.
+
+Finalidade, campos, localizacao e procedimento de coleta estao em `docs/TRADE_REQUEST_DIAGNOSTICS_1054.md`.
+
 ## Limpeza/Otimizacao Cautelosa
 
 Preferir pequenas melhorias seguras:

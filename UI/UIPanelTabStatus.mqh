@@ -1,7 +1,7 @@
    bool                       ConfigSubtabHasError(const ENUM_FUSION_CONFIG_PAGE page) const
      {
       if(page == FUSION_CFG_RISK)
-         return !m_cfgRiskValid;
+         return (!m_cfgRiskValid || m_snapshot.entryBlockIsRiskStops);
       if(page == FUSION_CFG_PROTECTION)
          return !m_cfgProtectionValid;
       if(page == FUSION_CFG_SYSTEM)
@@ -32,7 +32,8 @@
 
    bool                       HasConfigTabError(void) const
      {
-      return (!m_cfgRiskValid || !m_cfgProtectionValid || !m_cfgSystemValid);
+      return (!m_cfgRiskValid || !m_cfgProtectionValid || !m_cfgSystemValid ||
+              m_snapshot.entryBlockIsRiskStops);
      }
 
    bool                       HasParentTabError(void) const
@@ -63,6 +64,8 @@
          SetSharedParentStatus(m_profileTabError, FUSION_CLR_BAD);
       else if(m_snapshot.tradePermissionBlocked)
          SetSharedParentStatus(m_snapshot.tradePermissionReason, FUSION_CLR_WARN);
+      else if(m_snapshot.entryBlockIsRiskStops)
+         SetSharedParentStatus(m_snapshot.entryBlockReason, FUSION_CLR_BAD);
       else if(m_snapshot.pendingReverseExit)
          SetSharedParentStatus("VM armada: reversao direta; guards ativos.", FUSION_CLR_WARN);
       else if(m_snapshot.dailyLimitsBlocked)
@@ -113,9 +116,12 @@
 
    void                       UpdateTabStyles(void)
      {
+      bool runtimeStopsError = m_snapshot.entryBlockIsRiskStops;
       for(int i = 0; i < FUSION_TAB_COUNT; ++i)
         {
-         if(i == (int)m_activeTab)
+         if(runtimeStopsError && i == (int)FUSION_TAB_CONFIG)
+            FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
+         else if(i == (int)m_activeTab)
             FusionApplyPrimaryButtonStyle(m_tabs[i], true);
          else if(i == (int)FUSION_TAB_STRATEGIES && HasStrategyTabError())
             FusionApplyActionButtonStyle(m_tabs[i], FUSION_CLR_BAD, true);
@@ -138,7 +144,9 @@
         {
          for(int i = 0; i < FUSION_CFG_COUNT; ++i)
            {
-            if(i == (int)m_configPage)
+            if(runtimeStopsError && i == (int)FUSION_CFG_RISK)
+               FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_BAD, true);
+            else if(i == (int)m_configPage)
                FusionApplyPrimaryButtonStyle(m_configTabs[i], true);
             else if(ConfigSubtabHasError((ENUM_FUSION_CONFIG_PAGE)i))
                FusionApplyActionButtonStyle(m_configTabs[i], FUSION_CLR_BAD, true);

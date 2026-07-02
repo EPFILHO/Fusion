@@ -41,6 +41,7 @@
 
       SetVisible(m_profileStatus, visible);
       SetVisible(m_profileStatusDetail, visible);
+      SetVisible(m_profileStatusDetail2, visible);
      }
 
 #endif

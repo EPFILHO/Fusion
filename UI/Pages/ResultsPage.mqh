@@ -50,7 +50,7 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin)
      {
-      string labels[FUSION_RESULTS_ROW_COUNT] = {"P/L Fechado", "P/L Flutuante", "P/L Projetado", "Trades do Dia", "Streak Loss/Win Atual", "Estado DD", "Pico / Piso DD", "Folga DD"};
+      string labels[FUSION_RESULTS_ROW_COUNT] = {"P/L Bruto Fechado", "P/L Bruto Flutuante", "P/L Bruto Projetado", "Trades do Dia", "Streak Loss/Win Atual", "Estado DD", "Pico / Piso DD", "Folga DD"};
       int y = 112;
       for(int i = 0; i < FUSION_RESULTS_ROW_COUNT; ++i)
         {

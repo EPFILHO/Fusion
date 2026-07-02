@@ -103,6 +103,11 @@
          status = m_snapshot.tradePermissionReason;
          statusColor = FUSION_CLR_WARN;
         }
+      else if(m_snapshot.entryBlockIsRiskStops)
+        {
+         status = m_snapshot.entryBlockReason;
+         statusColor = FUSION_CLR_BAD;
+        }
       else if(m_snapshot.dailyLimitsBlocked)
         {
          status = FusionTopRuntimeNoticeText(m_snapshot.dailyLimitsBlockReason);

@@ -63,6 +63,53 @@ private:
       return true;
      }
 
+   bool              LastClosedSlowShiftAt(const datetime cutoffTime,int &shift) const
+     {
+      shift = -1;
+      if(cutoffTime <= 0)
+         return false;
+
+      int correspondingShift = iBarShift(m_symbol, m_slowTimeframe, cutoffTime, false);
+      if(correspondingShift < 0)
+         return false;
+
+      datetime correspondingOpen = iTime(m_symbol, m_slowTimeframe, correspondingShift);
+      if(correspondingOpen <= 0)
+         return false;
+
+      if(correspondingShift == 0)
+         shift = 1;
+      else
+        {
+         datetime newerOpen = iTime(m_symbol, m_slowTimeframe, correspondingShift - 1);
+         if(newerOpen <= 0)
+            return false;
+
+         // If the cutoff is inside this slow bar, use the preceding closed bar.
+         shift = (newerOpen > cutoffTime) ? correspondingShift + 1
+                                          : correspondingShift;
+        }
+
+      if(shift <= 0)
+         return false;
+      return (iTime(m_symbol, m_slowTimeframe, shift) > 0);
+     }
+
+   bool              CopyIndicatorValue(const int handle,const int shift,double &value) const
+     {
+      value = 0.0;
+      if(shift <= 0)
+         return false;
+
+      double singleValue[];
+      ArrayResize(singleValue, 1);
+      if(CopyBuffer(handle, 0, shift, 1, singleValue) != 1)
+         return false;
+
+      value = singleValue[0];
+      return true;
+     }
+
    bool              LoadBuffers(double &fastBuffer[],double &slowBuffer[])
      {
       ArrayResize(fastBuffer, 3);
@@ -72,8 +119,33 @@ private:
 
       if(CopyBuffer(m_fastHandle, 0, 0, 3, fastBuffer) < 3)
          return false;
-      if(CopyBuffer(m_slowHandle, 0, 0, 3, slowBuffer) < 3)
+
+      if(m_fastTimeframe == m_slowTimeframe)
+         return (CopyBuffer(m_slowHandle, 0, 0, 3, slowBuffer) >= 3);
+
+      ArrayInitialize(slowBuffer, 0.0);
+
+      // A closed fast bar ends when the next newer fast bar opens.
+      datetime fastCloseTime1 = iTime(m_symbol, m_fastTimeframe, 0);
+      datetime fastCloseTime2 = iTime(m_symbol, m_fastTimeframe, 1);
+      if(fastCloseTime1 <= 0 || fastCloseTime2 <= 0)
          return false;
+
+      int slowShift1 = -1;
+      int slowShift2 = -1;
+      if(!LastClosedSlowShiftAt(fastCloseTime1, slowShift1) ||
+         !LastClosedSlowShiftAt(fastCloseTime2, slowShift2))
+         return false;
+
+      double slowValue1 = 0.0;
+      double slowValue2 = 0.0;
+      if(!CopyIndicatorValue(m_slowHandle, slowShift1, slowValue1) ||
+         !CopyIndicatorValue(m_slowHandle, slowShift2, slowValue2))
+         return false;
+
+      slowBuffer[1] = slowValue1;
+      slowBuffer[2] = slowValue2;
+      slowBuffer[0] = slowValue1;
       return true;
      }
 

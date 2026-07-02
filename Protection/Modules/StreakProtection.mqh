@@ -184,6 +184,25 @@ public:
          ApplyWinBlock();
      }
 
+   void              ReconcileCounts(const int lossStreak,const int winStreak)
+     {
+      m_lossStreak = (lossStreak < 0) ? 0 : lossStreak;
+      m_winStreak = (winStreak < 0) ? 0 : winStreak;
+
+      if(m_settings.lossStreakEnabled &&
+         m_settings.maxLossStreak > 0 &&
+         m_lossStreak >= m_settings.maxLossStreak &&
+         m_settings.lossStreakAction == STREAK_ACTION_STOP_DAY &&
+         !m_lossStopDayBlocked)
+         ApplyLossBlock();
+      if(m_settings.winStreakEnabled &&
+         m_settings.maxWinStreak > 0 &&
+         m_winStreak >= m_settings.maxWinStreak &&
+         m_settings.winStreakAction == STREAK_ACTION_STOP_DAY &&
+         !m_winStopDayBlocked)
+         ApplyWinBlock();
+     }
+
    int               LossStreak(void) const
      {
       return m_lossStreak;

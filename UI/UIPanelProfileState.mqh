@@ -8,10 +8,11 @@
       return (m_profileMode == FUSION_PROFILE_DUPLICATE);
      }
 
-   void                       SplitProfileStatusText(const string text,string &line1,string &line2) const
+   void                       SplitProfileStatusText(const string text,string &line1,string &line2,string &line3) const
      {
       line1 = text;
       line2 = "";
+      line3 = "";
 
       int splitAt = StringFind(text, ". ");
       if(splitAt <= 0)
@@ -19,6 +20,14 @@
 
       line1 = StringSubstr(text, 0, splitAt + 1);
       line2 = FusionTrimCopy(StringSubstr(text, splitAt + 2));
+
+      int secondSplitAt = StringFind(line2, ". ");
+      if(secondSplitAt <= 0)
+         return;
+
+      string remaining = line2;
+      line2 = StringSubstr(remaining, 0, secondSplitAt + 1);
+      line3 = FusionTrimCopy(StringSubstr(remaining, secondSplitAt + 2));
      }
 
    void                       ApplyProfileStatusLabels(const string text,const color clr)
@@ -28,11 +37,14 @@
 
       string line1 = "";
       string line2 = "";
-      SplitProfileStatusText(text, line1, line2);
+      string line3 = "";
+      SplitProfileStatusText(text, line1, line2, line3);
       m_profileStatus.Text(line1);
       m_profileStatus.Color(clr);
       m_profileStatusDetail.Text(line2);
       m_profileStatusDetail.Color(clr);
+      m_profileStatusDetail2.Text(line3);
+      m_profileStatusDetail2.Color(clr);
      }
 
    void                       SetProfileStatus(const string text,const color clr,const bool persist=false)

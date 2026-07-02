@@ -54,9 +54,9 @@ private:
      {
       m_pendingDiagnostic = eventText +
                             ": motivo=" + motive +
-                            "; P/L fechado=" + MoneyText(m_dailyClosedProfit) +
-                            "; P/L flutuante=" + MoneyText(floatingProfit) +
-                            "; P/L projetado=" + MoneyText(projectedProfit) +
+                            "; P/L bruto fechado=" + MoneyText(m_dailyClosedProfit) +
+                            "; P/L bruto flutuante=" + MoneyText(floatingProfit) +
+                            "; P/L bruto projetado=" + MoneyText(projectedProfit) +
                             "; limite=" + limitText + ".";
      }
 
@@ -152,6 +152,12 @@ public:
       CProtectionModuleBase::Init(settings);
       m_dayKey = FusionProtectionCurrentDayKey();
       return true;
+     }
+
+   void              ResetDaily(void)
+     {
+      m_dayKey = FusionProtectionCurrentDayKey();
+      ResetDailyState();
      }
 
    bool              ResetIfNewDay(void)
