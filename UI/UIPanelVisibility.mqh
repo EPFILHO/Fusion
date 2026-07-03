@@ -17,6 +17,7 @@
             FusionApplyActionButtonStyle(m_cfgSystemConflictBtn, FUSION_CLR_NAV_IDLE, true);
          else
             FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
+         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
         }
       if(m_activeTab == FUSION_TAB_PROFILES)
@@ -77,7 +78,10 @@
       if(m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION))
          RefreshProtectionTheme();
       if(m_configSystemCreated && IsConfigPageVisible(FUSION_CFG_SYSTEM))
+        {
+         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+        }
      }
 
    void                       SetConfigVisible(const bool visible)
@@ -117,11 +121,14 @@
          SetVisible(m_cfgSystemMagicEdit, systemVisible);
          SetVisible(m_cfgSystemConflictLbl, systemVisible);
          SetVisible(m_cfgSystemConflictBtn, systemVisible);
+         SetVisible(m_cfgSystemIndicatorsLbl, systemVisible);
+         SetVisible(m_cfgSystemIndicatorsBtn, systemVisible);
          SetVisible(m_cfgSystemDebugLbl, systemVisible);
          SetVisible(m_cfgSystemDebugBtn, systemVisible);
          SetVisible(m_cfgSystemFoot1, systemVisible);
          SetVisible(m_cfgSystemFoot2, systemVisible);
          SetVisible(m_cfgSystemFoot3, systemVisible);
+         SetVisible(m_cfgSystemFoot4, systemVisible);
         }
       if(visible)
          RestoreConfigStatus();

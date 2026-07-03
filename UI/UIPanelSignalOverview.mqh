@@ -19,6 +19,28 @@
       return "Bollinger";
      }
 
+   string                     StrategyTimeframeText(const int index) const
+     {
+      if(index == 0)
+        {
+         string fast = FusionTimeframeName(m_draftSettings.maFastTimeframe);
+         string slow = FusionTimeframeName(m_draftSettings.maSlowTimeframe);
+         return (fast == slow) ? fast : fast + "/" + slow;
+        }
+      if(index == 1)
+         return FusionTimeframeName(m_draftSettings.rsiTimeframe);
+      return FusionTimeframeName(m_draftSettings.bbTimeframe);
+     }
+
+   string                     FilterTimeframeText(const int index) const
+     {
+      if(index == 0)
+         return FusionTimeframeName(m_draftSettings.trendMATimeframe);
+      if(index == 1)
+         return FusionTimeframeName(m_draftSettings.rsiFilterTimeframe);
+      return FusionTimeframeName(m_draftSettings.bbFilterTimeframe);
+     }
+
    bool                       CreateStrategyOverview(void)
      {
       CFusionHitGroup *previous = PushBuildTarget(m_strategyOverviewGroup);
@@ -31,7 +53,7 @@
         {
          if(!AddLabel(m_strategyOverviewName[i], "Fusion_strat_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             ok = false;
-         if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
+         if(!AddLabel(m_strategyOverviewState[i], "Fusion_strat_state_" + IntegerToString(i), 162, y, 380, y + 18, "--", FUSION_CLR_VALUE, 9))
             ok = false;
          y += 34;
         }
@@ -63,7 +85,7 @@
         {
          if(!AddLabel(m_filterOverviewName[i], "Fusion_filter_name_" + IntegerToString(i), 24, y, 150, y + 18, "--", FUSION_CLR_LABEL, 9))
             ok = false;
-         if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 162, y, 280, y + 18, "--", FUSION_CLR_VALUE, 9))
+         if(!AddLabel(m_filterOverviewState[i], "Fusion_filter_state_" + IntegerToString(i), 162, y, 380, y + 18, "--", FUSION_CLR_VALUE, 9))
             ok = false;
          y += 34;
         }
@@ -92,7 +114,8 @@
       for(int i = 0; i < FUSION_STRATEGY_PANEL_COUNT; ++i)
         {
          m_strategyOverviewName[i].Text(StrategyDisplayName(i));
-         FusionApplyStateLabel(m_strategyOverviewState[i], strategyStates[i], "ATIVO", "OFF");
+         string timeframe = StrategyTimeframeText(i);
+         FusionApplyStateLabel(m_strategyOverviewState[i], strategyStates[i], "ATIVO (" + timeframe + ")", "OFF (" + timeframe + ")");
         }
      }
 
@@ -105,7 +128,8 @@
       for(int i = 0; i < FUSION_FILTER_PANEL_COUNT; ++i)
         {
          m_filterOverviewName[i].Text(FilterDisplayName(i));
-         FusionApplyStateLabel(m_filterOverviewState[i], filterStates[i], "ATIVO", "OFF");
+         string timeframe = FilterTimeframeText(i);
+         FusionApplyStateLabel(m_filterOverviewState[i], filterStates[i], "ATIVO (" + timeframe + ")", "OFF (" + timeframe + ")");
         }
      }
 

@@ -124,6 +124,8 @@
 
       if(m_draftSettings.conflictMode != m_committedSettings.conflictMode)
          return true;
+      if(m_draftSettings.showChartIndicators != m_committedSettings.showChartIndicators)
+         return true;
       return (m_draftSettings.debugLogs != m_committedSettings.debugLogs);
      }
 

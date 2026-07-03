@@ -112,9 +112,12 @@ private:
    CButton                    m_cfgSystemConflictBtn;
    CLabel                     m_cfgSystemDebugLbl;
    CButton                    m_cfgSystemDebugBtn;
+   CLabel                     m_cfgSystemIndicatorsLbl;
+   CButton                    m_cfgSystemIndicatorsBtn;
    CLabel                     m_cfgSystemFoot1;
    CLabel                     m_cfgSystemFoot2;
    CLabel                     m_cfgSystemFoot3;
+   CLabel                     m_cfgSystemFoot4;
    CLabel                     m_cfgStatus;
 
 #include "UIPanelConfigValidation.mqh"

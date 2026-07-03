@@ -46,6 +46,20 @@ Arquivos novos devem nascer pequenos. Se uma tela ou modulo exigir varias respon
 8. Protecoes podem bloquear entrada ou forcar saida.
 9. A GUI envia comandos para a aplicacao, mas a aplicacao continua sendo dona do estado operacional.
 
+## Indicadores Visuais
+
+`CChartIndicatorVisualizer` e uma camada apenas de apresentacao. Ela cria handles proprios para MA, RSI e Bollinger ativos e nunca reutiliza os handles das estrategias ou filtros. Assim, adicionar, remover ou recriar uma linha no grafico nao altera a avaliacao de sinais.
+
+O MT5 atualiza os indicadores adicionados ao grafico. O Fusion apenas os reconcilia quando o perfil/configuracao muda, no ciclo do timer e no desligamento. Configuracoes identicas sao deduplicadas. Nesta primeira versao, o indicador so e exibido quando seu timeframe coincide com o timeframe atual do grafico; visualizacao MTF exige uma implementacao propria futura.
+
+Como as operacoes de grafico do MT5 sao assincronas, a reconciliacao visual usa duas fases. Ao mudar configuracao ou timeframe, o primeiro ciclo libera os handles, remove por prefixo todos os indicadores pertencentes ao Fusion e confirma que nao restou nenhum. Somente um ciclo posterior cria o conjunto desejado. A contagem entre indicadores rastreados e encontrados no grafico detecta duplicatas e orfaos e rearma a limpeza.
+
+As tres MAs visuais sao reunidas em `VisualIndicators/FusionVisualMA.mq5`, embutido como recurso no executavel principal. As cores sao fixas: rapida verde, lenta vermelha e Trend fucsia. As bandas visuais usam `VisualIndicators/FusionVisualBands.mq5` e sao desenhadas em azul; o RSI visual usa `VisualIndicators/FusionVisualRSI.mq5`. Para um build limpo, compile primeiro os tres indicadores visuais e depois `Fusion.mq5`; em execucao, basta distribuir o `Fusion.ex5`, que ja contem os recursos.
+
+O visualizador mantem uma legenda independente chamada `Legenda Medias`, com papel, periodo e valor atual das MAs. Enquanto a visualizacao global estiver ativa, cada linha permanece presente: `OFF` significa realmente desligada; uma MA configurada fora do timeframe atual informa explicitamente `outro TF`; durante a segunda fase aparece `aguardando`. A legenda usa `OBJ_RECTANGLE_LABEL` e `OBJ_LABEL`, fica fixa no canto superior direito, acompanha o redimensionamento do grafico e e atualizada no timer sem participar dos sinais. Nao se usa um segundo `CAppDialog`: o MT5 possui um bug confirmado em que `ChartIndicatorDelete()` fecha esse tipo de janela ao trocar indicadores no grafico (https://www.mql5.com/en/forum/376106).
+
+MA, BB e RSI visuais recebem short names que incluem `ChartID`. A limpeza procura esses prefixos em todas as subjanela e pode remover repetidamente nomes duplicados porque a propriedade e inequivoca; indicadores manuais sem o prefixo do Fusion nao sao tocados.
+
 ## Responsabilidades dos Modulos
 
 ### `Core`

@@ -9,6 +9,10 @@
 #property version   FUSION_APP_VERSION
 #property strict
 
+#resource "VisualIndicators\\FusionVisualMA.ex5"
+#resource "VisualIndicators\\FusionVisualBands.ex5"
+#resource "VisualIndicators\\FusionVisualRSI.ex5"
+
 #include "Core/EAApplication.mqh"
 
 CFusionApplication *g_app = NULL;

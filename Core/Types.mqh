@@ -163,6 +163,7 @@ struct SEASettings
    int                      magicNumber;
    int                      slippagePoints;
    bool                     debugLogs;
+   bool                     showChartIndicators;
    ENUM_CONFLICT_RESOLUTION conflictMode;
    ENUM_TRADE_DIRECTION     tradeDirection;
    bool                     enableSpreadProtection;
@@ -500,6 +501,7 @@ void SetDefaultSettings(SEASettings &settings)
    settings.magicNumber           = 10001;
    settings.slippagePoints        = 20;
    settings.debugLogs             = false;
+   settings.showChartIndicators   = false;
    settings.conflictMode          = CONFLICT_PRIORITY;
    settings.tradeDirection        = DIRECTION_BOTH;
    settings.enableSpreadProtection= false;

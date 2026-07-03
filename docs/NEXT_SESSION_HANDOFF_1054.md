@@ -8,6 +8,8 @@ Este documento prepara a proxima sessao da 1.054. A 1.053 ficou como checkpoint 
 
 Entrar na 1.054 com uma fase inicial de auditoria, limpeza e otimizacao curta antes de abrir novas features. A prioridade e preservar o que foi validado na 1.053 e reduzir risco acumulado em `Risk`, `Protect`, status operacional, persistencia e GUI.
 
+Estado mais recente: `CONFIG > SYSTEM` possui um toggle persistente para indicadores visuais. O componente visual usa handles separados, exibe apenas MA/RSI/Bollinger ativos no mesmo timeframe do grafico e reconcilia mudancas em duas fases: primeiro limpa e confirma a ausencia de indicadores pertencentes ao Fusion; no timer seguinte recria o conjunto. A contagem real detecta duplicatas e orfaos apos reload ou troca de timeframe. Os recursos `VisualIndicators/FusionVisualMA.mq5`, `FusionVisualBands.mq5` e `FusionVisualRSI.mq5` devem ser compilados antes de `Fusion.mq5`; MA rapida e verde, lenta vermelha, Trend fucsia e Bollinger azul.
+
 ## Preparacao De Pasta
 
 Antes de codar, criar ou confirmar uma pasta propria para a 1.054. A 1.053 deve ficar como checkpoint intacto.

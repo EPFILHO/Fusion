@@ -48,15 +48,21 @@
          return false;
       if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORIDADE", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 274, 170, 292, "Logs Debug", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemIndicatorsLbl, "Fusion_cfg_indicators_lbl", 22, 274, 180, 292, "Indicadores no Grafico", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
+      if(!AddButton(m_cfgSystemIndicatorsBtn, "Fusion_cfg_indicators_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 424, 560, 442, "PRIORIDADE: em sinais opostos, o maior numero vence.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 312, 170, 330, "Logs Debug", FUSION_CLR_LABEL))
          return false;
-      if(!AddLabel(m_cfgSystemFoot2, "Fusion_cfg_system_foot_2", 22, 446, 560, 464, "CANCELAR: sinais opostos cancelam a entrada.", FUSION_CLR_MUTED, 8))
+      if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 310, 310, 334, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgSystemFoot3, "Fusion_cfg_system_foot_3", 22, 468, 560, 486, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 402, 560, 420, "PRIORIDADE: em sinais opostos, o maior numero vence.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot2, "Fusion_cfg_system_foot_2", 22, 424, 560, 442, "CANCELAR: sinais opostos cancelam a entrada.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot3, "Fusion_cfg_system_foot_3", 22, 446, 560, 464, "Indicadores ON exibe os ativos compativeis com o TF do grafico.", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddLabel(m_cfgSystemFoot4, "Fusion_cfg_system_foot_4", 22, 468, 560, 486, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -75,6 +81,7 @@
       m_configSystemCreated = true;
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
+      FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
       FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
       return true;
      }
@@ -107,9 +114,25 @@
       return true;
      }
 
+   bool                       HandleConfigSystemIndicatorsClick(const string objectName)
+     {
+      if(!m_configSystemCreated || objectName != m_cfgSystemIndicatorsBtn.Name())
+         return false;
+
+      ReleaseButton(m_cfgSystemIndicatorsBtn);
+      if(!CanEditActiveProfile())
+         return true;
+
+      m_draftSettings.showChartIndicators = !m_draftSettings.showChartIndicators;
+      RefreshConfigValidation();
+      return true;
+     }
+
    bool                       HandleConfigSystemClick(const string objectName)
      {
       if(HandleConfigSystemConflictClick(objectName))
+         return true;
+      if(HandleConfigSystemIndicatorsClick(objectName))
          return true;
       if(HandleConfigSystemDebugClick(objectName))
          return true;

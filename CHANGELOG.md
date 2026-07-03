@@ -1,6 +1,17 @@
 # Changelog
 
 ## 1.054 - 2026-05-31
+- `CONFIG > SYSTEM` ganhou `Indicadores no Grafico`: quando salvo em `ON`, o Fusion exibe MA, RSI e Bollinger ativos que usam o mesmo timeframe do grafico, com handles visuais separados dos handles operacionais e limpeza no reload/desligamento.
+- A visualizacao deduplica configuracoes identicas entre estrategias e filtros; indicadores de timeframe diferente sao omitidos e resumidos uma unica vez no log `VISUAL`.
+- As MAs visuais usam um indicador auxiliar embutido no `Fusion.ex5`: MA rapida verde, MA lenta vermelha e Trend MA fucsia. O nome visual e exclusivo por grafico para permitir troca de TF/parametros sem deixar linhas antigas.
+- A legenda no canto superior direito mostra periodo e valor atual das MAs nas cores correspondentes. A remocao passou a resolver indicadores nativos pendentes pelos parametros, cobrindo OFF/reload de estrategias e filtros.
+- A legenda das MAs ganhou fundo preto com borda discreta e altura ajustada ao numero de linhas. `STRATS > GERAL` e `FILTERS > GERAL` agora mostram os timeframes configurados no perfil ao lado de `ATIVO/OFF`.
+- A legenda `Legenda Medias` usa um overlay proprio de objetos do grafico, fixo no canto superior direito e com conteudo contido no fundo preto. Isso evita o bug confirmado do MT5 em que `ChartIndicatorDelete()` fecha janelas `CAppDialog` durante a troca de MA, Trend, RSI ou Bollinger.
+- A legenda permanece ativa durante a reconstruucao visual e se recria caso seus objetos sejam removidos pelo terminal.
+- Enquanto `Indicadores no Grafico` estiver ON, a legenda permanece visivel e distingue MA desligada (`OFF`), configurada em outro timeframe, aguardando reconstrucao, ativa ou compartilhada com outra curva identica.
+- A reconciliacao visual passou a ser transacional: um ciclo remove e confirma a ausencia de todos os indicadores pertencentes ao Fusion; somente o timer seguinte recria o conjunto desejado. Uma contagem independente detecta e limpa duplicatas e orfaos apos reload ou troca de timeframe.
+- As bandas de Bollinger visuais agora usam um indicador auxiliar embutido e sao desenhadas em azul, sem alterar os handles ou calculos operacionais de estrategias e filtros.
+- O RSI visual tambem usa um indicador auxiliar com nome de propriedade do Fusion, permitindo limpeza segura sem tocar em indicadores manuais do usuario.
 - Fechamentos agora entram em reconciliacao persistente: o EA confirma pelo historico que todo o volume de entrada possui volume de saida correspondente antes de atualizar DAY/DD/STREAK, bloqueia novas entradas durante a espera e repete a consulta por tick, timer e eventos de trade.
 - A reconciliacao usa o horario real do ultimo deal para nao contaminar o novo dia, sobrevive a reinicio/troca de timeframe e cancela a espera se a mesma posicao reaparecer depois de uma oscilacao de conexao.
 - Na inicializacao, o EA agora confere o historico bruto do dia por ativo/magic e repara P/L, Trades, Loss/Win/BE e streak quando o chart state persistido divergir; historico vazio durante desconexao nao sobrescreve o estado salvo.

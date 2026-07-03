@@ -22,6 +22,7 @@
 #include "../Execution/ExecutionService.mqh"
 #include "../Persistence/SettingsStore.mqh"
 #include "../UI/UIPanel.mqh"
+#include "../UI/ChartIndicatorVisualizer.mqh"
 
 class CFusionApplication
   {
@@ -46,6 +47,7 @@ private:
    CActiveProfileRegistry  m_activeProfileRegistry;
    CTradePermissionGuard   m_tradePermissionGuard;
    CPendingReverseExit     m_pendingReverseExit;
+   CChartIndicatorVisualizer m_chartIndicators;
    CFusionPanel            m_panel;
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
@@ -1023,6 +1025,7 @@ private:
       ClearProtectionNoticeDisabledBySettings();
       ClearEntryBlockNotice();
       bool signalsReloaded = m_signalManager.ReloadAll(m_settings, scope);
+      m_chartIndicators.Sync(m_settings);
       if(identityChanged)
         {
          ResetDailyHistoryAudit();
@@ -1793,6 +1796,7 @@ private:
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
+      m_chartIndicators.Init(&m_logger, ChartID());
       m_tradePermissionGuard.Init(&m_logger, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
@@ -1811,6 +1815,7 @@ private:
 
       if(!m_signalManager.Initialize(&m_logger, _Symbol, m_settings))
          return false;
+      m_chartIndicators.Sync(m_settings);
       uint signalDoneTick = GetTickCount();
 
       if(!m_runtimeBlocked)
@@ -1884,6 +1889,7 @@ private:
       PersistChartState(reason);
       ReleaseRunningInstance();
       m_activeProfileRegistry.Unregister();
+      m_chartIndicators.Shutdown(reason);
       m_panel.Destroy(reason);
       m_signalManager.Shutdown();
      }
@@ -1976,6 +1982,7 @@ private:
 
    void              OnTimer(void)
      {
+      m_chartIndicators.Sync(m_settings);
       if(!m_runtimeBlocked)
         {
          SyncPositionState();
@@ -1995,6 +2002,7 @@ private:
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
+      m_chartIndicators.OnChartEvent(id, lparam, dparam, sparam);
       if(!ShouldShowPanel())
          return;
 

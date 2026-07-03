@@ -59,6 +59,7 @@ private:
       ok = WriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
       ok = WriteLine(handle, "slippagePoints", IntegerToString(settings.slippagePoints)) && ok;
       ok = WriteLine(handle, "debugLogs", IntegerToString((int)settings.debugLogs)) && ok;
+      ok = WriteLine(handle, "showChartIndicators", IntegerToString((int)settings.showChartIndicators)) && ok;
       ok = WriteLine(handle, "conflictMode", IntegerToString((int)settings.conflictMode)) && ok;
       ok = WriteLine(handle, "tradeDirection", IntegerToString((int)settings.tradeDirection)) && ok;
       ok = WriteLine(handle, "enableSpreadProtection", IntegerToString((int)settings.enableSpreadProtection)) && ok;
@@ -224,6 +225,7 @@ private:
       else if(key == "magicNumber") settings.magicNumber = (int)StringToInteger(value);
       else if(key == "slippagePoints") settings.slippagePoints = (int)StringToInteger(value);
       else if(key == "debugLogs") settings.debugLogs = (bool)StringToInteger(value);
+      else if(key == "showChartIndicators") settings.showChartIndicators = (bool)StringToInteger(value);
       else if(key == "conflictMode") settings.conflictMode = (ENUM_CONFLICT_RESOLUTION)StringToInteger(value);
       else if(key == "tradeDirection") settings.tradeDirection = (ENUM_TRADE_DIRECTION)StringToInteger(value);
       else if(key == "enableSpreadProtection") settings.enableSpreadProtection = (bool)StringToInteger(value);
