@@ -232,6 +232,16 @@
          m_cfgSystemIndicatorsLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, editable);
          m_cfgSystemDebugLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, editable);
+         FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, editable);
+         FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, editable);
+         FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, editable);
+         m_cfgSystemColorsLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemFastColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemSlowColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemTrendColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemBBColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemFootColors.Color(FUSION_CLR_MUTED);
          m_cfgSystemFoot1.Color(FUSION_CLR_MUTED);
          m_cfgSystemFoot2.Color(FUSION_CLR_MUTED);
          m_cfgSystemFoot3.Color(FUSION_CLR_MUTED);

@@ -647,7 +647,40 @@ void FusionApplyToggleButtonStyle(CButton &button,const bool enabled,const bool 
    if(!editable)
       FusionApplyNeutralButtonStyle(button);
    else
-      FusionApplyActionButtonStyle(button, enabled ? FUSION_CLR_GOOD : FUSION_CLR_BAD, true);
+     FusionApplyActionButtonStyle(button, enabled ? FUSION_CLR_GOOD : FUSION_CLR_BAD, true);
+  }
+
+color FusionContrastTextColor(const color background)
+  {
+   int value = (int)background;
+   int red = value & 0xFF;
+   int green = (value >> 8) & 0xFF;
+   int blue = (value >> 16) & 0xFF;
+   return ((red * 299 + green * 587 + blue * 114) >= 150000) ? clrBlack : clrWhite;
+  }
+
+void FusionApplyColorSwatchStyle(CButton &button,const color selectedColor,const bool editable=true)
+  {
+   if(!editable)
+     {
+      FusionApplyNeutralButtonStyle(button);
+      return;
+     }
+   button.Color(FusionContrastTextColor(selectedColor));
+   button.ColorBackground(selectedColor);
+  }
+
+color FusionNextVisualColor(const color currentColor)
+  {
+   color palette[12] = {clrLime, clrDarkGreen, clrRed, clrDarkRed,
+                        clrMagenta, clrDodgerBlue, clrNavy, clrYellow,
+                        clrGold, clrCyan, clrOrange, clrWhite};
+   for(int i = 0; i < ArraySize(palette); ++i)
+     {
+      if(palette[i] == currentColor)
+         return palette[(i + 1) % ArraySize(palette)];
+     }
+   return palette[0];
   }
 
 void FusionApplyStateLabel(CLabel &label,const bool enabled,const string enabledText,const string disabledText)

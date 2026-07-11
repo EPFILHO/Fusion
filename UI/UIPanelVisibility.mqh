@@ -19,6 +19,10 @@
             FusionApplyNeutralButtonStyle(m_cfgSystemConflictBtn);
          FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, CanEditActiveProfile());
         }
       if(m_activeTab == FUSION_TAB_PROFILES)
          UpdateProfileListView();
@@ -81,6 +85,10 @@
         {
          FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, CanEditActiveProfile());
         }
      }
 
@@ -125,6 +133,17 @@
          SetVisible(m_cfgSystemIndicatorsBtn, systemVisible);
          SetVisible(m_cfgSystemDebugLbl, systemVisible);
          SetVisible(m_cfgSystemDebugBtn, systemVisible);
+         SetVisible(m_cfgSystemColorsFrame, systemVisible);
+         SetVisible(m_cfgSystemColorsLbl, systemVisible);
+         SetVisible(m_cfgSystemFastColorLbl, systemVisible);
+         SetVisible(m_cfgSystemSlowColorLbl, systemVisible);
+         SetVisible(m_cfgSystemTrendColorLbl, systemVisible);
+         SetVisible(m_cfgSystemBBColorLbl, systemVisible);
+         SetVisible(m_cfgSystemFastColorBtn, systemVisible);
+         SetVisible(m_cfgSystemSlowColorBtn, systemVisible);
+         SetVisible(m_cfgSystemTrendColorBtn, systemVisible);
+         SetVisible(m_cfgSystemBBColorBtn, systemVisible);
+         SetVisible(m_cfgSystemFootColors, systemVisible);
          SetVisible(m_cfgSystemFoot1, systemVisible);
          SetVisible(m_cfgSystemFoot2, systemVisible);
          SetVisible(m_cfgSystemFoot3, systemVisible);

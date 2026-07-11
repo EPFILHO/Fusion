@@ -64,6 +64,10 @@
          m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
          FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, CanEditActiveProfile());
         }
       if(m_profilesEditCreated)
          m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));

@@ -126,6 +126,11 @@
          return true;
       if(m_draftSettings.showChartIndicators != m_committedSettings.showChartIndicators)
          return true;
+      if(m_draftSettings.visualMAFastColor != m_committedSettings.visualMAFastColor ||
+         m_draftSettings.visualMASlowColor != m_committedSettings.visualMASlowColor ||
+         m_draftSettings.visualMATrendColor != m_committedSettings.visualMATrendColor ||
+         m_draftSettings.visualBBColor != m_committedSettings.visualBBColor)
+         return true;
       return (m_draftSettings.debugLogs != m_committedSettings.debugLogs);
      }
 

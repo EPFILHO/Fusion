@@ -6,6 +6,7 @@
 #include "IndicatorLegendOverlay.mqh"
 
 #define FUSION_VISUAL_HANDLE_COUNT 7
+#define FUSION_RSI_WINDOW_HEIGHT  100
 
 class CChartIndicatorVisualizer
   {
@@ -22,13 +23,10 @@ private:
    string   m_fingerprint;
    string   m_pendingFingerprint;
    bool     m_rebuildPending;
-   int      m_maHandle;
+   ulong    m_lastHealthCheckMs;
    bool     m_showFastMA;
    bool     m_showSlowMA;
    bool     m_showTrendMA;
-   int      m_fastPeriod;
-   int      m_slowPeriod;
-   int      m_trendPeriod;
    CIndicatorLegendOverlay m_legendOverlay;
 
    void     ResetEntries(void)
@@ -43,13 +41,9 @@ private:
       m_count = 0;
       m_rsiWindow = -1;
       m_skippedTimeframes = 0;
-      m_maHandle = INVALID_HANDLE;
       m_showFastMA = false;
       m_showSlowMA = false;
       m_showTrendMA = false;
-      m_fastPeriod = 0;
-      m_slowPeriod = 0;
-      m_trendPeriod = 0;
      }
 
    bool     KeyExists(const string key) const
@@ -99,32 +93,33 @@ private:
 
    bool     PurgeOwnedIndicators(void)
      {
-      for(int pass = 0; pass < 8; ++pass)
+      bool found = false;
+      int windows = (int)ChartGetInteger(m_chartId, CHART_WINDOWS_TOTAL);
+      for(int window = windows - 1; window >= 0; --window)
         {
-         bool found = false;
-         int windows = (int)ChartGetInteger(m_chartId, CHART_WINDOWS_TOTAL);
-         for(int window = windows - 1; window >= 0; --window)
+         int total = ChartIndicatorsTotal(m_chartId, window);
+         for(int i = total - 1; i >= 0; --i)
            {
-            int total = ChartIndicatorsTotal(m_chartId, window);
-            for(int i = total - 1; i >= 0; --i)
-              {
-               string name = ChartIndicatorName(m_chartId, window, i);
-               if(!IsOwnedVisualName(name))
-                  continue;
-               found = true;
-               ChartIndicatorDelete(m_chartId, window, name);
-              }
+            string name = ChartIndicatorName(m_chartId, window, i);
+            if(!IsOwnedVisualName(name))
+               continue;
+            found = true;
+            ChartIndicatorDelete(m_chartId, window, name);
            }
-
-         if(!found)
-            return true;
-         ChartRedraw(m_chartId);
         }
 
-      bool clean = !OwnedVisualsRemain();
-      if(!clean && m_logger != NULL)
-         m_logger.Warn("VISUAL", "Aguardando limpeza dos indicadores visuais anteriores.");
-      return clean;
+      if(found)
+         ChartRedraw(m_chartId);
+      return !found;
+     }
+
+   bool     HealthCheckDue(void)
+     {
+      ulong now = GetTickCount64();
+      if(m_lastHealthCheckMs != 0 && now - m_lastHealthCheckMs < 5000)
+         return false;
+      m_lastHealthCheckMs = now;
+      return true;
      }
 
    int      IndicatorNameCount(const int window,const string name) const
@@ -225,21 +220,41 @@ private:
       return true;
      }
 
-   bool     SameMA(const int firstPeriod,
+   bool     SameMA(const ENUM_TIMEFRAMES firstTimeframe,
+                   const int firstPeriod,
                    const ENUM_MA_METHOD firstMethod,
                    const ENUM_APPLIED_PRICE firstPrice,
+                   const ENUM_TIMEFRAMES secondTimeframe,
                    const int secondPeriod,
                    const ENUM_MA_METHOD secondMethod,
                    const ENUM_APPLIED_PRICE secondPrice) const
      {
-      return (firstPeriod == secondPeriod && firstMethod == secondMethod && firstPrice == secondPrice);
+      return (firstTimeframe == secondTimeframe &&
+              firstPeriod == secondPeriod &&
+              firstMethod == secondMethod &&
+              firstPrice == secondPrice);
+     }
+
+   bool     ShouldShowFastMA(const SEASettings &settings) const
+     {
+      return (settings.useMACross && CompatibleTimeframe(settings.maFastTimeframe));
+     }
+
+   bool     ShouldShowSlowMA(const SEASettings &settings) const
+     {
+      return (settings.useMACross && CompatibleTimeframe(settings.maSlowTimeframe));
+     }
+
+   bool     ShouldShowTrendMA(const SEASettings &settings) const
+     {
+      return (settings.useTrendFilter && CompatibleTimeframe(settings.trendMATimeframe));
      }
 
    void     AddMovingAverages(const SEASettings &settings)
      {
-      bool showFast = (settings.useMACross && CompatibleTimeframe(settings.maFastTimeframe));
-      bool showSlow = (settings.useMACross && CompatibleTimeframe(settings.maSlowTimeframe));
-      bool showTrend = (settings.useTrendFilter && CompatibleTimeframe(settings.trendMATimeframe));
+      bool showFast = ShouldShowFastMA(settings);
+      bool showSlow = ShouldShowSlowMA(settings);
+      bool showTrend = ShouldShowTrendMA(settings);
 
       if(settings.useMACross && !showFast)
          m_skippedTimeframes++;
@@ -249,16 +264,16 @@ private:
          m_skippedTimeframes++;
 
       if(showSlow && showFast &&
-         SameMA(settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
-                settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
+         SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
+                settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
          showSlow = false;
       if(showTrend && showFast &&
-         SameMA(settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
-                settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
+         SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
+                settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
          showTrend = false;
       if(showTrend && showSlow &&
-         SameMA(settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice,
-                settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
+         SameMA(settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice,
+                settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
          showTrend = false;
 
       if(!showFast && !showSlow && !showTrend)
@@ -270,26 +285,25 @@ private:
                            "::VisualIndicators\\FusionVisualMA.ex5",
                            shortName,
                            showFast,
+                           settings.visualMAFastColor,
                            settings.maFastPeriod,
                            settings.maFastMethod,
                            settings.maFastPrice,
                            showSlow,
+                           settings.visualMASlowColor,
                            settings.maSlowPeriod,
                            settings.maSlowMethod,
                            settings.maSlowPrice,
                            showTrend,
+                           settings.visualMATrendColor,
                            settings.trendMAPeriod,
                            settings.trendMAMethod,
                            settings.trendMAPrice);
       if(AddHandle(handle, 0, "FUSION_MA_BUNDLE", shortName))
         {
-         m_maHandle = handle;
          m_showFastMA = showFast;
          m_showSlowMA = showSlow;
          m_showTrendMA = showTrend;
-         m_fastPeriod = settings.maFastPeriod;
-         m_slowPeriod = settings.maSlowPeriod;
-         m_trendPeriod = settings.trendMAPeriod;
         }
      }
 
@@ -297,7 +311,8 @@ private:
                      const int period,
                      const ENUM_TIMEFRAMES timeframe,
                      const double deviation,
-                     const ENUM_APPLIED_PRICE price)
+                     const ENUM_APPLIED_PRICE price,
+                     const color lineColor)
      {
       if(KeyExists(key))
          return;
@@ -314,16 +329,52 @@ private:
                            timeframe,
                            "::VisualIndicators\\FusionVisualBands.ex5",
                            shortName,
+                           lineColor,
                            period,
                            deviation,
                            price);
       AddHandle(handle, 0, key, shortName);
      }
 
+   void     AddUniqueRSILevel(const int level,int &levels[]) const
+     {
+      if(level < 0 || level > 100)
+         return;
+      for(int i = 0; i < ArraySize(levels); ++i)
+        {
+         if(levels[i] == level)
+            return;
+        }
+      int count = ArraySize(levels);
+      if(count >= 5)
+         return;
+      ArrayResize(levels, count + 1);
+      levels[count] = level;
+     }
+
+   void     AddStrategyRSILevels(const SEASettings &settings,int &levels[]) const
+     {
+      if(settings.rsiMode == RSI_SIGNAL_CROSSOVER || settings.rsiMode == RSI_SIGNAL_ZONE)
+        {
+         AddUniqueRSILevel(settings.rsiOversold, levels);
+         AddUniqueRSILevel(settings.rsiOverbought, levels);
+        }
+      if(settings.rsiMode == RSI_SIGNAL_MIDDLE || settings.rsiExitMode == RSI_EXIT_MIDDLE_TARGET)
+         AddUniqueRSILevel(settings.rsiMiddle, levels);
+     }
+
+   void     AddFilterRSILevels(const SEASettings &settings,int &levels[]) const
+     {
+      AddUniqueRSILevel(settings.rsiFilterBuyMin, levels);
+      if(settings.rsiFilterMode != RSI_FILTER_DIRECTION)
+         AddUniqueRSILevel(settings.rsiFilterSellMax, levels);
+     }
+
    void     AddRSI(const string key,
                    const int period,
                    const ENUM_TIMEFRAMES timeframe,
-                   const ENUM_APPLIED_PRICE price)
+                   const ENUM_APPLIED_PRICE price,
+                   const int &levels[])
      {
       if(KeyExists(key))
          return;
@@ -339,14 +390,30 @@ private:
 
       string shortName = "Fusion Visual RSI " + StringFormat("%I64d", m_chartId) +
                          " " + IntegerToString(period) + ":" + IntegerToString((int)price);
+      int levelCount = MathMin(ArraySize(levels), 5);
+      int level1 = (levelCount > 0) ? levels[0] : 0;
+      int level2 = (levelCount > 1) ? levels[1] : 0;
+      int level3 = (levelCount > 2) ? levels[2] : 0;
+      int level4 = (levelCount > 3) ? levels[3] : 0;
+      int level5 = (levelCount > 4) ? levels[4] : 0;
       int handle = iCustom(_Symbol,
                            timeframe,
                            "::VisualIndicators\\FusionVisualRSI.ex5",
                            shortName,
                            period,
-                           price);
+                           price,
+                           levelCount,
+                           level1,
+                           level2,
+                           level3,
+                           level4,
+                           level5);
       if(AddHandle(handle, window, key, shortName) && m_rsiWindow < 0)
+        {
          m_rsiWindow = window;
+         ChartSetInteger(m_chartId, CHART_HEIGHT_IN_PIXELS, m_rsiWindow, FUSION_RSI_WINDOW_HEIGHT);
+         ChartRedraw(m_chartId);
+        }
      }
 
    void     RemoveEntry(const int index)
@@ -398,16 +465,6 @@ private:
       return true;
      }
 
-   string   LegendValue(const int bufferIndex) const
-     {
-      string valueText = "--";
-      double value[];
-      ArrayResize(value, 1);
-      if(m_maHandle != INVALID_HANDLE && CopyBuffer(m_maHandle, bufferIndex, 0, 1, value) == 1 && value[0] != EMPTY_VALUE)
-         valueText = DoubleToString(value[0], (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS));
-      return valueText;
-     }
-
    string   ShortTimeframe(const ENUM_TIMEFRAMES timeframe) const
      {
       string text = EnumToString(timeframe);
@@ -420,19 +477,20 @@ private:
                          const bool configured,
                          const ENUM_TIMEFRAMES timeframe,
                          const int period,
+                         const bool eligible,
                          const bool visible,
-                         const int bufferIndex,
                          const string sharedWith = "") const
      {
       if(!configured)
          return label + " OFF";
-      if(!CompatibleTimeframe(timeframe))
-         return label + " " + ShortTimeframe(timeframe) + " (outro TF)";
+      string prefix = label + " (" + IntegerToString(period) + ") " + ShortTimeframe(timeframe);
+      if(!eligible)
+         return prefix + ": outro TF";
       if(sharedWith != "")
-         return label + " (" + IntegerToString(period) + "): igual a " + sharedWith;
-      if(!visible || m_maHandle == INVALID_HANDLE)
-         return label + " (" + IntegerToString(period) + "): aguardando";
-      return label + " (" + IntegerToString(period) + "): " + LegendValue(bufferIndex);
+         return prefix + ": igual a " + sharedWith;
+      if(!visible)
+         return prefix + ": aguardando";
+      return prefix + ": ATIVA";
      }
 
    void     UpdateLegend(const SEASettings &settings)
@@ -444,25 +502,26 @@ private:
       bool fastConfigured = settings.useMACross;
       bool slowConfigured = settings.useMACross;
       bool trendConfigured = settings.useTrendFilter;
+      bool fastEligible = ShouldShowFastMA(settings);
+      bool slowEligible = ShouldShowSlowMA(settings);
+      bool trendEligible = ShouldShowTrendMA(settings);
       string slowShared = "";
       string trendShared = "";
 
-      if(fastConfigured && slowConfigured &&
-         CompatibleTimeframe(settings.maFastTimeframe) &&
-         CompatibleTimeframe(settings.maSlowTimeframe) &&
-         SameMA(settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
-                settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
+      if(fastEligible && slowEligible &&
+         SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
+                settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
          slowShared = "Rapida";
 
-      if(trendConfigured && CompatibleTimeframe(settings.trendMATimeframe))
+      if(trendEligible)
         {
-         if(fastConfigured && CompatibleTimeframe(settings.maFastTimeframe) &&
-            SameMA(settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
-                   settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
+         if(fastEligible &&
+            SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
+                   settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
             trendShared = "Rapida";
-         else if(slowConfigured && CompatibleTimeframe(settings.maSlowTimeframe) &&
-                 SameMA(settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
-                        settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
+         else if(slowEligible &&
+                 SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
+                        settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
             trendShared = "Lenta";
         }
 
@@ -470,22 +529,25 @@ private:
                                          fastConfigured,
                                          settings.maFastTimeframe,
                                          settings.maFastPeriod,
-                                         m_showFastMA,
-                                         0),
+                                         fastEligible,
+                                         m_showFastMA),
                             MALegendText("MA Lenta",
                                          slowConfigured,
                                          settings.maSlowTimeframe,
                                          settings.maSlowPeriod,
+                                         slowEligible,
                                          m_showSlowMA,
-                                         1,
                                          slowShared),
                             MALegendText("MA Trend",
                                          trendConfigured,
                                          settings.trendMATimeframe,
                                          settings.trendMAPeriod,
+                                         trendEligible,
                                          m_showTrendMA,
-                                         2,
-                                         trendShared));
+                                         trendShared),
+                             settings.visualMAFastColor,
+                             settings.visualMASlowColor,
+                             settings.visualMATrendColor);
      }
 
    void     ClearIndicators(void)
@@ -499,10 +561,9 @@ private:
 
    bool     NeedsMAVisual(const SEASettings &settings) const
      {
-      return ((settings.useMACross &&
-               (CompatibleTimeframe(settings.maFastTimeframe) ||
-                CompatibleTimeframe(settings.maSlowTimeframe))) ||
-              (settings.useTrendFilter && CompatibleTimeframe(settings.trendMATimeframe)));
+      return (ShouldShowFastMA(settings) ||
+              ShouldShowSlowMA(settings) ||
+              ShouldShowTrendMA(settings));
      }
 
    string   BuildFingerprint(const SEASettings &settings) const
@@ -536,15 +597,28 @@ private:
                           (int)settings.useRSIFilter,
                           settings.bbFilterDeviation,
                           (int)settings.bbFilterEnabled) +
-             StringFormat("|%d|%d|%d|%d|%d|%d|%d|%d",
+             StringFormat("|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d",
                           settings.rsiFilterPeriod,
                           (int)settings.rsiFilterTimeframe,
                           (int)settings.rsiFilterPrice,
                           settings.bbFilterPeriod,
                           (int)settings.bbFilterTimeframe,
                           (int)settings.bbFilterPrice,
+                          (int)settings.visualMAFastColor,
+                          (int)settings.visualMASlowColor,
+                          (int)settings.visualMATrendColor,
+                          (int)settings.visualBBColor,
                           (int)ChartID(),
-                          (int)m_chartId);
+                          (int)m_chartId) +
+             StringFormat("|%d|%d|%d|%d|%d|%d|%d|%d",
+                          settings.rsiOversold,
+                          settings.rsiOverbought,
+                          settings.rsiMiddle,
+                          (int)settings.rsiMode,
+                          (int)settings.rsiExitMode,
+                          (int)settings.rsiFilterMode,
+                          settings.rsiFilterBuyMin,
+                          settings.rsiFilterSellMax);
      }
 
    string   BandsKey(const int period,
@@ -562,23 +636,46 @@ private:
       return StringFormat("RSI:%d:%d:%d", period, (int)timeframe, (int)price);
      }
 
+   void     AddConfiguredRSIVisuals(const SEASettings &settings)
+     {
+      string strategyKey = RSIKey(settings.rsiPeriod, settings.rsiTimeframe, settings.rsiPrice);
+      string filterKey = RSIKey(settings.rsiFilterPeriod, settings.rsiFilterTimeframe, settings.rsiFilterPrice);
+
+      if(settings.useRSI && settings.useRSIFilter && strategyKey == filterKey)
+        {
+         int sharedLevels[];
+         AddStrategyRSILevels(settings, sharedLevels);
+         AddFilterRSILevels(settings, sharedLevels);
+         AddRSI(strategyKey, settings.rsiPeriod, settings.rsiTimeframe, settings.rsiPrice, sharedLevels);
+         return;
+        }
+
+      if(settings.useRSI)
+        {
+         int strategyLevels[];
+         AddStrategyRSILevels(settings, strategyLevels);
+         AddRSI(strategyKey, settings.rsiPeriod, settings.rsiTimeframe, settings.rsiPrice, strategyLevels);
+        }
+      if(settings.useRSIFilter)
+        {
+         int filterLevels[];
+         AddFilterRSILevels(settings, filterLevels);
+         AddRSI(filterKey, settings.rsiFilterPeriod, settings.rsiFilterTimeframe, settings.rsiFilterPrice, filterLevels);
+        }
+     }
+
    void     AddConfiguredVisuals(const SEASettings &settings)
      {
       AddMovingAverages(settings);
 
       if(settings.useBollinger)
          AddBands(BandsKey(settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice),
-                  settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice);
+                  settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice, settings.visualBBColor);
       if(settings.bbFilterEnabled)
          AddBands(BandsKey(settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice),
-                  settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice);
+                  settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice, settings.visualBBColor);
 
-      if(settings.useRSI)
-         AddRSI(RSIKey(settings.rsiPeriod, settings.rsiTimeframe, settings.rsiPrice),
-                settings.rsiPeriod, settings.rsiTimeframe, settings.rsiPrice);
-      if(settings.useRSIFilter)
-         AddRSI(RSIKey(settings.rsiFilterPeriod, settings.rsiFilterTimeframe, settings.rsiFilterPrice),
-                settings.rsiFilterPeriod, settings.rsiFilterTimeframe, settings.rsiFilterPrice);
+      AddConfiguredRSIVisuals(settings);
      }
 
    bool     DesiredVisualsReady(const SEASettings &settings) const
@@ -607,6 +704,7 @@ private:
       m_pendingFingerprint = fingerprint;
       m_rebuildPending = true;
       m_fingerprint = "";
+      m_lastHealthCheckMs = 0;
      }
 
    void     LogVisualSummary(void)
@@ -627,6 +725,7 @@ public:
       m_fingerprint = "";
       m_pendingFingerprint = "";
       m_rebuildPending = false;
+      m_lastHealthCheckMs = 0;
       ResetEntries();
      }
 
@@ -637,6 +736,7 @@ public:
       m_fingerprint = "";
       m_pendingFingerprint = "";
       m_rebuildPending = false;
+      m_lastHealthCheckMs = 0;
       ResetEntries();
       DeleteLegacyLegend();
       PurgeOwnedIndicators();
@@ -648,7 +748,8 @@ public:
       string fingerprint = BuildFingerprint(settings);
       if(!settings.showChartIndicators)
         {
-         if(m_count > 0 || m_rebuildPending || OwnedVisualsRemain())
+         bool checkOwned = HealthCheckDue();
+         if(m_count > 0 || m_rebuildPending || (checkOwned && OwnedVisualsRemain()))
            {
             ClearIndicators();
             PurgeOwnedIndicators();
@@ -687,21 +788,28 @@ public:
          m_fingerprint = fingerprint;
          m_pendingFingerprint = "";
          m_rebuildPending = false;
+         m_lastHealthCheckMs = GetTickCount64();
          ChartRedraw(m_chartId);
          UpdateLegend(settings);
          LogVisualSummary();
          return;
         }
 
-      if(fingerprint != m_fingerprint ||
-         !DesiredVisualsReady(settings) ||
-         OwnedVisualCount() != m_count)
+      if(fingerprint != m_fingerprint)
         {
          BeginRebuild(fingerprint);
          UpdateLegend(settings);
          return;
         }
 
+      if(!HealthCheckDue())
+         return;
+      if(!DesiredVisualsReady(settings) || OwnedVisualCount() != m_count)
+        {
+         BeginRebuild(fingerprint);
+         UpdateLegend(settings);
+         return;
+        }
       UpdateLegend(settings);
      }
 
@@ -721,6 +829,7 @@ public:
       m_fingerprint = "";
       m_pendingFingerprint = "";
       m_rebuildPending = false;
+      m_lastHealthCheckMs = 0;
       m_logger = NULL;
      }
   };

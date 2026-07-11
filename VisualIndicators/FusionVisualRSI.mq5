@@ -14,6 +14,12 @@
 input string             InpShortName = "Fusion Visual RSI";
 input int                InpPeriod = 14;
 input ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
+input int                InpLevelCount = 0;
+input int                InpLevel1 = 0;
+input int                InpLevel2 = 0;
+input int                InpLevel3 = 0;
+input int                InpLevel4 = 0;
+input int                InpLevel5 = 0;
 
 double RSIBuffer[];
 int    RSIHandle = INVALID_HANDLE;
@@ -34,6 +40,23 @@ int OnInit(void)
    IndicatorSetDouble(INDICATOR_MINIMUM, 0.0);
    IndicatorSetDouble(INDICATOR_MAXIMUM, 100.0);
    IndicatorSetString(INDICATOR_SHORTNAME, InpShortName);
+
+   int levelCount = MathMax(0, MathMin(InpLevelCount, 5));
+   int levels[5];
+   levels[0] = InpLevel1;
+   levels[1] = InpLevel2;
+   levels[2] = InpLevel3;
+   levels[3] = InpLevel4;
+   levels[4] = InpLevel5;
+   IndicatorSetInteger(INDICATOR_LEVELS, levelCount);
+   for(int i = 0; i < levelCount; ++i)
+     {
+      IndicatorSetDouble(INDICATOR_LEVELVALUE, i, (double)levels[i]);
+      IndicatorSetInteger(INDICATOR_LEVELCOLOR, i, clrSilver);
+      IndicatorSetInteger(INDICATOR_LEVELSTYLE, i, STYLE_DOT);
+      IndicatorSetInteger(INDICATOR_LEVELWIDTH, i, 1);
+      IndicatorSetString(INDICATOR_LEVELTEXT, i, IntegerToString(levels[i]));
+     }
 
    RSIHandle = iRSI(_Symbol, _Period, InpPeriod, InpPrice);
    if(RSIHandle == INVALID_HANDLE)

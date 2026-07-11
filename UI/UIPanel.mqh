@@ -114,6 +114,17 @@ private:
    CButton                    m_cfgSystemDebugBtn;
    CLabel                     m_cfgSystemIndicatorsLbl;
    CButton                    m_cfgSystemIndicatorsBtn;
+   CPanel                     m_cfgSystemColorsFrame;
+   CLabel                     m_cfgSystemColorsLbl;
+   CLabel                     m_cfgSystemFastColorLbl;
+   CLabel                     m_cfgSystemSlowColorLbl;
+   CLabel                     m_cfgSystemTrendColorLbl;
+   CLabel                     m_cfgSystemBBColorLbl;
+   CButton                    m_cfgSystemFastColorBtn;
+   CButton                    m_cfgSystemSlowColorBtn;
+   CButton                    m_cfgSystemTrendColorBtn;
+   CButton                    m_cfgSystemBBColorBtn;
+   CLabel                     m_cfgSystemFootColors;
    CLabel                     m_cfgSystemFoot1;
    CLabel                     m_cfgSystemFoot2;
    CLabel                     m_cfgSystemFoot3;

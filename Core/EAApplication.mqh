@@ -1982,7 +1982,6 @@ private:
 
    void              OnTimer(void)
      {
-      m_chartIndicators.Sync(m_settings);
       if(!m_runtimeBlocked)
         {
          SyncPositionState();
@@ -1998,6 +1997,7 @@ private:
       RefreshProfileBlockReasons();
 
       UpdatePanelIfVisible();
+      m_chartIndicators.Sync(m_settings);
      }
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)

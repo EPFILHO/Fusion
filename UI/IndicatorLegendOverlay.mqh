@@ -1,7 +1,9 @@
 #ifndef __FUSION_INDICATOR_LEGEND_OVERLAY_MQH__
 #define __FUSION_INDICATOR_LEGEND_OVERLAY_MQH__
 
-#define FUSION_LEGEND_WIDTH  230
+#define FUSION_LEGEND_MIN_WIDTH  180
+#define FUSION_LEGEND_MAX_WIDTH  300
+#define FUSION_LEGEND_CHAR_WIDTH 6
 #define FUSION_LEGEND_HEIGHT 112
 #define FUSION_LEGEND_RIGHT  20
 #define FUSION_LEGEND_TOP    40
@@ -13,6 +15,7 @@ private:
    bool m_created;
    int  m_left;
    int  m_top;
+   int  m_width;
 
    string ObjectName(const string role) const
      {
@@ -29,7 +32,7 @@ private:
       ObjectSetInteger(m_chartId, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
       ObjectSetInteger(m_chartId, name, OBJPROP_XDISTANCE, m_left);
       ObjectSetInteger(m_chartId, name, OBJPROP_YDISTANCE, m_top);
-      ObjectSetInteger(m_chartId, name, OBJPROP_XSIZE, FUSION_LEGEND_WIDTH);
+      ObjectSetInteger(m_chartId, name, OBJPROP_XSIZE, m_width);
       ObjectSetInteger(m_chartId, name, OBJPROP_YSIZE, FUSION_LEGEND_HEIGHT);
       ObjectSetInteger(m_chartId, name, OBJPROP_BGCOLOR, clrBlack);
       ObjectSetInteger(m_chartId, name, OBJPROP_COLOR, clrDimGray);
@@ -38,7 +41,7 @@ private:
       ObjectSetInteger(m_chartId, name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(m_chartId, name, OBJPROP_SELECTED, false);
       ObjectSetInteger(m_chartId, name, OBJPROP_HIDDEN, true);
-      ObjectSetInteger(m_chartId, name, OBJPROP_ZORDER, 100);
+      ObjectSetInteger(m_chartId, name, OBJPROP_ZORDER, 0);
       return true;
      }
 
@@ -57,7 +60,7 @@ private:
       ObjectSetInteger(m_chartId, name, OBJPROP_FONTSIZE, fontSize);
       ObjectSetInteger(m_chartId, name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(m_chartId, name, OBJPROP_HIDDEN, true);
-      ObjectSetInteger(m_chartId, name, OBJPROP_ZORDER, 101);
+      ObjectSetInteger(m_chartId, name, OBJPROP_ZORDER, 0);
       ObjectSetString(m_chartId, name, OBJPROP_FONT, "Arial");
       return true;
      }
@@ -74,6 +77,7 @@ private:
       string background = ObjectName("background");
       ObjectSetInteger(m_chartId, background, OBJPROP_XDISTANCE, m_left);
       ObjectSetInteger(m_chartId, background, OBJPROP_YDISTANCE, m_top);
+      ObjectSetInteger(m_chartId, background, OBJPROP_XSIZE, m_width);
       PositionLabel("title", 8);
       PositionLabel("fast", 32);
       PositionLabel("slow", 56);
@@ -83,9 +87,18 @@ private:
    void AlignUpperRight(void)
      {
       int chartWidth = (int)ChartGetInteger(m_chartId, CHART_WIDTH_IN_PIXELS);
-      m_left = MathMax(0, chartWidth - FUSION_LEGEND_WIDTH - FUSION_LEGEND_RIGHT);
+      m_left = MathMax(0, chartWidth - m_width - FUSION_LEGEND_RIGHT);
       m_top = FUSION_LEGEND_TOP;
       Layout();
+     }
+
+   int RequiredWidth(const string fastText,const string slowText,const string trendText) const
+     {
+      int longest = MathMax(StringLen("Legenda Medias"), StringLen(fastText));
+      longest = MathMax(longest, StringLen(slowText));
+      longest = MathMax(longest, StringLen(trendText));
+      int estimated = 24 + longest * FUSION_LEGEND_CHAR_WIDTH;
+      return MathMax(FUSION_LEGEND_MIN_WIDTH, MathMin(FUSION_LEGEND_MAX_WIDTH, estimated));
      }
 
 public:
@@ -95,6 +108,7 @@ public:
       m_created = false;
       m_left = 0;
       m_top = 0;
+      m_width = FUSION_LEGEND_MIN_WIDTH;
      }
 
          ~CIndicatorLegendOverlay(void)
@@ -117,6 +131,7 @@ public:
       m_chartId = chartId;
       m_left = left;
       m_top = top;
+      m_width = FUSION_LEGEND_MIN_WIDTH;
 
       if(!CreateBackground() ||
          !CreateLabel("title", 8, clrWhite, 9) ||
@@ -142,13 +157,25 @@ public:
 
    void   Update(const string fastText,
                  const string slowText,
-                 const string trendText)
+                 const string trendText,
+                 const color fastColor,
+                 const color slowColor,
+                 const color trendColor)
      {
       if(!IsCreated())
          return;
+      int requiredWidth = RequiredWidth(fastText, slowText, trendText);
+      if(requiredWidth != m_width)
+        {
+         m_width = requiredWidth;
+         AlignUpperRight();
+        }
       ObjectSetString(m_chartId, ObjectName("fast"), OBJPROP_TEXT, fastText);
       ObjectSetString(m_chartId, ObjectName("slow"), OBJPROP_TEXT, slowText);
       ObjectSetString(m_chartId, ObjectName("trend"), OBJPROP_TEXT, trendText);
+      ObjectSetInteger(m_chartId, ObjectName("fast"), OBJPROP_COLOR, fastColor);
+      ObjectSetInteger(m_chartId, ObjectName("slow"), OBJPROP_COLOR, slowColor);
+      ObjectSetInteger(m_chartId, ObjectName("trend"), OBJPROP_COLOR, trendColor);
      }
 
    void   ChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)

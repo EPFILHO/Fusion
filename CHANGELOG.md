@@ -1,17 +1,25 @@
 # Changelog
 
 ## 1.054 - 2026-05-31
-- `CONFIG > SYSTEM` ganhou `Indicadores no Grafico`: quando salvo em `ON`, o Fusion exibe MA, RSI e Bollinger ativos que usam o mesmo timeframe do grafico, com handles visuais separados dos handles operacionais e limpeza no reload/desligamento.
+- `CONFIG > SYSTEM` ganhou `Indicadores no Grafico`: quando salvo em `ON`, o Fusion exibe MA, RSI e Bollinger conforme suas regras de timeframe, com handles visuais separados dos handles operacionais e limpeza no reload/desligamento.
 - A visualizacao deduplica configuracoes identicas entre estrategias e filtros; indicadores de timeframe diferente sao omitidos e resumidos uma unica vez no log `VISUAL`.
-- As MAs visuais usam um indicador auxiliar embutido no `Fusion.ex5`: MA rapida verde, MA lenta vermelha e Trend MA fucsia. O nome visual e exclusivo por grafico para permitir troca de TF/parametros sem deixar linhas antigas.
-- A legenda no canto superior direito mostra periodo e valor atual das MAs nas cores correspondentes. A remocao passou a resolver indicadores nativos pendentes pelos parametros, cobrindo OFF/reload de estrategias e filtros.
+- As MAs visuais usam um indicador auxiliar embutido no `Fusion.ex5`. `CONFIG > SYSTEM` oferece swatches persistentes para escolher as cores da MA rapida, MA lenta, Trend e Bollinger; a paleta inclui tambem azul-marinho, gold, verde-escuro e vermelho-escuro. Perfis antigos preservam os defaults verde, vermelho, fucsia e azul.
+- A legenda no canto superior direito mostra periodo, timeframe e estado visual das MAs nas cores correspondentes. Ela nao consulta buffers de indicador pelo timer do EA, evitando espera sincrona durante carga ou reconexao.
 - A legenda das MAs ganhou fundo preto com borda discreta e altura ajustada ao numero de linhas. `STRATS > GERAL` e `FILTERS > GERAL` agora mostram os timeframes configurados no perfil ao lado de `ATIVO/OFF`.
-- A legenda `Legenda Medias` usa um overlay proprio de objetos do grafico, fixo no canto superior direito e com conteudo contido no fundo preto. Isso evita o bug confirmado do MT5 em que `ChartIndicatorDelete()` fecha janelas `CAppDialog` durante a troca de MA, Trend, RSI ou Bollinger.
+- A legenda `Legenda Medias` usa um overlay proprio, compacto e passivo no canto superior direito, com baixa prioridade de clique para nao bloquear controles da `CAppDialog`. Isso evita tambem o bug confirmado do MT5 em que `ChartIndicatorDelete()` fecha janelas `CAppDialog` durante a troca de MA, Trend, RSI ou Bollinger.
 - A legenda permanece ativa durante a reconstruucao visual e se recria caso seus objetos sejam removidos pelo terminal.
 - Enquanto `Indicadores no Grafico` estiver ON, a legenda permanece visivel e distingue MA desligada (`OFF`), configurada em outro timeframe, aguardando reconstrucao, ativa ou compartilhada com outra curva identica.
 - A reconciliacao visual passou a ser transacional: um ciclo remove e confirma a ausencia de todos os indicadores pertencentes ao Fusion; somente o timer seguinte recria o conjunto desejado. Uma contagem independente detecta e limpa duplicatas e orfaos apos reload ou troca de timeframe.
-- As bandas de Bollinger visuais agora usam um indicador auxiliar embutido e sao desenhadas em azul, sem alterar os handles ou calculos operacionais de estrategias e filtros.
+- As bandas de Bollinger visuais agora usam um indicador auxiliar embutido e a cor escolhida no perfil, sem alterar os handles ou calculos operacionais de estrategias e filtros.
 - O RSI visual tambem usa um indicador auxiliar com nome de propriedade do Fusion, permitindo limpeza segura sem tocar em indicadores manuais do usuario.
+- O RSI visual passou a desenhar os niveis efetivamente usados pela estrategia e pelo filtro. Quando ambos compartilham a mesma curva, seus niveis sao reunidos e valores repetidos aparecem uma unica vez.
+- A interface `iCustom` dos niveis RSI foi alinhada para `int` de ponta a ponta, evitando falha silenciosa de criacao do handle visual por incompatibilidade de tipo.
+- A `Legenda Medias` mantem 180 px nos textos normais e expande somente quando necessario, sem voltar a bloquear cliques da `CAppDialog`.
+- `CONFIG > SYSTEM` organiza as cores em uma moldura `Cores dos Indicadores`, com labels alinhados e swatches quadrados em grade 2x2 entre o toggle visual e `Logs Debug`.
+- O rotulo `Cores dos Indicadores` ficou alinhado aos demais campos da esquerda e sua moldura ao eixo dos controles; a subjanela visual do RSI nasce com 100 px e continua redimensionavel pelo usuario.
+- A visualizacao de MA, Trend, RSI e Bollinger ficou estritamente limitada ao proprio timeframe configurado. Nao ha projecao visual MTF: curvas de outro TF ficam omitidas e a legenda informa `outro TF`.
+- Removida a leitura de valores das MAs por `CopyBuffer` no timer e retirada a projecao historica barra a barra. A limpeza visual passou a executar um unico passe por ciclo, a auditoria de orfaos foi limitada a cada cinco segundos e a sincronizacao visual ocorre depois das tarefas operacionais e da GUI.
+- Essa simplificacao corrige um congelamento em que a MA visual MTF ainda sem dados fazia tres `CopyBuffer` sincronicos da legenda aguardarem ate o timeout do MT5, represando timer, ticks e cliques. A camada visual volta a ser estritamente opcional e sem influencia sobre o motor operacional.
 - Fechamentos agora entram em reconciliacao persistente: o EA confirma pelo historico que todo o volume de entrada possui volume de saida correspondente antes de atualizar DAY/DD/STREAK, bloqueia novas entradas durante a espera e repete a consulta por tick, timer e eventos de trade.
 - A reconciliacao usa o horario real do ultimo deal para nao contaminar o novo dia, sobrevive a reinicio/troca de timeframe e cancela a espera se a mesma posicao reaparecer depois de uma oscilacao de conexao.
 - Na inicializacao, o EA agora confere o historico bruto do dia por ativo/magic e repara P/L, Trades, Loss/Win/BE e streak quando o chart state persistido divergir; historico vazio durante desconexao nao sobrescreve o estado salvo.

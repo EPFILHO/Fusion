@@ -25,14 +25,17 @@
 
 input string             InpShortName = "Fusion Visual MA";
 input bool               InpFastEnabled = true;
+input color              InpFastColor = clrLime;
 input int                InpFastPeriod = 9;
 input ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
 input ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
 input bool               InpSlowEnabled = true;
+input color              InpSlowColor = clrRed;
 input int                InpSlowPeriod = 21;
 input ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
 input ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
 input bool               InpTrendEnabled = false;
+input color              InpTrendColor = clrMagenta;
 input int                InpTrendPeriod = 50;
 input ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
 input ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
@@ -86,6 +89,9 @@ int OnInit(void)
    PlotIndexSetInteger(0, PLOT_DRAW_BEGIN, MathMax(0, InpFastPeriod - 1));
    PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, MathMax(0, InpSlowPeriod - 1));
    PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, MathMax(0, InpTrendPeriod - 1));
+   PlotIndexSetInteger(0, PLOT_LINE_COLOR, InpFastColor);
+   PlotIndexSetInteger(1, PLOT_LINE_COLOR, InpSlowColor);
+   PlotIndexSetInteger(2, PLOT_LINE_COLOR, InpTrendColor);
    IndicatorSetString(INDICATOR_SHORTNAME, InpShortName);
 
    if(!CreateMAHandle(InpFastEnabled, InpFastPeriod, InpFastMethod, InpFastPrice, FastHandle) ||
