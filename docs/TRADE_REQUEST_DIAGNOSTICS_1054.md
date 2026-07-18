@@ -2,9 +2,9 @@
 
 ## Finalidade
 
-Este registro existe para descobrir como as corretoras realmente respondem as requisicoes de trade do Fusion antes de implementar uma maquina de estados para `PLACED` e `DONE_PARTIAL`.
+Este registro existe para descobrir como as corretoras realmente respondem as requisicoes de trade do Fusion e validar continuamente os fluxos de `PLACED` e `DONE_PARTIAL`.
 
-A coleta permite distinguir cenarios reais de riscos apenas teoricos. Ela registra o resultado bruto retornado pelo `OrderSend`, mas nao muda:
+A coleta permite distinguir cenarios reais de riscos apenas teoricos. Ela registra o resultado bruto retornado pelo `OrderSend`, mas nao e fonte de verdade operacional nem muda:
 
 - a decisao de entrar ou sair;
 - a interpretacao atual dos retcodes;
@@ -70,13 +70,15 @@ Os nomes resumidos de retcode usados nesta coleta sao:
 
 Os arquivos crescem apenas quando o Fusion envia uma das tres requisicoes monitoradas. Eles podem ser copiados para analise enquanto o EA esta rodando, pois o arquivo permanece fechado entre as operacoes.
 
-## Decisao Posterior
+## Uso Atual
 
-A maquina de estados somente deve ser desenhada depois da coleta:
+Parciais agora entram em reconciliacao persistente independentemente do retcode aceito. O historico de deals confirma volume e `DEAL_PROFIT`; `PLACED` e `DONE_PARTIAL` nunca creditam uma estimativa em DAY/DD. Detalhes em `docs/PARTIAL_RECONCILIATION_1055.md`.
 
-- se aparecer apenas `DONE`, o risco pode continuar documentado e adiado;
-- se aparecer `PLACED`, sera necessario acompanhar confirmacao, cancelamento ou expiracao;
-- se aparecer `DONE_PARTIAL`, sera necessario reconciliar o volume realmente executado;
+O CSV continua necessario:
+
+- para validar confirmacao, cancelamento ou expiracao de `PLACED` em cada corretora;
+- para conferir o volume realmente executado em `DONE_PARTIAL`;
+- para orientar a futura maquina de estados de entrada e fechamento total, que continuam fora desta fatia;
 - rejeicoes recorrentes devem ser agrupadas por retcode, ativo e corretora.
 
 O registro e observabilidade temporaria da 1.054. Ele nao e persistencia operacional nem fonte de verdade para DAY, DD, STREAK ou estado da posicao.

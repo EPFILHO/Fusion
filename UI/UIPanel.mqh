@@ -461,6 +461,7 @@ public:
                                           snapshot.dailyWinCount != m_snapshot.dailyWinCount ||
                                           snapshot.dailyBreakevenCount != m_snapshot.dailyBreakevenCount ||
                                           snapshot.dailyOutcomeCountsKnown != m_snapshot.dailyOutcomeCountsKnown ||
+                                          snapshot.partialReconciliationPending != m_snapshot.partialReconciliationPending ||
                                           MathAbs(snapshot.dailyFloatingProfit - m_snapshot.dailyFloatingProfit) > 0.0000001 ||
                                           MathAbs(snapshot.dailyProjectedProfit - m_snapshot.dailyProjectedProfit) > 0.0000001);
       bool sessionStateChanged = (snapshot.sessionProtectionBlocked != m_snapshot.sessionProtectionBlocked ||

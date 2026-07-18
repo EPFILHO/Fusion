@@ -31,6 +31,13 @@ enum ENUM_EXIT_MODE
    EXIT_REVERSE_SIGNAL
   };
 
+enum ENUM_PARTIAL_CLOSE_LEVEL
+  {
+   PARTIAL_CLOSE_NONE = 0,
+   PARTIAL_CLOSE_TP1,
+   PARTIAL_CLOSE_TP2
+  };
+
 enum ENUM_RSI_EXIT_MODE
   {
    RSI_EXIT_TP_SL = 0,
@@ -338,6 +345,18 @@ struct SPositionRuntimeState
    double             tp1Volume;
    double             tp2Price;
    double             tp2Volume;
+   bool               partialClosePending;
+   ENUM_PARTIAL_CLOSE_LEVEL pendingPartialLevel;
+   double             pendingPartialInitialVolume;
+   double             pendingPartialRequestedVolume;
+   double             pendingPartialBaselineExitVolume;
+   double             pendingPartialPreProjectedProfit;
+   bool               pendingPartialFloatingReferenceSet;
+   double             pendingPartialFloatingReference;
+   ulong              pendingPartialOrderTicket;
+   ulong              pendingPartialDealTicket;
+   uint               pendingPartialRetcode;
+   datetime           pendingPartialSince;
    double             dayPeakProjectedProfit;
   };
 
@@ -453,6 +472,7 @@ struct SUIPanelSnapshot
    double dailyClosedProfit;
    double dailyFloatingProfit;
    double dailyProjectedProfit;
+   bool   partialReconciliationPending;
    bool   dailyLimitsBlocked;
    string dailyLimitsBlockReason;
    bool   sessionProtectionBlocked;
@@ -671,6 +691,18 @@ void ResetPositionRuntimeState(SPositionRuntimeState &state)
    state.tp1Volume            = 0.0;
    state.tp2Price             = 0.0;
    state.tp2Volume            = 0.0;
+   state.partialClosePending  = false;
+   state.pendingPartialLevel  = PARTIAL_CLOSE_NONE;
+   state.pendingPartialInitialVolume = 0.0;
+   state.pendingPartialRequestedVolume = 0.0;
+   state.pendingPartialBaselineExitVolume = 0.0;
+   state.pendingPartialPreProjectedProfit = 0.0;
+   state.pendingPartialFloatingReferenceSet = false;
+   state.pendingPartialFloatingReference = 0.0;
+   state.pendingPartialOrderTicket = 0;
+   state.pendingPartialDealTicket = 0;
+   state.pendingPartialRetcode = 0;
+   state.pendingPartialSince = 0;
    state.dayPeakProjectedProfit = 0.0;
   }
 

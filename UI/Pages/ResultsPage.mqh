@@ -65,12 +65,17 @@ public:
 
    void              Update(const SUIPanelSnapshot &snapshot)
      {
-      m_values[0].Text(DoubleToString(snapshot.dailyClosedProfit, 2));
-      m_values[0].Color(ResultColor(snapshot.dailyClosedProfit));
+      m_values[0].Text(DoubleToString(snapshot.dailyClosedProfit, 2) +
+                       (snapshot.partialReconciliationPending ? " (confirmado)" : ""));
+      m_values[0].Color(snapshot.partialReconciliationPending ? FUSION_CLR_WARN :
+                        ResultColor(snapshot.dailyClosedProfit));
       m_values[1].Text(DoubleToString(snapshot.dailyFloatingProfit, 2));
       m_values[1].Color(ResultColor(snapshot.dailyFloatingProfit));
-      m_values[2].Text(DoubleToString(snapshot.dailyProjectedProfit, 2));
-      m_values[2].Color(ResultColor(snapshot.dailyProjectedProfit));
+      m_values[2].Text(snapshot.partialReconciliationPending ?
+                       "RECONCILIANDO PARCIAL" :
+                       DoubleToString(snapshot.dailyProjectedProfit, 2));
+      m_values[2].Color(snapshot.partialReconciliationPending ? FUSION_CLR_WARN :
+                        ResultColor(snapshot.dailyProjectedProfit));
       string dailyTradesText = IntegerToString(snapshot.dailyTradeCount);
       if(snapshot.dailyOutcomeCountsKnown)
         {

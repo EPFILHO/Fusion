@@ -421,6 +421,18 @@ private:
       else if(key == "state.tp1Volume") state.tp1Volume = StringToDouble(value);
       else if(key == "state.tp2Price") state.tp2Price = StringToDouble(value);
       else if(key == "state.tp2Volume") state.tp2Volume = StringToDouble(value);
+      else if(key == "state.partialClosePending") state.partialClosePending = (bool)StringToInteger(value);
+      else if(key == "state.pendingPartialLevel") state.pendingPartialLevel = (ENUM_PARTIAL_CLOSE_LEVEL)StringToInteger(value);
+      else if(key == "state.pendingPartialInitialVolume") state.pendingPartialInitialVolume = StringToDouble(value);
+      else if(key == "state.pendingPartialRequestedVolume") state.pendingPartialRequestedVolume = StringToDouble(value);
+      else if(key == "state.pendingPartialBaselineExitVolume") state.pendingPartialBaselineExitVolume = StringToDouble(value);
+      else if(key == "state.pendingPartialPreProjectedProfit") state.pendingPartialPreProjectedProfit = StringToDouble(value);
+      else if(key == "state.pendingPartialFloatingReferenceSet") state.pendingPartialFloatingReferenceSet = (bool)StringToInteger(value);
+      else if(key == "state.pendingPartialFloatingReference") state.pendingPartialFloatingReference = StringToDouble(value);
+      else if(key == "state.pendingPartialOrderTicket") state.pendingPartialOrderTicket = (ulong)StringToInteger(value);
+      else if(key == "state.pendingPartialDealTicket") state.pendingPartialDealTicket = (ulong)StringToInteger(value);
+      else if(key == "state.pendingPartialRetcode") state.pendingPartialRetcode = (uint)StringToInteger(value);
+      else if(key == "state.pendingPartialSince") state.pendingPartialSince = (datetime)StringToInteger(value);
       else if(key == "state.dayPeakProjectedProfit") state.dayPeakProjectedProfit = StringToDouble(value);
       else if(key == "streak.dayKey") streakState.dayKey = (int)StringToInteger(value);
       else if(key == "streak.lossStreak") streakState.lossStreak = (int)StringToInteger(value);
@@ -620,7 +632,9 @@ public:
 
       string chartKey = "chart_" + StringFormat("%I64u", context.chartId);
       string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
-      int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
+      string tempFileName = fileName + ".tmp";
+      FileDelete(tempFileName);
+      int handle = FileOpen(tempFileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
 
@@ -646,6 +660,18 @@ public:
       ok = WriteLine(handle, "state.tp1Volume", DoubleToString(state.tp1Volume, 4)) && ok;
       ok = WriteLine(handle, "state.tp2Price", DoubleToString(state.tp2Price, 8)) && ok;
       ok = WriteLine(handle, "state.tp2Volume", DoubleToString(state.tp2Volume, 4)) && ok;
+      ok = WriteLine(handle, "state.partialClosePending", IntegerToString((int)state.partialClosePending)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialLevel", IntegerToString((int)state.pendingPartialLevel)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialInitialVolume", DoubleToString(state.pendingPartialInitialVolume, 8)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialRequestedVolume", DoubleToString(state.pendingPartialRequestedVolume, 8)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialBaselineExitVolume", DoubleToString(state.pendingPartialBaselineExitVolume, 8)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialPreProjectedProfit", DoubleToString(state.pendingPartialPreProjectedProfit, 2)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialFloatingReferenceSet", IntegerToString((int)state.pendingPartialFloatingReferenceSet)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialFloatingReference", DoubleToString(state.pendingPartialFloatingReference, 2)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialOrderTicket", StringFormat("%I64u", state.pendingPartialOrderTicket)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialDealTicket", StringFormat("%I64u", state.pendingPartialDealTicket)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialRetcode", IntegerToString((int)state.pendingPartialRetcode)) && ok;
+      ok = WriteLine(handle, "state.pendingPartialSince", IntegerToString((long)state.pendingPartialSince)) && ok;
       ok = WriteLine(handle, "state.dayPeakProjectedProfit", DoubleToString(state.dayPeakProjectedProfit, 2)) && ok;
       ok = WriteLine(handle, "streak.dayKey", IntegerToString(streakState.dayKey)) && ok;
       ok = WriteLine(handle, "streak.lossStreak", IntegerToString(streakState.lossStreak)) && ok;
@@ -672,8 +698,20 @@ public:
       ok = WriteLine(handle, "drawdown.triggerDrawdownAmount", DoubleToString(drawdownState.triggerDrawdownAmount, 2)) && ok;
       ok = WriteLine(handle, "drawdown.triggerBufferProfit", DoubleToString(drawdownState.triggerBufferProfit, 2)) && ok;
 
+      FileFlush(handle);
       FileClose(handle);
-      return ok;
+      if(!ok)
+        {
+         FileDelete(tempFileName);
+         return false;
+        }
+
+      if(!FileMove(tempFileName, 0, fileName, FILE_REWRITE))
+        {
+         FileDelete(tempFileName);
+         return false;
+        }
+      return true;
      }
 
    bool              LoadChartState(const ulong chartId,

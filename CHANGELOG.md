@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.055 - 2026-07-17
+- Parciais agora entram em reconciliacao persistente: TP1/TP2 somente sao marcados depois que um novo volume de saida aparece no historico da posicao, e DAY/DD recebem exclusivamente a diferenca real de `DEAL_PROFIT`.
+- Removida a estimativa operacional por `OrderCalcProfit` nas parciais. Se o volume cair antes de o deal ficar visivel, o DD preserva a ultima base confirmada e acompanha por tick a variacao do volume restante ate a reconciliacao.
+- `PARTIAL_CLOSE` passou a tratar `PLACED` e `DONE_PARTIAL` como pendencias, sem presumir execucao integral; uma ordem parcial ainda ativa bloqueia fechamento concorrente para evitar sobre-execucao em netting.
+- `TIMEOUT` e `CONNECTION` em parcial sao tratados como resultados indeterminados: o Fusion reconcilia ordem, volume e historico antes de liberar qualquer nova tentativa.
+- `RESULTS` mostra `RECONCILIANDO PARCIAL` enquanto o valor final nao estiver confirmado, mantem o flutuante vindo de `POSITION_PROFIT` e recebe refresh dirigido por ticks, limitado a cinco vezes por segundo, para reduzir defasagem visual sem redesenho excessivo.
+- O estado da parcial pendente foi incluido no chart state para sobreviver a reinicio/troca de timeframe. Desenho, invariantes e testes estao em `docs/PARTIAL_RECONCILIATION_1055.md`.
+- A intencao da parcial e persistida antes do `OrderSend`; falha de gravacao impede o envio, e uma restauracao recupera a ordem ativa da posicao antes de permitir nova tentativa.
+- O chart state passou a ser escrito em arquivo temporario e promovido com `FileMove(FILE_REWRITE)` somente depois de todas as linhas serem gravadas e descarregadas, preservando o estado anterior se a escrita falhar.
+- Versao central do EA e indicadores visuais atualizada para `1.055`.
+- A fatia de reconciliacao de parciais foi compilada no MetaEditor em `compile_1055_partial_reconciliation.log`: `0 errors, 0 warnings`.
+- Indicadores visuais recompilados no MetaEditor em `compile_1055_visual_ma.log`, `compile_1055_visual_rsi.log` e `compile_1055_visual_bands.log`: `0 errors, 0 warnings`.
+
 ## 1.054 - 2026-05-31
 - `CONFIG > SYSTEM` ganhou `Indicadores no Grafico`: quando salvo em `ON`, o Fusion exibe MA, RSI e Bollinger conforme suas regras de timeframe, com handles visuais separados dos handles operacionais e limpeza no reload/desligamento.
 - A visualizacao deduplica configuracoes identicas entre estrategias e filtros; indicadores de timeframe diferente sao omitidos e resumidos uma unica vez no log `VISUAL`.

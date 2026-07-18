@@ -245,18 +245,6 @@ private:
                        IntegerToString(m_tradeRequestRecorder.LastError()) + ".");
      }
 
-   bool               TryGetDealProfit(const ulong dealTicket,double &profit) const
-     {
-      profit = 0.0;
-      if(dealTicket == 0)
-         return false;
-      if(!HistoryDealSelect(dealTicket))
-         return false;
-
-      profit = HistoryDealGetDouble(dealTicket, DEAL_PROFIT);
-      return true;
-     }
-
    bool               IsPositionIdentifierOpen(const ulong positionId) const
      {
       if(positionId == 0)
@@ -285,6 +273,18 @@ private:
       target.tp1Volume             = source.tp1Volume;
       target.tp2Price              = source.tp2Price;
       target.tp2Volume             = source.tp2Volume;
+      target.partialClosePending   = source.partialClosePending;
+      target.pendingPartialLevel   = source.pendingPartialLevel;
+      target.pendingPartialInitialVolume = source.pendingPartialInitialVolume;
+      target.pendingPartialRequestedVolume = source.pendingPartialRequestedVolume;
+      target.pendingPartialBaselineExitVolume = source.pendingPartialBaselineExitVolume;
+      target.pendingPartialPreProjectedProfit = source.pendingPartialPreProjectedProfit;
+      target.pendingPartialFloatingReferenceSet = source.pendingPartialFloatingReferenceSet;
+      target.pendingPartialFloatingReference = source.pendingPartialFloatingReference;
+      target.pendingPartialOrderTicket = source.pendingPartialOrderTicket;
+      target.pendingPartialDealTicket = source.pendingPartialDealTicket;
+      target.pendingPartialRetcode = source.pendingPartialRetcode;
+      target.pendingPartialSince = source.pendingPartialSince;
       target.dayPeakProjectedProfit= source.dayPeakProjectedProfit;
      }
 
@@ -351,6 +351,43 @@ public:
    bool              LastModifySkippedByStopsLevel(void) const
      {
       return m_lastModifySkippedByStopsLevel;
+     }
+
+   bool              IsOrderActive(const ulong orderTicket) const
+     {
+      return (orderTicket > 0 && OrderSelect(orderTicket));
+     }
+
+   ulong             FindActivePositionOrder(const ulong positionId) const
+     {
+      if(positionId == 0)
+         return 0;
+
+      for(int index = OrdersTotal() - 1; index >= 0; index--)
+        {
+         ulong orderTicket = OrderGetTicket(index);
+         if(orderTicket == 0)
+            continue;
+         if(OrderGetString(ORDER_SYMBOL) != m_symbol)
+            continue;
+         if((int)OrderGetInteger(ORDER_MAGIC) != m_magicNumber)
+            continue;
+         if((ulong)OrderGetInteger(ORDER_POSITION_ID) != positionId)
+            continue;
+         return orderTicket;
+        }
+      return 0;
+     }
+
+   bool              IsHistoricalOrderTerminalWithoutFill(const ulong orderTicket) const
+     {
+      if(orderTicket == 0 || !HistoryOrderSelect(orderTicket))
+         return false;
+
+      ENUM_ORDER_STATE state = (ENUM_ORDER_STATE)HistoryOrderGetInteger(orderTicket, ORDER_STATE);
+      return (state == ORDER_STATE_CANCELED ||
+              state == ORDER_STATE_REJECTED ||
+              state == ORDER_STATE_EXPIRED);
      }
 
    bool              SyncPosition(SPositionRuntimeState &state)
@@ -483,9 +520,16 @@ public:
       return true;
      }
 
-   bool              PartialClose(SPositionRuntimeState &state,const double lotToClose,const string reason,double &estimatedProfit)
+   bool              PartialClose(SPositionRuntimeState &state,
+                                  const double lotToClose,
+                                  const string reason,
+                                  ulong &orderTicket,
+                                  ulong &dealTicket,
+                                  uint &retcode)
      {
-      estimatedProfit = 0.0;
+      orderTicket = 0;
+      dealTicket = 0;
+      retcode = 0;
       if(!state.hasPosition || lotToClose <= 0.0 || lotToClose >= state.volume)
          return false;
 
@@ -507,18 +551,27 @@ public:
       bool orderSendOk = OrderSend(request, result);
       int terminalError = orderSendOk ? 0 : GetLastError();
       RecordTradeRequest("PARTIAL_CLOSE", request, result, orderSendOk, terminalError);
+      orderTicket = result.order;
+      dealTicket = result.deal;
+      retcode = result.retcode;
       if(!orderSendOk)
          return false;
 
-      if(result.retcode != TRADE_RETCODE_DONE && result.retcode != TRADE_RETCODE_PLACED)
+      if(result.retcode != TRADE_RETCODE_DONE &&
+         result.retcode != TRADE_RETCODE_PLACED &&
+         result.retcode != TRADE_RETCODE_DONE_PARTIAL &&
+         result.retcode != TRADE_RETCODE_TIMEOUT &&
+         result.retcode != TRADE_RETCODE_CONNECTION)
          return false;
 
-      if(!TryGetDealProfit(result.deal, estimatedProfit))
-        {
-         ENUM_ORDER_TYPE closeType = (state.type == POSITION_TYPE_BUY) ? ORDER_TYPE_SELL : ORDER_TYPE_BUY;
-         if(!OrderCalcProfit(closeType, m_symbol, lotToClose, state.entryPrice, request.price, estimatedProfit))
-            estimatedProfit = 0.0;
-        }
+      if(m_logger != NULL && result.retcode == TRADE_RETCODE_PLACED)
+         m_logger.Info("PARTIAL", "Parcial aceita como PLACED; aguardando deal confirmado.");
+      else if(m_logger != NULL && result.retcode == TRADE_RETCODE_DONE_PARTIAL)
+         m_logger.Warn("PARTIAL", "Parcial recebeu DONE_PARTIAL; o volume real sera reconciliado pelo historico.");
+      else if(m_logger != NULL &&
+              (result.retcode == TRADE_RETCODE_TIMEOUT || result.retcode == TRADE_RETCODE_CONNECTION))
+         m_logger.Warn("PARTIAL", "Resultado da parcial indeterminado; nenhuma nova tentativa sera feita antes da reconciliacao.");
+
       m_needsSync = true;
       return true;
      }
@@ -566,7 +619,7 @@ public:
       return true;
      }
 
-   bool              GetClosedTradeSummary(const ulong positionId,SClosedTradeSummary &summary)
+   bool              TryGetPositionTradeSummary(const ulong positionId,SClosedTradeSummary &summary)
      {
       summary.found       = false;
       summary.complete    = false;
@@ -630,6 +683,13 @@ public:
       summary.complete = (summary.found &&
                           summary.entryVolume > 0.0 &&
                           summary.exitVolume + tolerance >= summary.entryVolume);
+      return true;
+     }
+
+   bool              GetClosedTradeSummary(const ulong positionId,SClosedTradeSummary &summary)
+     {
+      if(!TryGetPositionTradeSummary(positionId, summary))
+         return false;
       return summary.found;
      }
 

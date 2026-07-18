@@ -166,6 +166,10 @@ Este e o unico lugar que deve conversar diretamente com operacoes de trade de ba
 
 A 1.054 registra o resultado bruto das requisicoes de entrada, fechamento total e fechamento parcial em CSV. Esse registro e somente diagnostico: serve para observar retcodes reais da corretora e nao participa de nenhuma decisao operacional. Detalhes em `docs/TRADE_REQUEST_DIAGNOSTICS_1054.md`.
 
+Fechamentos parciais usam uma reconciliacao propria. `OrderSend` aceito apenas cria uma pendencia persistente; TP1/TP2 e o P/L realizado somente mudam depois que o historico da posicao confirma novo volume de saida. `DEAL_PROFIT` e a fonte de verdade e a diferenca contra o total ja contabilizado impede dupla contagem. `PLACED` e `DONE_PARTIAL` permanecem pendentes enquanto a ordem estiver ativa. Se houver execucao menor que a solicitada, o nivel e encerrado de forma conservadora, sem reenviar automaticamente o restante.
+
+Se a posicao ja refletir o volume menor mas o deal ainda nao estiver disponivel, DAY/DD nao recebem lucro estimado. O projetado mantem a ultima base confirmada e acompanha a variacao do `POSITION_PROFIT` restante ate a chegada do historico. Uma saida forcada nao concorre com ordem parcial ainda ativa, evitando reversao acidental em netting. Detalhes em `docs/PARTIAL_RECONCILIATION_1055.md`.
+
 Quando uma posicao desaparece, o fechamento entra em reconciliacao antes de atualizar DAY/DD/STREAK. `ExecutionService` seleciona o historico pelo identificador da posicao e considera o resumo completo somente quando o volume acumulado de saida cobre o volume acumulado de entrada. Enquanto isso, `EAApplication` preserva o estado anterior, bloqueia novas entradas e repete a consulta pelo tick, timer e eventos de trade. O horario do ultimo deal define se o fechamento pertence ao dia operacional atual.
 
 Na inicializacao, uma auditoria adicional compara o chart state com os deals de saida do dia para o ativo/magic carregado. Ela corrige P/L bruto e contadores legados que ja haviam sido persistidos incorretamente antes da reconciliacao existir. A leitura aguarda conexao e nao substitui o estado por um historico ainda incompleto.
@@ -181,6 +185,8 @@ Os resultados operacionais do Fusion sao P/L bruto de preco (`DEAL_PROFIT` e `PO
 Salva e carrega perfis nomeados e estado automatico por grafico.
 
 Perfis sao configuracoes operacionais. Estado de grafico e restauracao local da instancia. Esses dois conceitos nao devem ser misturados.
+
+O chart state operacional e gravado primeiro em arquivo temporario e promovido sobre o arquivo anterior somente depois de todas as linhas serem escritas e descarregadas. Fluxos que exigem durabilidade antes de enviar trade, como a intencao de parcial, devem verificar o retorno dessa gravacao e falhar fechado.
 
 Em grafico real ou demo, a restauracao de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posicao aberta sincronizada ou restaurada.
 

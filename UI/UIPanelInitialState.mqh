@@ -51,6 +51,7 @@
       m_snapshot.dailyClosedProfit = 0.0;
       m_snapshot.dailyFloatingProfit = 0.0;
       m_snapshot.dailyProjectedProfit = 0.0;
+      m_snapshot.partialReconciliationPending = false;
       m_snapshot.dailyLimitsBlocked = false;
       m_snapshot.dailyLimitsBlockReason = "";
       m_snapshot.sessionProtectionBlocked = false;
