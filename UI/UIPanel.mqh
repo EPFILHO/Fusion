@@ -289,6 +289,13 @@ public:
       Destroy(REASON_REMOVE);
      }
 
+   bool                       HasUnsavedDraftChanges(void)
+     {
+      if(!m_created)
+         return false;
+      return (ProfileEditMode() || HasPendingChanges());
+     }
+
    bool                       AddControl(CWnd &control)
      {
       if(m_buildTarget != NULL)

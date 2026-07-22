@@ -405,6 +405,7 @@ private:
       context.timeframe = EnumToString((ENUM_TIMEFRAMES)Period());
       context.periodValue = (int)Period();
       context.deinitReason = -1;
+      context.discardedUnsavedDraft = false;
       return context;
      }
 
@@ -695,6 +696,8 @@ private:
 
       SChartStateContext context = CurrentChartContext();
       context.deinitReason = deinitReason;
+      context.discardedUnsavedDraft = (deinitReason == REASON_CHARTCHANGE &&
+                                       m_panel.HasUnsavedDraftChanges());
       if(m_chartContext.chartId != 0)
         {
          context.chartId = m_chartContext.chartId;
@@ -1919,25 +1922,28 @@ private:
             profileName = m_settings.defaultProfileName;
 
          SEASettings loadedSettings;
-         if(m_settingsStore.LoadProfile(profileName, loadedSettings))
+         if(!m_settingsStore.LoadProfile(profileName, loadedSettings))
            {
-            loadedSettings.isTester = m_settings.isTester;
-            ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
-            if(ProfileLoadBlockedByActiveDrawdown(profileName, loadedSettings))
-               return;
-            if(ProfileLoadBlockedByActiveProfile(profileName))
-               return;
-            if(ProfileLoadBlockedByActiveInstance(profileName, loadedSettings))
-               return;
-            if(!ApplySettings(loadedSettings, RELOAD_COLD))
-               return;
-            m_activeProfileName = profileName;
-            RefreshProfileBlockReasons();
-
-            ReloadPanelSettingsIfVisible();
-
-            PersistChartState();
+            m_logger.Warn("PROFILE", "Perfil " + profileName + " nao carregado: arquivo ausente, invalido ou incompleto. Configuracao atual preservada.");
+            return;
            }
+
+         loadedSettings.isTester = m_settings.isTester;
+         ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
+         if(ProfileLoadBlockedByActiveDrawdown(profileName, loadedSettings))
+            return;
+         if(ProfileLoadBlockedByActiveProfile(profileName))
+            return;
+         if(ProfileLoadBlockedByActiveInstance(profileName, loadedSettings))
+            return;
+         if(!ApplySettings(loadedSettings, RELOAD_COLD))
+            return;
+         m_activeProfileName = profileName;
+         RefreshProfileBlockReasons();
+
+         ReloadPanelSettingsIfVisible();
+
+         PersistChartState();
          return;
         }
      }
@@ -1954,6 +1960,7 @@ private:
       m_chartContext.timeframe = "";
       m_chartContext.periodValue = 0;
       m_chartContext.deinitReason = -1;
+      m_chartContext.discardedUnsavedDraft = false;
       m_activeProfileName   = "default";
       m_started             = false;
       m_modulesRegistered   = false;
@@ -2063,10 +2070,20 @@ private:
                                                   restoredContext.deinitReason == REASON_CHARTCHANGE);
               }
            }
-        }
+         }
+
+      if(restoredStateApplied &&
+         restoredContext.deinitReason == REASON_CHARTCHANGE &&
+         restoredContext.discardedUnsavedDraft)
+         ApplyRuntimeNotice("Alteracoes nao salvas foram descartadas na troca de timeframe.");
 
       if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
-         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " nao foi encontrado. O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
+        {
+         string profileIssue = m_settingsStore.ProfileExists(m_settings.defaultProfileName)
+                               ? "esta invalido ou incompleto"
+                               : "nao foi encontrado";
+         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
+        }
       RefreshProfileBlockReasons();
       uint restoreDoneTick = GetTickCount();
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.056 - 2026-07-22
+- Perfis passam a ser gravados por arquivo temporario e promovidos atomicamente; falha de escrita preserva o arquivo anterior.
+- O carregamento de perfil agora usa um candidato isolado e rejeita arquivo ausente, invalido ou truncado antes de tocar na configuracao em uso. Perfis legados completos continuam migraveis e, ao serem salvos, passam ao `schemaVersion=13`.
+- Troca de timeframe continua preservando somente o estado operacional ja confirmado. Se havia draft ou pending changes na GUI, o Fusion nao os salva nem aplica e mostra aviso explicito de que foram descartados.
+- `Bollinger Filter` ganhou modo direcional opcional, desligado por default: calcula a inclinacao media da linha central em candles fechados e bloqueia SELL na alta ou BUY na queda, com lookback e tolerancia em pontos por candle.
+- `Trend Filter` ganhou barreiras duplas opcionais, desligadas por default: a MA principal limita BUY abaixo dela e uma segunda MA independente limita SELL acima dela. Com o modo desligado, a MA unica conserva exatamente a regra anterior para os dois lados.
+- Os novos filtros falham fechado quando a configuracao, o handle, o preco fechado ou os buffers necessarios nao estao disponiveis.
+- Versao central do EA e indicadores visuais atualizada para `1.056`; os handles visuais continuam separados dos handles operacionais.
+
 ## 1.055 - 2026-07-17
 - Parciais agora entram em reconciliacao persistente: TP1/TP2 somente sao marcados depois que um novo volume de saida aparece no historico da posicao, e DAY/DD recebem exclusivamente a diferenca real de `DEAL_PROFIT`.
 - Removida a estimativa operacional por `OrderCalcProfit` nas parciais. Se o volume cair antes de o deal ficar visivel, o DD preserva a ultima base confirmada e acompanha por tick a variacao do volume restante ate a reconciliacao.

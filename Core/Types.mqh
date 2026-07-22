@@ -3,6 +3,8 @@
 
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
 #define FUSION_NEWS_WINDOW_COUNT 3
+#define FUSION_SETTINGS_SCHEMA_VERSION 13
+#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 135
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -124,8 +126,10 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_RSI,
    UI_COMMAND_TOGGLE_BB,
    UI_COMMAND_TOGGLE_TREND_FILTER,
+   UI_COMMAND_TOGGLE_TREND_DUAL_BARRIER,
    UI_COMMAND_TOGGLE_RSI_FILTER,
    UI_COMMAND_TOGGLE_BB_FILTER,
+   UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION,
    UI_COMMAND_SAVE_PROFILE,
    UI_COMMAND_LOAD_PROFILE
   };
@@ -255,6 +259,11 @@ struct SEASettings
    ENUM_TIMEFRAMES          trendMATimeframe;
    ENUM_MA_METHOD           trendMAMethod;
    ENUM_APPLIED_PRICE       trendMAPrice;
+   bool                     trendDualBarrierEnabled;
+   int                      trendSellMAPeriod;
+   ENUM_TIMEFRAMES          trendSellMATimeframe;
+   ENUM_MA_METHOD           trendSellMAMethod;
+   ENUM_APPLIED_PRICE       trendSellMAPrice;
    bool                     useRSIFilter;
    ENUM_RSI_FILTER_MODE     rsiFilterMode;
    int                      rsiFilterPeriod;
@@ -270,6 +279,9 @@ struct SEASettings
    ENUM_APPLIED_PRICE       bbFilterPrice;
    int                      bbFilterMinWidthPoints;
    double                   bbFilterMinWidthPercent;
+   bool                     bbFilterSlopeDirectionEnabled;
+   int                      bbFilterSlopeLookback;
+   int                      bbFilterMinSlopePoints;
    bool                     isTester;
   };
 
@@ -429,6 +441,7 @@ struct SChartStateContext
    string timeframe;
    int    periodValue;
    int    deinitReason;
+   bool   discardedUnsavedDraft;
   };
 
 struct SUIPanelSnapshot
@@ -519,7 +532,7 @@ string SignalToString(ENUM_SIGNAL_TYPE signal)
 
 void SetDefaultSettings(SEASettings &settings)
   {
-   settings.schemaVersion         = 12;
+   settings.schemaVersion         = FUSION_SETTINGS_SCHEMA_VERSION;
    settings.panelEnabled          = true;
    settings.defaultProfileName    = "default";
    settings.magicNumber           = 10001;
@@ -622,6 +635,11 @@ void SetDefaultSettings(SEASettings &settings)
    settings.trendMATimeframe      = FUSION_DEFAULT_TIMEFRAME;
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
+   settings.trendDualBarrierEnabled = false;
+   settings.trendSellMAPeriod     = 21;
+   settings.trendSellMATimeframe  = FUSION_DEFAULT_TIMEFRAME;
+   settings.trendSellMAMethod     = MODE_SMA;
+   settings.trendSellMAPrice      = PRICE_CLOSE;
    settings.useRSIFilter          = false;
    settings.rsiFilterMode         = RSI_FILTER_DIRECTION;
    settings.rsiFilterPeriod       = 14;
@@ -637,6 +655,9 @@ void SetDefaultSettings(SEASettings &settings)
    settings.bbFilterPrice         = PRICE_CLOSE;
    settings.bbFilterMinWidthPoints = 100;
    settings.bbFilterMinWidthPercent = 0.20;
+   settings.bbFilterSlopeDirectionEnabled = false;
+   settings.bbFilterSlopeLookback = 3;
+   settings.bbFilterMinSlopePoints = 0;
    settings.isTester              = false;
   }
 
@@ -656,6 +677,7 @@ void ResolveOperationalTimeframes(SEASettings &settings,const ENUM_TIMEFRAMES fa
    settings.rsiTimeframe       = ResolveOperationalTimeframe(settings.rsiTimeframe, fallbackTimeframe);
    settings.bbTimeframe        = ResolveOperationalTimeframe(settings.bbTimeframe, fallbackTimeframe);
    settings.trendMATimeframe   = ResolveOperationalTimeframe(settings.trendMATimeframe, fallbackTimeframe);
+   settings.trendSellMATimeframe = ResolveOperationalTimeframe(settings.trendSellMATimeframe, fallbackTimeframe);
    settings.rsiFilterTimeframe = ResolveOperationalTimeframe(settings.rsiFilterTimeframe, fallbackTimeframe);
    settings.bbFilterTimeframe  = ResolveOperationalTimeframe(settings.bbFilterTimeframe, fallbackTimeframe);
   }

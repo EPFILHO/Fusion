@@ -220,6 +220,11 @@ input int                inp_TrendMAPeriod  = 50;       // Periodo da media de t
 input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendMATF = TIMEFRAME_M15; // Timeframe da media de tendencia
 input ENUM_MA_METHOD     inp_TrendMAMethod  = MODE_SMA; // Metodo da media de tendencia
 input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE; // Preco da media de tendencia
+input bool               inp_TrendDualBarrier = false; // Usar MA independente como barreira de venda
+input int                inp_TrendSellMAPeriod = 21;   // Periodo da barreira de venda
+input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendSellMATF = TIMEFRAME_M15; // Timeframe da barreira de venda
+input ENUM_MA_METHOD     inp_TrendSellMAMethod = MODE_SMA; // Metodo da barreira de venda
+input ENUM_APPLIED_PRICE inp_TrendSellMAPrice = PRICE_CLOSE; // Preco da barreira de venda
 
 input group " "
 //--- RSI Filter: aprova ou bloqueia sinais; nunca abre trades
@@ -243,6 +248,9 @@ input double                  inp_BBFilterDeviation = 2.0; // Desvio do Bollinge
 input ENUM_APPLIED_PRICE      inp_BBFilterPrice = PRICE_CLOSE; // Preco aplicado ao Bollinger Filter
 input int                     inp_BBFilterMinWidthPoints = 100; // Largura minima das bandas em pontos
 input double                  inp_BBFilterMinWidthPercent = 0.20; // Largura minima das bandas em percentual
+input bool                    inp_BBFilterSlopeDirection = false; // Bloquear sinais contra a inclinacao
+input int                     inp_BBFilterSlopeLookback = 3; // Candles fechados usados na inclinacao
+input int                     inp_BBFilterMinSlopePoints = 0; // Inclinacao minima em pts por candle
 
 void FillSettingsFromInputs(SEASettings &settings)
   {
@@ -359,6 +367,11 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.trendMATimeframe       = FusionInputTimeframeToPeriod(inp_TrendMATF);
    settings.trendMAMethod          = inp_TrendMAMethod;
    settings.trendMAPrice           = inp_TrendMAPrice;
+   settings.trendDualBarrierEnabled = inp_TrendDualBarrier;
+   settings.trendSellMAPeriod      = inp_TrendSellMAPeriod;
+   settings.trendSellMATimeframe   = FusionInputTimeframeToPeriod(inp_TrendSellMATF);
+   settings.trendSellMAMethod      = inp_TrendSellMAMethod;
+   settings.trendSellMAPrice       = inp_TrendSellMAPrice;
    settings.useRSIFilter           = inp_UseRSIFilter;
    settings.rsiFilterMode          = inp_RSIFilterMode;
    settings.rsiFilterPeriod        = inp_RSIFilterPeriod;
@@ -374,6 +387,9 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.bbFilterPrice          = inp_BBFilterPrice;
    settings.bbFilterMinWidthPoints = inp_BBFilterMinWidthPoints;
    settings.bbFilterMinWidthPercent = inp_BBFilterMinWidthPercent;
+   settings.bbFilterSlopeDirectionEnabled = inp_BBFilterSlopeDirection;
+   settings.bbFilterSlopeLookback = inp_BBFilterSlopeLookback;
+   settings.bbFilterMinSlopePoints = inp_BBFilterMinSlopePoints;
   }
 
 #endif

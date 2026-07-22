@@ -13,6 +13,9 @@ private:
    ENUM_APPLIED_PRICE        m_price;
    int                       m_minWidthPoints;
    double                    m_minWidthPercent;
+   bool                      m_slopeDirectionEnabled;
+   int                       m_slopeLookback;
+   int                       m_minSlopePoints;
 
    void              ReleaseHandle(void)
      {
@@ -28,18 +31,19 @@ private:
 
    bool              LoadBands(double &middle[],double &upper[],double &lower[])
      {
-      ArrayResize(middle, 2);
-      ArrayResize(upper, 2);
-      ArrayResize(lower, 2);
+      int required = m_slopeDirectionEnabled ? (m_slopeLookback + 2) : 2;
+      ArrayResize(middle, required);
+      ArrayResize(upper, required);
+      ArrayResize(lower, required);
       ArraySetAsSeries(middle, true);
       ArraySetAsSeries(upper, true);
       ArraySetAsSeries(lower, true);
 
-      if(CopyBuffer(m_handle, 0, 0, 2, middle) < 2)
+      if(CopyBuffer(m_handle, 0, 0, required, middle) < required)
          return false;
-      if(CopyBuffer(m_handle, 1, 0, 2, upper) < 2)
+      if(CopyBuffer(m_handle, 1, 0, required, upper) < required)
          return false;
-      if(CopyBuffer(m_handle, 2, 0, 2, lower) < 2)
+      if(CopyBuffer(m_handle, 2, 0, required, lower) < required)
          return false;
       return true;
      }
@@ -54,6 +58,9 @@ public:
       m_price = PRICE_CLOSE;
       m_minWidthPoints = 100;
       m_minWidthPercent = 0.20;
+      m_slopeDirectionEnabled = false;
+      m_slopeLookback = 3;
+      m_minSlopePoints = 0;
      }
 
    virtual bool      Initialize(CLogger *logger,const string symbol) override
@@ -77,6 +84,9 @@ public:
       m_mode = settings.bbFilterMode;
       m_minWidthPoints = settings.bbFilterMinWidthPoints;
       m_minWidthPercent = settings.bbFilterMinWidthPercent;
+      m_slopeDirectionEnabled = settings.bbFilterSlopeDirectionEnabled;
+      m_slopeLookback = settings.bbFilterSlopeLookback;
+      m_minSlopePoints = settings.bbFilterMinSlopePoints;
 
       if(scope == RELOAD_HOT && m_initialized)
          return true;
@@ -116,6 +126,12 @@ public:
          reason = "indicador indisponivel";
          return false;
         }
+      if(m_slopeDirectionEnabled &&
+         (m_slopeLookback < 1 || m_slopeLookback > 100 || m_minSlopePoints < 0))
+        {
+         reason = "configuracao de inclinacao invalida";
+         return false;
+        }
 
       double middle[];
       double upper[];
@@ -127,6 +143,13 @@ public:
         }
 
       double width = MathMax(0.0, upper[1] - lower[1]);
+      double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
+      if(point <= 0.0)
+        {
+         reason = "point do simbolo invalido";
+         return false;
+        }
+
       if(m_mode == BB_FILTER_WIDTH_RELATIVE)
         {
          double basis = MathAbs(middle[1]);
@@ -143,22 +166,34 @@ public:
                      "% abaixo do minimo " + DoubleToString(m_minWidthPercent, 2) + "%";
             return false;
            }
-         return true;
+        }
+      else
+        {
+         double widthPoints = width / point;
+         if(widthPoints < (double)m_minWidthPoints)
+           {
+            reason = "largura " + DoubleToString(widthPoints, 1) +
+                     " pts abaixo do minimo " + IntegerToString(m_minWidthPoints) + " pts";
+            return false;
+           }
         }
 
-      double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
-      if(point <= 0.0)
+      if(m_slopeDirectionEnabled)
         {
-         reason = "point do simbolo invalido";
-         return false;
-        }
-
-      double widthPoints = width / point;
-      if(widthPoints < (double)m_minWidthPoints)
-        {
-         reason = "largura " + DoubleToString(widthPoints, 1) +
-                  " pts abaixo do minimo " + IntegerToString(m_minWidthPoints) + " pts";
-         return false;
+         double slopePointsPerBar = ((middle[1] - middle[1 + m_slopeLookback]) / point) /
+                                    (double)m_slopeLookback;
+         if(signal == SIGNAL_SELL && slopePointsPerBar > (double)m_minSlopePoints)
+           {
+            reason = "venda bloqueada: BB ascendente (" +
+                     DoubleToString(slopePointsPerBar, 1) + " pts/candle)";
+            return false;
+           }
+         if(signal == SIGNAL_BUY && slopePointsPerBar < -(double)m_minSlopePoints)
+           {
+            reason = "compra bloqueada: BB descendente (" +
+                     DoubleToString(slopePointsPerBar, 1) + " pts/candle)";
+            return false;
+           }
         }
 
       return true;

@@ -188,6 +188,10 @@ Perfis sao configuracoes operacionais. Estado de grafico e restauracao local da 
 
 O chart state operacional e gravado primeiro em arquivo temporario e promovido sobre o arquivo anterior somente depois de todas as linhas serem escritas e descarregadas. Fluxos que exigem durabilidade antes de enviar trade, como a intencao de parcial, devem verificar o retorno dessa gravacao e falhar fechado.
 
+Perfis usam a mesma promocao atomica. O carregamento sempre ocorre em uma estrutura candidata inicializada com defaults e so substitui a configuracao corrente depois que schema, campos essenciais e marcadores de completude forem confirmados. Perfis legados completos podem ser migrados; arquivos truncados ou de schema futuro falham sem aplicar defaults silenciosamente.
+
+No schema 13, o `Trend Filter` pode manter a regra historica de MA unica ou ativar barreiras duplas: BUY consulta somente a MA principal e SELL consulta somente a MA secundaria. O `Bollinger Filter` pode adicionar ao anti-squeeze uma regra direcional pela inclinacao media da linha central, sempre calculada entre candles fechados. Os dois modos novos sao opcionais e desligados por default.
+
 Em grafico real ou demo, a restauracao de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posicao aberta sincronizada ou restaurada.
 
 O estado por grafico guarda tambem o contexto visual do chart. Esse contexto serve para restauracao segura e para alertas ao usuario, nao para redefinir os timeframes operacionais dos modulos.
@@ -262,7 +266,7 @@ Mensagens operacionais persistentes devem ficar concentradas em `STATUS`. A aba 
 
 Quando um alerta operacional for importante para a seguranca, a `STATUS` deve ser dona da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
 
-Troca de timeframe do grafico, por si so, nao deve mais ser tratada como erro operacional na UI. Como o Fusion esta migrando para timeframes operacionais por modulo, o chart pode ser usado apenas para inspecao visual. Alertas persistentes de `STATUS` ficam reservados para condicoes realmente perigosas, especialmente troca de ativo e ausencia de perfil esperado.
+Troca de timeframe do grafico, por si so, nao deve mais ser tratada como erro operacional na UI. Como os timeframes operacionais pertencem aos modulos, o chart pode ser usado apenas para inspecao visual. O estado confirmado e restaurado, mas drafts e pending changes da GUI nunca sao salvos ou aplicados implicitamente; se existiam, `STATUS` avisa claramente que foram descartados. Alertas persistentes tambem permanecem para troca de ativo e ausencia ou invalidade do perfil esperado.
 
 Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criacao do painel, navegacao ou troca explicita de modo.
 

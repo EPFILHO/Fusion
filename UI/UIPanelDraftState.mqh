@@ -41,10 +41,14 @@
          m_draftSettings.useBollinger = !m_draftSettings.useBollinger;
       else if(type == UI_COMMAND_TOGGLE_TREND_FILTER)
          m_draftSettings.useTrendFilter = !m_draftSettings.useTrendFilter;
+      else if(type == UI_COMMAND_TOGGLE_TREND_DUAL_BARRIER)
+         m_draftSettings.trendDualBarrierEnabled = !m_draftSettings.trendDualBarrierEnabled;
       else if(type == UI_COMMAND_TOGGLE_RSI_FILTER)
          m_draftSettings.useRSIFilter = !m_draftSettings.useRSIFilter;
       else if(type == UI_COMMAND_TOGGLE_BB_FILTER)
          m_draftSettings.bbFilterEnabled = !m_draftSettings.bbFilterEnabled;
+      else if(type == UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION)
+         m_draftSettings.bbFilterSlopeDirectionEnabled = !m_draftSettings.bbFilterSlopeDirectionEnabled;
      }
 
    string                     DraftProfileName(void)

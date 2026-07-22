@@ -53,7 +53,7 @@ private:
    bool              SaveSettingsBlock(const int handle,const SEASettings &settings) const
      {
       bool ok = true;
-      ok = WriteLine(handle, "schemaVersion", IntegerToString(settings.schemaVersion)) && ok;
+      ok = WriteLine(handle, "schemaVersion", IntegerToString(FUSION_SETTINGS_SCHEMA_VERSION)) && ok;
       ok = WriteLine(handle, "panelEnabled", IntegerToString((int)settings.panelEnabled)) && ok;
       ok = WriteLine(handle, "defaultProfileName", settings.defaultProfileName) && ok;
       ok = WriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
@@ -157,6 +157,11 @@ private:
       ok = WriteLine(handle, "trendMATimeframe", IntegerToString((int)settings.trendMATimeframe)) && ok;
       ok = WriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod)) && ok;
       ok = WriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice)) && ok;
+      ok = WriteLine(handle, "trendDualBarrierEnabled", IntegerToString((int)settings.trendDualBarrierEnabled)) && ok;
+      ok = WriteLine(handle, "trendSellMAPeriod", IntegerToString(settings.trendSellMAPeriod)) && ok;
+      ok = WriteLine(handle, "trendSellMATimeframe", IntegerToString((int)settings.trendSellMATimeframe)) && ok;
+      ok = WriteLine(handle, "trendSellMAMethod", IntegerToString((int)settings.trendSellMAMethod)) && ok;
+      ok = WriteLine(handle, "trendSellMAPrice", IntegerToString((int)settings.trendSellMAPrice)) && ok;
       ok = WriteLine(handle, "useRSIFilter", IntegerToString((int)settings.useRSIFilter)) && ok;
       ok = WriteLine(handle, "rsiFilterMode", IntegerToString((int)settings.rsiFilterMode)) && ok;
       ok = WriteLine(handle, "rsiFilterPeriod", IntegerToString(settings.rsiFilterPeriod)) && ok;
@@ -172,6 +177,9 @@ private:
       ok = WriteLine(handle, "bbFilterPrice", IntegerToString((int)settings.bbFilterPrice)) && ok;
       ok = WriteLine(handle, "bbFilterMinWidthPoints", IntegerToString(settings.bbFilterMinWidthPoints)) && ok;
       ok = WriteLine(handle, "bbFilterMinWidthPercent", DoubleToString(settings.bbFilterMinWidthPercent, 2)) && ok;
+      ok = WriteLine(handle, "bbFilterSlopeDirectionEnabled", IntegerToString((int)settings.bbFilterSlopeDirectionEnabled)) && ok;
+      ok = WriteLine(handle, "bbFilterSlopeLookback", IntegerToString(settings.bbFilterSlopeLookback)) && ok;
+      ok = WriteLine(handle, "bbFilterMinSlopePoints", IntegerToString(settings.bbFilterMinSlopePoints)) && ok;
       return ok;
      }
 
@@ -318,6 +326,11 @@ private:
       else if(key == "trendMATimeframe") settings.trendMATimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "trendMAMethod") settings.trendMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
       else if(key == "trendMAPrice") settings.trendMAPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
+      else if(key == "trendDualBarrierEnabled") settings.trendDualBarrierEnabled = (bool)StringToInteger(value);
+      else if(key == "trendSellMAPeriod") settings.trendSellMAPeriod = (int)StringToInteger(value);
+      else if(key == "trendSellMATimeframe") settings.trendSellMATimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
+      else if(key == "trendSellMAMethod") settings.trendSellMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
+      else if(key == "trendSellMAPrice") settings.trendSellMAPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "useRSIFilter") settings.useRSIFilter = (bool)StringToInteger(value);
       else if(key == "rsiFilterMode") settings.rsiFilterMode = (ENUM_RSI_FILTER_MODE)StringToInteger(value);
       else if(key == "rsiFilterPeriod") settings.rsiFilterPeriod = (int)StringToInteger(value);
@@ -333,6 +346,47 @@ private:
       else if(key == "bbFilterPrice") settings.bbFilterPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
       else if(key == "bbFilterMinWidthPoints") settings.bbFilterMinWidthPoints = (int)StringToInteger(value);
       else if(key == "bbFilterMinWidthPercent") settings.bbFilterMinWidthPercent = StringToDouble(value);
+      else if(key == "bbFilterSlopeDirectionEnabled") settings.bbFilterSlopeDirectionEnabled = (bool)StringToInteger(value);
+      else if(key == "bbFilterSlopeLookback") settings.bbFilterSlopeLookback = (int)StringToInteger(value);
+      else if(key == "bbFilterMinSlopePoints") settings.bbFilterMinSlopePoints = (int)StringToInteger(value);
+     }
+
+   bool              ProfileHasRequiredFields(const int schemaVersion,
+                                               const int settingLineCount,
+                                               const bool seenSchema,
+                                               const bool seenMagic,
+                                               const bool seenFixedLot,
+                                               const bool seenMA,
+                                               const bool seenRSI,
+                                               const bool seenBB,
+                                               const bool seenTrend,
+                                               const bool seenRSIFilter,
+                                               const bool seenBBFilter,
+                                               const bool seenLegacyTail,
+                                               const bool seenCurrentTail) const
+     {
+      if(!seenSchema || schemaVersion <= 0 || schemaVersion > FUSION_SETTINGS_SCHEMA_VERSION)
+         return false;
+      if(!seenMagic || !seenFixedLot || !seenMA || !seenRSI || !seenBB || !seenTrend || !seenRSIFilter)
+         return false;
+
+      // bbFilterMinWidthPercent era a ultima linha gravada pela 1.055 e pelas
+      // versoes anteriores ainda migraveis. Exigi-la impede que um arquivo
+      // truncado seja completado silenciosamente com defaults.
+      if(!seenLegacyTail)
+         return false;
+
+      // Schemas legados sao migrados pelos defaults conhecidos. A partir do
+      // schema 8, o bloco do BB Filter passou a fazer parte do perfil.
+      if(schemaVersion >= 8 && !seenBBFilter)
+         return false;
+
+      // O schema atual e estrito: um perfil novo deve conter o bloco completo
+      // gravado por SaveSettingsBlock e o seu ultimo campo obrigatorio.
+      if(schemaVersion == FUSION_SETTINGS_SCHEMA_VERSION)
+         return (settingLineCount >= FUSION_SETTINGS_SCHEMA_LINE_COUNT && seenCurrentTail);
+
+      return true;
      }
 
    ENUM_STREAK_ACTION NormalizeStreakAction(const ENUM_STREAK_ACTION action,const ENUM_STREAK_ACTION fallback) const
@@ -467,6 +521,7 @@ private:
       else if(key == "context.timeframe") context.timeframe = value;
       else if(key == "context.periodValue") context.periodValue = (int)StringToInteger(value);
       else if(key == "context.deinitReason") context.deinitReason = (int)StringToInteger(value);
+      else if(key == "context.discardedUnsavedDraft") context.discardedUnsavedDraft = (bool)StringToInteger(value);
      }
 
 public:
@@ -575,13 +630,27 @@ public:
       EnsureFolders();
 
       string fileName = ProfileFileName(profileName);
-      int handle = FileOpen(fileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
+      string tempFileName = fileName + ".tmp";
+      FileDelete(tempFileName);
+      int handle = FileOpen(tempFileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
 
       bool ok = SaveSettingsBlock(handle, settings);
+      FileFlush(handle);
       FileClose(handle);
-      return ok;
+      if(!ok)
+        {
+         FileDelete(tempFileName);
+         return false;
+        }
+
+      if(!FileMove(tempFileName, 0, fileName, FILE_REWRITE))
+        {
+         FileDelete(tempFileName);
+         return false;
+        }
+      return true;
      }
 
    bool              DeleteProfile(const string profileName)
@@ -596,26 +665,71 @@ public:
    bool              LoadProfile(const string profileName,SEASettings &settings) const
      {
       EnsureFolders();
-      SetDefaultSettings(settings);
+      SEASettings candidate;
+      SetDefaultSettings(candidate);
 
       string fileName = ProfileFileName(profileName);
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
 
+      int settingLineCount = 0;
+      bool seenSchema = false;
+      bool seenMagic = false;
+      bool seenFixedLot = false;
+      bool seenMA = false;
+      bool seenRSI = false;
+      bool seenBB = false;
+      bool seenTrend = false;
+      bool seenRSIFilter = false;
+      bool seenBBFilter = false;
+      bool seenLegacyTail = false;
+      bool seenCurrentTail = false;
+
       while(!FileIsEnding(handle))
         {
          string line = FileReadString(handle);
          string key = "";
          string value = "";
-         if(ParseLine(line, key, value))
-            ApplySetting(key, value, settings);
+         if(!ParseLine(line, key, value))
+            continue;
+
+         settingLineCount++;
+         if(key == "schemaVersion") seenSchema = true;
+         else if(key == "magicNumber") seenMagic = true;
+         else if(key == "fixedLot") seenFixedLot = true;
+         else if(key == "useMACross") seenMA = true;
+         else if(key == "useRSI") seenRSI = true;
+         else if(key == "useBollinger") seenBB = true;
+         else if(key == "useTrendFilter") seenTrend = true;
+         else if(key == "useRSIFilter") seenRSIFilter = true;
+         else if(key == "bbFilterEnabled") seenBBFilter = true;
+         else if(key == "bbFilterMinWidthPercent") seenLegacyTail = true;
+         else if(key == "bbFilterMinSlopePoints") seenCurrentTail = true;
+         ApplySetting(key, value, candidate);
         }
 
       FileClose(handle);
-      NormalizeProtectionSettings(settings);
-      NormalizeStreakSettings(settings);
-      NormalizeRiskSettings(settings);
+      if(!ProfileHasRequiredFields(candidate.schemaVersion,
+                                   settingLineCount,
+                                   seenSchema,
+                                   seenMagic,
+                                   seenFixedLot,
+                                   seenMA,
+                                   seenRSI,
+                                   seenBB,
+                                   seenTrend,
+                                   seenRSIFilter,
+                                   seenBBFilter,
+                                   seenLegacyTail,
+                                   seenCurrentTail))
+         return false;
+
+      NormalizeProtectionSettings(candidate);
+      NormalizeStreakSettings(candidate);
+      NormalizeRiskSettings(candidate);
+      candidate.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
+      settings = candidate;
       return true;
      }
 
@@ -644,6 +758,7 @@ public:
       ok = WriteLine(handle, "context.timeframe", context.timeframe) && ok;
       ok = WriteLine(handle, "context.periodValue", IntegerToString(context.periodValue)) && ok;
       ok = WriteLine(handle, "context.deinitReason", IntegerToString(context.deinitReason)) && ok;
+      ok = WriteLine(handle, "context.discardedUnsavedDraft", IntegerToString((int)context.discardedUnsavedDraft)) && ok;
       ok = SaveSettingsBlock(handle, settings) && ok;
       ok = WriteLine(handle, "activeProfileName", activeProfileName) && ok;
       ok = WriteLine(handle, "started", IntegerToString((int)started)) && ok;
@@ -735,6 +850,7 @@ public:
       context.timeframe = "";
       context.periodValue = 0;
       context.deinitReason = -1;
+      context.discardedUnsavedDraft = false;
       activeProfileName = "";
       started = false;
 

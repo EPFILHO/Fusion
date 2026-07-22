@@ -215,6 +215,16 @@
          return true;
       if(m_draftSettings.trendMAPrice != m_committedSettings.trendMAPrice)
          return true;
+      if(m_draftSettings.trendDualBarrierEnabled != m_committedSettings.trendDualBarrierEnabled)
+         return true;
+      if(m_draftSettings.trendSellMAPeriod != m_committedSettings.trendSellMAPeriod)
+         return true;
+      if(m_draftSettings.trendSellMATimeframe != m_committedSettings.trendSellMATimeframe)
+         return true;
+      if(m_draftSettings.trendSellMAMethod != m_committedSettings.trendSellMAMethod)
+         return true;
+      if(m_draftSettings.trendSellMAPrice != m_committedSettings.trendSellMAPrice)
+         return true;
       if(m_draftSettings.rsiFilterMode != m_committedSettings.rsiFilterMode)
          return true;
       if(m_draftSettings.rsiFilterPeriod != m_committedSettings.rsiFilterPeriod)
@@ -239,7 +249,13 @@
          return true;
       if(m_draftSettings.bbFilterMinWidthPoints != m_committedSettings.bbFilterMinWidthPoints)
          return true;
-      return (MathAbs(m_draftSettings.bbFilterMinWidthPercent - m_committedSettings.bbFilterMinWidthPercent) > 0.0000001);
+      if(MathAbs(m_draftSettings.bbFilterMinWidthPercent - m_committedSettings.bbFilterMinWidthPercent) > 0.0000001)
+         return true;
+      if(m_draftSettings.bbFilterSlopeDirectionEnabled != m_committedSettings.bbFilterSlopeDirectionEnabled)
+         return true;
+      if(m_draftSettings.bbFilterSlopeLookback != m_committedSettings.bbFilterSlopeLookback)
+         return true;
+      return (m_draftSettings.bbFilterMinSlopePoints != m_committedSettings.bbFilterMinSlopePoints);
      }
 
    bool                       HasNewsWindowPendingChanges(const int newsIndex)

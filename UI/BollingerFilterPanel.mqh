@@ -23,6 +23,10 @@ private:
    CSelectionComboField   m_price;
    CIntegerEditField      m_minWidthPoints;
    CDecimalEditField      m_minWidthPercent;
+   CLabel                 m_slopeLabel;
+   CButton                m_slopeToggle;
+   CIntegerEditField      m_slopeLookback;
+   CIntegerEditField      m_minSlopePoints;
    CLabel                 m_ruleHint;
    CLabel                 m_valueHint;
    CLabel                 m_noteHint;
@@ -72,6 +76,16 @@ private:
       return (value > 0.0 && value <= 100.0);
      }
 
+   bool              SlopeLookbackValid(const int value) const
+     {
+      return (value >= 1 && value <= 100);
+     }
+
+   bool              MinSlopeValid(const int value) const
+     {
+      return (value >= 0 && value <= 100000);
+     }
+
    string            RuleHint(const SEASettings &settings) const
      {
       if(settings.bbFilterMode == BB_FILTER_WIDTH_RELATIVE)
@@ -93,7 +107,9 @@ private:
       m_ruleHint.Color(textColor);
       m_valueHint.Text(ValueHint(settings));
       m_valueHint.Color(textColor);
-      m_noteHint.Text("Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
+      m_noteHint.Text(settings.bbFilterSlopeDirectionEnabled
+                      ? "Direcao: bloqueia SELL na alta e BUY na queda da linha media."
+                      : "Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
       m_noteHint.Color(textColor);
      }
 
@@ -107,7 +123,7 @@ public:
       if(!AddText(parent, m_header, prefix + "hdr", chartId, subwin, x1, y1, x2, y1 + 18, "Bollinger Filter", FUSION_CLR_TITLE, 10))
          return false;
       if(!AddText(parent, m_description, prefix + "desc", chartId, subwin, x1, y1 + 24, x2, y1 + 44,
-                  "Bloqueia entradas quando as bandas estao estreitas.", FUSION_CLR_MUTED, 8))
+                  "Filtra pela largura e, opcionalmente, pela inclinacao das bandas.", FUSION_CLR_MUTED, 8))
          return false;
 
       if(!m_toggle.Create(chartId, prefix + "toggle", subwin, x1, y1 + 56, x1 + 110, y1 + 80))
@@ -134,11 +150,23 @@ public:
       if(!m_minWidthPercent.Create(parent, chartId, subwin, prefix + "min_pct", "Min %", x1 + 206, y1 + 196, x1 + 280, y1 + 214, x1 + 292, y1 + 192, x1 + 392, y1 + 216, 0.20, 2))
          return false;
 
-      if(!AddText(parent, m_ruleHint, prefix + "rule_hint", chartId, subwin, x1, y1 + 246, x2, y1 + 264, "", FUSION_CLR_MUTED, 8))
+      if(!AddText(parent, m_slopeLabel, prefix + "slope_lbl", chartId, subwin, x1, y1 + 244, x1 + 88, y1 + 262, "Direcao", FUSION_CLR_LABEL, 8))
          return false;
-      if(!AddText(parent, m_valueHint, prefix + "value_hint", chartId, subwin, x1, y1 + 268, x2, y1 + 286, "", FUSION_CLR_MUTED, 8))
+      if(!m_slopeToggle.Create(chartId, prefix + "slope_toggle", subwin, x1 + 92, y1 + 240, x1 + 192, y1 + 264))
          return false;
-      if(!AddText(parent, m_noteHint, prefix + "note_hint", chartId, subwin, x1, y1 + 290, x2, y1 + 308, "", FUSION_CLR_MUTED, 8))
+      FusionApplyToggleButtonStyle(m_slopeToggle, false);
+      if(!parent.AddControl(m_slopeToggle))
+         return false;
+      if(!m_slopeLookback.Create(parent, chartId, subwin, prefix + "slope_lookback", "Candles", x1 + 206, y1 + 244, x1 + 280, y1 + 262, x1 + 292, y1 + 240, x1 + 392, y1 + 264, 3))
+         return false;
+      if(!m_minSlopePoints.Create(parent, chartId, subwin, prefix + "slope_min", "Min Pts/C", x1, y1 + 284, x1 + 88, y1 + 302, x1 + 92, y1 + 280, x1 + 192, y1 + 304, 0))
+         return false;
+
+      if(!AddText(parent, m_ruleHint, prefix + "rule_hint", chartId, subwin, x1, y1 + 328, x2, y1 + 346, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddText(parent, m_valueHint, prefix + "value_hint", chartId, subwin, x1, y1 + 350, x2, y1 + 368, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddText(parent, m_noteHint, prefix + "note_hint", chartId, subwin, x1, y1 + 372, x2, y1 + 390, "", FUSION_CLR_MUTED, 8))
          return false;
 
       Hide();
@@ -157,6 +185,10 @@ public:
       m_price.Show();
       m_minWidthPoints.Show();
       m_minWidthPercent.Show();
+      m_slopeLabel.Show();
+      m_slopeToggle.Show();
+      m_slopeLookback.Show();
+      m_minSlopePoints.Show();
       m_ruleHint.Show();
       m_valueHint.Show();
       m_noteHint.Show();
@@ -176,6 +208,10 @@ public:
       m_price.Hide();
       m_minWidthPoints.Hide();
       m_minWidthPercent.Hide();
+      m_slopeLabel.Hide();
+      m_slopeToggle.Hide();
+      m_slopeLookback.Hide();
+      m_minSlopePoints.Hide();
       m_ruleHint.Hide();
       m_valueHint.Hide();
       m_noteHint.Hide();
@@ -193,6 +229,8 @@ public:
       bool percentValid = MinPercentValid(settings.bbFilterMinWidthPercent);
       bool absoluteMode = (settings.bbFilterMode == BB_FILTER_WIDTH_ABSOLUTE);
       bool relativeMode = (settings.bbFilterMode == BB_FILTER_WIDTH_RELATIVE);
+      bool lookbackValid = SlopeLookbackValid(settings.bbFilterSlopeLookback);
+      bool minSlopeValid = MinSlopeValid(settings.bbFilterMinSlopePoints);
 
       m_mode.Sync((long)settings.bbFilterMode, editable);
       m_period.Sync(settings.bbFilterPeriod, editable, periodValid);
@@ -201,15 +239,27 @@ public:
       m_price.Sync((long)settings.bbFilterPrice, editable);
       m_minWidthPoints.Sync(settings.bbFilterMinWidthPoints, editable && absoluteMode, !absoluteMode || pointsValid);
       m_minWidthPercent.Sync(settings.bbFilterMinWidthPercent, editable && relativeMode, !relativeMode || percentValid);
+      FusionApplyToggleButtonStyle(m_slopeToggle, settings.bbFilterSlopeDirectionEnabled, editable);
+      m_slopeLabel.Color(editable ? FUSION_CLR_LABEL : FUSION_CLR_DISABLED);
+      bool slopeEditable = (editable && settings.bbFilterSlopeDirectionEnabled);
+      m_slopeLookback.Sync(settings.bbFilterSlopeLookback, slopeEditable, lookbackValid);
+      m_minSlopePoints.Sync(settings.bbFilterMinSlopePoints, slopeEditable, minSlopeValid);
       SyncGuidance(settings, editable && modeValid);
      }
 
    bool              HandleClick(const string objectName,SUICommand &command)
      {
-      if(objectName != m_toggle.Name())
-         return false;
-      command.type = UI_COMMAND_TOGGLE_BB_FILTER;
-      return true;
+      if(objectName == m_toggle.Name())
+        {
+         command.type = UI_COMMAND_TOGGLE_BB_FILTER;
+         return true;
+        }
+      if(objectName == m_slopeToggle.Name())
+        {
+         command.type = UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION;
+         return true;
+        }
+      return false;
      }
 
    bool              HandleChange(const string objectName,SEASettings &settings)
@@ -271,6 +321,16 @@ public:
          settings.bbFilterMinWidthPercent = value;
          return true;
         }
+      if(m_slopeLookback.Matches(objectName))
+        {
+         settings.bbFilterSlopeLookback = m_slopeLookback.Value();
+         return true;
+        }
+      if(m_minSlopePoints.Matches(objectName))
+        {
+         settings.bbFilterMinSlopePoints = m_minSlopePoints.Value();
+         return true;
+        }
       return false;
      }
 
@@ -279,7 +339,9 @@ public:
       return m_period.Matches(objectName) ||
              m_deviation.Matches(objectName) ||
              m_minWidthPoints.Matches(objectName) ||
-             m_minWidthPercent.Matches(objectName);
+             m_minWidthPercent.Matches(objectName) ||
+             m_slopeLookback.Matches(objectName) ||
+             m_minSlopePoints.Matches(objectName);
      }
 
    void              NormalizeDeferredEdit(const string objectName)
@@ -292,6 +354,10 @@ public:
          m_minWidthPoints.SanitizeRange(100, 1, 100000, 6);
       else if(m_minWidthPercent.Matches(objectName))
          m_minWidthPercent.SanitizeDecimal(3, 2);
+      else if(m_slopeLookback.Matches(objectName))
+         m_slopeLookback.SanitizeRange(3, 1, 100, 3);
+      else if(m_minSlopePoints.Matches(objectName))
+         m_minSlopePoints.SanitizeRange(0, 0, 100000, 6);
      }
 
    bool              Validate(SEASettings &candidate,const bool editable,string &error)
@@ -307,6 +373,8 @@ public:
          candidate.bbFilterPrice = (ENUM_APPLIED_PRICE)m_price.Value();
          candidate.bbFilterMinWidthPoints = m_minWidthPoints.Value();
          candidate.bbFilterMinWidthPercent = m_minWidthPercent.Value();
+         candidate.bbFilterSlopeLookback = m_slopeLookback.Value();
+         candidate.bbFilterMinSlopePoints = m_minSlopePoints.Value();
         }
 
       bool modeValid = ModeValid(candidate.bbFilterMode);
@@ -316,13 +384,17 @@ public:
       bool relativeMode = (candidate.bbFilterMode == BB_FILTER_WIDTH_RELATIVE);
       bool pointsValid = !absoluteMode || MinPointsValid(candidate.bbFilterMinWidthPoints);
       bool percentValid = !relativeMode || MinPercentValid(candidate.bbFilterMinWidthPercent);
+      bool lookbackValid = !candidate.bbFilterSlopeDirectionEnabled || SlopeLookbackValid(candidate.bbFilterSlopeLookback);
+      bool minSlopeValid = !candidate.bbFilterSlopeDirectionEnabled || MinSlopeValid(candidate.bbFilterMinSlopePoints);
 
       m_period.SetValid(periodValid, editable);
       m_deviation.SetValid(deviationValid, editable);
       m_minWidthPoints.SetValid(pointsValid, editable && absoluteMode);
       m_minWidthPercent.SetValid(percentValid, editable && relativeMode);
+      m_slopeLookback.SetValid(lookbackValid, editable && candidate.bbFilterSlopeDirectionEnabled);
+      m_minSlopePoints.SetValid(minSlopeValid, editable && candidate.bbFilterSlopeDirectionEnabled);
 
-      if(!modeValid || !periodValid || !deviationValid || !pointsValid || !percentValid)
+      if(!modeValid || !periodValid || !deviationValid || !pointsValid || !percentValid || !lookbackValid || !minSlopeValid)
         {
          if(!modeValid)
             error = "BB Filter: modo invalido.";
@@ -332,8 +404,12 @@ public:
             error = "BB Filter: desvio deve ser maior que 0 e ate 10.";
          else if(!pointsValid)
             error = "BB Filter: largura minima em pontos deve ser 1 a 100000.";
-         else
+         else if(!percentValid)
             error = "BB Filter: largura relativa deve ser maior que 0 e ate 100%.";
+         else if(!lookbackValid)
+            error = "BB Filter: inclinacao deve usar 1 a 100 candles.";
+         else
+            error = "BB Filter: inclinacao minima deve ser 0 a 100000 pontos.";
          return false;
         }
 

@@ -11,10 +11,13 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 - Permite multiplas instancias em graficos diferentes, desde que os perfis usem Magic Numbers distintos.
 - Mantem uma posicao liquida por EA.
 - Usa arquitetura multi-estrategia e multi-filtro.
+- O Trend Filter pode, opcionalmente, usar uma MA para bloquear compras e outra para bloquear vendas.
+- O Bollinger Filter pode, opcionalmente, bloquear sinais contra a inclinacao da linha central em candles fechados.
 - Usa resolvedores de conflito plugaveis para sinais simultaneos.
 - A estrategia que abriu a posicao e responsavel pela saida por sinal.
 - Camadas de risco e protecao podem forcar saida independentemente da estrategia.
 - Perfis nomeados sao salvos pela GUI para operacao em grafico.
+- Perfis sao gravados atomicamente; arquivos incompletos nao substituem a configuracao em uso.
 - Backtests devem priorizar os `input` do MT5 Strategy Tester.
 - O reload de configuracao e controlado a frio: mudancas operacionais exigem pausar o EA ou estar em estado seguro, sem alteracao livre em plena operacao ou durante posicao gerenciada.
 
@@ -57,6 +60,7 @@ Hoje ela permite:
 
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Decisoes do Projeto](docs/DECISIONS.md)
+- [Persistencia e Filtros Direcionais 1.056](docs/SAFE_FILTER_EXPANSION_1056.md)
 - [Changelog](CHANGELOG.md)
 
 ## Compilacao
