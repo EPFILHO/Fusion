@@ -174,6 +174,7 @@
       m_configRiskCreated = false;
       m_configProtectionCreated = false;
       m_configSystemCreated = false;
+      m_configVisualCreated = false;
       m_profilesBrowseCreated = false;
       m_profilesEditCreated = false;
       SetDefaultSettings(m_committedSettings);

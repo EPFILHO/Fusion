@@ -39,10 +39,16 @@
          m_draftSettings.useRSI = !m_draftSettings.useRSI;
       else if(type == UI_COMMAND_TOGGLE_BB)
          m_draftSettings.useBollinger = !m_draftSettings.useBollinger;
-      else if(type == UI_COMMAND_TOGGLE_TREND_FILTER)
-         m_draftSettings.useTrendFilter = !m_draftSettings.useTrendFilter;
-      else if(type == UI_COMMAND_TOGGLE_TREND_DUAL_BARRIER)
-         m_draftSettings.trendDualBarrierEnabled = !m_draftSettings.trendDualBarrierEnabled;
+      else if(type == UI_COMMAND_TOGGLE_TREND_MA1)
+        {
+         m_draftSettings.trendMA1Enabled = !m_draftSettings.trendMA1Enabled;
+         m_draftSettings.useTrendFilter = (m_draftSettings.trendMA1Enabled || m_draftSettings.trendMA2Enabled);
+        }
+      else if(type == UI_COMMAND_TOGGLE_TREND_MA2)
+        {
+         m_draftSettings.trendMA2Enabled = !m_draftSettings.trendMA2Enabled;
+         m_draftSettings.useTrendFilter = (m_draftSettings.trendMA1Enabled || m_draftSettings.trendMA2Enabled);
+        }
       else if(type == UI_COMMAND_TOGGLE_RSI_FILTER)
          m_draftSettings.useRSIFilter = !m_draftSettings.useRSIFilter;
       else if(type == UI_COMMAND_TOGGLE_BB_FILTER)
@@ -66,12 +72,21 @@
         {
          m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
          m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+        }
+      if(m_configVisualCreated)
+        {
+         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
          FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, CanEditActiveProfile());
          FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, CanEditActiveProfile());
          FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, CanEditActiveProfile());
+         FusionApplyColorSwatchStyle(m_cfgSystemTrend2ColorBtn, m_draftSettings.visualMATrend2Color, CanEditActiveProfile());
          FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, CanEditActiveProfile());
+         FusionApplyVisualStyleButton(m_cfgVisualFastStyleBtn, m_draftSettings.visualMAFastStyle, CanEditActiveProfile());
+         FusionApplyVisualStyleButton(m_cfgVisualSlowStyleBtn, m_draftSettings.visualMASlowStyle, CanEditActiveProfile());
+         FusionApplyVisualStyleButton(m_cfgVisualTrendStyleBtn, m_draftSettings.visualMATrendStyle, CanEditActiveProfile());
+         FusionApplyVisualStyleButton(m_cfgVisualTrend2StyleBtn, m_draftSettings.visualMATrend2Style, CanEditActiveProfile());
+         FusionApplyVisualStyleButton(m_cfgVisualBBStyleBtn, m_draftSettings.visualBBStyle, CanEditActiveProfile());
         }
       if(m_profilesEditCreated)
          m_profileMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));

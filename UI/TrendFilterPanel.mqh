@@ -14,6 +14,7 @@ class CTrendFilterPanel : public CFilterPanelBase
 private:
    CLabel                 m_header;
    CLabel                 m_description;
+   CLabel                 m_ma1Label;
    CButton                m_toggle;
    CIntegerEditField      m_period;
    CTimeframeComboField   m_timeframe;
@@ -58,11 +59,9 @@ private:
    void              SyncGuidance(const SEASettings &settings,const bool editable)
      {
       color textColor = editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED;
-      m_ruleHint.Text(settings.trendDualBarrierEnabled
-                      ? "BUY: acima da MA principal. SELL: abaixo da MA de venda."
-                      : "Filtro: BUY so acima da MA; SELL so abaixo da MA.");
+      m_ruleHint.Text("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
       m_ruleHint.Color(textColor);
-      m_noteHint.Text("Nao abre ordem; apenas bloqueia sinais contra o vies.");
+      m_noteHint.Text("Com ambas ON, M1 deve ser mais longa que M2 (periodo x TF).");
       m_noteHint.Color(textColor);
      }
 
@@ -79,7 +78,9 @@ public:
                   "Filtra sinais pela posicao do preco em relacao a uma ou duas medias.", FUSION_CLR_MUTED, 8))
          return false;
 
-      if(!m_toggle.Create(chartId, prefix + "toggle", subwin, x1, y1 + 56, x1 + 110, y1 + 80))
+      if(!AddText(parent, m_ma1Label, prefix + "ma1_lbl", chartId, subwin, x1, y1 + 60, x1 + 88, y1 + 78, "Media 1", FUSION_CLR_LABEL, 8))
+         return false;
+      if(!m_toggle.Create(chartId, prefix + "toggle", subwin, x1 + 92, y1 + 56, x1 + 192, y1 + 80))
          return false;
       FusionApplyToggleButtonStyle(m_toggle, false);
       if(!parent.AddControl(m_toggle))
@@ -95,20 +96,20 @@ public:
       if(!m_price.Create(parent, chartId, subwin, prefix + "price", "Preco", FUSION_SELECTION_APPLIED_PRICE, x1, y1 + 148, x1 + 88, y1 + 166, x1 + 92, y1 + 144, x1 + 192, y1 + 168))
          return false;
 
-      if(!AddText(parent, m_dualLabel, prefix + "dual_lbl", chartId, subwin, x1, y1 + 196, x1 + 88, y1 + 214, "Duas MAs", FUSION_CLR_LABEL, 8))
+      if(!AddText(parent, m_dualLabel, prefix + "dual_lbl", chartId, subwin, x1, y1 + 196, x1 + 88, y1 + 214, "Media 2", FUSION_CLR_LABEL, 8))
          return false;
       if(!m_dualToggle.Create(chartId, prefix + "dual_toggle", subwin, x1 + 92, y1 + 192, x1 + 192, y1 + 216))
          return false;
       FusionApplyToggleButtonStyle(m_dualToggle, false);
       if(!parent.AddControl(m_dualToggle))
          return false;
-      if(!m_sellPeriod.Create(parent, chartId, subwin, prefix + "sell_period", "Venda Per.", x1 + 206, y1 + 196, x1 + 280, y1 + 214, x1 + 292, y1 + 192, x1 + 392, y1 + 216, 21))
+      if(!m_sellPeriod.Create(parent, chartId, subwin, prefix + "sell_period", "Periodo", x1 + 206, y1 + 196, x1 + 280, y1 + 214, x1 + 292, y1 + 192, x1 + 392, y1 + 216, 21))
          return false;
-      if(!m_sellTimeframe.Create(parent, chartId, subwin, prefix + "sell_tf", "Venda TF", x1, y1 + 236, x1 + 88, y1 + 254, x1 + 92, y1 + 232, x1 + 192, y1 + 256))
+      if(!m_sellTimeframe.Create(parent, chartId, subwin, prefix + "sell_tf", "Timeframe", x1, y1 + 236, x1 + 88, y1 + 254, x1 + 92, y1 + 232, x1 + 192, y1 + 256))
          return false;
-      if(!m_sellMethod.Create(parent, chartId, subwin, prefix + "sell_method", "Venda Met.", FUSION_SELECTION_MA_METHOD, x1 + 206, y1 + 236, x1 + 280, y1 + 254, x1 + 292, y1 + 232, x1 + 392, y1 + 256))
+      if(!m_sellMethod.Create(parent, chartId, subwin, prefix + "sell_method", "Metodo", FUSION_SELECTION_MA_METHOD, x1 + 206, y1 + 236, x1 + 280, y1 + 254, x1 + 292, y1 + 232, x1 + 392, y1 + 256))
          return false;
-      if(!m_sellPrice.Create(parent, chartId, subwin, prefix + "sell_price", "Venda Preco", FUSION_SELECTION_APPLIED_PRICE, x1, y1 + 276, x1 + 88, y1 + 294, x1 + 92, y1 + 272, x1 + 192, y1 + 296))
+      if(!m_sellPrice.Create(parent, chartId, subwin, prefix + "sell_price", "Preco", FUSION_SELECTION_APPLIED_PRICE, x1, y1 + 276, x1 + 88, y1 + 294, x1 + 92, y1 + 272, x1 + 192, y1 + 296))
          return false;
 
       if(!AddText(parent, m_ruleHint, prefix + "rule_hint", chartId, subwin, x1, y1 + 320, x2, y1 + 338, "", FUSION_CLR_MUTED, 8))
@@ -124,6 +125,7 @@ public:
      {
       m_header.Show();
       m_description.Show();
+      m_ma1Label.Show();
       m_toggle.Show();
       m_period.Show();
       m_timeframe.Show();
@@ -145,6 +147,7 @@ public:
      {
       m_header.Hide();
       m_description.Hide();
+      m_ma1Label.Hide();
       m_toggle.Hide();
       m_period.Hide();
       m_timeframe.Hide();
@@ -162,18 +165,20 @@ public:
 
    void              Sync(const SEASettings &settings,const bool editable)
      {
-      FusionApplyToggleButtonStyle(m_toggle, settings.useTrendFilter, editable);
+      FusionApplyToggleButtonStyle(m_toggle, settings.trendMA1Enabled, editable);
       m_description.Color(editable ? FUSION_CLR_MUTED : FUSION_CLR_DISABLED);
+      m_ma1Label.Color(editable ? FUSION_CLR_LABEL : FUSION_CLR_DISABLED);
 
       bool periodValid = PeriodValid(settings.trendMAPeriod);
-      m_period.Sync(settings.trendMAPeriod, editable, periodValid);
-      m_timeframe.Sync(settings.trendMATimeframe, editable);
-      m_method.Sync((long)settings.trendMAMethod, editable);
-      m_price.Sync((long)settings.trendMAPrice, editable);
-      FusionApplyToggleButtonStyle(m_dualToggle, settings.trendDualBarrierEnabled, editable);
+      bool ma1Editable = (editable && settings.trendMA1Enabled);
+      m_period.Sync(settings.trendMAPeriod, ma1Editable, periodValid);
+      m_timeframe.Sync(settings.trendMATimeframe, ma1Editable);
+      m_method.Sync((long)settings.trendMAMethod, ma1Editable);
+      m_price.Sync((long)settings.trendMAPrice, ma1Editable);
+      FusionApplyToggleButtonStyle(m_dualToggle, settings.trendMA2Enabled, editable);
       m_dualLabel.Color(editable ? FUSION_CLR_LABEL : FUSION_CLR_DISABLED);
       bool sellPeriodValid = PeriodValid(settings.trendSellMAPeriod);
-      bool dualEditable = (editable && settings.trendDualBarrierEnabled);
+      bool dualEditable = (editable && settings.trendMA2Enabled);
       m_sellPeriod.Sync(settings.trendSellMAPeriod, dualEditable, sellPeriodValid);
       m_sellTimeframe.Sync(settings.trendSellMATimeframe, dualEditable);
       m_sellMethod.Sync((long)settings.trendSellMAMethod, dualEditable);
@@ -185,12 +190,12 @@ public:
      {
       if(objectName == m_toggle.Name())
         {
-         command.type = UI_COMMAND_TOGGLE_TREND_FILTER;
+         command.type = UI_COMMAND_TOGGLE_TREND_MA1;
          return true;
         }
       if(objectName == m_dualToggle.Name())
         {
-         command.type = UI_COMMAND_TOGGLE_TREND_DUAL_BARRIER;
+         command.type = UI_COMMAND_TOGGLE_TREND_MA2;
          return true;
         }
       return false;
@@ -284,18 +289,28 @@ public:
 
       bool periodValid = PeriodValid(candidate.trendMAPeriod);
       bool sellPeriodValid = PeriodValid(candidate.trendSellMAPeriod);
-      m_period.SetValid(periodValid, editable);
-      m_sellPeriod.SetValid(!candidate.trendDualBarrierEnabled || sellPeriodValid,
-                            editable && candidate.trendDualBarrierEnabled);
+      bool maOrderValid = FusionTrendMAOrderValid(candidate);
+      m_period.SetValid(!candidate.trendMA1Enabled || (periodValid && maOrderValid),
+                        editable && candidate.trendMA1Enabled);
+      m_sellPeriod.SetValid(!candidate.trendMA2Enabled || (sellPeriodValid && maOrderValid),
+                            editable && candidate.trendMA2Enabled);
 
-      if(!periodValid || (candidate.trendDualBarrierEnabled && !sellPeriodValid))
+      if((candidate.trendMA1Enabled && !periodValid) ||
+         (candidate.trendMA2Enabled && !sellPeriodValid))
         {
-         error = !periodValid
-                 ? "Trend Filter: periodo da MA deve ser 1 a 1000."
-                 : "Trend Filter: periodo da MA de venda deve ser 1 a 1000.";
+         error = (candidate.trendMA1Enabled && !periodValid)
+                 ? "Trend Filter: periodo da M1 deve ser 1 a 1000."
+                 : "Trend Filter: periodo da M2 deve ser 1 a 1000.";
          return false;
         }
 
+      if(!maOrderValid)
+        {
+         error = "Trend Filter: M1 deve ser mais longa que M2 (periodo x TF).";
+         return false;
+        }
+
+      candidate.useTrendFilter = (candidate.trendMA1Enabled || candidate.trendMA2Enabled);
       return true;
      }
   };

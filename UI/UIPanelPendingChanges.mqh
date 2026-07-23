@@ -129,7 +129,13 @@
       if(m_draftSettings.visualMAFastColor != m_committedSettings.visualMAFastColor ||
          m_draftSettings.visualMASlowColor != m_committedSettings.visualMASlowColor ||
          m_draftSettings.visualMATrendColor != m_committedSettings.visualMATrendColor ||
-         m_draftSettings.visualBBColor != m_committedSettings.visualBBColor)
+         m_draftSettings.visualMATrend2Color != m_committedSettings.visualMATrend2Color ||
+         m_draftSettings.visualBBColor != m_committedSettings.visualBBColor ||
+         m_draftSettings.visualMAFastStyle != m_committedSettings.visualMAFastStyle ||
+         m_draftSettings.visualMASlowStyle != m_committedSettings.visualMASlowStyle ||
+         m_draftSettings.visualMATrendStyle != m_committedSettings.visualMATrendStyle ||
+         m_draftSettings.visualMATrend2Style != m_committedSettings.visualMATrend2Style ||
+         m_draftSettings.visualBBStyle != m_committedSettings.visualBBStyle)
          return true;
       return (m_draftSettings.debugLogs != m_committedSettings.debugLogs);
      }
@@ -143,6 +149,10 @@
       if(m_draftSettings.useBollinger != m_committedSettings.useBollinger)
          return true;
       if(m_draftSettings.useTrendFilter != m_committedSettings.useTrendFilter)
+         return true;
+      if(m_draftSettings.trendMA1Enabled != m_committedSettings.trendMA1Enabled)
+         return true;
+      if(m_draftSettings.trendMA2Enabled != m_committedSettings.trendMA2Enabled)
          return true;
       if(m_draftSettings.useRSIFilter != m_committedSettings.useRSIFilter)
          return true;
@@ -214,8 +224,6 @@
       if(m_draftSettings.trendMAMethod != m_committedSettings.trendMAMethod)
          return true;
       if(m_draftSettings.trendMAPrice != m_committedSettings.trendMAPrice)
-         return true;
-      if(m_draftSettings.trendDualBarrierEnabled != m_committedSettings.trendDualBarrierEnabled)
          return true;
       if(m_draftSettings.trendSellMAPeriod != m_committedSettings.trendSellMAPeriod)
          return true;

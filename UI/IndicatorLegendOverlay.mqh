@@ -4,7 +4,7 @@
 #define FUSION_LEGEND_MIN_WIDTH  180
 #define FUSION_LEGEND_MAX_WIDTH  300
 #define FUSION_LEGEND_CHAR_WIDTH 6
-#define FUSION_LEGEND_HEIGHT 112
+#define FUSION_LEGEND_HEIGHT 136
 #define FUSION_LEGEND_RIGHT  20
 #define FUSION_LEGEND_TOP    40
 
@@ -82,6 +82,7 @@ private:
       PositionLabel("fast", 32);
       PositionLabel("slow", 56);
       PositionLabel("trend", 80);
+      PositionLabel("trend2", 104);
      }
 
    void AlignUpperRight(void)
@@ -92,11 +93,12 @@ private:
       Layout();
      }
 
-   int RequiredWidth(const string fastText,const string slowText,const string trendText) const
+   int RequiredWidth(const string fastText,const string slowText,const string trendText,const string trend2Text) const
      {
       int longest = MathMax(StringLen("Legenda Medias"), StringLen(fastText));
       longest = MathMax(longest, StringLen(slowText));
       longest = MathMax(longest, StringLen(trendText));
+      longest = MathMax(longest, StringLen(trend2Text));
       int estimated = 24 + longest * FUSION_LEGEND_CHAR_WIDTH;
       return MathMax(FUSION_LEGEND_MIN_WIDTH, MathMin(FUSION_LEGEND_MAX_WIDTH, estimated));
      }
@@ -137,7 +139,8 @@ public:
          !CreateLabel("title", 8, clrWhite, 9) ||
          !CreateLabel("fast", 32, clrLime, 8) ||
          !CreateLabel("slow", 56, clrRed, 8) ||
-         !CreateLabel("trend", 80, clrMagenta, 8))
+         !CreateLabel("trend", 80, clrMagenta, 8) ||
+         !CreateLabel("trend2", 104, clrOrange, 8))
         {
          Destroy(REASON_REMOVE);
          return false;
@@ -158,13 +161,15 @@ public:
    void   Update(const string fastText,
                  const string slowText,
                  const string trendText,
+                 const string trend2Text,
                  const color fastColor,
                  const color slowColor,
-                 const color trendColor)
+                 const color trendColor,
+                 const color trend2Color)
      {
       if(!IsCreated())
          return;
-      int requiredWidth = RequiredWidth(fastText, slowText, trendText);
+      int requiredWidth = RequiredWidth(fastText, slowText, trendText, trend2Text);
       if(requiredWidth != m_width)
         {
          m_width = requiredWidth;
@@ -173,9 +178,11 @@ public:
       ObjectSetString(m_chartId, ObjectName("fast"), OBJPROP_TEXT, fastText);
       ObjectSetString(m_chartId, ObjectName("slow"), OBJPROP_TEXT, slowText);
       ObjectSetString(m_chartId, ObjectName("trend"), OBJPROP_TEXT, trendText);
+      ObjectSetString(m_chartId, ObjectName("trend2"), OBJPROP_TEXT, trend2Text);
       ObjectSetInteger(m_chartId, ObjectName("fast"), OBJPROP_COLOR, fastColor);
       ObjectSetInteger(m_chartId, ObjectName("slow"), OBJPROP_COLOR, slowColor);
       ObjectSetInteger(m_chartId, ObjectName("trend"), OBJPROP_COLOR, trendColor);
+      ObjectSetInteger(m_chartId, ObjectName("trend2"), OBJPROP_COLOR, trend2Color);
      }
 
    void   ChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
@@ -192,6 +199,7 @@ public:
       ObjectDelete(m_chartId, ObjectName("fast"));
       ObjectDelete(m_chartId, ObjectName("slow"));
       ObjectDelete(m_chartId, ObjectName("trend"));
+      ObjectDelete(m_chartId, ObjectName("trend2"));
       ObjectDelete(m_chartId, ObjectName("background"));
       m_created = false;
      }

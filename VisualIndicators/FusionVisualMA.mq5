@@ -2,8 +2,8 @@
 #property link      "https://github.com/EPFILHO/Fusion"
 #property version   "1.056"
 #property indicator_chart_window
-#property indicator_buffers 3
-#property indicator_plots   3
+#property indicator_buffers 4
+#property indicator_plots   4
 
 #property indicator_label1  "MA Rapida"
 #property indicator_type1   DRAW_LINE
@@ -23,29 +23,46 @@
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  2
 
+#property indicator_label4  "Trend M2"
+#property indicator_type4   DRAW_LINE
+#property indicator_color4  clrOrange
+#property indicator_style4  STYLE_SOLID
+#property indicator_width4  2
+
 input string             InpShortName = "Fusion Visual MA";
 input bool               InpFastEnabled = true;
 input color              InpFastColor = clrLime;
+input ENUM_LINE_STYLE    InpFastStyle = STYLE_SOLID;
 input int                InpFastPeriod = 9;
 input ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
 input ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
 input bool               InpSlowEnabled = true;
 input color              InpSlowColor = clrRed;
+input ENUM_LINE_STYLE    InpSlowStyle = STYLE_SOLID;
 input int                InpSlowPeriod = 21;
 input ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
 input ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
 input bool               InpTrendEnabled = false;
 input color              InpTrendColor = clrMagenta;
+input ENUM_LINE_STYLE    InpTrendStyle = STYLE_SOLID;
 input int                InpTrendPeriod = 50;
 input ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
 input ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
+input bool               InpTrend2Enabled = false;
+input color              InpTrend2Color = clrOrange;
+input ENUM_LINE_STYLE    InpTrend2Style = STYLE_SOLID;
+input int                InpTrend2Period = 21;
+input ENUM_MA_METHOD     InpTrend2Method = MODE_SMA;
+input ENUM_APPLIED_PRICE InpTrend2Price = PRICE_CLOSE;
 
 double FastBuffer[];
 double SlowBuffer[];
 double TrendBuffer[];
+double Trend2Buffer[];
 int    FastHandle = INVALID_HANDLE;
 int    SlowHandle = INVALID_HANDLE;
 int    TrendHandle = INVALID_HANDLE;
+int    Trend2Handle = INVALID_HANDLE;
 
 bool CreateMAHandle(const bool enabled,
                     const int period,
@@ -82,21 +99,34 @@ int OnInit(void)
    SetIndexBuffer(0, FastBuffer, INDICATOR_DATA);
    SetIndexBuffer(1, SlowBuffer, INDICATOR_DATA);
    SetIndexBuffer(2, TrendBuffer, INDICATOR_DATA);
+   SetIndexBuffer(3, Trend2Buffer, INDICATOR_DATA);
 
    PlotIndexSetInteger(0, PLOT_DRAW_TYPE, InpFastEnabled ? DRAW_LINE : DRAW_NONE);
    PlotIndexSetInteger(1, PLOT_DRAW_TYPE, InpSlowEnabled ? DRAW_LINE : DRAW_NONE);
    PlotIndexSetInteger(2, PLOT_DRAW_TYPE, InpTrendEnabled ? DRAW_LINE : DRAW_NONE);
+   PlotIndexSetInteger(3, PLOT_DRAW_TYPE, InpTrend2Enabled ? DRAW_LINE : DRAW_NONE);
    PlotIndexSetInteger(0, PLOT_DRAW_BEGIN, MathMax(0, InpFastPeriod - 1));
    PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, MathMax(0, InpSlowPeriod - 1));
    PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, MathMax(0, InpTrendPeriod - 1));
+   PlotIndexSetInteger(3, PLOT_DRAW_BEGIN, MathMax(0, InpTrend2Period - 1));
    PlotIndexSetInteger(0, PLOT_LINE_COLOR, InpFastColor);
    PlotIndexSetInteger(1, PLOT_LINE_COLOR, InpSlowColor);
    PlotIndexSetInteger(2, PLOT_LINE_COLOR, InpTrendColor);
+   PlotIndexSetInteger(3, PLOT_LINE_COLOR, InpTrend2Color);
+   PlotIndexSetInteger(0, PLOT_LINE_STYLE, InpFastStyle);
+   PlotIndexSetInteger(1, PLOT_LINE_STYLE, InpSlowStyle);
+   PlotIndexSetInteger(2, PLOT_LINE_STYLE, InpTrendStyle);
+   PlotIndexSetInteger(3, PLOT_LINE_STYLE, InpTrend2Style);
+   PlotIndexSetInteger(0, PLOT_LINE_WIDTH, InpFastStyle == STYLE_SOLID ? 2 : 1);
+   PlotIndexSetInteger(1, PLOT_LINE_WIDTH, InpSlowStyle == STYLE_SOLID ? 2 : 1);
+   PlotIndexSetInteger(2, PLOT_LINE_WIDTH, InpTrendStyle == STYLE_SOLID ? 2 : 1);
+   PlotIndexSetInteger(3, PLOT_LINE_WIDTH, InpTrend2Style == STYLE_SOLID ? 2 : 1);
    IndicatorSetString(INDICATOR_SHORTNAME, InpShortName);
 
    if(!CreateMAHandle(InpFastEnabled, InpFastPeriod, InpFastMethod, InpFastPrice, FastHandle) ||
       !CreateMAHandle(InpSlowEnabled, InpSlowPeriod, InpSlowMethod, InpSlowPrice, SlowHandle) ||
-      !CreateMAHandle(InpTrendEnabled, InpTrendPeriod, InpTrendMethod, InpTrendPrice, TrendHandle))
+      !CreateMAHandle(InpTrendEnabled, InpTrendPeriod, InpTrendMethod, InpTrendPrice, TrendHandle) ||
+      !CreateMAHandle(InpTrend2Enabled, InpTrend2Period, InpTrend2Method, InpTrend2Price, Trend2Handle))
       return INIT_FAILED;
 
    return INIT_SUCCEEDED;
@@ -107,6 +137,7 @@ void OnDeinit(const int reason)
    ReleaseMAHandle(FastHandle);
    ReleaseMAHandle(SlowHandle);
    ReleaseMAHandle(TrendHandle);
+   ReleaseMAHandle(Trend2Handle);
   }
 
 int OnCalculate(const int ratesTotal,
@@ -130,7 +161,8 @@ int OnCalculate(const int ratesTotal,
 
    if(!CopyMABuffer(FastHandle, ratesTotal, toCopy, FastBuffer) ||
       !CopyMABuffer(SlowHandle, ratesTotal, toCopy, SlowBuffer) ||
-      !CopyMABuffer(TrendHandle, ratesTotal, toCopy, TrendBuffer))
+      !CopyMABuffer(TrendHandle, ratesTotal, toCopy, TrendBuffer) ||
+      !CopyMABuffer(Trend2Handle, ratesTotal, toCopy, Trend2Buffer))
       return prevCalculated;
 
    return ratesTotal;

@@ -215,16 +215,16 @@ input ENUM_EXIT_MODE         inp_BollingerExitMode = EXIT_OPPOSITE_SIGNAL; // Mo
 input group " "
 //--- Trend Filter: bloqueia sinais contra a media de tendencia
 input group "========== 014 - FILTRO / TREND =========="
-input bool               inp_UseTrendFilter = false;    // Ativar Trend Filter
-input int                inp_TrendMAPeriod  = 50;       // Periodo da media de tendencia
-input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendMATF = TIMEFRAME_M15; // Timeframe da media de tendencia
-input ENUM_MA_METHOD     inp_TrendMAMethod  = MODE_SMA; // Metodo da media de tendencia
-input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE; // Preco da media de tendencia
-input bool               inp_TrendDualBarrier = false; // Usar MA independente como barreira de venda
-input int                inp_TrendSellMAPeriod = 21;   // Periodo da barreira de venda
-input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendSellMATF = TIMEFRAME_M15; // Timeframe da barreira de venda
-input ENUM_MA_METHOD     inp_TrendSellMAMethod = MODE_SMA; // Metodo da barreira de venda
-input ENUM_APPLIED_PRICE inp_TrendSellMAPrice = PRICE_CLOSE; // Preco da barreira de venda
+input bool               inp_TrendMA1Enabled = false;  // Ativar MA 1 (longa)
+input int                inp_TrendMAPeriod  = 50;       // Periodo da MA 1
+input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendMATF = TIMEFRAME_M15; // Timeframe da MA 1
+input ENUM_MA_METHOD     inp_TrendMAMethod  = MODE_SMA; // Metodo da MA 1
+input ENUM_APPLIED_PRICE inp_TrendMAPrice   = PRICE_CLOSE; // Preco da MA 1
+input bool               inp_TrendMA2Enabled = false;  // Ativar MA 2 (curta)
+input int                inp_TrendSellMAPeriod = 21;   // Periodo da MA 2
+input ENUM_FUSION_INPUT_TIMEFRAME inp_TrendSellMATF = TIMEFRAME_M15; // Timeframe da MA 2
+input ENUM_MA_METHOD     inp_TrendSellMAMethod = MODE_SMA; // Metodo da MA 2
+input ENUM_APPLIED_PRICE inp_TrendSellMAPrice = PRICE_CLOSE; // Preco da MA 2
 
 input group " "
 //--- RSI Filter: aprova ou bloqueia sinais; nunca abre trades
@@ -362,16 +362,17 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.bbPrice                = inp_BollingerPrice;
    settings.bbMode                 = inp_BollingerMode;
    settings.bbExitMode             = inp_BollingerExitMode;
-   settings.useTrendFilter         = inp_UseTrendFilter;
+   settings.trendMA1Enabled        = inp_TrendMA1Enabled;
    settings.trendMAPeriod          = inp_TrendMAPeriod;
    settings.trendMATimeframe       = FusionInputTimeframeToPeriod(inp_TrendMATF);
    settings.trendMAMethod          = inp_TrendMAMethod;
    settings.trendMAPrice           = inp_TrendMAPrice;
-   settings.trendDualBarrierEnabled = inp_TrendDualBarrier;
+   settings.trendMA2Enabled        = inp_TrendMA2Enabled;
    settings.trendSellMAPeriod      = inp_TrendSellMAPeriod;
    settings.trendSellMATimeframe   = FusionInputTimeframeToPeriod(inp_TrendSellMATF);
    settings.trendSellMAMethod      = inp_TrendSellMAMethod;
    settings.trendSellMAPrice       = inp_TrendSellMAPrice;
+   settings.useTrendFilter         = (settings.trendMA1Enabled || settings.trendMA2Enabled);
    settings.useRSIFilter           = inp_UseRSIFilter;
    settings.rsiFilterMode          = inp_RSIFilterMode;
    settings.rsiFilterPeriod        = inp_RSIFilterPeriod;

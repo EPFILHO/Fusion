@@ -228,24 +228,37 @@
         {
          FusionApplyEditStyle(m_cfgSystemMagicEdit, magicValid && magicUnique, editable);
          m_cfgSystemMagicLbl.Color(!editable ? FUSION_CLR_MUTED : ((magicValid && magicUnique) ? FUSION_CLR_LABEL : FUSION_CLR_BAD));
-         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, editable);
-         m_cfgSystemIndicatorsLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, editable);
          m_cfgSystemDebugLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemFoot1.Color(FUSION_CLR_MUTED);
+         m_cfgSystemFoot2.Color(FUSION_CLR_MUTED);
+         m_cfgSystemFoot4.Color(FUSION_CLR_MUTED);
+        }
+
+      if(m_configVisualCreated)
+        {
+         FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, editable);
+         m_cfgSystemIndicatorsLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, editable);
          FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, editable);
          FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, editable);
+         FusionApplyColorSwatchStyle(m_cfgSystemTrend2ColorBtn, m_draftSettings.visualMATrend2Color, editable);
          FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, editable);
+         FusionApplyVisualStyleButton(m_cfgVisualFastStyleBtn, m_draftSettings.visualMAFastStyle, editable);
+         FusionApplyVisualStyleButton(m_cfgVisualSlowStyleBtn, m_draftSettings.visualMASlowStyle, editable);
+         FusionApplyVisualStyleButton(m_cfgVisualTrendStyleBtn, m_draftSettings.visualMATrendStyle, editable);
+         FusionApplyVisualStyleButton(m_cfgVisualTrend2StyleBtn, m_draftSettings.visualMATrend2Style, editable);
+         FusionApplyVisualStyleButton(m_cfgVisualBBStyleBtn, m_draftSettings.visualBBStyle, editable);
          m_cfgSystemColorsLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgVisualColorHdr.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgVisualStyleHdr.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemFastColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemSlowColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemTrendColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
+         m_cfgSystemTrend2ColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemBBColorLbl.Color(!editable ? FUSION_CLR_MUTED : FUSION_CLR_LABEL);
          m_cfgSystemFootColors.Color(FUSION_CLR_MUTED);
-         m_cfgSystemFoot1.Color(FUSION_CLR_MUTED);
-         m_cfgSystemFoot2.Color(FUSION_CLR_MUTED);
          m_cfgSystemFoot3.Color(FUSION_CLR_MUTED);
-         m_cfgSystemFoot4.Color(FUSION_CLR_MUTED);
         }
      }
 

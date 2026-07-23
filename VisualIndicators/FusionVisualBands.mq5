@@ -25,6 +25,7 @@
 
 input string             InpShortName = "Fusion Visual BB";
 input color              InpLineColor = clrDodgerBlue;
+input ENUM_LINE_STYLE    InpLineStyle = STYLE_SOLID;
 input int                InpPeriod = 20;
 input double             InpDeviation = 2.0;
 input ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
@@ -62,6 +63,9 @@ int OnInit(void)
    PlotIndexSetInteger(0, PLOT_LINE_COLOR, InpLineColor);
    PlotIndexSetInteger(1, PLOT_LINE_COLOR, InpLineColor);
    PlotIndexSetInteger(2, PLOT_LINE_COLOR, InpLineColor);
+   PlotIndexSetInteger(0, PLOT_LINE_STYLE, InpLineStyle);
+   PlotIndexSetInteger(1, PLOT_LINE_STYLE, InpLineStyle);
+   PlotIndexSetInteger(2, PLOT_LINE_STYLE, InpLineStyle);
    IndicatorSetString(INDICATOR_SHORTNAME, InpShortName);
 
    BandsHandle = iBands(_Symbol, _Period, InpPeriod, 0, InpDeviation, InpPrice);

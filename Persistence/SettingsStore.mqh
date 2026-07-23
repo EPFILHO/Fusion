@@ -63,7 +63,13 @@ private:
       ok = WriteLine(handle, "visualMAFastColor", IntegerToString((int)settings.visualMAFastColor)) && ok;
       ok = WriteLine(handle, "visualMASlowColor", IntegerToString((int)settings.visualMASlowColor)) && ok;
       ok = WriteLine(handle, "visualMATrendColor", IntegerToString((int)settings.visualMATrendColor)) && ok;
+      ok = WriteLine(handle, "visualMATrend2Color", IntegerToString((int)settings.visualMATrend2Color)) && ok;
       ok = WriteLine(handle, "visualBBColor", IntegerToString((int)settings.visualBBColor)) && ok;
+      ok = WriteLine(handle, "visualMAFastStyle", IntegerToString((int)settings.visualMAFastStyle)) && ok;
+      ok = WriteLine(handle, "visualMASlowStyle", IntegerToString((int)settings.visualMASlowStyle)) && ok;
+      ok = WriteLine(handle, "visualMATrendStyle", IntegerToString((int)settings.visualMATrendStyle)) && ok;
+      ok = WriteLine(handle, "visualMATrend2Style", IntegerToString((int)settings.visualMATrend2Style)) && ok;
+      ok = WriteLine(handle, "visualBBStyle", IntegerToString((int)settings.visualBBStyle)) && ok;
       ok = WriteLine(handle, "conflictMode", IntegerToString((int)settings.conflictMode)) && ok;
       ok = WriteLine(handle, "tradeDirection", IntegerToString((int)settings.tradeDirection)) && ok;
       ok = WriteLine(handle, "enableSpreadProtection", IntegerToString((int)settings.enableSpreadProtection)) && ok;
@@ -152,12 +158,13 @@ private:
       ok = WriteLine(handle, "bbPrice", IntegerToString((int)settings.bbPrice)) && ok;
       ok = WriteLine(handle, "bbMode", IntegerToString((int)settings.bbMode)) && ok;
       ok = WriteLine(handle, "bbExitMode", IntegerToString((int)settings.bbExitMode)) && ok;
-      ok = WriteLine(handle, "useTrendFilter", IntegerToString((int)settings.useTrendFilter)) && ok;
+      ok = WriteLine(handle, "useTrendFilter", IntegerToString((int)(settings.trendMA1Enabled || settings.trendMA2Enabled))) && ok;
+      ok = WriteLine(handle, "trendMA1Enabled", IntegerToString((int)settings.trendMA1Enabled)) && ok;
       ok = WriteLine(handle, "trendMAPeriod", IntegerToString(settings.trendMAPeriod)) && ok;
       ok = WriteLine(handle, "trendMATimeframe", IntegerToString((int)settings.trendMATimeframe)) && ok;
       ok = WriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod)) && ok;
       ok = WriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice)) && ok;
-      ok = WriteLine(handle, "trendDualBarrierEnabled", IntegerToString((int)settings.trendDualBarrierEnabled)) && ok;
+      ok = WriteLine(handle, "trendMA2Enabled", IntegerToString((int)settings.trendMA2Enabled)) && ok;
       ok = WriteLine(handle, "trendSellMAPeriod", IntegerToString(settings.trendSellMAPeriod)) && ok;
       ok = WriteLine(handle, "trendSellMATimeframe", IntegerToString((int)settings.trendSellMATimeframe)) && ok;
       ok = WriteLine(handle, "trendSellMAMethod", IntegerToString((int)settings.trendSellMAMethod)) && ok;
@@ -241,7 +248,13 @@ private:
       else if(key == "visualMAFastColor") settings.visualMAFastColor = (color)StringToInteger(value);
       else if(key == "visualMASlowColor") settings.visualMASlowColor = (color)StringToInteger(value);
       else if(key == "visualMATrendColor") settings.visualMATrendColor = (color)StringToInteger(value);
+      else if(key == "visualMATrend2Color") settings.visualMATrend2Color = (color)StringToInteger(value);
       else if(key == "visualBBColor") settings.visualBBColor = (color)StringToInteger(value);
+      else if(key == "visualMAFastStyle") settings.visualMAFastStyle = (ENUM_LINE_STYLE)StringToInteger(value);
+      else if(key == "visualMASlowStyle") settings.visualMASlowStyle = (ENUM_LINE_STYLE)StringToInteger(value);
+      else if(key == "visualMATrendStyle") settings.visualMATrendStyle = (ENUM_LINE_STYLE)StringToInteger(value);
+      else if(key == "visualMATrend2Style") settings.visualMATrend2Style = (ENUM_LINE_STYLE)StringToInteger(value);
+      else if(key == "visualBBStyle") settings.visualBBStyle = (ENUM_LINE_STYLE)StringToInteger(value);
       else if(key == "conflictMode") settings.conflictMode = (ENUM_CONFLICT_RESOLUTION)StringToInteger(value);
       else if(key == "tradeDirection") settings.tradeDirection = (ENUM_TRADE_DIRECTION)StringToInteger(value);
       else if(key == "enableSpreadProtection") settings.enableSpreadProtection = (bool)StringToInteger(value);
@@ -322,11 +335,13 @@ private:
       else if(key == "bbMode") settings.bbMode = (ENUM_BB_SIGNAL_MODE)StringToInteger(value);
       else if(key == "bbExitMode") settings.bbExitMode = (ENUM_EXIT_MODE)StringToInteger(value);
       else if(key == "useTrendFilter") settings.useTrendFilter = (bool)StringToInteger(value);
+      else if(key == "trendMA1Enabled") settings.trendMA1Enabled = (bool)StringToInteger(value);
       else if(key == "trendMAPeriod") settings.trendMAPeriod = (int)StringToInteger(value);
       else if(key == "trendMATimeframe") settings.trendMATimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "trendMAMethod") settings.trendMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
       else if(key == "trendMAPrice") settings.trendMAPrice = (ENUM_APPLIED_PRICE)StringToInteger(value);
-      else if(key == "trendDualBarrierEnabled") settings.trendDualBarrierEnabled = (bool)StringToInteger(value);
+      else if(key == "trendMA2Enabled") settings.trendMA2Enabled = (bool)StringToInteger(value);
+      else if(key == "trendDualBarrierEnabled") settings.trendMA2Enabled = (bool)StringToInteger(value);
       else if(key == "trendSellMAPeriod") settings.trendSellMAPeriod = (int)StringToInteger(value);
       else if(key == "trendSellMATimeframe") settings.trendSellMATimeframe = (ENUM_TIMEFRAMES)StringToInteger(value);
       else if(key == "trendSellMAMethod") settings.trendSellMAMethod = (ENUM_MA_METHOD)StringToInteger(value);
@@ -449,6 +464,33 @@ private:
         }
 
       settings.usePartialTP = settings.tp1.enabled;
+     }
+
+   ENUM_LINE_STYLE   NormalizeVisualStyle(const ENUM_LINE_STYLE style) const
+     {
+      if(style == STYLE_DASH || style == STYLE_DOT)
+         return style;
+      return STYLE_SOLID;
+     }
+
+   void              NormalizeVisualSettings(SEASettings &settings) const
+     {
+      settings.visualMAFastStyle = NormalizeVisualStyle(settings.visualMAFastStyle);
+      settings.visualMASlowStyle = NormalizeVisualStyle(settings.visualMASlowStyle);
+      settings.visualMATrendStyle = NormalizeVisualStyle(settings.visualMATrendStyle);
+      settings.visualMATrend2Style = NormalizeVisualStyle(settings.visualMATrend2Style);
+      settings.visualBBStyle = NormalizeVisualStyle(settings.visualBBStyle);
+     }
+
+   void              NormalizeTrendSettings(SEASettings &settings) const
+     {
+      if(settings.schemaVersion <= 13)
+        {
+         settings.trendMA1Enabled = settings.useTrendFilter;
+         settings.trendMA2Enabled = (settings.useTrendFilter && settings.trendMA2Enabled);
+        }
+
+      settings.useTrendFilter = (settings.trendMA1Enabled || settings.trendMA2Enabled);
      }
 
    void              ApplyRuntimeField(const string key,
@@ -728,6 +770,8 @@ public:
       NormalizeProtectionSettings(candidate);
       NormalizeStreakSettings(candidate);
       NormalizeRiskSettings(candidate);
+      NormalizeTrendSettings(candidate);
+      NormalizeVisualSettings(candidate);
       candidate.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
       settings = candidate;
       return true;
@@ -877,6 +921,9 @@ public:
       NormalizeProtectionSettings(settings);
       NormalizeStreakSettings(settings);
       NormalizeRiskSettings(settings);
+      NormalizeTrendSettings(settings);
+      NormalizeVisualSettings(settings);
+      settings.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
       return true;
      }
   };

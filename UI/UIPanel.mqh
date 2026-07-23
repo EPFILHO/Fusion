@@ -89,6 +89,7 @@ private:
    CFusionHitGroup            m_configRiskGroup;
    CFusionHitGroup            m_configProtectionGroup;
    CFusionHitGroup            m_configSystemGroup;
+   CFusionHitGroup            m_configVisualGroup;
    bool                       m_statusPageCreated;
    bool                       m_resultsPageCreated;
    bool                       m_strategyTabCreated;
@@ -98,6 +99,7 @@ private:
    bool                       m_configRiskCreated;
    bool                       m_configProtectionCreated;
    bool                       m_configSystemCreated;
+   bool                       m_configVisualCreated;
 
 #include "UIPanelHeader.mqh"
 #include "UIPanelSignalTabs.mqh"
@@ -114,16 +116,26 @@ private:
    CButton                    m_cfgSystemDebugBtn;
    CLabel                     m_cfgSystemIndicatorsLbl;
    CButton                    m_cfgSystemIndicatorsBtn;
+   CLabel                     m_cfgVisualHdr;
    CPanel                     m_cfgSystemColorsFrame;
    CLabel                     m_cfgSystemColorsLbl;
+   CLabel                     m_cfgVisualColorHdr;
+   CLabel                     m_cfgVisualStyleHdr;
    CLabel                     m_cfgSystemFastColorLbl;
    CLabel                     m_cfgSystemSlowColorLbl;
    CLabel                     m_cfgSystemTrendColorLbl;
+   CLabel                     m_cfgSystemTrend2ColorLbl;
    CLabel                     m_cfgSystemBBColorLbl;
    CButton                    m_cfgSystemFastColorBtn;
    CButton                    m_cfgSystemSlowColorBtn;
    CButton                    m_cfgSystemTrendColorBtn;
+   CButton                    m_cfgSystemTrend2ColorBtn;
    CButton                    m_cfgSystemBBColorBtn;
+   CButton                    m_cfgVisualFastStyleBtn;
+   CButton                    m_cfgVisualSlowStyleBtn;
+   CButton                    m_cfgVisualTrendStyleBtn;
+   CButton                    m_cfgVisualTrend2StyleBtn;
+   CButton                    m_cfgVisualBBStyleBtn;
    CLabel                     m_cfgSystemFootColors;
    CLabel                     m_cfgSystemFoot1;
    CLabel                     m_cfgSystemFoot2;
@@ -228,6 +240,8 @@ private:
       if(HandleTopActionClick(objectName))
          return true;
       if(HandleConfigSystemClick(objectName))
+         return true;
+      if(HandleConfigVisualClick(objectName))
          return true;
       if(HandleRiskClick(objectName))
          return true;

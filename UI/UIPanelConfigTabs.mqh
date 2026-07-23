@@ -3,7 +3,7 @@
 
    bool                       BuildConfigTab(void)
      {
-      string pageNames[FUSION_CFG_COUNT] = {"RISK", "PROTECT", "SYSTEM"};
+      string pageNames[FUSION_CFG_COUNT] = {"RISK", "PROTECT", "SYSTEM", "VISUAL"};
       int tabWidth = 120;
       int tabGap = 4;
       int x = 18;
@@ -48,47 +48,60 @@
          return false;
       if(!AddButton(m_cfgSystemConflictBtn, "Fusion_cfg_conflict_btn", 200, 234, 340, 258, "PRIORIDADE", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemIndicatorsLbl, "Fusion_cfg_indicators_lbl", 22, 274, 180, 292, "Indicadores no Grafico", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 274, 170, 292, "Logs Debug", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_cfgSystemIndicatorsBtn, "Fusion_cfg_indicators_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
+      if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 272, 310, 296, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgSystemColorsLbl, "Fusion_cfg_colors_lbl", 22, 312, 190, 330, "Cores dos Indicadores", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 330, 560, 348, "PRIORIDADE: em sinais opostos, o maior numero vence.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddPanel(m_cfgSystemColorsFrame, "Fusion_cfg_colors_frame", 200, 306, 506, 400, FUSION_CLR_FRAME_BG, FUSION_CLR_FIELD_BORDER))
+      if(!AddLabel(m_cfgSystemFoot2, "Fusion_cfg_system_foot_2", 22, 352, 560, 370, "CANCELAR: sinais opostos cancelam a entrada.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgSystemFastColorLbl, "Fusion_cfg_fast_color_lbl", 212, 320, 282, 344, "MA Rapida", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemFoot4, "Fusion_cfg_system_foot_4", 22, 390, 560, 408, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddButton(m_cfgSystemFastColorBtn, "Fusion_cfg_fast_color_btn", 286, 320, 310, 344, "", clrLime))
+      return true;
+     }
+
+   bool                       BuildConfigVisualPage(void)
+     {
+      if(!AddLabel(m_cfgVisualHdr, "Fusion_cfg_visual_hdr", 22, 160, 300, 180, "Indicadores Visuais", FUSION_CLR_VALUE, 9))
          return false;
-      if(!AddLabel(m_cfgSystemSlowColorLbl, "Fusion_cfg_slow_color_lbl", 354, 320, 424, 344, "MA Lenta", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgSystemIndicatorsLbl, "Fusion_cfg_indicators_lbl", 22, 198, 180, 216, "Indicadores no Grafico", FUSION_CLR_LABEL))
          return false;
-      if(!AddButton(m_cfgSystemSlowColorBtn, "Fusion_cfg_slow_color_btn", 428, 320, 452, 344, "", clrRed))
+      if(!AddButton(m_cfgSystemIndicatorsBtn, "Fusion_cfg_indicators_btn", 200, 196, 310, 220, "OFF", FUSION_CLR_BAD))
          return false;
-      if(!AddLabel(m_cfgSystemTrendColorLbl, "Fusion_cfg_trend_color_lbl", 212, 362, 282, 386, "Trend", FUSION_CLR_LABEL))
+      if(!AddPanel(m_cfgSystemColorsFrame, "Fusion_cfg_colors_frame", 200, 234, 514, 472, FUSION_CLR_FRAME_BG, FUSION_CLR_FIELD_BORDER))
          return false;
-      if(!AddButton(m_cfgSystemTrendColorBtn, "Fusion_cfg_trend_color_btn", 286, 362, 310, 386, "", clrMagenta))
+      if(!AddLabel(m_cfgSystemColorsLbl, "Fusion_cfg_colors_lbl", 214, 246, 300, 264, "Indicador", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgSystemBBColorLbl, "Fusion_cfg_bb_color_lbl", 354, 362, 424, 386, "Bandas", FUSION_CLR_LABEL))
+      if(!AddLabel(m_cfgVisualColorHdr, "Fusion_cfg_visual_color_hdr", 314, 246, 360, 264, "Cor", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddButton(m_cfgSystemBBColorBtn, "Fusion_cfg_bb_color_btn", 428, 362, 452, 386, "", clrDodgerBlue))
+      if(!AddLabel(m_cfgVisualStyleHdr, "Fusion_cfg_visual_style_hdr", 374, 246, 490, 264, "Linha", FUSION_CLR_MUTED, 8))
          return false;
-      ObjectSetString(m_chartId, m_cfgSystemFastColorBtn.Name(), OBJPROP_TOOLTIP, "Cor da MA Rapida");
-      ObjectSetString(m_chartId, m_cfgSystemSlowColorBtn.Name(), OBJPROP_TOOLTIP, "Cor da MA Lenta");
-      ObjectSetString(m_chartId, m_cfgSystemTrendColorBtn.Name(), OBJPROP_TOOLTIP, "Cor da MA Trend");
-      ObjectSetString(m_chartId, m_cfgSystemBBColorBtn.Name(), OBJPROP_TOOLTIP, "Cor do Bollinger");
-      if(!AddLabel(m_cfgSystemDebugLbl, "Fusion_cfg_debug_lbl", 22, 412, 170, 430, "Logs Debug", FUSION_CLR_LABEL))
+
+      if(!AddLabel(m_cfgSystemFastColorLbl, "Fusion_cfg_fast_color_lbl", 214, 276, 300, 300, "MA Rapida", FUSION_CLR_LABEL) ||
+         !AddButton(m_cfgSystemFastColorBtn, "Fusion_cfg_fast_color_btn", 318, 276, 346, 300, "", clrLime) ||
+         !AddButton(m_cfgVisualFastStyleBtn, "Fusion_cfg_fast_style_btn", 374, 276, 494, 300, "CHEIA", FUSION_CLR_PANEL))
          return false;
-      if(!AddButton(m_cfgSystemDebugBtn, "Fusion_cfg_debug_btn", 200, 410, 310, 434, "OFF", FUSION_CLR_BAD))
+      if(!AddLabel(m_cfgSystemSlowColorLbl, "Fusion_cfg_slow_color_lbl", 214, 314, 300, 338, "MA Lenta", FUSION_CLR_LABEL) ||
+         !AddButton(m_cfgSystemSlowColorBtn, "Fusion_cfg_slow_color_btn", 318, 314, 346, 338, "", clrRed) ||
+         !AddButton(m_cfgVisualSlowStyleBtn, "Fusion_cfg_slow_style_btn", 374, 314, 494, 338, "CHEIA", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemFootColors, "Fusion_cfg_system_foot_colors", 22, 448, 560, 466, "Para mudar a cor, clique no quadrado do indicador.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemTrendColorLbl, "Fusion_cfg_trend_color_lbl", 214, 352, 300, 376, "Trend M1", FUSION_CLR_LABEL) ||
+         !AddButton(m_cfgSystemTrendColorBtn, "Fusion_cfg_trend_color_btn", 318, 352, 346, 376, "", clrMagenta) ||
+         !AddButton(m_cfgVisualTrendStyleBtn, "Fusion_cfg_trend_style_btn", 374, 352, 494, 376, "CHEIA", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemFoot1, "Fusion_cfg_system_foot_1", 22, 470, 560, 488, "PRIORIDADE: em sinais opostos, o maior numero vence.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemTrend2ColorLbl, "Fusion_cfg_trend2_color_lbl", 214, 390, 300, 414, "Trend M2", FUSION_CLR_LABEL) ||
+         !AddButton(m_cfgSystemTrend2ColorBtn, "Fusion_cfg_trend2_color_btn", 318, 390, 346, 414, "", clrOrange) ||
+         !AddButton(m_cfgVisualTrend2StyleBtn, "Fusion_cfg_trend2_style_btn", 374, 390, 494, 414, "CHEIA", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemFoot2, "Fusion_cfg_system_foot_2", 22, 492, 560, 510, "CANCELAR: sinais opostos cancelam a entrada.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemBBColorLbl, "Fusion_cfg_bb_color_lbl", 214, 428, 300, 452, "Bandas", FUSION_CLR_LABEL) ||
+         !AddButton(m_cfgSystemBBColorBtn, "Fusion_cfg_bb_color_btn", 318, 428, 346, 452, "", clrDodgerBlue) ||
+         !AddButton(m_cfgVisualBBStyleBtn, "Fusion_cfg_bb_style_btn", 374, 428, 494, 452, "CHEIA", FUSION_CLR_PANEL))
          return false;
-      if(!AddLabel(m_cfgSystemFoot3, "Fusion_cfg_system_foot_3", 22, 514, 560, 532, "MAs seguem o TF rapido; RSI/BB exigem o TF configurado.", FUSION_CLR_MUTED, 8))
+
+      if(!AddLabel(m_cfgSystemFootColors, "Fusion_cfg_system_foot_colors", 22, 492, 560, 510, "Clique na cor ou no estilo para alternar.", FUSION_CLR_MUTED, 8))
          return false;
-      if(!AddLabel(m_cfgSystemFoot4, "Fusion_cfg_system_foot_4", 22, 536, 560, 554, "Debug ON mostra logs detalhados; use apenas para diagnostico.", FUSION_CLR_MUTED, 8))
+      if(!AddLabel(m_cfgSystemFoot3, "Fusion_cfg_system_foot_3", 22, 514, 560, 532, "Indicadores visuais permanecem isolados do motor operacional.", FUSION_CLR_MUTED, 8))
          return false;
       return true;
      }
@@ -107,12 +120,33 @@
       m_configSystemCreated = true;
       m_cfgSystemMagicEdit.Text(IntegerToString(m_draftSettings.magicNumber));
       m_cfgSystemConflictBtn.Text(FusionConflictText(m_draftSettings.conflictMode));
-      FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
       FusionApplyToggleButtonStyle(m_cfgSystemDebugBtn, m_draftSettings.debugLogs, CanEditActiveProfile());
+      return true;
+     }
+
+   bool                       EnsureConfigVisualPageCreated(void)
+     {
+      if(m_configVisualCreated)
+         return true;
+      CFusionHitGroup *previous = PushBuildTarget(m_configVisualGroup);
+      if(!BuildConfigVisualPage())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      PopBuildTarget(previous);
+      m_configVisualCreated = true;
+      FusionApplyToggleButtonStyle(m_cfgSystemIndicatorsBtn, m_draftSettings.showChartIndicators, CanEditActiveProfile());
       FusionApplyColorSwatchStyle(m_cfgSystemFastColorBtn, m_draftSettings.visualMAFastColor, CanEditActiveProfile());
       FusionApplyColorSwatchStyle(m_cfgSystemSlowColorBtn, m_draftSettings.visualMASlowColor, CanEditActiveProfile());
       FusionApplyColorSwatchStyle(m_cfgSystemTrendColorBtn, m_draftSettings.visualMATrendColor, CanEditActiveProfile());
+      FusionApplyColorSwatchStyle(m_cfgSystemTrend2ColorBtn, m_draftSettings.visualMATrend2Color, CanEditActiveProfile());
       FusionApplyColorSwatchStyle(m_cfgSystemBBColorBtn, m_draftSettings.visualBBColor, CanEditActiveProfile());
+      FusionApplyVisualStyleButton(m_cfgVisualFastStyleBtn, m_draftSettings.visualMAFastStyle, CanEditActiveProfile());
+      FusionApplyVisualStyleButton(m_cfgVisualSlowStyleBtn, m_draftSettings.visualMASlowStyle, CanEditActiveProfile());
+      FusionApplyVisualStyleButton(m_cfgVisualTrendStyleBtn, m_draftSettings.visualMATrendStyle, CanEditActiveProfile());
+      FusionApplyVisualStyleButton(m_cfgVisualTrend2StyleBtn, m_draftSettings.visualMATrend2Style, CanEditActiveProfile());
+      FusionApplyVisualStyleButton(m_cfgVisualBBStyleBtn, m_draftSettings.visualBBStyle, CanEditActiveProfile());
       return true;
      }
 
@@ -146,7 +180,7 @@
 
    bool                       HandleConfigSystemIndicatorsClick(const string objectName)
      {
-      if(!m_configSystemCreated || objectName != m_cfgSystemIndicatorsBtn.Name())
+      if(!m_configVisualCreated || objectName != m_cfgSystemIndicatorsBtn.Name())
          return false;
 
       ReleaseButton(m_cfgSystemIndicatorsBtn);
@@ -160,7 +194,7 @@
 
    bool                       HandleConfigSystemColorClick(const string objectName)
      {
-      if(!m_configSystemCreated)
+      if(!m_configVisualCreated)
          return false;
 
       if(objectName == m_cfgSystemFastColorBtn.Name())
@@ -181,6 +215,12 @@
          if(CanEditActiveProfile())
             m_draftSettings.visualMATrendColor = FusionNextVisualColor(m_draftSettings.visualMATrendColor);
         }
+      else if(objectName == m_cfgSystemTrend2ColorBtn.Name())
+        {
+         ReleaseButton(m_cfgSystemTrend2ColorBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualMATrend2Color = FusionNextVisualColor(m_draftSettings.visualMATrend2Color);
+        }
       else if(objectName == m_cfgSystemBBColorBtn.Name())
         {
          ReleaseButton(m_cfgSystemBBColorBtn);
@@ -194,15 +234,64 @@
       return true;
      }
 
+   bool                       HandleConfigVisualStyleClick(const string objectName)
+     {
+      if(!m_configVisualCreated)
+         return false;
+
+      if(objectName == m_cfgVisualFastStyleBtn.Name())
+        {
+         ReleaseButton(m_cfgVisualFastStyleBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualMAFastStyle = FusionNextVisualStyle(m_draftSettings.visualMAFastStyle);
+        }
+      else if(objectName == m_cfgVisualSlowStyleBtn.Name())
+        {
+         ReleaseButton(m_cfgVisualSlowStyleBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualMASlowStyle = FusionNextVisualStyle(m_draftSettings.visualMASlowStyle);
+        }
+      else if(objectName == m_cfgVisualTrendStyleBtn.Name())
+        {
+         ReleaseButton(m_cfgVisualTrendStyleBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualMATrendStyle = FusionNextVisualStyle(m_draftSettings.visualMATrendStyle);
+        }
+      else if(objectName == m_cfgVisualTrend2StyleBtn.Name())
+        {
+         ReleaseButton(m_cfgVisualTrend2StyleBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualMATrend2Style = FusionNextVisualStyle(m_draftSettings.visualMATrend2Style);
+        }
+      else if(objectName == m_cfgVisualBBStyleBtn.Name())
+        {
+         ReleaseButton(m_cfgVisualBBStyleBtn);
+         if(CanEditActiveProfile())
+            m_draftSettings.visualBBStyle = FusionNextVisualStyle(m_draftSettings.visualBBStyle);
+        }
+      else
+         return false;
+
+      RefreshConfigValidation();
+      return true;
+     }
+
    bool                       HandleConfigSystemClick(const string objectName)
      {
       if(HandleConfigSystemConflictClick(objectName))
          return true;
+      if(HandleConfigSystemDebugClick(objectName))
+         return true;
+      return false;
+     }
+
+   bool                       HandleConfigVisualClick(const string objectName)
+     {
       if(HandleConfigSystemIndicatorsClick(objectName))
          return true;
       if(HandleConfigSystemColorClick(objectName))
          return true;
-      if(HandleConfigSystemDebugClick(objectName))
+      if(HandleConfigVisualStyleClick(objectName))
          return true;
       return false;
      }
@@ -221,7 +310,8 @@
         }
       if(!AddHitGroup(m_configRiskGroup, "Fusion_group_config_risk") ||
          !AddHitGroup(m_configProtectionGroup, "Fusion_group_config_protection") ||
-         !AddHitGroup(m_configSystemGroup, "Fusion_group_config_system"))
+         !AddHitGroup(m_configSystemGroup, "Fusion_group_config_system") ||
+         !AddHitGroup(m_configVisualGroup, "Fusion_group_config_visual"))
         {
          PopBuildTarget(previous);
          return false;
@@ -237,6 +327,11 @@
          return false;
         }
       if(!EnsureConfigSystemPageCreated())
+        {
+         PopBuildTarget(previous);
+         return false;
+        }
+      if(!EnsureConfigVisualPageCreated())
         {
          PopBuildTarget(previous);
          return false;

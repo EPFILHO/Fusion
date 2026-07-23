@@ -683,6 +683,33 @@ color FusionNextVisualColor(const color currentColor)
    return palette[0];
   }
 
+string FusionVisualStyleText(const ENUM_LINE_STYLE style)
+  {
+   if(style == STYLE_DASH)
+      return "TRACEJADA";
+   if(style == STYLE_DOT)
+      return "PONTILHADA";
+   return "CHEIA";
+  }
+
+ENUM_LINE_STYLE FusionNextVisualStyle(const ENUM_LINE_STYLE currentStyle)
+  {
+   if(currentStyle == STYLE_SOLID)
+      return STYLE_DASH;
+   if(currentStyle == STYLE_DASH)
+      return STYLE_DOT;
+   return STYLE_SOLID;
+  }
+
+void FusionApplyVisualStyleButton(CButton &button,const ENUM_LINE_STYLE style,const bool editable=true)
+  {
+   button.Text(FusionVisualStyleText(style));
+   if(editable)
+      FusionApplyActionButtonStyle(button, FUSION_CLR_NAV_IDLE, true);
+   else
+      FusionApplyNeutralButtonStyle(button);
+  }
+
 void FusionApplyStateLabel(CLabel &label,const bool enabled,const string enabledText,const string disabledText)
   {
    label.Text(enabled ? enabledText : disabledText);

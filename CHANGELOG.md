@@ -1,11 +1,14 @@
 # Changelog
 
-## 1.056 - 2026-07-22
+## 1.056 - 2026-07-23
 - Perfis passam a ser gravados por arquivo temporario e promovidos atomicamente; falha de escrita preserva o arquivo anterior.
-- O carregamento de perfil agora usa um candidato isolado e rejeita arquivo ausente, invalido ou truncado antes de tocar na configuracao em uso. Perfis legados completos continuam migraveis e, ao serem salvos, passam ao `schemaVersion=13`.
+- O carregamento de perfil agora usa um candidato isolado e rejeita arquivo ausente, invalido ou truncado antes de tocar na configuracao em uso. Perfis legados completos continuam migraveis e, ao serem salvos, passam ao `schemaVersion=14`.
 - Troca de timeframe continua preservando somente o estado operacional ja confirmado. Se havia draft ou pending changes na GUI, o Fusion nao os salva nem aplica e mostra aviso explicito de que foram descartados.
 - `Bollinger Filter` ganhou modo direcional opcional, desligado por default: calcula a inclinacao media da linha central em candles fechados e bloqueia SELL na alta ou BUY na queda, com lookback e tolerancia em pontos por candle.
-- `Trend Filter` ganhou barreiras duplas opcionais, desligadas por default: a MA principal limita BUY abaixo dela e uma segunda MA independente limita SELL acima dela. Com o modo desligado, a MA unica conserva exatamente a regra anterior para os dois lados.
+- `Trend Filter` passou a expor `Media 1` (longa) e `Media 2` (curta) com ON/OFF independentes. Cada MA ativa e uma barreira completa: BUY exige preco atual acima dela e SELL exige preco atual abaixo dela; com as duas ON, o preco entre as medias bloqueia ambos os lados.
+- Com as duas medias ativas, a GUI exige que o horizonte efetivo da M1 (`periodo x duracao do timeframe`) seja estritamente maior que o da M2. A mesma guarda existe no motor e falha fechado se uma configuracao invalida chegar ao runtime.
+- A comparacao do Trend Filter usa o preco atual do ativo e o valor corrente de cada MA no seu proprio timeframe, eliminando a defasagem visual causada pela antiga comparacao com candle fechado.
+- `CONFIG` ganhou a subaba `VISUAL`. O toggle global, as cores e os estilos `CHEIA`/`TRACEJADA`/`PONTILHADA` de MA Rapida, MA Lenta, Trend M1, Trend M2 e Bandas sairam de `SYSTEM`; essas preferencias continuam estritamente isoladas do motor operacional.
 - Os novos filtros falham fechado quando a configuracao, o handle, o preco fechado ou os buffers necessarios nao estao disponiveis.
 - Versao central do EA e indicadores visuais atualizada para `1.056`; os handles visuais continuam separados dos handles operacionais.
 

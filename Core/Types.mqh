@@ -3,8 +3,8 @@
 
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
 #define FUSION_NEWS_WINDOW_COUNT 3
-#define FUSION_SETTINGS_SCHEMA_VERSION 13
-#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 135
+#define FUSION_SETTINGS_SCHEMA_VERSION 14
+#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 142
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -125,8 +125,8 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_MACROSS,
    UI_COMMAND_TOGGLE_RSI,
    UI_COMMAND_TOGGLE_BB,
-   UI_COMMAND_TOGGLE_TREND_FILTER,
-   UI_COMMAND_TOGGLE_TREND_DUAL_BARRIER,
+   UI_COMMAND_TOGGLE_TREND_MA1,
+   UI_COMMAND_TOGGLE_TREND_MA2,
    UI_COMMAND_TOGGLE_RSI_FILTER,
    UI_COMMAND_TOGGLE_BB_FILTER,
    UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION,
@@ -178,7 +178,13 @@ struct SEASettings
    color                    visualMAFastColor;
    color                    visualMASlowColor;
    color                    visualMATrendColor;
+   color                    visualMATrend2Color;
    color                    visualBBColor;
+   ENUM_LINE_STYLE          visualMAFastStyle;
+   ENUM_LINE_STYLE          visualMASlowStyle;
+   ENUM_LINE_STYLE          visualMATrendStyle;
+   ENUM_LINE_STYLE          visualMATrend2Style;
+   ENUM_LINE_STYLE          visualBBStyle;
    ENUM_CONFLICT_RESOLUTION conflictMode;
    ENUM_TRADE_DIRECTION     tradeDirection;
    bool                     enableSpreadProtection;
@@ -255,11 +261,12 @@ struct SEASettings
    ENUM_BB_SIGNAL_MODE      bbMode;
    ENUM_EXIT_MODE           bbExitMode;
    bool                     useTrendFilter;
+   bool                     trendMA1Enabled;
    int                      trendMAPeriod;
    ENUM_TIMEFRAMES          trendMATimeframe;
    ENUM_MA_METHOD           trendMAMethod;
    ENUM_APPLIED_PRICE       trendMAPrice;
-   bool                     trendDualBarrierEnabled;
+   bool                     trendMA2Enabled;
    int                      trendSellMAPeriod;
    ENUM_TIMEFRAMES          trendSellMATimeframe;
    ENUM_MA_METHOD           trendSellMAMethod;
@@ -284,6 +291,24 @@ struct SEASettings
    int                      bbFilterMinSlopePoints;
    bool                     isTester;
   };
+
+long FusionMAHorizonSeconds(const int period,const ENUM_TIMEFRAMES timeframe)
+  {
+   int timeframeSeconds = PeriodSeconds(timeframe);
+   if(period <= 0 || timeframeSeconds <= 0)
+      return 0;
+   return ((long)period * (long)timeframeSeconds);
+  }
+
+bool FusionTrendMAOrderValid(const SEASettings &settings)
+  {
+   if(!settings.trendMA1Enabled || !settings.trendMA2Enabled)
+      return true;
+
+   long ma1Horizon = FusionMAHorizonSeconds(settings.trendMAPeriod, settings.trendMATimeframe);
+   long ma2Horizon = FusionMAHorizonSeconds(settings.trendSellMAPeriod, settings.trendSellMATimeframe);
+   return (ma1Horizon > 0 && ma2Horizon > 0 && ma1Horizon > ma2Horizon);
+  }
 
 bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const SEASettings &candidateSettings)
   {
@@ -542,7 +567,13 @@ void SetDefaultSettings(SEASettings &settings)
    settings.visualMAFastColor      = clrLime;
    settings.visualMASlowColor      = clrRed;
    settings.visualMATrendColor     = clrMagenta;
+   settings.visualMATrend2Color    = clrOrange;
    settings.visualBBColor          = clrDodgerBlue;
+   settings.visualMAFastStyle      = STYLE_SOLID;
+   settings.visualMASlowStyle      = STYLE_SOLID;
+   settings.visualMATrendStyle     = STYLE_SOLID;
+   settings.visualMATrend2Style    = STYLE_SOLID;
+   settings.visualBBStyle          = STYLE_SOLID;
    settings.conflictMode          = CONFLICT_PRIORITY;
    settings.tradeDirection        = DIRECTION_BOTH;
    settings.enableSpreadProtection= false;
@@ -631,11 +662,12 @@ void SetDefaultSettings(SEASettings &settings)
    settings.bbMode                = BB_SIGNAL_REENTRY;
    settings.bbExitMode            = EXIT_OPPOSITE_SIGNAL;
    settings.useTrendFilter        = false;
+   settings.trendMA1Enabled       = false;
    settings.trendMAPeriod         = 50;
    settings.trendMATimeframe      = FUSION_DEFAULT_TIMEFRAME;
    settings.trendMAMethod         = MODE_SMA;
    settings.trendMAPrice          = PRICE_CLOSE;
-   settings.trendDualBarrierEnabled = false;
+   settings.trendMA2Enabled       = false;
    settings.trendSellMAPeriod     = 21;
    settings.trendSellMATimeframe  = FUSION_DEFAULT_TIMEFRAME;
    settings.trendSellMAMethod     = MODE_SMA;

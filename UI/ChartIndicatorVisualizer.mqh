@@ -27,6 +27,7 @@ private:
    bool     m_showFastMA;
    bool     m_showSlowMA;
    bool     m_showTrendMA;
+   bool     m_showTrendMA2;
    CIndicatorLegendOverlay m_legendOverlay;
 
    void     ResetEntries(void)
@@ -44,6 +45,7 @@ private:
       m_showFastMA = false;
       m_showSlowMA = false;
       m_showTrendMA = false;
+      m_showTrendMA2 = false;
      }
 
    bool     KeyExists(const string key) const
@@ -247,7 +249,12 @@ private:
 
    bool     ShouldShowTrendMA(const SEASettings &settings) const
      {
-      return (settings.useTrendFilter && CompatibleTimeframe(settings.trendMATimeframe));
+      return (settings.trendMA1Enabled && CompatibleTimeframe(settings.trendMATimeframe));
+     }
+
+   bool     ShouldShowTrendMA2(const SEASettings &settings) const
+     {
+      return (settings.trendMA2Enabled && CompatibleTimeframe(settings.trendSellMATimeframe));
      }
 
    void     AddMovingAverages(const SEASettings &settings)
@@ -255,12 +262,15 @@ private:
       bool showFast = ShouldShowFastMA(settings);
       bool showSlow = ShouldShowSlowMA(settings);
       bool showTrend = ShouldShowTrendMA(settings);
+      bool showTrend2 = ShouldShowTrendMA2(settings);
 
       if(settings.useMACross && !showFast)
          m_skippedTimeframes++;
       if(settings.useMACross && !showSlow)
          m_skippedTimeframes++;
-      if(settings.useTrendFilter && !showTrend)
+      if(settings.trendMA1Enabled && !showTrend)
+         m_skippedTimeframes++;
+      if(settings.trendMA2Enabled && !showTrend2)
          m_skippedTimeframes++;
 
       if(showSlow && showFast &&
@@ -275,8 +285,20 @@ private:
          SameMA(settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice,
                 settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
          showTrend = false;
+      if(showTrend2 && showFast &&
+         SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
+                settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice))
+         showTrend2 = false;
+      if(showTrend2 && showSlow &&
+         SameMA(settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice,
+                settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice))
+         showTrend2 = false;
+      if(showTrend2 && showTrend &&
+         SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
+                settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice))
+         showTrend2 = false;
 
-      if(!showFast && !showSlow && !showTrend)
+      if(!showFast && !showSlow && !showTrend && !showTrend2)
          return;
 
       string shortName = "Fusion Visual MA " + StringFormat("%I64d", m_chartId);
@@ -286,24 +308,34 @@ private:
                            shortName,
                            showFast,
                            settings.visualMAFastColor,
+                           settings.visualMAFastStyle,
                            settings.maFastPeriod,
                            settings.maFastMethod,
                            settings.maFastPrice,
                            showSlow,
                            settings.visualMASlowColor,
+                           settings.visualMASlowStyle,
                            settings.maSlowPeriod,
                            settings.maSlowMethod,
                            settings.maSlowPrice,
                            showTrend,
                            settings.visualMATrendColor,
+                           settings.visualMATrendStyle,
                            settings.trendMAPeriod,
                            settings.trendMAMethod,
-                           settings.trendMAPrice);
+                           settings.trendMAPrice,
+                           showTrend2,
+                           settings.visualMATrend2Color,
+                           settings.visualMATrend2Style,
+                           settings.trendSellMAPeriod,
+                           settings.trendSellMAMethod,
+                           settings.trendSellMAPrice);
       if(AddHandle(handle, 0, "FUSION_MA_BUNDLE", shortName))
         {
          m_showFastMA = showFast;
          m_showSlowMA = showSlow;
          m_showTrendMA = showTrend;
+         m_showTrendMA2 = showTrend2;
         }
      }
 
@@ -312,7 +344,8 @@ private:
                      const ENUM_TIMEFRAMES timeframe,
                      const double deviation,
                      const ENUM_APPLIED_PRICE price,
-                     const color lineColor)
+                     const color lineColor,
+                     const ENUM_LINE_STYLE lineStyle)
      {
       if(KeyExists(key))
          return;
@@ -330,6 +363,7 @@ private:
                            "::VisualIndicators\\FusionVisualBands.ex5",
                            shortName,
                            lineColor,
+                           lineStyle,
                            period,
                            deviation,
                            price);
@@ -448,6 +482,7 @@ private:
       ObjectDelete(m_chartId, LegacyLegendName("fast"));
       ObjectDelete(m_chartId, LegacyLegendName("slow"));
       ObjectDelete(m_chartId, LegacyLegendName("trend"));
+      ObjectDelete(m_chartId, LegacyLegendName("trend2"));
      }
 
    bool     EnsureLegendOverlay(void)
@@ -501,12 +536,15 @@ private:
 
       bool fastConfigured = settings.useMACross;
       bool slowConfigured = settings.useMACross;
-      bool trendConfigured = settings.useTrendFilter;
+      bool trendConfigured = settings.trendMA1Enabled;
+      bool trend2Configured = settings.trendMA2Enabled;
       bool fastEligible = ShouldShowFastMA(settings);
       bool slowEligible = ShouldShowSlowMA(settings);
       bool trendEligible = ShouldShowTrendMA(settings);
+      bool trend2Eligible = ShouldShowTrendMA2(settings);
       string slowShared = "";
       string trendShared = "";
+      string trend2Shared = "";
 
       if(fastEligible && slowEligible &&
          SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
@@ -525,6 +563,22 @@ private:
             trendShared = "Lenta";
         }
 
+      if(trend2Eligible)
+        {
+         if(fastEligible &&
+            SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
+                   settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
+            trend2Shared = "Rapida";
+         else if(slowEligible &&
+                 SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
+                        settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
+            trend2Shared = "Lenta";
+         else if(trendEligible &&
+                 SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
+                        settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
+            trend2Shared = "Trend M1";
+        }
+
       m_legendOverlay.Update(MALegendText("MA Rapida",
                                          fastConfigured,
                                          settings.maFastTimeframe,
@@ -538,16 +592,24 @@ private:
                                          slowEligible,
                                          m_showSlowMA,
                                          slowShared),
-                            MALegendText("MA Trend",
+                            MALegendText("Trend M1",
                                          trendConfigured,
                                          settings.trendMATimeframe,
                                          settings.trendMAPeriod,
                                          trendEligible,
                                          m_showTrendMA,
                                          trendShared),
+                            MALegendText("Trend M2",
+                                         trend2Configured,
+                                         settings.trendSellMATimeframe,
+                                         settings.trendSellMAPeriod,
+                                         trend2Eligible,
+                                         m_showTrendMA2,
+                                         trend2Shared),
                              settings.visualMAFastColor,
                              settings.visualMASlowColor,
-                             settings.visualMATrendColor);
+                             settings.visualMATrendColor,
+                             settings.visualMATrend2Color);
      }
 
    void     ClearIndicators(void)
@@ -563,7 +625,8 @@ private:
      {
       return (ShouldShowFastMA(settings) ||
               ShouldShowSlowMA(settings) ||
-              ShouldShowTrendMA(settings));
+              ShouldShowTrendMA(settings) ||
+              ShouldShowTrendMA2(settings));
      }
 
    string   BuildFingerprint(const SEASettings &settings) const
@@ -618,7 +681,22 @@ private:
                           (int)settings.rsiExitMode,
                           (int)settings.rsiFilterMode,
                           settings.rsiFilterBuyMin,
-                          settings.rsiFilterSellMax);
+                          settings.rsiFilterSellMax) +
+             StringFormat("|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d",
+                          (int)settings.trendMA1Enabled,
+                          (int)settings.trendMA2Enabled,
+                          settings.trendSellMAPeriod,
+                          (int)settings.trendSellMATimeframe,
+                          (int)settings.trendSellMAMethod,
+                          (int)settings.trendSellMAPrice,
+                          (int)settings.visualMATrend2Color,
+                          (int)settings.visualMAFastStyle,
+                          (int)settings.visualMASlowStyle,
+                          (int)settings.visualMATrendStyle,
+                          (int)settings.visualMATrend2Style,
+                          (int)settings.visualBBStyle,
+                          (int)settings.visualBBColor,
+                          (int)settings.showChartIndicators);
      }
 
    string   BandsKey(const int period,
@@ -670,10 +748,12 @@ private:
 
       if(settings.useBollinger)
          AddBands(BandsKey(settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice),
-                  settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice, settings.visualBBColor);
+                  settings.bbPeriod, settings.bbTimeframe, settings.bbDeviation, settings.bbPrice,
+                  settings.visualBBColor, settings.visualBBStyle);
       if(settings.bbFilterEnabled)
          AddBands(BandsKey(settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice),
-                  settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice, settings.visualBBColor);
+                  settings.bbFilterPeriod, settings.bbFilterTimeframe, settings.bbFilterDeviation, settings.bbFilterPrice,
+                  settings.visualBBColor, settings.visualBBStyle);
 
       AddConfiguredRSIVisuals(settings);
      }

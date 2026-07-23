@@ -11,7 +11,7 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 - Permite multiplas instancias em graficos diferentes, desde que os perfis usem Magic Numbers distintos.
 - Mantem uma posicao liquida por EA.
 - Usa arquitetura multi-estrategia e multi-filtro.
-- O Trend Filter pode, opcionalmente, usar uma MA para bloquear compras e outra para bloquear vendas.
+- O Trend Filter possui M1 longa e M2 curta independentes; cada MA ativa exige BUY acima dela e SELL abaixo dela, usando preco e valor da media atuais.
 - O Bollinger Filter pode, opcionalmente, bloquear sinais contra a inclinacao da linha central em candles fechados.
 - Usa resolvedores de conflito plugaveis para sinais simultaneos.
 - A estrategia que abriu a posicao e responsavel pela saida por sinal.
