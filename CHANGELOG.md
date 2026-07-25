@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.057 - 2026-07-25
+- O carregamento do chart state agora usa candidatos isolados e somente publica settings, contexto e runtime depois de validar o arquivo completo.
+- Chart states truncados, com schema invalido, `chartId` divergente ou blocos incompletos de posicao, STREAK, DAY e DRAWDOWN sao rejeitados integralmente; o Fusion mantem o boot seguro e avisa que vai ressincronizar posicao e historico.
+- A estrutura operacional do chart state passou a validar cada chave obrigatoria e rejeitar chaves duplicadas ou desconhecidas nos blocos de contexto, posicao, STREAK, DAY e DRAWDOWN.
+- Em `FILTERS > BB`, `Direcao` e seus parametros ficam inativos quando o Bollinger Filter esta OFF, preservando sem alterar o valor ON/OFF salvo para quando o filtro for reativado.
+- Arquivos completos da 1.056 continuam compativeis, sem mudanca no schema de perfil, nas estrategias ou na execucao.
+- Versao central do EA e indicadores visuais atualizada para `1.057`; os indicadores permanecem isolados do motor operacional.
+
 ## 1.056 - 2026-07-23
 - Perfis passam a ser gravados por arquivo temporario e promovidos atomicamente; falha de escrita preserva o arquivo anterior.
 - O carregamento de perfil agora usa um candidato isolado e rejeita arquivo ausente, invalido ou truncado antes de tocar na configuracao em uso. Perfis legados completos continuam migraveis e, ao serem salvos, passam ao `schemaVersion=14`.

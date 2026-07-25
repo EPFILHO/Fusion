@@ -2018,6 +2018,7 @@ private:
       ResetStreakRuntimeState(restoredStreakState);
       ResetDailyLimitsRuntimeState(restoredDailyState);
       ResetDrawdownRuntimeState(restoredDrawdownState);
+      string chartStateLoadError = "";
 
       if(m_settingsStore.LoadChartState(m_chartContext.chartId,
                                         restoredContext,
@@ -2027,7 +2028,8 @@ private:
                                         restoredState,
                                         restoredStreakState,
                                         restoredDailyState,
-                                        restoredDrawdownState))
+                                        restoredDrawdownState,
+                                        chartStateLoadError))
         {
          if(ShouldRestoreSavedState(restoredContext))
            {
@@ -2069,8 +2071,11 @@ private:
                                                   m_started &&
                                                   restoredContext.deinitReason == REASON_CHARTCHANGE);
               }
-           }
+            }
          }
+      else if(chartStateLoadError != "" && !m_settings.isTester)
+         ApplyRuntimeNotice("Estado operacional salvo rejeitado: " + chartStateLoadError +
+                            ". O Fusion manteve o boot seguro e vai ressincronizar posicao e historico.");
 
       if(restoredStateApplied &&
          restoredContext.deinitReason == REASON_CHARTCHANGE &&

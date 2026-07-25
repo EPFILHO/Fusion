@@ -1,6 +1,6 @@
 #property copyright "Copyright 2026, EP Filho"
 #property link      "https://github.com/EPFILHO/Fusion"
-#property version   "1.056"
+#property version   "1.057"
 #property indicator_separate_window
 #property indicator_buffers 1
 #property indicator_plots   1

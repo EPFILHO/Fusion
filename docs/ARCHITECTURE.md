@@ -188,9 +188,13 @@ Perfis sao configuracoes operacionais. Estado de grafico e restauracao local da 
 
 O chart state operacional e gravado primeiro em arquivo temporario e promovido sobre o arquivo anterior somente depois de todas as linhas serem escritas e descarregadas. Fluxos que exigem durabilidade antes de enviar trade, como a intencao de parcial, devem verificar o retorno dessa gravacao e falhar fechado.
 
+A leitura do chart state tambem e transacional: contexto, settings e blocos de runtime sao montados em candidatos isolados. O estado somente e publicado depois da validacao de schema, `chartId` e de cada chave obrigatoria de contexto, posicao, STREAK, DAY e DRAWDOWN. Chaves operacionais duplicadas, desconhecidas ou ausentes rejeitam o arquivo por inteiro; o boot corrente permanece ativo para ressincronizacao conservadora com posicao e historico.
+
 Perfis usam a mesma promocao atomica. O carregamento sempre ocorre em uma estrutura candidata inicializada com defaults e so substitui a configuracao corrente depois que schema, campos essenciais e marcadores de completude forem confirmados. Perfis legados completos podem ser migrados; arquivos truncados ou de schema futuro falham sem aplicar defaults silenciosamente.
 
 No schema 14, o `Trend Filter` possui M1 e M2 independentes. Cada MA ativa aprova BUY somente quando o preco atual esta estritamente acima do valor corrente da media e aprova SELL somente quando esta estritamente abaixo. Com ambas ON, todas as barreiras precisam aprovar o sinal e a M1 deve ter horizonte efetivo maior que a M2. Perfis do schema 13 sao migrados preservando a MA principal e a antiga barreira secundaria. O `Bollinger Filter` pode adicionar ao anti-squeeze uma regra direcional pela inclinacao media da linha central, sempre calculada entre candles fechados.
+
+Os parametros direcionais do `Bollinger Filter` preservam seus valores no perfil quando o filtro principal esta OFF, mas ficam inativos na GUI e nao participam do runtime ate que o filtro principal seja reativado.
 
 Em grafico real ou demo, a restauracao de estado nunca religa novas entradas automaticamente. O EA volta pausado, mas continua apto a gerenciar uma posicao aberta sincronizada ou restaurada.
 

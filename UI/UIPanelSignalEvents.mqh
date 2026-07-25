@@ -51,6 +51,12 @@
          ResetCommand(tempCommand);
          if(m_filterPanels[fp].HandleClick(objectName, tempCommand))
            {
+            if(tempCommand.type == UI_COMMAND_NONE)
+              {
+               RefreshSignalDraftViews(false, true);
+               ChartRedraw();
+               return true;
+              }
             if(!TryBeginActiveProfileEdit())
                return true;
             ToggleDraftFlag(tempCommand.type);

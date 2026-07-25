@@ -30,6 +30,8 @@ private:
    CLabel                 m_ruleHint;
    CLabel                 m_valueHint;
    CLabel                 m_noteHint;
+   bool                   m_directionEditable;
+   bool                   m_directionParametersEditable;
 
    bool              AddText(CFusionPanel *parent,CLabel &label,const string name,const long chartId,const int subwin,
                              const int x1,const int y1,const int x2,const int y2,const string text,const color clr,const int size=8)
@@ -119,6 +121,8 @@ public:
 
    bool              Create(CFusionPanel *parent,const long chartId,const int subwin,const int x1,const int y1,const int x2,const int y2)
      {
+      m_directionEditable = false;
+      m_directionParametersEditable = false;
       string prefix = "Fusion_Filter_bb_";
       if(!AddText(parent, m_header, prefix + "hdr", chartId, subwin, x1, y1, x2, y1 + 18, "Bollinger Filter", FUSION_CLR_TITLE, 10))
          return false;
@@ -231,6 +235,8 @@ public:
       bool relativeMode = (settings.bbFilterMode == BB_FILTER_WIDTH_RELATIVE);
       bool lookbackValid = SlopeLookbackValid(settings.bbFilterSlopeLookback);
       bool minSlopeValid = MinSlopeValid(settings.bbFilterMinSlopePoints);
+      m_directionEditable = (editable && settings.bbFilterEnabled);
+      m_directionParametersEditable = (m_directionEditable && settings.bbFilterSlopeDirectionEnabled);
 
       m_mode.Sync((long)settings.bbFilterMode, editable);
       m_period.Sync(settings.bbFilterPeriod, editable, periodValid);
@@ -239,11 +245,10 @@ public:
       m_price.Sync((long)settings.bbFilterPrice, editable);
       m_minWidthPoints.Sync(settings.bbFilterMinWidthPoints, editable && absoluteMode, !absoluteMode || pointsValid);
       m_minWidthPercent.Sync(settings.bbFilterMinWidthPercent, editable && relativeMode, !relativeMode || percentValid);
-      FusionApplyToggleButtonStyle(m_slopeToggle, settings.bbFilterSlopeDirectionEnabled, editable);
-      m_slopeLabel.Color(editable ? FUSION_CLR_LABEL : FUSION_CLR_DISABLED);
-      bool slopeEditable = (editable && settings.bbFilterSlopeDirectionEnabled);
-      m_slopeLookback.Sync(settings.bbFilterSlopeLookback, slopeEditable, lookbackValid);
-      m_minSlopePoints.Sync(settings.bbFilterMinSlopePoints, slopeEditable, minSlopeValid);
+      FusionApplyToggleButtonStyle(m_slopeToggle, settings.bbFilterSlopeDirectionEnabled, m_directionEditable);
+      m_slopeLabel.Color(m_directionEditable ? FUSION_CLR_LABEL : FUSION_CLR_DISABLED);
+      m_slopeLookback.Sync(settings.bbFilterSlopeLookback, m_directionParametersEditable, lookbackValid);
+      m_minSlopePoints.Sync(settings.bbFilterMinSlopePoints, m_directionParametersEditable, minSlopeValid);
       SyncGuidance(settings, editable && modeValid);
      }
 
@@ -256,6 +261,12 @@ public:
         }
       if(objectName == m_slopeToggle.Name())
         {
+         if(!m_directionEditable)
+           {
+            m_slopeToggle.Pressed(false);
+            command.type = UI_COMMAND_NONE;
+            return true;
+           }
          command.type = UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION;
          return true;
         }
@@ -323,11 +334,21 @@ public:
         }
       if(m_slopeLookback.Matches(objectName))
         {
+         if(!m_directionParametersEditable)
+           {
+            m_slopeLookback.SetValue(settings.bbFilterSlopeLookback);
+            return false;
+           }
          settings.bbFilterSlopeLookback = m_slopeLookback.Value();
          return true;
         }
       if(m_minSlopePoints.Matches(objectName))
         {
+         if(!m_directionParametersEditable)
+           {
+            m_minSlopePoints.SetValue(settings.bbFilterMinSlopePoints);
+            return false;
+           }
          settings.bbFilterMinSlopePoints = m_minSlopePoints.Value();
          return true;
         }
@@ -340,8 +361,8 @@ public:
              m_deviation.Matches(objectName) ||
              m_minWidthPoints.Matches(objectName) ||
              m_minWidthPercent.Matches(objectName) ||
-             m_slopeLookback.Matches(objectName) ||
-             m_minSlopePoints.Matches(objectName);
+             (m_directionParametersEditable && m_slopeLookback.Matches(objectName)) ||
+             (m_directionParametersEditable && m_minSlopePoints.Matches(objectName));
      }
 
    void              NormalizeDeferredEdit(const string objectName)
@@ -384,15 +405,16 @@ public:
       bool relativeMode = (candidate.bbFilterMode == BB_FILTER_WIDTH_RELATIVE);
       bool pointsValid = !absoluteMode || MinPointsValid(candidate.bbFilterMinWidthPoints);
       bool percentValid = !relativeMode || MinPercentValid(candidate.bbFilterMinWidthPercent);
-      bool lookbackValid = !candidate.bbFilterSlopeDirectionEnabled || SlopeLookbackValid(candidate.bbFilterSlopeLookback);
-      bool minSlopeValid = !candidate.bbFilterSlopeDirectionEnabled || MinSlopeValid(candidate.bbFilterMinSlopePoints);
+      bool directionActive = (candidate.bbFilterEnabled && candidate.bbFilterSlopeDirectionEnabled);
+      bool lookbackValid = !directionActive || SlopeLookbackValid(candidate.bbFilterSlopeLookback);
+      bool minSlopeValid = !directionActive || MinSlopeValid(candidate.bbFilterMinSlopePoints);
 
       m_period.SetValid(periodValid, editable);
       m_deviation.SetValid(deviationValid, editable);
       m_minWidthPoints.SetValid(pointsValid, editable && absoluteMode);
       m_minWidthPercent.SetValid(percentValid, editable && relativeMode);
-      m_slopeLookback.SetValid(lookbackValid, editable && candidate.bbFilterSlopeDirectionEnabled);
-      m_minSlopePoints.SetValid(minSlopeValid, editable && candidate.bbFilterSlopeDirectionEnabled);
+      m_slopeLookback.SetValid(lookbackValid, editable && directionActive);
+      m_minSlopePoints.SetValid(minSlopeValid, editable && directionActive);
 
       if(!modeValid || !periodValid || !deviationValid || !pointsValid || !percentValid || !lookbackValid || !minSlopeValid)
         {

@@ -566,6 +566,94 @@ private:
       else if(key == "context.discardedUnsavedDraft") context.discardedUnsavedDraft = (bool)StringToInteger(value);
      }
 
+   int               ChartStateContextFieldIndex(const string key) const
+     {
+      if(key == "context.chartId") return 0;
+      if(key == "context.symbol") return 1;
+      if(key == "context.timeframe") return 2;
+      if(key == "context.periodValue") return 3;
+      if(key == "context.deinitReason") return 4;
+      if(key == "context.discardedUnsavedDraft") return 5;
+      return -1;
+     }
+
+   int               ChartStateHeaderFieldIndex(const string key) const
+     {
+      if(key == "activeProfileName") return 0;
+      if(key == "started") return 1;
+      return -1;
+     }
+
+   int               ChartStatePositionFieldIndex(const string key) const
+     {
+      if(key == "state.hasPosition") return 0;
+      if(key == "state.positionId") return 1;
+      if(key == "state.ownerStrategyId") return 2;
+      if(key == "state.ownerStrategyName") return 3;
+      if(key == "state.tp1Executed") return 4;
+      if(key == "state.tp2Executed") return 5;
+      if(key == "state.breakevenActive") return 6;
+      if(key == "state.trailingActive") return 7;
+      if(key == "state.realizedPartialProfit") return 8;
+      if(key == "state.tp1Price") return 9;
+      if(key == "state.tp1Volume") return 10;
+      if(key == "state.tp2Price") return 11;
+      if(key == "state.tp2Volume") return 12;
+      if(key == "state.partialClosePending") return 13;
+      if(key == "state.pendingPartialLevel") return 14;
+      if(key == "state.pendingPartialInitialVolume") return 15;
+      if(key == "state.pendingPartialRequestedVolume") return 16;
+      if(key == "state.pendingPartialBaselineExitVolume") return 17;
+      if(key == "state.pendingPartialPreProjectedProfit") return 18;
+      if(key == "state.pendingPartialFloatingReferenceSet") return 19;
+      if(key == "state.pendingPartialFloatingReference") return 20;
+      if(key == "state.pendingPartialOrderTicket") return 21;
+      if(key == "state.pendingPartialDealTicket") return 22;
+      if(key == "state.pendingPartialRetcode") return 23;
+      if(key == "state.pendingPartialSince") return 24;
+      if(key == "state.dayPeakProjectedProfit") return 25;
+      return -1;
+     }
+
+   int               ChartStateStreakFieldIndex(const string key) const
+     {
+      if(key == "streak.dayKey") return 0;
+      if(key == "streak.lossStreak") return 1;
+      if(key == "streak.winStreak") return 2;
+      if(key == "streak.lossStopDayBlocked") return 3;
+      if(key == "streak.winStopDayBlocked") return 4;
+      if(key == "streak.lossPauseUntil") return 5;
+      if(key == "streak.winPauseUntil") return 6;
+      return -1;
+     }
+
+   int               ChartStateDayFieldIndex(const string key) const
+     {
+      if(key == "day.dayKey") return 0;
+      if(key == "day.dailyTradeCount") return 1;
+      if(key == "day.dailyLossCount") return 2;
+      if(key == "day.dailyWinCount") return 3;
+      if(key == "day.dailyBreakevenCount") return 4;
+      if(key == "day.outcomeCountsKnown") return 5;
+      if(key == "day.dailyClosedProfit") return 6;
+      if(key == "day.tradesLimitReached") return 7;
+      if(key == "day.lossLimitReached") return 8;
+      if(key == "day.gainLimitReached") return 9;
+      return -1;
+     }
+
+   int               ChartStateDrawdownFieldIndex(const string key) const
+     {
+      if(key == "drawdown.dayKey") return 0;
+      if(key == "drawdown.protectionActive") return 1;
+      if(key == "drawdown.limitReached") return 2;
+      if(key == "drawdown.peakProjectedProfit") return 3;
+      if(key == "drawdown.triggerProjectedProfit") return 4;
+      if(key == "drawdown.triggerDrawdownAmount") return 5;
+      if(key == "drawdown.triggerBufferProfit") return 6;
+      return -1;
+     }
+
 public:
    string            ProfilesFolderPath(void) const
      {
@@ -874,35 +962,86 @@ public:
      }
 
    bool              LoadChartState(const ulong chartId,
-                                    SChartStateContext &context,
-                                    string &activeProfileName,
-                                    bool &started,
-                                    SEASettings &settings,
-                                    SPositionRuntimeState &state,
-                                    SStreakRuntimeState &streakState,
-                                    SDailyLimitsRuntimeState &dailyState,
-                                    SDrawdownRuntimeState &drawdownState)
-     {
+                                     SChartStateContext &context,
+                                     string &activeProfileName,
+                                     bool &started,
+                                     SEASettings &settings,
+                                     SPositionRuntimeState &state,
+                                     SStreakRuntimeState &streakState,
+                                     SDailyLimitsRuntimeState &dailyState,
+                                     SDrawdownRuntimeState &drawdownState,
+                                     string &errorReason)
+      {
       EnsureFolders();
-      SetDefaultSettings(settings);
-      ResetPositionRuntimeState(state);
-      ResetStreakRuntimeState(streakState);
-      ResetDailyLimitsRuntimeState(dailyState);
-      ResetDrawdownRuntimeState(drawdownState);
-      context.chartId = chartId;
-      context.symbol = "";
-      context.timeframe = "";
-      context.periodValue = 0;
-      context.deinitReason = -1;
-      context.discardedUnsavedDraft = false;
-      activeProfileName = "";
-      started = false;
+      errorReason = "";
 
       string chartKey = "chart_" + StringFormat("%I64u", chartId);
       string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
+
+      SChartStateContext candidateContext;
+      candidateContext.chartId = 0;
+      candidateContext.symbol = "";
+      candidateContext.timeframe = "";
+      candidateContext.periodValue = 0;
+      candidateContext.deinitReason = -1;
+      candidateContext.discardedUnsavedDraft = false;
+
+      SEASettings candidateSettings;
+      SetDefaultSettings(candidateSettings);
+      SPositionRuntimeState candidateState;
+      SStreakRuntimeState candidateStreakState;
+      SDailyLimitsRuntimeState candidateDailyState;
+      SDrawdownRuntimeState candidateDrawdownState;
+      ResetPositionRuntimeState(candidateState);
+      ResetStreakRuntimeState(candidateStreakState);
+      ResetDailyLimitsRuntimeState(candidateDailyState);
+      ResetDrawdownRuntimeState(candidateDrawdownState);
+      string candidateActiveProfileName = "";
+      bool candidateStarted = false;
+
+      int settingLineCount = 0;
+      int contextLineCount = 0;
+      int runtimeHeaderLineCount = 0;
+      int positionLineCount = 0;
+      int streakLineCount = 0;
+      int dayLineCount = 0;
+      int drawdownLineCount = 0;
+      const int requiredContextLines = 6;
+      const int requiredRuntimeHeaderLines = 2;
+      const int requiredPositionLines = 26;
+      const int requiredStreakLines = 7;
+      const int requiredDayLines = 10;
+      const int requiredDrawdownLines = 7;
+
+      bool seenContextFields[6];
+      bool seenRuntimeHeaderFields[2];
+      bool seenPositionFields[26];
+      bool seenStreakFields[7];
+      bool seenDayFields[10];
+      bool seenDrawdownFields[7];
+      ArrayInitialize(seenContextFields, false);
+      ArrayInitialize(seenRuntimeHeaderFields, false);
+      ArrayInitialize(seenPositionFields, false);
+      ArrayInitialize(seenStreakFields, false);
+      ArrayInitialize(seenDayFields, false);
+      ArrayInitialize(seenDrawdownFields, false);
+
+      bool seenSchema = false;
+      bool seenMagic = false;
+      bool seenFixedLot = false;
+      bool seenMA = false;
+      bool seenRSI = false;
+      bool seenBB = false;
+      bool seenTrend = false;
+      bool seenRSIFilter = false;
+      bool seenBBFilter = false;
+      bool seenLegacyTail = false;
+      bool seenCurrentTail = false;
+
+      string structuralError = "";
 
       while(!FileIsEnding(handle))
         {
@@ -912,20 +1051,195 @@ public:
          if(!ParseLine(line, key, value))
             continue;
 
-         ApplySetting(key, value, settings);
-         ApplyRuntimeField(key, value, activeProfileName, started, state, streakState, dailyState, drawdownState);
-         ApplyContextField(key, value, context);
+         if(StringFind(key, "context.") == 0)
+           {
+            int fieldIndex = ChartStateContextFieldIndex(key);
+            if(fieldIndex < 0)
+               structuralError = "contexto contem chave desconhecida: " + key;
+            else if(seenContextFields[fieldIndex])
+               structuralError = "contexto contem chave duplicada: " + key;
+            else
+              {
+               seenContextFields[fieldIndex] = true;
+               contextLineCount++;
+              }
+           }
+         else if(key == "activeProfileName" || key == "started")
+           {
+            int fieldIndex = ChartStateHeaderFieldIndex(key);
+            if(seenRuntimeHeaderFields[fieldIndex])
+               structuralError = "cabecalho operacional contem chave duplicada: " + key;
+            else
+              {
+               seenRuntimeHeaderFields[fieldIndex] = true;
+               runtimeHeaderLineCount++;
+              }
+           }
+         else if(StringFind(key, "state.") == 0)
+           {
+            int fieldIndex = ChartStatePositionFieldIndex(key);
+            if(fieldIndex < 0)
+               structuralError = "estado da posicao contem chave desconhecida: " + key;
+            else if(seenPositionFields[fieldIndex])
+               structuralError = "estado da posicao contem chave duplicada: " + key;
+            else
+              {
+               seenPositionFields[fieldIndex] = true;
+               positionLineCount++;
+              }
+           }
+         else if(StringFind(key, "streak.") == 0)
+           {
+            int fieldIndex = ChartStateStreakFieldIndex(key);
+            if(fieldIndex < 0)
+               structuralError = "estado de streak contem chave desconhecida: " + key;
+            else if(seenStreakFields[fieldIndex])
+               structuralError = "estado de streak contem chave duplicada: " + key;
+            else
+              {
+               seenStreakFields[fieldIndex] = true;
+               streakLineCount++;
+              }
+           }
+         else if(StringFind(key, "day.") == 0)
+           {
+            int fieldIndex = ChartStateDayFieldIndex(key);
+            if(fieldIndex < 0)
+               structuralError = "estado diario contem chave desconhecida: " + key;
+            else if(seenDayFields[fieldIndex])
+               structuralError = "estado diario contem chave duplicada: " + key;
+            else
+              {
+               seenDayFields[fieldIndex] = true;
+               dayLineCount++;
+              }
+           }
+         else if(StringFind(key, "drawdown.") == 0)
+           {
+            int fieldIndex = ChartStateDrawdownFieldIndex(key);
+            if(fieldIndex < 0)
+               structuralError = "estado de drawdown contem chave desconhecida: " + key;
+            else if(seenDrawdownFields[fieldIndex])
+               structuralError = "estado de drawdown contem chave duplicada: " + key;
+            else
+              {
+               seenDrawdownFields[fieldIndex] = true;
+               drawdownLineCount++;
+              }
+           }
+         else
+           {
+            settingLineCount++;
+            if(key == "schemaVersion") seenSchema = true;
+            else if(key == "magicNumber") seenMagic = true;
+            else if(key == "fixedLot") seenFixedLot = true;
+            else if(key == "useMACross") seenMA = true;
+            else if(key == "useRSI") seenRSI = true;
+            else if(key == "useBollinger") seenBB = true;
+            else if(key == "useTrendFilter") seenTrend = true;
+            else if(key == "useRSIFilter") seenRSIFilter = true;
+            else if(key == "bbFilterEnabled") seenBBFilter = true;
+            else if(key == "bbFilterMinWidthPercent") seenLegacyTail = true;
+            else if(key == "bbFilterMinSlopePoints") seenCurrentTail = true;
+           }
+
+         if(structuralError != "")
+            break;
+
+         ApplySetting(key, value, candidateSettings);
+         ApplyRuntimeField(key,
+                           value,
+                           candidateActiveProfileName,
+                           candidateStarted,
+                           candidateState,
+                           candidateStreakState,
+                           candidateDailyState,
+                           candidateDrawdownState);
+         ApplyContextField(key, value, candidateContext);
         }
 
       FileClose(handle);
-      NormalizeProtectionSettings(settings);
-      NormalizeStreakSettings(settings);
-      NormalizeRiskSettings(settings);
-      NormalizeTrendSettings(settings);
-      NormalizeVisualSettings(settings);
-      settings.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
+
+      if(structuralError != "")
+        {
+         errorReason = structuralError;
+         return false;
+        }
+
+      if(!ProfileHasRequiredFields(candidateSettings.schemaVersion,
+                                   settingLineCount,
+                                   seenSchema,
+                                   seenMagic,
+                                   seenFixedLot,
+                                   seenMA,
+                                   seenRSI,
+                                   seenBB,
+                                   seenTrend,
+                                   seenRSIFilter,
+                                   seenBBFilter,
+                                   seenLegacyTail,
+                                   seenCurrentTail))
+        {
+         errorReason = "bloco de configuracao incompleto ou schema invalido";
+         return false;
+        }
+
+      if(contextLineCount != requiredContextLines ||
+         candidateContext.symbol == "" || candidateContext.timeframe == "" ||
+         candidateContext.periodValue <= 0)
+        {
+         errorReason = "contexto do grafico incompleto";
+         return false;
+        }
+      if(candidateContext.chartId != chartId)
+        {
+         errorReason = "chartId divergente";
+         return false;
+        }
+
+      if(runtimeHeaderLineCount != requiredRuntimeHeaderLines)
+        {
+         errorReason = "cabecalho operacional incompleto";
+         return false;
+        }
+      if(positionLineCount != requiredPositionLines)
+        {
+         errorReason = "estado da posicao incompleto";
+         return false;
+        }
+      if(streakLineCount != requiredStreakLines)
+        {
+         errorReason = "estado de streak incompleto";
+         return false;
+        }
+      if(dayLineCount != requiredDayLines)
+        {
+         errorReason = "estado diario incompleto";
+         return false;
+        }
+      if(drawdownLineCount != requiredDrawdownLines)
+        {
+         errorReason = "estado de drawdown incompleto";
+         return false;
+        }
+
+      NormalizeProtectionSettings(candidateSettings);
+      NormalizeStreakSettings(candidateSettings);
+      NormalizeRiskSettings(candidateSettings);
+      NormalizeTrendSettings(candidateSettings);
+      NormalizeVisualSettings(candidateSettings);
+      candidateSettings.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
+
+      context = candidateContext;
+      activeProfileName = candidateActiveProfileName;
+      started = candidateStarted;
+      settings = candidateSettings;
+      state = candidateState;
+      streakState = candidateStreakState;
+      dailyState = candidateDailyState;
+      drawdownState = candidateDrawdownState;
       return true;
-     }
+      }
   };
 
 #endif
