@@ -30,6 +30,7 @@ private:
    CLabel                 m_ruleHint;
    CLabel                 m_valueHint;
    CLabel                 m_noteHint;
+   CLabel                 m_slopeThresholdHint;
 
    bool              AddText(CFusionPanel *parent,CLabel &label,const string name,const long chartId,const int subwin,
                              const int x1,const int y1,const int x2,const int y2,const string text,const color clr,const int size=8)
@@ -108,9 +109,13 @@ private:
       m_valueHint.Text(ValueHint(settings));
       m_valueHint.Color(textColor);
       m_noteHint.Text(settings.bbFilterSlopeDirectionEnabled
-                      ? "Direcao: bloqueia SELL na alta e BUY na queda da linha media."
+                      ? "Direcao usa a inclinacao media da linha central em candles fechados."
                       : "Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
       m_noteHint.Color(textColor);
+      m_slopeThresholdHint.Text(settings.bbFilterSlopeDirectionEnabled
+                               ? "Zero reage a qualquer inclinacao; valores maiores ignoram movimentos fracos."
+                               : "");
+      m_slopeThresholdHint.Color(textColor);
      }
 
 public:
@@ -159,7 +164,7 @@ public:
          return false;
       if(!m_slopeLookback.Create(parent, chartId, subwin, prefix + "slope_lookback", "Candles", x1 + 206, y1 + 244, x1 + 280, y1 + 262, x1 + 292, y1 + 240, x1 + 392, y1 + 264, 3))
          return false;
-      if(!m_minSlopePoints.Create(parent, chartId, subwin, prefix + "slope_min", "Min Pts/C", x1, y1 + 284, x1 + 88, y1 + 302, x1 + 92, y1 + 280, x1 + 192, y1 + 304, 0))
+      if(!m_minSlopePoints.Create(parent, chartId, subwin, prefix + "slope_min", "Incl. min. (pts/candle)", x1, y1 + 284, x1 + 280, y1 + 302, x1 + 292, y1 + 280, x1 + 392, y1 + 304, 0))
          return false;
 
       if(!AddText(parent, m_ruleHint, prefix + "rule_hint", chartId, subwin, x1, y1 + 328, x2, y1 + 346, "", FUSION_CLR_MUTED, 8))
@@ -167,6 +172,8 @@ public:
       if(!AddText(parent, m_valueHint, prefix + "value_hint", chartId, subwin, x1, y1 + 350, x2, y1 + 368, "", FUSION_CLR_MUTED, 8))
          return false;
       if(!AddText(parent, m_noteHint, prefix + "note_hint", chartId, subwin, x1, y1 + 372, x2, y1 + 390, "", FUSION_CLR_MUTED, 8))
+         return false;
+      if(!AddText(parent, m_slopeThresholdHint, prefix + "slope_threshold_hint", chartId, subwin, x1, y1 + 394, x2, y1 + 412, "", FUSION_CLR_MUTED, 8))
          return false;
 
       Hide();
@@ -192,6 +199,7 @@ public:
       m_ruleHint.Show();
       m_valueHint.Show();
       m_noteHint.Show();
+      m_slopeThresholdHint.Show();
 
       RaiseCombos();
      }
@@ -215,6 +223,7 @@ public:
       m_ruleHint.Hide();
       m_valueHint.Hide();
       m_noteHint.Hide();
+      m_slopeThresholdHint.Hide();
      }
 
    void              Sync(const SEASettings &settings,const bool editable)

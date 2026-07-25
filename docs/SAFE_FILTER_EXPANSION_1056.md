@@ -17,8 +17,8 @@ O modo `Direcao BB` usa apenas a linha central do Bollinger e candles fechados. 
 
 `inclinacao = (linhaCentral[1] - linhaCentral[1 + N]) / point / N`
 
-- inclinacao maior que `Min Pts/C`: bloqueia SELL;
-- inclinacao menor que `-Min Pts/C`: bloqueia BUY;
+- inclinacao maior que `Incl. min. (pts/candle)`: bloqueia SELL;
+- inclinacao menor que `-Incl. min. (pts/candle)`: bloqueia BUY;
 - dentro da tolerancia: nao bloqueia por direcao.
 
 A validacao de largura existente continua ocorrendo antes da regra direcional. Falta de buffer, `point` invalido ou parametros invalidos bloqueia a entrada de forma conservadora.
@@ -44,7 +44,7 @@ As duas medias visuais usam handles proprios, aparecem apenas quando o timeframe
 3. Truncar uma copia de arquivo de perfil e tentar carrega-la; a configuracao corrente deve permanecer e o Diario deve registrar a rejeicao.
 4. Alterar um campo sem salvar, trocar o timeframe do grafico e confirmar o aviso de descarte, sem alteracao no perfil em disco.
 5. Ativar `Direcao BB`, usar tolerancia zero e confirmar SELL bloqueado com linha central ascendente e BUY bloqueado com linha central descendente.
-6. Aumentar `Min Pts/C` e confirmar que inclinacoes dentro da zona neutra deixam de bloquear.
+6. Aumentar `Incl. min. (pts/candle)` e confirmar que inclinacoes dentro da zona neutra deixam de bloquear.
 7. Ativar M1=200 e M2=21 no mesmo TF e confirmar: acima das duas permite apenas BUY; abaixo das duas permite apenas SELL; entre elas bloqueia ambos.
 8. Testar cada media isoladamente e confirmar que ela bloqueia BUY abaixo e SELL acima.
 9. Testar timeframes diferentes e confirmar que a validacao usa `periodo x TF`; M1 igual ou mais curta que M2 deve impedir o salvamento.
