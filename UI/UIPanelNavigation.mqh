@@ -13,15 +13,17 @@
          ENUM_FUSION_TAB previousTab = m_activeTab;
          m_activeTab = (ENUM_FUSION_TAB)t;
          if(previousTab != m_activeTab)
-           {
             SetMainTabVisible(previousTab, false);
-            SetMainTabVisible(m_activeTab, true);
-           }
+         // Sincroniza o conteudo da aba de destino enquanto os controles ainda
+         // estao ocultos; o Show final apresenta o estado pronto de uma vez,
+         // sem repintura visivel durante as reescritas de texto/estilo.
+         UpdateActiveTabContent(true);
          RefreshSharedParentStatus();
          if(m_activeTab != FUSION_TAB_CONFIG)
             RefreshTheme();
          UpdateTabStyles();
-         UpdateActiveTabContent(true);
+         if(previousTab != m_activeTab)
+            SetMainTabVisible(m_activeTab, true);
          return true;
         }
       return false;
