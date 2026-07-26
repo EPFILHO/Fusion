@@ -3,190 +3,148 @@
 
 #include "../Core/Types.mqh"
 #include "../Core/ProfileNameUtils.mqh"
+#include "Modules/SettingsFileUtils.mqh"
 
 class CSettingsStore
   {
 private:
-   string            SanitizeName(const string value) const
-     {
-      return FusionSanitizeProfileName(value);
-     }
-
-   bool              ParseLine(const string line,string &key,string &value) const
-     {
-      int separator = StringFind(line, "=");
-      if(separator < 0)
-         return false;
-
-      key   = StringSubstr(line, 0, separator);
-      value = StringSubstr(line, separator + 1);
-      return true;
-     }
-
-   string            ProfilesFolderRelative(void) const
-     {
-      return "Fusion\\Profiles";
-     }
-
-   string            ChartStateFolderRelative(void) const
-     {
-      return "Fusion\\ChartState";
-     }
-
-   string            ProfileFileName(const string profileName) const
-     {
-      return ProfilesFolderRelative() + "\\" + SanitizeName(profileName) + ".cfg";
-     }
-
-   void              EnsureFolders(void) const
-     {
-      FolderCreate("Fusion");
-      FolderCreate(ProfilesFolderRelative());
-      FolderCreate(ChartStateFolderRelative());
-     }
-
-   bool              WriteLine(const int handle,const string key,const string value) const
-     {
-      return (FileWriteString(handle, key + "=" + value + "\r\n") > 0);
-     }
-
    bool              SaveSettingsBlock(const int handle,const SEASettings &settings) const
      {
       bool ok = true;
-      ok = WriteLine(handle, "schemaVersion", IntegerToString(FUSION_SETTINGS_SCHEMA_VERSION)) && ok;
-      ok = WriteLine(handle, "panelEnabled", IntegerToString((int)settings.panelEnabled)) && ok;
-      ok = WriteLine(handle, "defaultProfileName", settings.defaultProfileName) && ok;
-      ok = WriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
-      ok = WriteLine(handle, "slippagePoints", IntegerToString(settings.slippagePoints)) && ok;
-      ok = WriteLine(handle, "debugLogs", IntegerToString((int)settings.debugLogs)) && ok;
-      ok = WriteLine(handle, "showChartIndicators", IntegerToString((int)settings.showChartIndicators)) && ok;
-      ok = WriteLine(handle, "visualMAFastColor", IntegerToString((int)settings.visualMAFastColor)) && ok;
-      ok = WriteLine(handle, "visualMASlowColor", IntegerToString((int)settings.visualMASlowColor)) && ok;
-      ok = WriteLine(handle, "visualMATrendColor", IntegerToString((int)settings.visualMATrendColor)) && ok;
-      ok = WriteLine(handle, "visualMATrend2Color", IntegerToString((int)settings.visualMATrend2Color)) && ok;
-      ok = WriteLine(handle, "visualBBColor", IntegerToString((int)settings.visualBBColor)) && ok;
-      ok = WriteLine(handle, "visualMAFastStyle", IntegerToString((int)settings.visualMAFastStyle)) && ok;
-      ok = WriteLine(handle, "visualMASlowStyle", IntegerToString((int)settings.visualMASlowStyle)) && ok;
-      ok = WriteLine(handle, "visualMATrendStyle", IntegerToString((int)settings.visualMATrendStyle)) && ok;
-      ok = WriteLine(handle, "visualMATrend2Style", IntegerToString((int)settings.visualMATrend2Style)) && ok;
-      ok = WriteLine(handle, "visualBBStyle", IntegerToString((int)settings.visualBBStyle)) && ok;
-      ok = WriteLine(handle, "conflictMode", IntegerToString((int)settings.conflictMode)) && ok;
-      ok = WriteLine(handle, "tradeDirection", IntegerToString((int)settings.tradeDirection)) && ok;
-      ok = WriteLine(handle, "enableSpreadProtection", IntegerToString((int)settings.enableSpreadProtection)) && ok;
-      ok = WriteLine(handle, "maxSpreadPoints", IntegerToString(settings.maxSpreadPoints)) && ok;
-      ok = WriteLine(handle, "enableSessionFilter", IntegerToString((int)settings.enableSessionFilter)) && ok;
-      ok = WriteLine(handle, "sessionStartHour", IntegerToString(settings.sessionStartHour)) && ok;
-      ok = WriteLine(handle, "sessionStartMinute", IntegerToString(settings.sessionStartMinute)) && ok;
-      ok = WriteLine(handle, "sessionEndHour", IntegerToString(settings.sessionEndHour)) && ok;
-      ok = WriteLine(handle, "sessionEndMinute", IntegerToString(settings.sessionEndMinute)) && ok;
-      ok = WriteLine(handle, "sessionOvernight", IntegerToString((int)settings.sessionOvernight)) && ok;
-      ok = WriteLine(handle, "closeOnSessionEnd", IntegerToString((int)settings.closeOnSessionEnd)) && ok;
+      ok = FusionSettingsWriteLine(handle, "schemaVersion", IntegerToString(FUSION_SETTINGS_SCHEMA_VERSION)) && ok;
+      ok = FusionSettingsWriteLine(handle, "panelEnabled", IntegerToString((int)settings.panelEnabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "defaultProfileName", settings.defaultProfileName) && ok;
+      ok = FusionSettingsWriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
+      ok = FusionSettingsWriteLine(handle, "slippagePoints", IntegerToString(settings.slippagePoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "debugLogs", IntegerToString((int)settings.debugLogs)) && ok;
+      ok = FusionSettingsWriteLine(handle, "showChartIndicators", IntegerToString((int)settings.showChartIndicators)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMAFastColor", IntegerToString((int)settings.visualMAFastColor)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMASlowColor", IntegerToString((int)settings.visualMASlowColor)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMATrendColor", IntegerToString((int)settings.visualMATrendColor)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMATrend2Color", IntegerToString((int)settings.visualMATrend2Color)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualBBColor", IntegerToString((int)settings.visualBBColor)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMAFastStyle", IntegerToString((int)settings.visualMAFastStyle)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMASlowStyle", IntegerToString((int)settings.visualMASlowStyle)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMATrendStyle", IntegerToString((int)settings.visualMATrendStyle)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualMATrend2Style", IntegerToString((int)settings.visualMATrend2Style)) && ok;
+      ok = FusionSettingsWriteLine(handle, "visualBBStyle", IntegerToString((int)settings.visualBBStyle)) && ok;
+      ok = FusionSettingsWriteLine(handle, "conflictMode", IntegerToString((int)settings.conflictMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tradeDirection", IntegerToString((int)settings.tradeDirection)) && ok;
+      ok = FusionSettingsWriteLine(handle, "enableSpreadProtection", IntegerToString((int)settings.enableSpreadProtection)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxSpreadPoints", IntegerToString(settings.maxSpreadPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "enableSessionFilter", IntegerToString((int)settings.enableSessionFilter)) && ok;
+      ok = FusionSettingsWriteLine(handle, "sessionStartHour", IntegerToString(settings.sessionStartHour)) && ok;
+      ok = FusionSettingsWriteLine(handle, "sessionStartMinute", IntegerToString(settings.sessionStartMinute)) && ok;
+      ok = FusionSettingsWriteLine(handle, "sessionEndHour", IntegerToString(settings.sessionEndHour)) && ok;
+      ok = FusionSettingsWriteLine(handle, "sessionEndMinute", IntegerToString(settings.sessionEndMinute)) && ok;
+      ok = FusionSettingsWriteLine(handle, "sessionOvernight", IntegerToString((int)settings.sessionOvernight)) && ok;
+      ok = FusionSettingsWriteLine(handle, "closeOnSessionEnd", IntegerToString((int)settings.closeOnSessionEnd)) && ok;
       for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
         {
          string prefix = "news" + IntegerToString(newsIndex + 1) + ".";
-         ok = WriteLine(handle, prefix + "enabled", IntegerToString((int)settings.newsWindows[newsIndex].enabled)) && ok;
-         ok = WriteLine(handle, prefix + "startHour", IntegerToString(settings.newsWindows[newsIndex].startHour)) && ok;
-         ok = WriteLine(handle, prefix + "startMinute", IntegerToString(settings.newsWindows[newsIndex].startMinute)) && ok;
-         ok = WriteLine(handle, prefix + "endHour", IntegerToString(settings.newsWindows[newsIndex].endHour)) && ok;
-         ok = WriteLine(handle, prefix + "endMinute", IntegerToString(settings.newsWindows[newsIndex].endMinute)) && ok;
-         ok = WriteLine(handle, prefix + "action", IntegerToString((int)settings.newsWindows[newsIndex].action)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "enabled", IntegerToString((int)settings.newsWindows[newsIndex].enabled)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "startHour", IntegerToString(settings.newsWindows[newsIndex].startHour)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "startMinute", IntegerToString(settings.newsWindows[newsIndex].startMinute)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "endHour", IntegerToString(settings.newsWindows[newsIndex].endHour)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "endMinute", IntegerToString(settings.newsWindows[newsIndex].endMinute)) && ok;
+         ok = FusionSettingsWriteLine(handle, prefix + "action", IntegerToString((int)settings.newsWindows[newsIndex].action)) && ok;
         }
-      ok = WriteLine(handle, "enableDailyLimits", IntegerToString((int)settings.enableDailyLimits)) && ok;
-      ok = WriteLine(handle, "maxDailyTrades", IntegerToString(settings.maxDailyTrades)) && ok;
-      ok = WriteLine(handle, "maxDailyLoss", DoubleToString(settings.maxDailyLoss, 2)) && ok;
-      ok = WriteLine(handle, "maxDailyGain", DoubleToString(settings.maxDailyGain, 2)) && ok;
-      ok = WriteLine(handle, "profitTargetAction", IntegerToString((int)settings.profitTargetAction)) && ok;
-      ok = WriteLine(handle, "enableDrawdown", IntegerToString((int)settings.enableDrawdown)) && ok;
-      ok = WriteLine(handle, "maxDrawdown", DoubleToString(settings.maxDrawdown, 2)) && ok;
-      ok = WriteLine(handle, "drawdownType", IntegerToString((int)settings.drawdownType)) && ok;
-      ok = WriteLine(handle, "drawdownPeakMode", IntegerToString((int)settings.drawdownPeakMode)) && ok;
-      ok = WriteLine(handle, "lossStreakEnabled", IntegerToString((int)settings.lossStreakEnabled)) && ok;
-      ok = WriteLine(handle, "maxLossStreak", IntegerToString(settings.maxLossStreak)) && ok;
-      ok = WriteLine(handle, "lossStreakAction", IntegerToString((int)settings.lossStreakAction)) && ok;
-      ok = WriteLine(handle, "lossStreakPauseMinutes", IntegerToString(settings.lossStreakPauseMinutes)) && ok;
-      ok = WriteLine(handle, "winStreakEnabled", IntegerToString((int)settings.winStreakEnabled)) && ok;
-      ok = WriteLine(handle, "maxWinStreak", IntegerToString(settings.maxWinStreak)) && ok;
-      ok = WriteLine(handle, "winStreakAction", IntegerToString((int)settings.winStreakAction)) && ok;
-      ok = WriteLine(handle, "winStreakPauseMinutes", IntegerToString(settings.winStreakPauseMinutes)) && ok;
-      ok = WriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 4)) && ok;
-      ok = WriteLine(handle, "fixedSLPoints", IntegerToString(settings.fixedSLPoints)) && ok;
-      ok = WriteLine(handle, "fixedTPPoints", IntegerToString(settings.fixedTPPoints)) && ok;
-      ok = WriteLine(handle, "compensateSLSpread", IntegerToString((int)settings.compensateSLSpread)) && ok;
-      ok = WriteLine(handle, "compensateTPSpread", IntegerToString((int)settings.compensateTPSpread)) && ok;
-      ok = WriteLine(handle, "usePartialTP", IntegerToString((int)settings.usePartialTP)) && ok;
-      ok = WriteLine(handle, "freeFinalTP", IntegerToString((int)settings.freeFinalTP)) && ok;
-      ok = WriteLine(handle, "tp1.enabled", IntegerToString((int)settings.tp1.enabled)) && ok;
-      ok = WriteLine(handle, "tp1.percent", DoubleToString(settings.tp1.percent, 2)) && ok;
-      ok = WriteLine(handle, "tp1.distancePoints", IntegerToString(settings.tp1.distancePoints)) && ok;
-      ok = WriteLine(handle, "tp2.enabled", IntegerToString((int)settings.tp2.enabled)) && ok;
-      ok = WriteLine(handle, "tp2.percent", DoubleToString(settings.tp2.percent, 2)) && ok;
-      ok = WriteLine(handle, "tp2.distancePoints", IntegerToString(settings.tp2.distancePoints)) && ok;
-      ok = WriteLine(handle, "useTrailing", IntegerToString((int)settings.useTrailing)) && ok;
-      ok = WriteLine(handle, "trailingStartPoints", IntegerToString(settings.trailingStartPoints)) && ok;
-      ok = WriteLine(handle, "trailingStepPoints", IntegerToString(settings.trailingStepPoints)) && ok;
-      ok = WriteLine(handle, "useBreakeven", IntegerToString((int)settings.useBreakeven)) && ok;
-      ok = WriteLine(handle, "breakevenTriggerPoints", IntegerToString(settings.breakevenTriggerPoints)) && ok;
-      ok = WriteLine(handle, "breakevenOffsetPoints", IntegerToString(settings.breakevenOffsetPoints)) && ok;
-      ok = WriteLine(handle, "useMACross", IntegerToString((int)settings.useMACross)) && ok;
-      ok = WriteLine(handle, "maCrossPriority", IntegerToString(settings.maCrossPriority)) && ok;
-      ok = WriteLine(handle, "maFastPeriod", IntegerToString(settings.maFastPeriod)) && ok;
-      ok = WriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod)) && ok;
-      ok = WriteLine(handle, "maMinDistancePoints", IntegerToString(settings.maMinDistancePoints)) && ok;
-      ok = WriteLine(handle, "maFastTimeframe", IntegerToString((int)settings.maFastTimeframe)) && ok;
-      ok = WriteLine(handle, "maSlowTimeframe", IntegerToString((int)settings.maSlowTimeframe)) && ok;
-      ok = WriteLine(handle, "maFastMethod", IntegerToString((int)settings.maFastMethod)) && ok;
-      ok = WriteLine(handle, "maSlowMethod", IntegerToString((int)settings.maSlowMethod)) && ok;
-      ok = WriteLine(handle, "maFastPrice", IntegerToString((int)settings.maFastPrice)) && ok;
-      ok = WriteLine(handle, "maSlowPrice", IntegerToString((int)settings.maSlowPrice)) && ok;
-      ok = WriteLine(handle, "maEntryMode", IntegerToString((int)settings.maEntryMode)) && ok;
-      ok = WriteLine(handle, "maExitMode", IntegerToString((int)settings.maExitMode)) && ok;
-      ok = WriteLine(handle, "useRSI", IntegerToString((int)settings.useRSI)) && ok;
-      ok = WriteLine(handle, "rsiPriority", IntegerToString(settings.rsiPriority)) && ok;
-      ok = WriteLine(handle, "rsiPeriod", IntegerToString(settings.rsiPeriod)) && ok;
-      ok = WriteLine(handle, "rsiTimeframe", IntegerToString((int)settings.rsiTimeframe)) && ok;
-      ok = WriteLine(handle, "rsiOversold", IntegerToString(settings.rsiOversold)) && ok;
-      ok = WriteLine(handle, "rsiOverbought", IntegerToString(settings.rsiOverbought)) && ok;
-      ok = WriteLine(handle, "rsiMiddle", IntegerToString(settings.rsiMiddle)) && ok;
-      ok = WriteLine(handle, "rsiMode", IntegerToString((int)settings.rsiMode)) && ok;
-      ok = WriteLine(handle, "rsiPrice", IntegerToString((int)settings.rsiPrice)) && ok;
-      ok = WriteLine(handle, "rsiExitMode", IntegerToString((int)settings.rsiExitMode)) && ok;
-      ok = WriteLine(handle, "useBollinger", IntegerToString((int)settings.useBollinger)) && ok;
-      ok = WriteLine(handle, "bbPriority", IntegerToString(settings.bbPriority)) && ok;
-      ok = WriteLine(handle, "bbPeriod", IntegerToString(settings.bbPeriod)) && ok;
-      ok = WriteLine(handle, "bbTimeframe", IntegerToString((int)settings.bbTimeframe)) && ok;
-      ok = WriteLine(handle, "bbDeviation", DoubleToString(settings.bbDeviation, 2)) && ok;
-      ok = WriteLine(handle, "bbPrice", IntegerToString((int)settings.bbPrice)) && ok;
-      ok = WriteLine(handle, "bbMode", IntegerToString((int)settings.bbMode)) && ok;
-      ok = WriteLine(handle, "bbExitMode", IntegerToString((int)settings.bbExitMode)) && ok;
-      ok = WriteLine(handle, "useTrendFilter", IntegerToString((int)(settings.trendMA1Enabled || settings.trendMA2Enabled))) && ok;
-      ok = WriteLine(handle, "trendMA1Enabled", IntegerToString((int)settings.trendMA1Enabled)) && ok;
-      ok = WriteLine(handle, "trendMAPeriod", IntegerToString(settings.trendMAPeriod)) && ok;
-      ok = WriteLine(handle, "trendMATimeframe", IntegerToString((int)settings.trendMATimeframe)) && ok;
-      ok = WriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod)) && ok;
-      ok = WriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice)) && ok;
-      ok = WriteLine(handle, "trendMA2Enabled", IntegerToString((int)settings.trendMA2Enabled)) && ok;
-      ok = WriteLine(handle, "trendSellMAPeriod", IntegerToString(settings.trendSellMAPeriod)) && ok;
-      ok = WriteLine(handle, "trendSellMATimeframe", IntegerToString((int)settings.trendSellMATimeframe)) && ok;
-      ok = WriteLine(handle, "trendSellMAMethod", IntegerToString((int)settings.trendSellMAMethod)) && ok;
-      ok = WriteLine(handle, "trendSellMAPrice", IntegerToString((int)settings.trendSellMAPrice)) && ok;
-      ok = WriteLine(handle, "useRSIFilter", IntegerToString((int)settings.useRSIFilter)) && ok;
-      ok = WriteLine(handle, "rsiFilterMode", IntegerToString((int)settings.rsiFilterMode)) && ok;
-      ok = WriteLine(handle, "rsiFilterPeriod", IntegerToString(settings.rsiFilterPeriod)) && ok;
-      ok = WriteLine(handle, "rsiFilterTimeframe", IntegerToString((int)settings.rsiFilterTimeframe)) && ok;
-      ok = WriteLine(handle, "rsiFilterBuyMin", IntegerToString(settings.rsiFilterBuyMin)) && ok;
-      ok = WriteLine(handle, "rsiFilterSellMax", IntegerToString(settings.rsiFilterSellMax)) && ok;
-      ok = WriteLine(handle, "rsiFilterPrice", IntegerToString((int)settings.rsiFilterPrice)) && ok;
-      ok = WriteLine(handle, "bbFilterEnabled", IntegerToString((int)settings.bbFilterEnabled)) && ok;
-      ok = WriteLine(handle, "bbFilterMode", IntegerToString((int)settings.bbFilterMode)) && ok;
-      ok = WriteLine(handle, "bbFilterPeriod", IntegerToString(settings.bbFilterPeriod)) && ok;
-      ok = WriteLine(handle, "bbFilterTimeframe", IntegerToString((int)settings.bbFilterTimeframe)) && ok;
-      ok = WriteLine(handle, "bbFilterDeviation", DoubleToString(settings.bbFilterDeviation, 2)) && ok;
-      ok = WriteLine(handle, "bbFilterPrice", IntegerToString((int)settings.bbFilterPrice)) && ok;
-      ok = WriteLine(handle, "bbFilterMinWidthPoints", IntegerToString(settings.bbFilterMinWidthPoints)) && ok;
-      ok = WriteLine(handle, "bbFilterMinWidthPercent", DoubleToString(settings.bbFilterMinWidthPercent, 2)) && ok;
-      ok = WriteLine(handle, "bbFilterSlopeDirectionEnabled", IntegerToString((int)settings.bbFilterSlopeDirectionEnabled)) && ok;
-      ok = WriteLine(handle, "bbFilterSlopeLookback", IntegerToString(settings.bbFilterSlopeLookback)) && ok;
-      ok = WriteLine(handle, "bbFilterMinSlopePoints", IntegerToString(settings.bbFilterMinSlopePoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "enableDailyLimits", IntegerToString((int)settings.enableDailyLimits)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxDailyTrades", IntegerToString(settings.maxDailyTrades)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxDailyLoss", DoubleToString(settings.maxDailyLoss, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxDailyGain", DoubleToString(settings.maxDailyGain, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "profitTargetAction", IntegerToString((int)settings.profitTargetAction)) && ok;
+      ok = FusionSettingsWriteLine(handle, "enableDrawdown", IntegerToString((int)settings.enableDrawdown)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxDrawdown", DoubleToString(settings.maxDrawdown, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdownType", IntegerToString((int)settings.drawdownType)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdownPeakMode", IntegerToString((int)settings.drawdownPeakMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "lossStreakEnabled", IntegerToString((int)settings.lossStreakEnabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxLossStreak", IntegerToString(settings.maxLossStreak)) && ok;
+      ok = FusionSettingsWriteLine(handle, "lossStreakAction", IntegerToString((int)settings.lossStreakAction)) && ok;
+      ok = FusionSettingsWriteLine(handle, "lossStreakPauseMinutes", IntegerToString(settings.lossStreakPauseMinutes)) && ok;
+      ok = FusionSettingsWriteLine(handle, "winStreakEnabled", IntegerToString((int)settings.winStreakEnabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maxWinStreak", IntegerToString(settings.maxWinStreak)) && ok;
+      ok = FusionSettingsWriteLine(handle, "winStreakAction", IntegerToString((int)settings.winStreakAction)) && ok;
+      ok = FusionSettingsWriteLine(handle, "winStreakPauseMinutes", IntegerToString(settings.winStreakPauseMinutes)) && ok;
+      ok = FusionSettingsWriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 4)) && ok;
+      ok = FusionSettingsWriteLine(handle, "fixedSLPoints", IntegerToString(settings.fixedSLPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "fixedTPPoints", IntegerToString(settings.fixedTPPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "compensateSLSpread", IntegerToString((int)settings.compensateSLSpread)) && ok;
+      ok = FusionSettingsWriteLine(handle, "compensateTPSpread", IntegerToString((int)settings.compensateTPSpread)) && ok;
+      ok = FusionSettingsWriteLine(handle, "usePartialTP", IntegerToString((int)settings.usePartialTP)) && ok;
+      ok = FusionSettingsWriteLine(handle, "freeFinalTP", IntegerToString((int)settings.freeFinalTP)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp1.enabled", IntegerToString((int)settings.tp1.enabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp1.percent", DoubleToString(settings.tp1.percent, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp1.distancePoints", IntegerToString(settings.tp1.distancePoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp2.enabled", IntegerToString((int)settings.tp2.enabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp2.percent", DoubleToString(settings.tp2.percent, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "tp2.distancePoints", IntegerToString(settings.tp2.distancePoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useTrailing", IntegerToString((int)settings.useTrailing)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trailingStartPoints", IntegerToString(settings.trailingStartPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trailingStepPoints", IntegerToString(settings.trailingStepPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useBreakeven", IntegerToString((int)settings.useBreakeven)) && ok;
+      ok = FusionSettingsWriteLine(handle, "breakevenTriggerPoints", IntegerToString(settings.breakevenTriggerPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "breakevenOffsetPoints", IntegerToString(settings.breakevenOffsetPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useMACross", IntegerToString((int)settings.useMACross)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maCrossPriority", IntegerToString(settings.maCrossPriority)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maFastPeriod", IntegerToString(settings.maFastPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maSlowPeriod", IntegerToString(settings.maSlowPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maMinDistancePoints", IntegerToString(settings.maMinDistancePoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maFastTimeframe", IntegerToString((int)settings.maFastTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maSlowTimeframe", IntegerToString((int)settings.maSlowTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maFastMethod", IntegerToString((int)settings.maFastMethod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maSlowMethod", IntegerToString((int)settings.maSlowMethod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maFastPrice", IntegerToString((int)settings.maFastPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maSlowPrice", IntegerToString((int)settings.maSlowPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maEntryMode", IntegerToString((int)settings.maEntryMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "maExitMode", IntegerToString((int)settings.maExitMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useRSI", IntegerToString((int)settings.useRSI)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiPriority", IntegerToString(settings.rsiPriority)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiPeriod", IntegerToString(settings.rsiPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiTimeframe", IntegerToString((int)settings.rsiTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiOversold", IntegerToString(settings.rsiOversold)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiOverbought", IntegerToString(settings.rsiOverbought)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiMiddle", IntegerToString(settings.rsiMiddle)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiMode", IntegerToString((int)settings.rsiMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiPrice", IntegerToString((int)settings.rsiPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiExitMode", IntegerToString((int)settings.rsiExitMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useBollinger", IntegerToString((int)settings.useBollinger)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbPriority", IntegerToString(settings.bbPriority)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbPeriod", IntegerToString(settings.bbPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbTimeframe", IntegerToString((int)settings.bbTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbDeviation", DoubleToString(settings.bbDeviation, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbPrice", IntegerToString((int)settings.bbPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbMode", IntegerToString((int)settings.bbMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbExitMode", IntegerToString((int)settings.bbExitMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useTrendFilter", IntegerToString((int)(settings.trendMA1Enabled || settings.trendMA2Enabled))) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMA1Enabled", IntegerToString((int)settings.trendMA1Enabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMAPeriod", IntegerToString(settings.trendMAPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMATimeframe", IntegerToString((int)settings.trendMATimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMAMethod", IntegerToString((int)settings.trendMAMethod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMAPrice", IntegerToString((int)settings.trendMAPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendMA2Enabled", IntegerToString((int)settings.trendMA2Enabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendSellMAPeriod", IntegerToString(settings.trendSellMAPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendSellMATimeframe", IntegerToString((int)settings.trendSellMATimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendSellMAMethod", IntegerToString((int)settings.trendSellMAMethod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "trendSellMAPrice", IntegerToString((int)settings.trendSellMAPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "useRSIFilter", IntegerToString((int)settings.useRSIFilter)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterMode", IntegerToString((int)settings.rsiFilterMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterPeriod", IntegerToString(settings.rsiFilterPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterTimeframe", IntegerToString((int)settings.rsiFilterTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterBuyMin", IntegerToString(settings.rsiFilterBuyMin)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterSellMax", IntegerToString(settings.rsiFilterSellMax)) && ok;
+      ok = FusionSettingsWriteLine(handle, "rsiFilterPrice", IntegerToString((int)settings.rsiFilterPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterEnabled", IntegerToString((int)settings.bbFilterEnabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterMode", IntegerToString((int)settings.bbFilterMode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterPeriod", IntegerToString(settings.bbFilterPeriod)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterTimeframe", IntegerToString((int)settings.bbFilterTimeframe)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterDeviation", DoubleToString(settings.bbFilterDeviation, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterPrice", IntegerToString((int)settings.bbFilterPrice)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterMinWidthPoints", IntegerToString(settings.bbFilterMinWidthPoints)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterMinWidthPercent", DoubleToString(settings.bbFilterMinWidthPercent, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterSlopeDirectionEnabled", IntegerToString((int)settings.bbFilterSlopeDirectionEnabled)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterSlopeLookback", IntegerToString(settings.bbFilterSlopeLookback)) && ok;
+      ok = FusionSettingsWriteLine(handle, "bbFilterMinSlopePoints", IntegerToString(settings.bbFilterMinSlopePoints)) && ok;
       return ok;
      }
 
@@ -657,19 +615,19 @@ private:
 public:
    string            ProfilesFolderPath(void) const
      {
-      EnsureFolders();
-      return TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + ProfilesFolderRelative();
+      FusionSettingsEnsureFolders();
+      return TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + FusionProfilesFolderRelative();
      }
 
    string            SanitizeProfileName(const string profileName) const
      {
-      return SanitizeName(profileName);
+      return FusionSanitizeProfileName(profileName);
      }
 
    bool              ProfileExists(const string profileName) const
      {
-      EnsureFolders();
-      string fileName = ProfileFileName(profileName);
+      FusionSettingsEnsureFolders();
+      string fileName = FusionProfileFileName(profileName);
       return FileIsExist(fileName);
      }
 
@@ -683,10 +641,10 @@ public:
       if(!ListProfiles(profiles))
          return false;
 
-      string exceptSafe = SanitizeName(exceptProfileName);
+      string exceptSafe = FusionSanitizeProfileName(exceptProfileName);
       for(int i = 0; i < ArraySize(profiles); ++i)
         {
-         if(SanitizeName(profiles[i]) == exceptSafe)
+         if(FusionSanitizeProfileName(profiles[i]) == exceptSafe)
             continue;
 
          SEASettings settings;
@@ -705,11 +663,11 @@ public:
 
    bool              ListProfiles(string &profiles[]) const
      {
-      EnsureFolders();
+      FusionSettingsEnsureFolders();
       ArrayResize(profiles, 0);
 
       string fileName = "";
-      long handle = FileFindFirst(ProfilesFolderRelative() + "\\*.cfg", fileName);
+      long handle = FileFindFirst(FusionProfilesFolderRelative() + "\\*.cfg", fileName);
       if(handle == INVALID_HANDLE)
          return true;
 
@@ -757,9 +715,9 @@ public:
 
    bool              SaveProfile(const string profileName,const SEASettings &settings)
      {
-      EnsureFolders();
+      FusionSettingsEnsureFolders();
 
-      string fileName = ProfileFileName(profileName);
+      string fileName = FusionProfileFileName(profileName);
       string tempFileName = fileName + ".tmp";
       FileDelete(tempFileName);
       int handle = FileOpen(tempFileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
@@ -785,8 +743,8 @@ public:
 
    bool              DeleteProfile(const string profileName)
      {
-      EnsureFolders();
-      string fileName = ProfileFileName(profileName);
+      FusionSettingsEnsureFolders();
+      string fileName = FusionProfileFileName(profileName);
       if(!FileIsExist(fileName))
          return false;
       return FileDelete(fileName);
@@ -794,11 +752,11 @@ public:
 
    bool              LoadProfile(const string profileName,SEASettings &settings) const
      {
-      EnsureFolders();
+      FusionSettingsEnsureFolders();
       SEASettings candidate;
       SetDefaultSettings(candidate);
 
-      string fileName = ProfileFileName(profileName);
+      string fileName = FusionProfileFileName(profileName);
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -821,7 +779,7 @@ public:
          string line = FileReadString(handle);
          string key = "";
          string value = "";
-         if(!ParseLine(line, key, value))
+         if(!FusionSettingsParseLine(line, key, value))
             continue;
 
          settingLineCount++;
@@ -874,10 +832,9 @@ public:
                                     const SDailyLimitsRuntimeState &dailyState,
                                     const SDrawdownRuntimeState &drawdownState)
      {
-      EnsureFolders();
+      FusionSettingsEnsureFolders();
 
-      string chartKey = "chart_" + StringFormat("%I64u", context.chartId);
-      string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
+      string fileName = FusionChartStateFileName(context.chartId);
       string tempFileName = fileName + ".tmp";
       FileDelete(tempFileName);
       int handle = FileOpen(tempFileName, FILE_WRITE | FILE_TXT | FILE_ANSI);
@@ -885,65 +842,65 @@ public:
          return false;
 
       bool ok = true;
-      ok = WriteLine(handle, "context.chartId", StringFormat("%I64u", context.chartId)) && ok;
-      ok = WriteLine(handle, "context.symbol", context.symbol) && ok;
-      ok = WriteLine(handle, "context.timeframe", context.timeframe) && ok;
-      ok = WriteLine(handle, "context.periodValue", IntegerToString(context.periodValue)) && ok;
-      ok = WriteLine(handle, "context.deinitReason", IntegerToString(context.deinitReason)) && ok;
-      ok = WriteLine(handle, "context.discardedUnsavedDraft", IntegerToString((int)context.discardedUnsavedDraft)) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.chartId", StringFormat("%I64u", context.chartId)) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.symbol", context.symbol) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.timeframe", context.timeframe) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.periodValue", IntegerToString(context.periodValue)) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.deinitReason", IntegerToString(context.deinitReason)) && ok;
+      ok = FusionSettingsWriteLine(handle, "context.discardedUnsavedDraft", IntegerToString((int)context.discardedUnsavedDraft)) && ok;
       ok = SaveSettingsBlock(handle, settings) && ok;
-      ok = WriteLine(handle, "activeProfileName", activeProfileName) && ok;
-      ok = WriteLine(handle, "started", IntegerToString((int)started)) && ok;
-      ok = WriteLine(handle, "state.hasPosition", IntegerToString((int)state.hasPosition)) && ok;
-      ok = WriteLine(handle, "state.positionId", StringFormat("%I64u", state.positionId)) && ok;
-      ok = WriteLine(handle, "state.ownerStrategyId", state.ownerStrategyId) && ok;
-      ok = WriteLine(handle, "state.ownerStrategyName", state.ownerStrategyName) && ok;
-      ok = WriteLine(handle, "state.tp1Executed", IntegerToString((int)state.tp1Executed)) && ok;
-      ok = WriteLine(handle, "state.tp2Executed", IntegerToString((int)state.tp2Executed)) && ok;
-      ok = WriteLine(handle, "state.breakevenActive", IntegerToString((int)state.breakevenActive)) && ok;
-      ok = WriteLine(handle, "state.trailingActive", IntegerToString((int)state.trailingActive)) && ok;
-      ok = WriteLine(handle, "state.realizedPartialProfit", DoubleToString(state.realizedPartialProfit, 2)) && ok;
-      ok = WriteLine(handle, "state.tp1Price", DoubleToString(state.tp1Price, 8)) && ok;
-      ok = WriteLine(handle, "state.tp1Volume", DoubleToString(state.tp1Volume, 4)) && ok;
-      ok = WriteLine(handle, "state.tp2Price", DoubleToString(state.tp2Price, 8)) && ok;
-      ok = WriteLine(handle, "state.tp2Volume", DoubleToString(state.tp2Volume, 4)) && ok;
-      ok = WriteLine(handle, "state.partialClosePending", IntegerToString((int)state.partialClosePending)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialLevel", IntegerToString((int)state.pendingPartialLevel)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialInitialVolume", DoubleToString(state.pendingPartialInitialVolume, 8)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialRequestedVolume", DoubleToString(state.pendingPartialRequestedVolume, 8)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialBaselineExitVolume", DoubleToString(state.pendingPartialBaselineExitVolume, 8)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialPreProjectedProfit", DoubleToString(state.pendingPartialPreProjectedProfit, 2)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialFloatingReferenceSet", IntegerToString((int)state.pendingPartialFloatingReferenceSet)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialFloatingReference", DoubleToString(state.pendingPartialFloatingReference, 2)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialOrderTicket", StringFormat("%I64u", state.pendingPartialOrderTicket)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialDealTicket", StringFormat("%I64u", state.pendingPartialDealTicket)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialRetcode", IntegerToString((int)state.pendingPartialRetcode)) && ok;
-      ok = WriteLine(handle, "state.pendingPartialSince", IntegerToString((long)state.pendingPartialSince)) && ok;
-      ok = WriteLine(handle, "state.dayPeakProjectedProfit", DoubleToString(state.dayPeakProjectedProfit, 2)) && ok;
-      ok = WriteLine(handle, "streak.dayKey", IntegerToString(streakState.dayKey)) && ok;
-      ok = WriteLine(handle, "streak.lossStreak", IntegerToString(streakState.lossStreak)) && ok;
-      ok = WriteLine(handle, "streak.winStreak", IntegerToString(streakState.winStreak)) && ok;
-      ok = WriteLine(handle, "streak.lossStopDayBlocked", IntegerToString((int)streakState.lossStopDayBlocked)) && ok;
-      ok = WriteLine(handle, "streak.winStopDayBlocked", IntegerToString((int)streakState.winStopDayBlocked)) && ok;
-      ok = WriteLine(handle, "streak.lossPauseUntil", IntegerToString((long)streakState.lossPauseUntil)) && ok;
-      ok = WriteLine(handle, "streak.winPauseUntil", IntegerToString((long)streakState.winPauseUntil)) && ok;
-      ok = WriteLine(handle, "day.dayKey", IntegerToString(dailyState.dayKey)) && ok;
-      ok = WriteLine(handle, "day.dailyTradeCount", IntegerToString(dailyState.dailyTradeCount)) && ok;
-      ok = WriteLine(handle, "day.dailyLossCount", IntegerToString(dailyState.dailyLossCount)) && ok;
-      ok = WriteLine(handle, "day.dailyWinCount", IntegerToString(dailyState.dailyWinCount)) && ok;
-      ok = WriteLine(handle, "day.dailyBreakevenCount", IntegerToString(dailyState.dailyBreakevenCount)) && ok;
-      ok = WriteLine(handle, "day.outcomeCountsKnown", IntegerToString((int)dailyState.outcomeCountsKnown)) && ok;
-      ok = WriteLine(handle, "day.dailyClosedProfit", DoubleToString(dailyState.dailyClosedProfit, 2)) && ok;
-      ok = WriteLine(handle, "day.tradesLimitReached", IntegerToString((int)dailyState.tradesLimitReached)) && ok;
-      ok = WriteLine(handle, "day.lossLimitReached", IntegerToString((int)dailyState.lossLimitReached)) && ok;
-      ok = WriteLine(handle, "day.gainLimitReached", IntegerToString((int)dailyState.gainLimitReached)) && ok;
-      ok = WriteLine(handle, "drawdown.dayKey", IntegerToString(drawdownState.dayKey)) && ok;
-      ok = WriteLine(handle, "drawdown.protectionActive", IntegerToString((int)drawdownState.protectionActive)) && ok;
-      ok = WriteLine(handle, "drawdown.limitReached", IntegerToString((int)drawdownState.limitReached)) && ok;
-      ok = WriteLine(handle, "drawdown.peakProjectedProfit", DoubleToString(drawdownState.peakProjectedProfit, 2)) && ok;
-      ok = WriteLine(handle, "drawdown.triggerProjectedProfit", DoubleToString(drawdownState.triggerProjectedProfit, 2)) && ok;
-      ok = WriteLine(handle, "drawdown.triggerDrawdownAmount", DoubleToString(drawdownState.triggerDrawdownAmount, 2)) && ok;
-      ok = WriteLine(handle, "drawdown.triggerBufferProfit", DoubleToString(drawdownState.triggerBufferProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "activeProfileName", activeProfileName) && ok;
+      ok = FusionSettingsWriteLine(handle, "started", IntegerToString((int)started)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.hasPosition", IntegerToString((int)state.hasPosition)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.positionId", StringFormat("%I64u", state.positionId)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.ownerStrategyId", state.ownerStrategyId) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.ownerStrategyName", state.ownerStrategyName) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp1Executed", IntegerToString((int)state.tp1Executed)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp2Executed", IntegerToString((int)state.tp2Executed)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.breakevenActive", IntegerToString((int)state.breakevenActive)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.trailingActive", IntegerToString((int)state.trailingActive)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.realizedPartialProfit", DoubleToString(state.realizedPartialProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp1Price", DoubleToString(state.tp1Price, 8)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp1Volume", DoubleToString(state.tp1Volume, 4)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp2Price", DoubleToString(state.tp2Price, 8)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.tp2Volume", DoubleToString(state.tp2Volume, 4)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.partialClosePending", IntegerToString((int)state.partialClosePending)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialLevel", IntegerToString((int)state.pendingPartialLevel)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialInitialVolume", DoubleToString(state.pendingPartialInitialVolume, 8)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialRequestedVolume", DoubleToString(state.pendingPartialRequestedVolume, 8)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialBaselineExitVolume", DoubleToString(state.pendingPartialBaselineExitVolume, 8)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialPreProjectedProfit", DoubleToString(state.pendingPartialPreProjectedProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialFloatingReferenceSet", IntegerToString((int)state.pendingPartialFloatingReferenceSet)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialFloatingReference", DoubleToString(state.pendingPartialFloatingReference, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialOrderTicket", StringFormat("%I64u", state.pendingPartialOrderTicket)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialDealTicket", StringFormat("%I64u", state.pendingPartialDealTicket)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialRetcode", IntegerToString((int)state.pendingPartialRetcode)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.pendingPartialSince", IntegerToString((long)state.pendingPartialSince)) && ok;
+      ok = FusionSettingsWriteLine(handle, "state.dayPeakProjectedProfit", DoubleToString(state.dayPeakProjectedProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.dayKey", IntegerToString(streakState.dayKey)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.lossStreak", IntegerToString(streakState.lossStreak)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.winStreak", IntegerToString(streakState.winStreak)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.lossStopDayBlocked", IntegerToString((int)streakState.lossStopDayBlocked)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.winStopDayBlocked", IntegerToString((int)streakState.winStopDayBlocked)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.lossPauseUntil", IntegerToString((long)streakState.lossPauseUntil)) && ok;
+      ok = FusionSettingsWriteLine(handle, "streak.winPauseUntil", IntegerToString((long)streakState.winPauseUntil)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dayKey", IntegerToString(dailyState.dayKey)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dailyTradeCount", IntegerToString(dailyState.dailyTradeCount)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dailyLossCount", IntegerToString(dailyState.dailyLossCount)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dailyWinCount", IntegerToString(dailyState.dailyWinCount)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dailyBreakevenCount", IntegerToString(dailyState.dailyBreakevenCount)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.outcomeCountsKnown", IntegerToString((int)dailyState.outcomeCountsKnown)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.dailyClosedProfit", DoubleToString(dailyState.dailyClosedProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.tradesLimitReached", IntegerToString((int)dailyState.tradesLimitReached)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.lossLimitReached", IntegerToString((int)dailyState.lossLimitReached)) && ok;
+      ok = FusionSettingsWriteLine(handle, "day.gainLimitReached", IntegerToString((int)dailyState.gainLimitReached)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.dayKey", IntegerToString(drawdownState.dayKey)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.protectionActive", IntegerToString((int)drawdownState.protectionActive)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.limitReached", IntegerToString((int)drawdownState.limitReached)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.peakProjectedProfit", DoubleToString(drawdownState.peakProjectedProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.triggerProjectedProfit", DoubleToString(drawdownState.triggerProjectedProfit, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.triggerDrawdownAmount", DoubleToString(drawdownState.triggerDrawdownAmount, 2)) && ok;
+      ok = FusionSettingsWriteLine(handle, "drawdown.triggerBufferProfit", DoubleToString(drawdownState.triggerBufferProfit, 2)) && ok;
 
       FileFlush(handle);
       FileClose(handle);
@@ -972,11 +929,10 @@ public:
                                      SDrawdownRuntimeState &drawdownState,
                                      string &errorReason)
       {
-      EnsureFolders();
+      FusionSettingsEnsureFolders();
       errorReason = "";
 
-      string chartKey = "chart_" + StringFormat("%I64u", chartId);
-      string fileName = ChartStateFolderRelative() + "\\" + SanitizeName(chartKey) + ".state";
+      string fileName = FusionChartStateFileName(chartId);
       int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
       if(handle == INVALID_HANDLE)
          return false;
@@ -1048,7 +1004,7 @@ public:
          string line = FileReadString(handle);
          string key = "";
          string value = "";
-         if(!ParseLine(line, key, value))
+         if(!FusionSettingsParseLine(line, key, value))
             continue;
 
          if(StringFind(key, "context.") == 0)
