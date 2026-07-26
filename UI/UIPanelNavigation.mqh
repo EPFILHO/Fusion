@@ -28,7 +28,8 @@
          ReleaseButton(m_strategyTabs[s]);
          ResetDialogMouseRouting();
          m_strategyPage = (ENUM_FUSION_STRATEGY_PAGE)s;
-         ApplyVisibility();
+         SetStrategiesVisible(true);
+         ApplyStrategyTabStyles();
          return true;
         }
       return false;
@@ -44,7 +45,8 @@
          ReleaseButton(m_filterTabs[f]);
          ResetDialogMouseRouting();
          m_filterPage = (ENUM_FUSION_FILTER_PAGE)f;
-         ApplyVisibility();
+         SetFiltersVisible(true);
+         ApplyFilterTabStyles();
          return true;
         }
       return false;
@@ -60,7 +62,7 @@
          ReleaseButton(m_configTabs[c]);
          ResetDialogMouseRouting();
          m_configPage = (ENUM_FUSION_CONFIG_PAGE)c;
-         ApplyVisibility(false);
+         SetConfigVisible(true);
          RefreshConfigValidation();
          return true;
         }
