@@ -167,8 +167,8 @@ public:
         }
       else if(snapshot.hasPosition && !snapshot.started)
         {
-         noticeTitle = "INICIO BLOQUEADO";
-         noticeText = "Posicao aberta em gerenciamento. Iniciar fica bloqueado ate fechar.";
+         noticeTitle = "ENTRADAS SUSPENSAS";
+         noticeText = "Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas.";
          noticeColor = FUSION_CLR_WARN;
         }
       else if(snapshot.entryBlockIsRiskStops)
