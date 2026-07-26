@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.058 - 2026-07-26
+- `Persistence/SettingsStore.mqh` (1245 linhas) foi dividido em `CSettingsStore`, uma fachada fina de 10 metodos, mais cinco modulos em `Persistence/Modules/`: `SettingsFileUtils` (parsing e paths), `ProfileSettingsSerializer` (encode/decode do bloco de settings e normalizacoes), `ChartStateSerializer` (mapeamento de campos de runtime), `ProfileStore` (CRUD de arquivo de perfil) e `ChartStateStore` (save/load de chart state).
+- Reorganizacao estrutural pura: nenhuma mudanca de comportamento, formato de arquivo de perfil/chart state ou API publica de `CSettingsStore`. Cada modulo foi extraido em um commit isolado, com o `build.ps1` fechando 0 errors/0 warnings apos cada passo.
+- Removido `ProfilesFolderPath()`, metodo publico de `CSettingsStore` sem nenhum chamador no projeto.
+- Versao central do EA e indicadores visuais atualizada para `1.058`.
+
 ## 1.057 - 2026-07-25
 - Adicionado `docs/USER_MANUAL.md` com instalacao, fluxo de uso, regras efetivas de estrategias/filtros, risco, protecoes, perfis, indicadores visuais e referencia completa dos inputs.
 - Revisados README, arquitetura e decisoes contra o codigo da 1.057; corrigidas descricoes antigas de multi-timeframe, ordem resolvedor/filtros, bloqueios de perfil/Magic e restauracao apos troca de timeframe. A auditoria esta em `docs/DOCUMENTATION_AUDIT_1057.md`.
