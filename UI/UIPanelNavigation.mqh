@@ -10,8 +10,17 @@
 
          ReleaseButton(m_tabs[t]);
          ResetDialogMouseRouting();
+         ENUM_FUSION_TAB previousTab = m_activeTab;
          m_activeTab = (ENUM_FUSION_TAB)t;
-         ApplyVisibility(m_activeTab != FUSION_TAB_CONFIG);
+         if(previousTab != m_activeTab)
+           {
+            SetMainTabVisible(previousTab, false);
+            SetMainTabVisible(m_activeTab, true);
+           }
+         RefreshSharedParentStatus();
+         if(m_activeTab != FUSION_TAB_CONFIG)
+            RefreshTheme();
+         UpdateTabStyles();
          UpdateActiveTabContent(true);
          return true;
         }

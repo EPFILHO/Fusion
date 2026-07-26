@@ -80,7 +80,7 @@
         {
          SetProfileMode(FUSION_PROFILE_NEW);
          RefreshConfigValidation();
-         ApplyVisibility(false);
+         SetProfilesVisible(true);
         }
       else
          UpdateProfileListView();
@@ -199,7 +199,7 @@
          SetProfileMode(FUSION_PROFILE_DUPLICATE, SuggestedDuplicateName(selectedProfile), selectedProfile);
          SyncDraftSettingsToControls();
          RefreshConfigValidation();
-         ApplyVisibility(false);
+         SetProfilesVisible(true);
          SetProfileStatus("Duplicando " + selectedProfile + ". Informe nome e Magic unico antes de salvar.", FUSION_CLR_WARN, true);
         }
       else
@@ -222,7 +222,11 @@
       SetProfileMode(FUSION_PROFILE_BROWSE);
       RestoreCommittedDraftToControls();
       RefreshConfigValidation();
-      ApplyVisibility(false);
+      // O Cancel da barra superior pode disparar este metodo com outra aba
+      // ativa; nesse caso os controles de perfil ja estao ocultos e a proxima
+      // visita a PERFIS aplica o modo via clique de aba.
+      if(m_activeTab == FUSION_TAB_PROFILES)
+         SetProfilesVisible(true);
      }
 
    bool                       HandleProfileDeleteClick(const string objectName)

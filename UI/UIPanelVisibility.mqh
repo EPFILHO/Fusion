@@ -249,28 +249,52 @@
          m_cfgStatus.Text("");
      }
 
+   void                       SetMainTabVisible(const ENUM_FUSION_TAB tab,const bool visible)
+     {
+      if(tab == FUSION_TAB_STATUS)
+        {
+         if(m_statusPageCreated)
+           {
+            SetVisible(m_statusGroup, visible);
+            m_statusPage.SetVisible(visible);
+           }
+        }
+      else if(tab == FUSION_TAB_RESULTS)
+        {
+         if(m_resultsPageCreated)
+           {
+            SetVisible(m_resultsGroup, visible);
+            m_resultsPage.SetVisible(visible);
+           }
+        }
+      else if(tab == FUSION_TAB_STRATEGIES)
+        {
+         if(m_strategyTabCreated)
+            SetStrategiesVisible(visible);
+        }
+      else if(tab == FUSION_TAB_FILTERS)
+        {
+         if(m_filterTabCreated)
+            SetFiltersVisible(visible);
+        }
+      else if(tab == FUSION_TAB_PROFILES)
+        {
+         if(m_profilesTabCreated)
+            SetProfilesVisible(visible);
+        }
+      else if(tab == FUSION_TAB_CONFIG)
+         SetConfigVisible(visible);
+     }
+
    void                       ApplyVisibility(const bool refreshTheme=true)
      {
       ClearTopStatusVisuals();
-      if(m_statusPageCreated)
-        {
-         bool statusVisible = (m_activeTab == FUSION_TAB_STATUS);
-         SetVisible(m_statusGroup, statusVisible);
-         m_statusPage.SetVisible(statusVisible);
-        }
-      if(m_resultsPageCreated)
-        {
-         bool resultsVisible = (m_activeTab == FUSION_TAB_RESULTS);
-         SetVisible(m_resultsGroup, resultsVisible);
-         m_resultsPage.SetVisible(resultsVisible);
-        }
-      if(m_strategyTabCreated)
-         SetStrategiesVisible(m_activeTab == FUSION_TAB_STRATEGIES);
-      if(m_filterTabCreated)
-         SetFiltersVisible(m_activeTab == FUSION_TAB_FILTERS);
-      if(m_profilesTabCreated)
-         SetProfilesVisible(m_activeTab == FUSION_TAB_PROFILES);
-      SetConfigVisible(m_activeTab == FUSION_TAB_CONFIG);
+      SetMainTabVisible(FUSION_TAB_STATUS, m_activeTab == FUSION_TAB_STATUS);
+      SetMainTabVisible(FUSION_TAB_RESULTS, m_activeTab == FUSION_TAB_RESULTS);
+      SetMainTabVisible(FUSION_TAB_STRATEGIES, m_activeTab == FUSION_TAB_STRATEGIES);
+      SetMainTabVisible(FUSION_TAB_FILTERS, m_activeTab == FUSION_TAB_FILTERS);
+      SetMainTabVisible(FUSION_TAB_PROFILES, m_activeTab == FUSION_TAB_PROFILES);
+      SetMainTabVisible(FUSION_TAB_CONFIG, m_activeTab == FUSION_TAB_CONFIG);
       RefreshSharedParentStatus();
       if(refreshTheme)
          RefreshTheme();
