@@ -16,9 +16,11 @@
 
    bool                    ShouldShowPanel(void) const
      {
-      if(m_settings.isTester)
-         return IsVisualTester();
-      return m_settings.panelEnabled;
+      // O input do usuario manda em qualquer contexto; no tester o modo visual
+      // e um pre-requisito adicional, nunca um motivo para forcar o painel.
+      if(!m_settings.panelEnabled)
+         return false;
+      return (!m_settings.isTester || IsVisualTester());
      }
 
    void                    UpdatePanelIfVisible(void)

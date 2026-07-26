@@ -13,6 +13,7 @@ class CChartIndicatorVisualizer
 private:
    CLogger *m_logger;
    long     m_chartId;
+   bool     m_isTester;
    int      m_handles[FUSION_VISUAL_HANDLE_COUNT];
    int      m_windows[FUSION_VISUAL_HANDLE_COUNT];
    string   m_names[FUSION_VISUAL_HANDLE_COUNT];
@@ -802,6 +803,7 @@ public:
      {
       m_logger = NULL;
       m_chartId = 0;
+      m_isTester = false;
       m_fingerprint = "";
       m_pendingFingerprint = "";
       m_rebuildPending = false;
@@ -809,10 +811,11 @@ public:
       ResetEntries();
      }
 
-   void     Init(CLogger *logger,const long chartId)
+   void     Init(CLogger *logger,const long chartId,const bool isTester)
      {
       m_logger = logger;
       m_chartId = chartId;
+      m_isTester = isTester;
       m_fingerprint = "";
       m_pendingFingerprint = "";
       m_rebuildPending = false;
@@ -824,6 +827,11 @@ public:
 
    void     Sync(const SEASettings &settings)
      {
+      // Os indicadores visuais sao apoio de leitura no grafico real e nao tem
+      // papel operacional; no tester eles so custariam desenho a cada tick.
+      if(m_isTester)
+         return;
+
       ResolveMissingNames();
       string fingerprint = BuildFingerprint(settings);
       if(!settings.showChartIndicators)

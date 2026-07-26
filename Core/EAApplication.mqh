@@ -125,6 +125,10 @@ private:
       uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
+      // Precisa vir antes de qualquer handle de indicador: o tester so aplica a
+      // supressao aos indicadores criados depois desta chamada.
+      if(m_settings.isTester)
+         TesterHideIndicators(true);
       m_chartContext = CurrentChartContext();
       ResolveOperationalTimeframes(m_settings, OperationalFallbackTimeframe());
       m_activeProfileName = m_settings.defaultProfileName;
@@ -242,7 +246,7 @@ private:
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
-      m_chartIndicators.Init(&m_logger, ChartID());
+      m_chartIndicators.Init(&m_logger, ChartID(), m_settings.isTester);
       m_tradePermissionGuard.Init(&m_logger, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
       m_riskManager.Init(&m_logger);
