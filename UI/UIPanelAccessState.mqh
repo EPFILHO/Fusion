@@ -22,6 +22,14 @@
       return (!snapshot.started && !HasLocalPositionLock(snapshot) && !snapshot.runtimeBlocked);
      }
 
+   // Rearmar o EA nao altera configuracao, entao nao depende da trava de edicao
+   // por posicao aberta: com a posicao em curso o Fusion ja a gerencia, e o
+   // clique apenas autoriza novas entradas quando ela fechar.
+   bool                       RuntimeArmable(const SUIPanelSnapshot &snapshot) const
+     {
+      return (!snapshot.started && !snapshot.runtimeBlocked);
+     }
+
    bool                       RuntimeEditable(void) const
      {
       return RuntimeEditable(m_snapshot);
@@ -68,7 +76,8 @@
       access.profileCreateAllowed = (access.runtimeEditable && (profileEditMode || !hasPendingChanges));
       access.canPause = (snapshot.started && !access.hasLocalPositionLock);
       access.canStart = (!profileEditMode &&
-                         access.activeProfileEditable &&
+                         RuntimeArmable(snapshot) &&
+                         !access.hasPeerProfileLock &&
                          configInputsValid &&
                          !hasPendingChanges &&
                          !snapshot.tradePermissionBlocked);

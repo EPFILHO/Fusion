@@ -217,3 +217,13 @@ Nesse caso, o EA entra em bloqueio seguro:
 - orienta o usuario a voltar ao ativo anterior para recuperar o contexto.
 
 Essa escolha e deliberadamente conservadora. Mudar timeframe e toleravel. Mudar o ativo do grafico nao e.
+
+## 19. Rearmar o EA Exige Clique, mas Nao Exige Posicao Fechada
+
+Ao reabrir o MetaTrader, o Fusion volta pausado. Apenas a troca de timeframe preserva o estado operacional automaticamente, porque acontece dentro de uma sessao em andamento e dura segundos.
+
+O EA nao tem como saber por que o terminal foi fechado, nem por quanto tempo ficou fora. Retomar sozinho significaria voltar a assumir risco sem confirmacao humana de que o contexto ainda vale. Uma posicao aberta, no entanto, continua sendo gerenciada normalmente: breakeven, trailing, TP parcial e fechamento por protecao nao dependem de o EA estar armado. O que fica suspenso e somente a abertura de novas entradas.
+
+Rearmar pela GUI e um caminho seguro por construcao, porque revalida permissao de negociacao, conflito de perfil e registro de instancia, e chama `PrimeEntryStates` para descartar sinais anteriores ao reinicio. Uma retomada automatica precisaria replicar essa sequencia inteira; nao basta restaurar o booleano de estado.
+
+Editar configuracao e rearmar o EA sao permissoes distintas e nao devem compartilhar a mesma trava. A edicao fica bloqueada com posicao aberta, porque alterar lote ou SL no meio de uma operacao e perigoso. Autorizar novas entradas nao altera configuracao alguma, entao `canStart` nao depende de `runtimeEditable`. Enquanto dependeu, o usuario ficava impedido de rearmar ate a posicao fechar, o que criava uma janela em que o EA ficava ocioso sem que ninguem tivesse decidido isso.

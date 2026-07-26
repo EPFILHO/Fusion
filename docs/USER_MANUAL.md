@@ -70,7 +70,7 @@ O perfil inicial criado a partir dos `input` usa lote `0.10`. Esse valor não é
 
 | Controle | Função |
 |---|---|
-| `INICIAR` | Libera novas entradas quando a configuração e o contexto permitem. |
+| `INICIAR` | Libera novas entradas quando a configuração e o contexto permitem. Fica disponível também com posição aberta, para rearmar o EA sem esperar a operação fechar. |
 | `PAUSAR` | Interrompe novas entradas. Só fica disponível sem posição ou reconciliação pendente. |
 | `OPERANDO` | Indica posição em gerenciamento; não permite pausar naquele momento. |
 | `BLOQUEADO` | Indica bloqueio estrutural ou de contexto. Consulte `STATUS`. |
@@ -79,6 +79,20 @@ O perfil inicial criado a partir dos `input` usa lote `0.10`. Esse valor não é
 | `Perfil carregado` | Mostra o perfil associado ao gráfico. |
 
 A configuração só pode ser editada com o Fusion pausado e sem posição gerenciada. Alterações não salvas são um rascunho; trocar o timeframe do gráfico descarta esse rascunho e preserva apenas o estado confirmado.
+
+`INICIAR` continua disponível com posição aberta. Editar configuração e rearmar o EA são coisas diferentes: a edição fica travada durante a operação, mas autorizar novas entradas não altera nada da configuração e por isso não depende dessa trava.
+
+### 5.1. Retomada após fechar o MetaTrader
+
+Se você fechar o MetaTrader com o Fusion operando, ao reabrir ele volta como `INICIAR`, não como `OPERANDO`. Isso é intencional.
+
+Uma posição que estava aberta **continua sendo gerenciada normalmente** — breakeven, trailing, TP parcial e fechamento por proteção seguem ativos independentemente de o EA estar armado. O que fica suspenso é apenas a abertura de **novas** entradas, até você clicar em `INICIAR`.
+
+O motivo é que o EA não tem como saber por que o terminal foi fechado — encerramento planejado, queda de energia, atualização do Windows, travamento — nem há garantia de quanto tempo ficou fora. Retomar sozinho significaria voltar a assumir risco sem que ninguém tenha confirmado que o contexto ainda faz sentido.
+
+Ao clicar `INICIAR`, o Fusion revalida permissão de negociação, conflito de perfil e registro de instância, e descarta sinais antigos para não entrar por um cruzamento que já estava valendo antes do reinício. Com posição aberta, o botão passa a exibir `OPERANDO`; sem posição, exibe `PAUSAR`.
+
+Trocar o timeframe do gráfico é o único caso que preserva o estado operacional automaticamente, porque acontece dentro de uma sessão em andamento e leva segundos.
 
 ## 6. Abas de acompanhamento
 
