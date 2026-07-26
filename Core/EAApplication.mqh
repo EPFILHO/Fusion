@@ -125,10 +125,6 @@ private:
       uint initStartTick = GetTickCount();
       FillSettingsFromInputs(m_settings);
       m_settings.isTester = (bool)MQLInfoInteger(MQL_TESTER);
-      // Precisa vir antes de qualquer handle de indicador: o tester so aplica a
-      // supressao aos indicadores criados depois desta chamada.
-      if(m_settings.isTester)
-         TesterHideIndicators(true);
       m_chartContext = CurrentChartContext();
       ResolveOperationalTimeframes(m_settings, OperationalFallbackTimeframe());
       m_activeProfileName = m_settings.defaultProfileName;
