@@ -109,8 +109,8 @@
          ReleaseButton(m_riskTabs[tabIndex]);
          ResetDialogMouseRouting();
          m_riskPage = (ENUM_FUSION_RISK_PAGE)tabIndex;
-         SetRiskControlsVisible(m_riskPage, true);
          RefreshConfigValidation();
+         SetRiskControlsVisible(m_riskPage, true);
          return true;
         }
 

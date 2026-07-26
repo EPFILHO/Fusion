@@ -437,8 +437,8 @@
          ReleaseButton(m_protectTabs[tabIndex]);
          ResetDialogMouseRouting();
          m_protectPage = (ENUM_FUSION_PROTECT_PAGE)tabIndex;
-         SetProtectionControlsVisible(m_protectPage, true);
          RefreshConfigValidation();
+         SetProtectionControlsVisible(m_protectPage, true);
          return true;
         }
 
