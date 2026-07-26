@@ -65,6 +65,55 @@ Hoje ela permite:
 
 ## Compilacao
 
-Abra `Fusion.mq5` no MetaEditor 5 e compile. O projeto usa apenas MQL5 e includes padrao do MetaTrader 5.
+O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia dos quatro EX5.
+
+Ordem usada pelo script:
+
+1. `VisualIndicators/FusionVisualMA.mq5`;
+2. `VisualIndicators/FusionVisualBands.mq5`;
+3. `VisualIndicators/FusionVisualRSI.mq5`;
+4. `Fusion.mq5`.
+
+### Uso com caminhos explicitos
+
+Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5:
+
+```powershell
+.\build.ps1 `
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
+  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+```
+
+`-Mql5` recebe a raiz `MQL5`, e nao apenas a subpasta `Include`.
+
+Se a politica de execucao do PowerShell bloquear scripts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1 `
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
+  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+```
+
+### Autodeteccao
+
+Tambem e possivel executar:
+
+```powershell
+.\build.ps1
+```
+
+O script usa autodeteccao somente quando encontra exatamente um `MetaEditor64.exe` e uma unica raiz MQL5 contendo `Include/Controls/Dialog.mqh`. Se houver varias instalacoes, ele lista as opcoes e encerra sem escolher silenciosamente; execute novamente informando `-MetaEditor` e `-Mql5`.
+
+O `ExitCode` do MetaEditor nao e usado para julgar sucesso, pois pode ser diferente de zero mesmo em compilacoes validas. A autoridade e `Result: 0 errors, 0 warnings` no log e a existencia do EX5 correspondente.
+
+Os logs `compile_build_*.log` sao gerados na raiz do projeto, e cada `*.ex5` fica ao lado de seu respectivo fonte. Todos permanecem ignorados pelo Git.
+
+Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o terminal FOT apresentou erros 313 de recursos inclusive em versoes antes funcionais. O MetaEditor padrao build 5833 compilou os quatro alvos com `0 errors, 0 warnings`. Se ocorrerem erros 313, informe explicitamente outro MetaEditor conhecido como funcional.
+
+## Distribuicao
+
+Para o usuario final, distribua somente o `Fusion.ex5` produzido ao final do build. Os tres indicadores visuais ja ficam incorporados nele e nao precisam ser instalados separadamente. O arquivo deve ser copiado para `MQL5/Experts`; depois, atualize o Navegador ou reinicie o terminal.
+
+Para desenvolvimento ou validacao de compilacao, distribua o repositorio completo e use `build.ps1`.
 
 Arquivos `*.ex5`, logs de compilacao e arquivos locais do editor sao ignorados pelo Git.

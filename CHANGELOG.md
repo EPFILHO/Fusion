@@ -5,6 +5,7 @@
 - Chart states truncados, com schema invalido, `chartId` divergente ou blocos incompletos de posicao, STREAK, DAY e DRAWDOWN sao rejeitados integralmente; o Fusion mantem o boot seguro e avisa que vai ressincronizar posicao e historico.
 - A estrutura operacional do chart state passou a validar cada chave obrigatoria e rejeitar chaves duplicadas ou desconhecidas nos blocos de contexto, posicao, STREAK, DAY e DRAWDOWN.
 - Em `FILTERS > BB`, `Direcao` e seus parametros ficam inativos quando o Bollinger Filter esta OFF, preservando sem alterar o valor ON/OFF salvo para quando o filtro for reativado.
+- Adicionado `build.ps1` para compilar indicadores visuais e EA na ordem correta, com caminhos explicitos ou autodeteccao conservadora, validacao por `Result:` e instrucoes de uso e distribuicao no README.
 - Arquivos completos da 1.056 continuam compativeis, sem mudanca no schema de perfil, nas estrategias ou na execucao.
 - Versao central do EA e indicadores visuais atualizada para `1.057`; os indicadores permanecem isolados do motor operacional.
 
