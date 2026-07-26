@@ -40,7 +40,7 @@ Arquivos novos devem nascer pequenos. Se uma tela ou modulo exigir varias respon
 2. `CFusionApplication` carrega inputs, estado salvo do grafico e modulos principais.
 3. Estrategias e filtros sao registrados no `CSignalManager`.
 4. A cada tick, o EA sincroniza a posicao, gerencia posicao aberta e, se permitido, avalia novo sinal.
-5. O sinal passa por filtros e por um resolvedor de conflito.
+5. Sinais simultaneos passam primeiro pelo resolvedor de conflito; a decisao vencedora passa por todos os filtros ativos.
 6. O plano de risco e calculado por `CRiskManager`.
 7. A ordem e enviada por `CExecutionService`.
 8. Protecoes podem bloquear entrada ou forcar saida.
@@ -293,15 +293,16 @@ As paginas de estrategias e filtros devem preferir campos fechados para selecao 
 
 ## Prioridade Atual de Arquitetura
 
-A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 completou a expansao funcional principal de estrategias/filtros, e a 1.053 avancou para `Bollinger Filter` separado, descarte fixo de sinais bloqueados e risco global basico na GUI.
+A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 completou a expansao funcional principal de estrategias/filtros, a 1.053 avancou para risco e protecoes na GUI, e as versoes 1.054 a 1.057 endureceram reconciliacao, persistencia, filtros direcionais, restore e build.
 
-O foco arquitetural atual e estabilizar o que ja esta funcionando antes de abrir uma nova frente grande:
+O foco arquitetural atual e preservar e documentar o conjunto estabilizado antes de abrir uma nova frente:
 
 - preservar o padrao de GUI estabilizado com `CFusionHitGroup`;
 - manter filtros como validadores de sinal, nunca como geradores de entrada;
 - manter `Risk` calculando plano/ajustes e `Execution` enviando/modificando ordens;
-- melhorar documentacao, observabilidade e validacoes sem mexer no comportamento validado;
-- deixar risco por estrategia, ATR/range e overrides para depois.
+- manter o manual do usuario sincronizado com o codigo e com a GUI;
+- concluir testes operacionais e capturas reais sem mexer no comportamento validado;
+- tratar novas estrategias, filtros ou inteligencia artificial como projetos separados ate haver especificacao e evidencia de vantagem.
 
 O modelo multi-timeframe por modulo ja foi incorporado ao fluxo principal de configuracao, restore, save/load de perfil e defaults internos. O timeframe atual do grafico continua sendo contexto visual do chart, nao regra operacional global.
 
@@ -317,15 +318,11 @@ No futuro, hot reload pode ser reabilitado por categorias de alteracao, desde qu
 
 ## Proximas Evolucoes Arquiteturais
 
-- Refinar `PROTECT > STREAK`, limites diarios e drawdown com acoes mais explicitas.
-- Melhorar telemetria de `STATUS`: ultimo sinal, origem, filtro/bloqueio, motivo e resultado.
+- Adicionar capturas reais da GUI ao manual depois do smoke test da versao distribuida.
+- Melhorar telemetria de `STATUS` somente quando uma necessidade operacional concreta for confirmada.
 - Avaliar reducao/rate limit dos logs de trailing se virarem ruido em mercado rapido.
-- Criar componentes de risco reaproveitaveis para futura composicao por estrategia.
-- Expor estatisticas reais para `RESULTS` e `STATS`.
-- Continuar separando a `UIPanel.mqh`, especialmente `CONFIG`, conforme a GUI crescer.
-- Transformar trailing, breakeven, drawdown, streak e limites diarios em submodulos mais independentes se a complexidade aumentar.
-- Ampliar validacoes de volume, stops, freeze level e distancia minima conforme surgirem novos fluxos de modificacao de ordem.
-- Discutir somente depois: risco por estrategia, ATR/range, overrides e modo percentil do Bollinger Filter.
+- Ampliar validacoes de corretora apenas quando novos fluxos de ordem exigirem.
+- Manter qualquer laboratorio de aprendizado de maquina/IA isolado do Fusion estavel, inicialmente em modo de observacao.
 
 ## Nota de Persistencia por Grafico
 

@@ -7,8 +7,8 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 ## Estado Atual
 
 - Opera no simbolo do grafico onde o EA esta anexado.
-- Os timeframes operacionais caminham para ser definidos por modulo e perfil, e nao pelo timeframe atual do grafico.
-- Permite multiplas instancias em graficos diferentes, desde que os perfis usem Magic Numbers distintos.
+- Os timeframes operacionais sao definidos por estrategia/filtro e perfil, e nao pelo timeframe atual do grafico.
+- Permite multiplas instancias em graficos diferentes, desde que cada grafico use perfil e Magic Number livres.
 - Mantem uma posicao liquida por EA.
 - Usa arquitetura multi-estrategia e multi-filtro.
 - O Trend Filter possui M1 longa e M2 curta independentes; cada MA ativa exige BUY acima dela e SELL abaixo dela, usando preco e valor da media atuais.
@@ -42,7 +42,7 @@ Perfis salvos devem ter Magic Numbers unicos. Isso impede, por exemplo, usar por
 
 ## GUI
 
-A GUI e parte central do projeto porque concentra operacao visual, perfis e futuras validacoes. Ela nao e apenas decoracao.
+A GUI e parte central do projeto porque concentra operacao visual, perfis e validacoes. Ela nao e apenas decoracao.
 
 Hoje ela permite:
 
@@ -51,13 +51,22 @@ Hoje ela permite:
 - salvar e carregar perfis;
 - criar perfis novos;
 - duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
-- validar lote, spread e magic com feedback visual;
+- validar risco, protecoes, estrategias, filtros e Magic com feedback visual e marcadores vermelhos nas abas;
 - configurar os timeframes operacionais dos modulos em `STRATS` e `FILTERS` com `ComboBox`;
 - manter avisos operacionais persistentes na aba `STATUS`.
 - refletir bloqueios de protecao ativos na `STATUS`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
 
+## Manual do Usuario
+
+O [Manual do Usuario](docs/USER_MANUAL.md) descreve instalacao, primeiro uso, todas as abas da GUI, estrategias, filtros, risco, protecoes, perfis, indicadores visuais e a referencia completa dos `input` do Strategy Tester.
+
+O manual documenta somente o comportamento efetivamente presente na versao 1.057. Planos, checkpoints e handoffs com numero de versao permanecem no repositorio como historico tecnico e nao devem ser interpretados como funcionalidades atuais ou instrucoes de uso.
+
 ## Documentacao Tecnica
 
+- [Manual do Usuario 1.057](docs/USER_MANUAL.md)
+- [Indice da Documentacao](docs/README.md)
+- [Auditoria da Documentacao 1.057](docs/DOCUMENTATION_AUDIT_1057.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Decisoes do Projeto](docs/DECISIONS.md)
 - [Persistencia e Filtros Direcionais 1.056](docs/SAFE_FILTER_EXPANSION_1056.md)

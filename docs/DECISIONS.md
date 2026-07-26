@@ -36,7 +36,7 @@ Motivos:
 
 Perfis salvos devem ter Magic Numbers unicos.
 
-Enquanto houver outra instancia ativa do Fusion usando o mesmo `Magic`, a GUI deve bloquear apenas o `INICIAR` da instancia atual. Isso evita interferencia operacional sem impedir leitura, troca de perfil ou ajuste de configuracao.
+Um mesmo perfil carregado nao pode ficar ativo em dois graficos ao mesmo tempo, mesmo que as instancias estejam pausadas. A instancia bloqueada pode carregar outro perfil livre como acao de recuperacao, mas nao pode salvar sobre, duplicar ou excluir o perfil em uso por outro grafico. O registro por `Magic` acrescenta uma segunda barreira e impede iniciar duas instancias operacionais com a mesma identidade.
 
 ## 5. Estrategia Dona da Entrada Dona da Saida por Sinal
 
@@ -54,12 +54,7 @@ Eles nao devem disputar propriedade de posicao, nao devem emitir ordem e nao dev
 
 O Fusion deve priorizar primeiro as mudancas que definem o comportamento operacional do EA. Refactors de limpeza estrutural importantes, mas nao diretamente operacionais, ficam em segundo plano quando competem com uma mudanca de motor.
 
-Hoje a ordem correta e:
-
-- consolidar o modelo multi-timeframe por modulo;
-- depois reduzir ainda mais `EAApplication.mqh` e `UIPanel.mqh`.
-
-Isso evita refatorar a casca antes de fechar a regra de negocio principal.
+O modelo multi-timeframe e a separacao principal da GUI ja foram incorporados. A ordem atual e preservar o comportamento estabilizado, documentar e testar; novas expansoes ou refactors entram apenas quando houver objetivo concreto e fatia isolada.
 
 ## 6.2. Multi-Timeframe Deve Ser Operacional, Nao Visual
 
@@ -67,11 +62,11 @@ O Fusion deve operar com timeframe explicito por modulo e nao depender de `Perio
 
 Isso significa:
 
-- cada estrategia e filtro tera timeframe proprio salvo no perfil;
+- cada estrategia e filtro possui timeframe proprio salvo no perfil;
 - mudar o timeframe do grafico nao deve redefinir o timeframe operacional do EA;
 - o grafico continua sendo o host visual, mas nao a fonte da verdade para calculo de sinais.
 
-No `MA Cross`, o modelo-alvo deve prever dois timeframes independentes:
+No `MA Cross`, o modelo possui dois timeframes independentes:
 
 - `fastTF`
 - `slowTF`
@@ -102,11 +97,11 @@ No Strategy Tester, a fonte principal de parametros deve ser a lista de `input`,
 
 A GUI nao e um acessorio descartavel.
 
-Ela sera o centro de operacao visual, perfis, validacao e feedback de bloqueios. Por isso deve evoluir com estrutura clara, abas e subpaginas desde cedo.
+Ela e o centro de operacao visual, perfis, validacao e feedback de bloqueios. Por isso deve permanecer com estrutura clara, abas e subpaginas.
 
 Avisos operacionais persistentes, como troca indevida de ativo ou mudanca relevante de contexto do grafico, devem ficar concentrados na aba `STATUS`.
 
-Como o Fusion esta migrando para operacao multi-timeframe por modulo, troca de timeframe do grafico nao deve gerar alerta persistente por si so. O chart pode ser usado para leitura visual sem que isso seja tratado como falha do usuario.
+Como o Fusion opera em multi-timeframe por modulo, troca de timeframe do grafico nao deve gerar alerta persistente por si so. O chart pode ser usado para leitura visual sem que isso seja tratado como falha do usuario.
 
 Alteracoes pendentes do perfil carregado devem poder ser descartadas sem obrigar `SALVAR`. Por isso a GUI deve expor uma acao global de cancelamento/reversao do rascunho atual.
 
@@ -116,7 +111,7 @@ Perfis nomeados guardam configuracoes de setup.
 
 Estado automatico por grafico guarda restauracao local daquela instancia, como perfil ativo, estado anterior e dados de posicao em gerenciamento.
 
-Por seguranca, o Fusion nao restaura `started=true` em grafico real ou demo. Ao anexar, recompilar ou reinicializar o EA, a operacao volta pausada e exige clique manual em `INICIAR`.
+Por seguranca, ao anexar, recompilar ou reinicializar o EA em grafico real ou demo, a operacao volta pausada e exige clique manual em `INICIAR`. Apenas uma troca de timeframe no mesmo simbolo pode preservar `started=true` pelo fluxo controlado de `REASON_CHARTCHANGE`.
 
 ## 11. Protection Deve Crescer por Modulo
 
@@ -158,19 +153,19 @@ Na restauracao por grafico, `chart_id` continua sendo a chave principal, mas o F
 
 Quando nao houver chart state valido, o Fusion deve tentar carregar o perfil nomeado em `defaultProfileName` de verdade. So na falta desse perfil e que os `inputs` atuais permanecem ativos.
 
-## 11. Normalizacao Centralizada
+## 13. Normalizacao Centralizada
 
 Regras que dependem de especificacao do ativo ou corretora devem passar por normalizacao.
 
 Isso evita espalhar logica de volume, step, digits, stops level e freeze level por varios modulos.
 
-## 12. Changelog Desde o Inicio
+## 14. Changelog Desde o Inicio
 
 Toda mudanca relevante deve entrar no `CHANGELOG.md`.
 
 O historico ajuda humanos e IAs a entender por que o projeto esta como esta, especialmente quando decisoes anteriores sao revertidas ou refinadas.
 
-## 13. GUI Pesada Deve Ser Isolada por Grupos de Hit-Test
+## 15. GUI Pesada Deve Ser Isolada por Grupos de Hit-Test
 
 A investigacao da regressao dos `CComboBox` em `STRATS > MA` mostrou que a Standard Library do MT5 nao trata `Hide()` de controles simples como isolamento suficiente de mouse quando esses controles sao filhos diretos de um container visivel.
 
@@ -190,7 +185,7 @@ O que resolveu na versao `1.046`:
 
 Regra de manutencao: novos blocos de conteudo da GUI nao devem ser adicionados diretamente ao `CAppDialog`. Eles devem entrar no grupo logico da pagina/subpagina correspondente. Se um controle estiver escondido visualmente, ele tambem precisa estar isolado por um container invisivel para nao interceptar cliques.
 
-## 14. Integracao com o Sistema Operacional Deve Ficar Fora do Core
+## 16. Integracao com o Sistema Operacional Deve Ficar Fora do Core
 
 Recursos de conveniencia da GUI que dependem do sistema operacional, como abrir a pasta de perfis no Windows, nao devem ser colocados dentro de `EAApplication.mqh`.
 
@@ -198,7 +193,7 @@ Essas integracoes devem viver em helpers pequenos e isolados, como `Platform/Fol
 
 Isso tambem facilita tratar restricoes do MT5, como `DLL imports` desabilitadas, sem misturar regra operacional com perfumaria da interface.
 
-## 14. Estado do Grafico Deve Ser Restaurado pelo `chart_id`
+## 17. Estado do Grafico Deve Ser Restaurado pelo `chart_id`
 
 A restauracao automatica do Fusion por grafico deve ser vinculada ao `chart_id`.
 
@@ -210,7 +205,7 @@ Motivos:
 
 O estado salvo por grafico tambem deve carregar metadados do chart, principalmente simbolo e timeframe visuais.
 
-## 15. Troca de Ativo do Grafico Deve Bloquear o Fusion
+## 18. Troca de Ativo do Grafico Deve Bloquear o Fusion
 
 Se o `chart_id` restaurado apontar para um contexto salvo com simbolo diferente do simbolo atual do grafico, o Fusion nao deve tentar se adaptar automaticamente.
 

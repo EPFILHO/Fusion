@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.057 - 2026-07-25
+- Adicionado `docs/USER_MANUAL.md` com instalacao, fluxo de uso, regras efetivas de estrategias/filtros, risco, protecoes, perfis, indicadores visuais e referencia completa dos inputs.
+- Revisados README, arquitetura e decisoes contra o codigo da 1.057; corrigidas descricoes antigas de multi-timeframe, ordem resolvedor/filtros, bloqueios de perfil/Magic e restauracao apos troca de timeframe. A auditoria esta em `docs/DOCUMENTATION_AUDIT_1057.md`.
 - O carregamento do chart state agora usa candidatos isolados e somente publica settings, contexto e runtime depois de validar o arquivo completo.
 - Chart states truncados, com schema invalido, `chartId` divergente ou blocos incompletos de posicao, STREAK, DAY e DRAWDOWN sao rejeitados integralmente; o Fusion mantem o boot seguro e avisa que vai ressincronizar posicao e historico.
 - A estrutura operacional do chart state passou a validar cada chave obrigatoria e rejeitar chaves duplicadas ou desconhecidas nos blocos de contexto, posicao, STREAK, DAY e DRAWDOWN.
