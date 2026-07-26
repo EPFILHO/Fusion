@@ -4,6 +4,7 @@
 - `Persistence/SettingsStore.mqh` (1245 linhas) foi dividido em `CSettingsStore`, uma fachada fina de 10 metodos, mais cinco modulos em `Persistence/Modules/`: `SettingsFileUtils` (parsing e paths), `ProfileSettingsSerializer` (encode/decode do bloco de settings e normalizacoes), `ChartStateSerializer` (mapeamento de campos de runtime), `ProfileStore` (CRUD de arquivo de perfil) e `ChartStateStore` (save/load de chart state).
 - Reorganizacao estrutural pura: nenhuma mudanca de comportamento, formato de arquivo de perfil/chart state ou API publica de `CSettingsStore`. Cada modulo foi extraido em um commit isolado, com o `build.ps1` fechando 0 errors/0 warnings apos cada passo.
 - Removido `ProfilesFolderPath()`, metodo publico de `CSettingsStore` sem nenhum chamador no projeto.
+- `UI/UIPanelRiskTabs.mqh` (1052 linhas) foi dividido por responsabilidade em `UIPanelRiskValidation`, `UIPanelRiskSync`, `UIPanelRiskBuild`, `UIPanelRiskVisibility` e `UIPanelRiskInputs`, seguindo a mesma organizacao ja usada em `UIPanelProtectionTabs`. O arquivo `Tabs` mantem as declaracoes de membros e inclui os fragmentos; a ordem das linhas foi preservada e a concatenacao reproduz o arquivo anterior byte a byte.
 - Versao central do EA e indicadores visuais atualizada para `1.058`.
 
 ## 1.057 - 2026-07-25
