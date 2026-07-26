@@ -12,12 +12,6 @@
 class CSettingsStore
   {
 public:
-   string            ProfilesFolderPath(void) const
-     {
-      FusionSettingsEnsureFolders();
-      return TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + FusionProfilesFolderRelative();
-     }
-
    string            SanitizeProfileName(const string profileName) const
      {
       return FusionSanitizeProfileName(profileName);
