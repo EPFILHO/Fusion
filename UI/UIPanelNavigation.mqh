@@ -39,6 +39,7 @@
          ReleaseButton(m_strategyTabs[s]);
          ResetDialogMouseRouting();
          m_strategyPage = (ENUM_FUSION_STRATEGY_PAGE)s;
+         RefreshTheme();
          ApplyStrategyTabStyles();
          SetStrategiesVisible(true);
          return true;
@@ -56,6 +57,7 @@
          ReleaseButton(m_filterTabs[f]);
          ResetDialogMouseRouting();
          m_filterPage = (ENUM_FUSION_FILTER_PAGE)f;
+         RefreshTheme();
          ApplyFilterTabStyles();
          SetFiltersVisible(true);
          return true;
