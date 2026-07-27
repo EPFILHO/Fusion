@@ -57,6 +57,7 @@ private:
    datetime                m_lastNettingWarning;
    bool                    m_runtimeBlocked;
    string                  m_runtimeBlockReason;
+   bool                    m_runtimeBlockedByChartProfile;
    string                  m_startBlockedReason;
    string                  m_activeProfileBlockedReason;
    string                  m_runtimeNotice;
@@ -267,8 +268,11 @@ private:
             profileRecoveredFromChart = true;
            }
          else
+           {
             ApplyRuntimeBlock("O grafico usava o perfil " + restoredProfile +
-                              ", que nao pode ser carregado. O Fusion nao assume outro perfil sozinho porque isso mudaria lote e Magic. Carregue um perfil na aba PERFIS antes de operar.");
+                              ", que nao pode ser carregado. O Fusion nao assume outro perfil sozinho porque isso mudaria lote e Magic. Carregue um perfil na aba PERFIS para liberar a operacao.");
+            m_runtimeBlockedByChartProfile = true;
+           }
         }
 
       if(!m_settings.isTester)

@@ -84,7 +84,11 @@
       access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid && hasPendingChanges);
       access.canCancel = (profileEditMode || (access.runtimeEditable && hasPendingChanges));
 
-      if(!profileEditMode && !snapshot.runtimeBlocked && !snapshot.started)
+      // Carregar perfil continua permitido com o EA bloqueado: um bloqueio pode ser
+      // causado justamente pelo perfil do grafico nao poder ser carregado, e a saida
+      // orientada ao usuario e escolher outro perfil aqui. Carregar nao libera a
+      // operacao; o bloqueio so sai quando a sua causa e resolvida.
+      if(!profileEditMode && !snapshot.started)
         {
          if(access.hasPeerProfileLock)
             access.profileLoadAllowed = true;

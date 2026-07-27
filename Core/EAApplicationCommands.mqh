@@ -121,6 +121,19 @@
          if(!ApplySettings(loadedSettings, RELOAD_COLD))
             return;
          m_activeProfileName = profileName;
+         // Se o EA estava bloqueado por nao conseguir carregar o perfil do grafico,
+         // escolher um perfil aqui resolve a causa e libera a operacao. Outros
+         // bloqueios (troca de ativo, por exemplo) nao sao afetados.
+         if(m_runtimeBlockedByChartProfile)
+           {
+            m_runtimeBlocked = false;
+            m_runtimeBlockReason = "";
+            m_runtimeBlockedByChartProfile = false;
+            m_logger.Info("PROFILE", "Perfil " + profileName + " escolhido pelo painel; bloqueio por perfil ausente liberado.");
+           }
+         m_logger.Info("PROFILE", "Perfil " + profileName + " carregado pelo painel (Magic " +
+                       IntegerToString(m_settings.magicNumber) + ", lote " +
+                       DoubleToString(m_settings.fixedLot, 2) + ").");
          RefreshProfileBlockReasons();
 
          ReloadPanelSettingsIfVisible();
