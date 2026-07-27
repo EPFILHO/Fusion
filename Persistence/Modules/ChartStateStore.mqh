@@ -299,6 +299,13 @@ bool FusionLoadChartState(const ulong chartId,
 
    FileClose(handle);
 
+   // A identidade do perfil e publicada mesmo quando a validacao abaixo falha. O
+   // estado de runtime (posicao, streak, contadores) pode ser descartado com
+   // seguranca, mas saber qual perfil o grafico usava e o que impede o EA de
+   // adotar outro em silencio, com lote e Magic diferentes. Quem chama distingue
+   // os dois casos pelo retorno da funcao.
+   activeProfileName = candidateActiveProfileName;
+
    if(structuralError != "")
      {
       errorReason = structuralError;

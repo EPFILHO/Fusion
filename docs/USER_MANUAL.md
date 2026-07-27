@@ -94,6 +94,18 @@ Ao clicar `INICIAR`, o Fusion revalida permissão de negociação, conflito de p
 
 Trocar o timeframe do gráfico é o único caso que preserva o estado operacional automaticamente, porque acontece dentro de uma sessão em andamento e leva segundos.
 
+### 5.2. Qual perfil o gráfico usa ao reiniciar
+
+Cada gráfico lembra qual perfil estava usando. Esse vínculo é preservado mesmo quando o estado operacional salvo é descartado — por exemplo após uma troca de conta, que faz o MetaTrader reiniciar o EA e desligar a negociação algorítmica.
+
+O motivo é direto: perfis diferentes têm lote e Magic Number diferentes. Um perfil com lote `0.06` e outro com `6.00` são a mesma operação com cem vezes o risco. O Fusion nunca troca de perfil por conta própria.
+
+Se o perfil que o gráfico usava não puder ser carregado — por exemplo se você o apagou — o EA entra em `BLOQUEADO` e não opera até você escolher um perfil na aba `PERFIS`. Ele não adota outro perfil silenciosamente.
+
+O input `Perfil carregado/criado na inicializacao` define apenas o ponto de partida de um gráfico que ainda não tem estado próprio. Ele não substitui o perfil que o gráfico já estava usando.
+
+Toda decisão de perfil na inicialização é registrada no log com `[PROFILE]`, incluindo o Magic e o lote ativos. Se algo diferente de uma restauração direta acontecer, a linha sai como aviso. Confira essa linha sempre que o gráfico reiniciar em circunstâncias fora do comum.
+
 ## 6. Abas de acompanhamento
 
 ### 6.1. STATUS

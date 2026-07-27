@@ -226,4 +226,21 @@ O EA nao tem como saber por que o terminal foi fechado, nem por quanto tempo fic
 
 Rearmar pela GUI e um caminho seguro por construcao, porque revalida permissao de negociacao, conflito de perfil e registro de instancia, e chama `PrimeEntryStates` para descartar sinais anteriores ao reinicio. Uma retomada automatica precisaria replicar essa sequencia inteira; nao basta restaurar o booleano de estado.
 
-Editar configuracao e rearmar o EA sao permissoes distintas e nao devem compartilhar a mesma trava. A edicao fica bloqueada com posicao aberta, porque alterar lote ou SL no meio de uma operacao e perigoso. Autorizar novas entradas nao altera configuracao alguma, entao `canStart` nao depende de `runtimeEditable`. Enquanto dependeu, o usuario ficava impedido de rearmar ate a posicao fechar, o que criava uma janela em que o EA ficava ocioso sem que ninguem tivesse decidido isso.
+Editar configuracao e rearmar o EA sao permissoes distintas e nao devem compartilhar a mesma trava. Vale o mesmo raciocinio da decisao 20 sobre identidade de perfil: coisas de naturezas diferentes nao devem compartilhar a mesma condicao.
+
+## 20. Identidade do Perfil Nao Se Perde Junto com o Estado de Runtime
+
+O estado salvo por grafico carrega duas coisas de naturezas diferentes: o estado de runtime (posicao, streak, contadores do dia, drawdown) e a identidade do perfil que aquele grafico estava usando.
+
+O estado de runtime pode ser descartado com seguranca, porque o EA ressincroniza posicao e historico no boot. A identidade do perfil nao pode: adotar outro perfil muda lote e Magic Number. Um perfil com lote `0.06` e outro com lote `6.00` sao a mesma operacao com cem vezes o risco.
+
+Enquanto as duas coisas compartilharam o mesmo criterio, qualquer rejeicao do estado de runtime fazia o EA cair no perfil de inicializacao sem aviso nenhum, porque o aviso existente era condicionado a esse perfil tambem ter falhado. Um caso real: uma troca de conta deixou um grafico que rodava o perfil `BTCUSD` (Magic 1, lote 0.06) rodando o `default` (Magic 1000, lote 6.00), sem uma linha de log.
+
+Portanto:
+
+- o estado do grafico publica o nome do perfil mesmo quando a validacao do runtime falha;
+- se esse perfil ainda existe em disco, ele prevalece sobre o perfil de inicializacao, mesmo que o runtime seja descartado;
+- se esse perfil nao pode ser carregado, o EA **bloqueia** em vez de assumir outro. O Fusion nao escolhe perfil sozinho quando a escolha muda risco;
+- toda resolucao de perfil no boot vai para o log com Magic e lote, e o que nao for restauracao direta sai como aviso.
+
+`inp_DefaultProfileName` nomeia o perfil carregado na inicializacao, e nao um perfil de sistema privilegiado. Ele e apenas o ponto de partida de um grafico que ainda nao tem estado proprio; nunca um substituto para o perfil que o grafico ja usava. A edicao fica bloqueada com posicao aberta, porque alterar lote ou SL no meio de uma operacao e perigoso. Autorizar novas entradas nao altera configuracao alguma, entao `canStart` nao depende de `runtimeEditable`. Enquanto dependeu, o usuario ficava impedido de rearmar ate a posicao fechar, o que criava uma janela em que o EA ficava ocioso sem que ninguem tivesse decidido isso.

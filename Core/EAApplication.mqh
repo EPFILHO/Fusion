@@ -250,25 +250,58 @@ private:
          ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
         }
 
+      // O estado de runtime pode ser descartado com seguranca, mas a identidade do
+      // perfil nao: adotar outro perfil muda lote e Magic. Se o grafico usava um
+      // perfil e ele ainda existe, ele prevalece sobre o perfil de inicializacao.
+      bool profileRecoveredFromChart = false;
+      if(!m_settings.isTester &&
+         !restoredStateApplied &&
+         restoredProfile != "" &&
+         restoredProfile != m_activeProfileName)
+        {
+         SEASettings chartProfileSettings;
+         if(TryLoadProfileFromDisk(restoredProfile, OperationalFallbackTimeframe(), chartProfileSettings))
+           {
+            m_settings = chartProfileSettings;
+            m_activeProfileName = restoredProfile;
+            profileRecoveredFromChart = true;
+           }
+         else
+            ApplyRuntimeBlock("O grafico usava o perfil " + restoredProfile +
+                              ", que nao pode ser carregado. O Fusion nao assume outro perfil sozinho porque isso mudaria lote e Magic. Carregue um perfil na aba PERFIS antes de operar.");
+        }
+
       if(!m_settings.isTester)
         {
          string activeNow = "Perfil ativo: " + m_activeProfileName +
                             " (Magic " + IntegerToString(m_settings.magicNumber) +
                             ", lote " + DoubleToString(m_settings.fixedLot, 2) + ").";
+         string discardCause = "";
+         if(chartStateLoadError != "")
+            discardCause = "estado salvo rejeitado (" + chartStateLoadError + ")";
+         else if(chartStateDiscarded)
+            discardCause = "estado salvo descartado por contexto (deinit " +
+                           IntegerToString(restoredContext.deinitReason) + ")";
+
          if(restoredStateApplied)
             profileResolution = "Perfil restaurado do estado do grafico. " + activeNow;
-         else if(chartStateLoadError != "")
+         else if(m_runtimeBlocked && restoredProfile != "")
            {
-            // O grafico tinha estado salvo, mas ele nao passou na validacao. O perfil
-            // que o grafico usava se perdeu junto e o EA assumiu o default.
-            profileResolution = "Estado salvo do grafico rejeitado (" + chartStateLoadError +
-                                "). " + activeNow;
+            profileResolution = "Perfil " + restoredProfile + " do grafico nao pode ser carregado; " +
+                                discardCause + ". EA bloqueado sem assumir outro perfil.";
             profileResolutionIsWarning = true;
            }
-         else if(chartStateDiscarded)
+         else if(profileRecoveredFromChart)
            {
-            profileResolution = "Estado salvo do grafico descartado por contexto (deinit " +
-                                IntegerToString(restoredContext.deinitReason) + "). " + activeNow;
+            // O runtime foi descartado, mas a identidade do perfil sobreviveu: o EA
+            // segue no perfil do grafico, com o lote e o Magic corretos.
+            profileResolution = "Runtime descartado (" + discardCause +
+                                "), perfil do grafico preservado. " + activeNow;
+            profileResolutionIsWarning = true;
+           }
+         else if(discardCause != "")
+           {
+            profileResolution = "Estado do grafico nao aplicado: " + discardCause + ". " + activeNow;
             profileResolutionIsWarning = true;
            }
          else if(defaultProfileLoaded)
