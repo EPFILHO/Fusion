@@ -76,7 +76,7 @@ O perfil inicial criado a partir dos `input` usa lote `0.10`. Esse valor não é
 | `BLOQUEADO` | Indica bloqueio estrutural ou de contexto. Consulte `STATUS`. |
 | `SALVAR` | Valida e grava as alterações do perfil carregado. |
 | `CANCELAR` | Descarta o rascunho e restaura a última configuração confirmada. No editor de novo perfil, cancela aquele fluxo. |
-| `Perfil carregado` | Mostra o perfil associado ao gráfico. |
+| `Perfil carregado` | Mostra o perfil associado ao gráfico. Se aparecer `nome (sem arquivo)` em amarelo, veja a seção 5.3. |
 
 A configuração só pode ser editada com o Fusion pausado e sem posição gerenciada. Alterações não salvas são um rascunho; trocar o timeframe do gráfico descarta esse rascunho e preserva apenas o estado confirmado.
 
@@ -100,11 +100,26 @@ Cada gráfico lembra qual perfil estava usando. Esse vínculo é preservado mesm
 
 O motivo é direto: perfis diferentes têm lote e Magic Number diferentes. Um perfil com lote `0.06` e outro com `6.00` são a mesma operação com cem vezes o risco. O Fusion nunca troca de perfil por conta própria.
 
-Se o perfil que o gráfico usava não puder ser carregado — por exemplo se você o apagou — o EA entra em `BLOQUEADO` e não opera até você escolher um perfil na aba `PERFIS`. Ele não adota outro perfil silenciosamente.
+O estado salvo do gráfico guarda uma cópia completa da configuração, e não apenas o nome do perfil. Por isso o EA continua com os valores certos mesmo que o arquivo do perfil seja apagado — veja a seção 5.3.
+
+O bloqueio acontece num caso específico: quando o estado salvo **não pode ser aplicado** (arquivo corrompido, ou descartado por contexto) **e** o perfil que ele nomeia também não pode ser carregado. Aí o EA não tem de onde tirar a configuração correta e entra em `BLOQUEADO`, em vez de assumir outro perfil. Escolher um perfil na aba `PERFIS` libera a operação.
 
 O input `Perfil carregado/criado na inicializacao` define apenas o ponto de partida de um gráfico que ainda não tem estado próprio. Ele não substitui o perfil que o gráfico já estava usando.
 
-Toda decisão de perfil na inicialização é registrada no log com `[PROFILE]`, incluindo o Magic e o lote ativos. Se algo diferente de uma restauração direta acontecer, a linha sai como aviso. Confira essa linha sempre que o gráfico reiniciar em circunstâncias fora do comum.
+Toda decisão de perfil na inicialização é registrada no log com `[PROFILE]`, incluindo o Magic e o lote ativos. Se algo diferente de uma restauração direta acontecer, a linha sai como aviso. Carregar um perfil pelo painel também é registrado. Confira essas linhas sempre que o gráfico reiniciar em circunstâncias fora do comum.
+
+### 5.3. Perfil sem arquivo em disco
+
+Se o arquivo `.cfg` do perfil ativo for apagado ou renomeado enquanto o EA roda, o cabeçalho passa a mostrar `nome (sem arquivo)` em amarelo e a aba `STATUS` exibe `PERFIL SEM ARQUIVO`.
+
+Isso **não** é um erro operacional. O EA continua com a configuração correta, porque ela vem do estado salvo do gráfico, não do arquivo. O arquivo é o molde usado para carregar o perfil em outros gráficos; o estado do gráfico é o registro do que este gráfico está usando.
+
+Duas saídas, conforme a intenção:
+
+- clique `SALVAR` para recriar o arquivo a partir da configuração em uso;
+- ou carregue outro perfil na aba `PERFIS`, se a intenção era mesmo trocar.
+
+O aviso existe porque, sem ele, o cabeçalho mostraria um perfil que não aparece na lista de perfis, sem nenhuma explicação.
 
 ## 6. Abas de acompanhamento
 

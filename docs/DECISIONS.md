@@ -241,6 +241,10 @@ Portanto:
 - o estado do grafico publica o nome do perfil mesmo quando a validacao do runtime falha;
 - se esse perfil ainda existe em disco, ele prevalece sobre o perfil de inicializacao, mesmo que o runtime seja descartado;
 - se esse perfil nao pode ser carregado, o EA **bloqueia** em vez de assumir outro. O Fusion nao escolhe perfil sozinho quando a escolha muda risco;
-- toda resolucao de perfil no boot vai para o log com Magic e lote, e o que nao for restauracao direta sai como aviso.
+- toda resolucao de perfil no boot vai para o log com Magic e lote, e o que nao for restauracao direta sai como aviso. Carregar perfil pelo painel tambem e registrado, porque uma troca manual sem rastro e indistinguivel de uma troca automatica indevida.
+
+O bloqueio vale para o caso em que o EA ficaria sem configuracao confiavel. Ele nao se aplica quando o estado do grafico e aplicado normalmente e apenas o arquivo `.cfg` sumiu: o estado carrega uma copia completa da configuracao, entao os valores em uso continuam corretos e bloquear seria desproporcional. Esse caso e sinalizado na GUI como `PERFIL SEM ARQUIVO`, e salvar recria o arquivo.
+
+Um bloqueio precisa ter saida pela propria GUI. Como este e causado por perfil ausente, carregar perfil continua permitido com o EA bloqueado, e um carregamento bem-sucedido resolve a causa e libera a operacao. Uma mensagem que orienta uma acao que a interface impede e pior do que nao ter mensagem.
 
 `inp_DefaultProfileName` nomeia o perfil carregado na inicializacao, e nao um perfil de sistema privilegiado. Ele e apenas o ponto de partida de um grafico que ainda nao tem estado proprio; nunca um substituto para o perfil que o grafico ja usava. A edicao fica bloqueada com posicao aberta, porque alterar lote ou SL no meio de uma operacao e perigoso. Autorizar novas entradas nao altera configuracao alguma, entao `canStart` nao depende de `runtimeEditable`. Enquanto dependeu, o usuario ficava impedido de rearmar ate a posicao fechar, o que criava uma janela em que o EA ficava ocioso sem que ninguem tivesse decidido isso.
