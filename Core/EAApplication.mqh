@@ -153,6 +153,14 @@ private:
          defaultProfileLoaded = true;
         }
 
+      // O logger so e inicializado depois que o perfil resolve, porque depende do
+      // Magic. Guardamos aqui como o perfil foi decidido para registrar em seguida:
+      // adotar um perfil diferente do que o grafico usava muda lote e Magic, e nunca
+      // deve acontecer sem rastro.
+      string profileResolution = "";
+      bool   profileResolutionIsWarning = false;
+      bool   chartStateDiscarded = false;
+
       SEASettings restoredSettings = m_settings;
       SChartStateContext restoredContext = m_chartContext;
       string restoredProfile = "";
@@ -180,6 +188,9 @@ private:
                                         restoredDrawdownState,
                                         chartStateLoadError))
         {
+         if(!ShouldRestoreSavedState(restoredContext))
+            chartStateDiscarded = true;
+
          if(ShouldRestoreSavedState(restoredContext))
            {
             restoredStateApplied = true;
@@ -238,10 +249,48 @@ private:
                                : "nao foi encontrado";
          ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
         }
+
+      if(!m_settings.isTester)
+        {
+         string activeNow = "Perfil ativo: " + m_activeProfileName +
+                            " (Magic " + IntegerToString(m_settings.magicNumber) +
+                            ", lote " + DoubleToString(m_settings.fixedLot, 2) + ").";
+         if(restoredStateApplied)
+            profileResolution = "Perfil restaurado do estado do grafico. " + activeNow;
+         else if(chartStateLoadError != "")
+           {
+            // O grafico tinha estado salvo, mas ele nao passou na validacao. O perfil
+            // que o grafico usava se perdeu junto e o EA assumiu o default.
+            profileResolution = "Estado salvo do grafico rejeitado (" + chartStateLoadError +
+                                "). " + activeNow;
+            profileResolutionIsWarning = true;
+           }
+         else if(chartStateDiscarded)
+           {
+            profileResolution = "Estado salvo do grafico descartado por contexto (deinit " +
+                                IntegerToString(restoredContext.deinitReason) + "). " + activeNow;
+            profileResolutionIsWarning = true;
+           }
+         else if(defaultProfileLoaded)
+            profileResolution = "Sem estado salvo para este grafico. " + activeNow;
+         else
+           {
+            profileResolution = "Nenhum perfil carregado do disco; operando com os inputs. " + activeNow;
+            profileResolutionIsWarning = true;
+           }
+        }
+
       RefreshProfileBlockReasons();
       uint restoreDoneTick = GetTickCount();
 
       m_logger.Init(m_settings.debugLogs, _Symbol, m_settings.magicNumber, m_settings.isTester);
+      if(profileResolution != "")
+        {
+         if(profileResolutionIsWarning)
+            m_logger.Warn("PROFILE", profileResolution);
+         else
+            m_logger.Info("PROFILE", profileResolution);
+        }
       m_chartIndicators.Init(&m_logger, ChartID(), m_settings.isTester);
       m_tradePermissionGuard.Init(&m_logger, m_settings.isTester);
       m_normalizer.Init(&m_logger, _Symbol);
@@ -287,7 +336,9 @@ private:
 
       if(m_runtimeBlocked)
          m_logger.Warn("CONTEXT", m_runtimeBlockReason);
-      else if(m_runtimeNotice != "" && !m_tradePermissionGuard.IsBlocked())
+      // Um aviso de contexto nao deve depender do AutoTrading estar ligado: a troca de
+      // conta desliga o AutoTrading e era justamente ai que a mensagem se perdia.
+      else if(m_runtimeNotice != "")
          m_logger.Warn("CONTEXT", m_runtimeNotice);
 
       if(!m_runtimeBlocked && (m_started || HasManagedOrPendingPosition()) && !RegisterRunningInstance())
