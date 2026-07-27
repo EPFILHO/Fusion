@@ -40,11 +40,24 @@
          m_activeProfileBlockedReason = reason + " Carregue outro perfil salvo para continuar.";
      }
 
+   // O arquivo do perfil pode sumir a qualquer momento por acao externa, entao a
+   // checagem e refeita periodicamente. Fica aqui, e nao em BuildPanelSnapshot,
+   // para nao colocar acesso a disco no caminho do tick: OnTimer chama isto a 1 Hz.
+   void                    RefreshActiveProfileFileState(void)
+     {
+      m_activeProfileFileMissing = false;
+      if(m_settings.isTester || m_activeProfileName == "")
+         return;
+
+      m_activeProfileFileMissing = !m_settingsStore.ProfileExists(m_activeProfileName);
+     }
+
    void                    RefreshProfileBlockReasons(void)
      {
       RefreshActiveProfileRegistration();
       RefreshStartBlockReason();
       RefreshActiveProfileBlockReason();
+      RefreshActiveProfileFileState();
      }
 
    bool                    StartBlockedByProfilePeer(void) const

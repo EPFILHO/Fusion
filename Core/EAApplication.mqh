@@ -52,6 +52,7 @@ private:
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
    string                  m_activeProfileName;
+   bool                    m_activeProfileFileMissing;
    bool                    m_started;
    bool                    m_modulesRegistered;
    datetime                m_lastNettingWarning;

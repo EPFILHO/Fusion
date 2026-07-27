@@ -165,6 +165,12 @@ public:
          noticeText = "VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
          noticeColor = FUSION_CLR_WARN;
         }
+      else if(snapshot.activeProfileFileMissing)
+        {
+         noticeTitle = "PERFIL SEM ARQUIVO";
+         noticeText = "O perfil " + snapshot.activeProfileName + " nao existe mais em disco. O EA segue com os valores do estado do grafico. Salve para recriar o arquivo ou carregue outro perfil.";
+         noticeColor = FUSION_CLR_WARN;
+        }
       else if(snapshot.hasPosition && !snapshot.started)
         {
          noticeTitle = "ENTRADAS SUSPENSAS";

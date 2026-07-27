@@ -8,6 +8,7 @@
       snapshot.started          = m_started;
       snapshot.hasPosition      = HasManagedOrPendingPosition();
       snapshot.activeProfileName= m_activeProfileName;
+      snapshot.activeProfileFileMissing = m_activeProfileFileMissing;
       snapshot.symbol           = (m_chartContext.symbol == "" ? _Symbol : m_chartContext.symbol);
       snapshot.timeframe        = OperationalTimeframesSummary();
       snapshot.symbolSpec       = SymbolSpec();

@@ -475,6 +475,7 @@ struct SUIPanelSnapshot
    bool   started;
    bool   hasPosition;
    string activeProfileName;
+   bool   activeProfileFileMissing;
    string symbol;
    string timeframe;
    SSymbolSpec symbolSpec;

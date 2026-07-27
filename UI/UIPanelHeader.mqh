@@ -21,8 +21,13 @@
          return;
         }
 
-      m_activeProfile.Text(profileName);
-      m_activeProfile.Color(FUSION_CLR_GOOD);
+      // Sem arquivo em disco o perfil segue valido em memoria, com os valores vindos
+      // do estado do grafico. O marcador evita a leitura de que o painel esta
+      // mostrando um perfil que nao existe mais.
+      bool fileMissing = (m_snapshot.activeProfileFileMissing &&
+                          FusionTrimCopy(m_snapshot.activeProfileName) == FusionTrimCopy(profileName));
+      m_activeProfile.Text(fileMissing ? (profileName + " (sem arquivo)") : profileName);
+      m_activeProfile.Color(fileMissing ? FUSION_CLR_WARN : FUSION_CLR_GOOD);
      }
 
    bool                       BuildHeader(void)

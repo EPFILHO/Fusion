@@ -11,6 +11,7 @@
       m_runtimeBlocked      = false;
       m_runtimeBlockReason  = "";
       m_runtimeBlockedByChartProfile = false;
+      m_activeProfileFileMissing = false;
       m_startBlockedReason  = "";
       m_activeProfileBlockedReason = "";
       m_runtimeNotice       = "";
