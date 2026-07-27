@@ -168,7 +168,7 @@ public:
       else if(snapshot.hasPosition && !snapshot.started)
         {
          noticeTitle = "ENTRADAS SUSPENSAS";
-         noticeText = "Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas.";
+         noticeText = "Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas futuras.";
          noticeColor = FUSION_CLR_WARN;
         }
       else if(snapshot.entryBlockIsRiskStops)
