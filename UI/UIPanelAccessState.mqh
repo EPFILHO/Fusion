@@ -81,7 +81,11 @@
                          configInputsValid &&
                          !hasPendingChanges &&
                          !snapshot.tradePermissionBlocked);
-      access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid && hasPendingChanges);
+      // Um perfil cujo arquivo sumiu pode ser regravado mesmo sem alteracoes
+      // pendentes: salvar recria o arquivo com a configuracao em uso, que e a
+      // saida indicada no aviso PERFIL SEM ARQUIVO.
+      access.canSave = (!profileEditMode && access.activeProfileEditable && configInputsValid &&
+                        (hasPendingChanges || snapshot.activeProfileFileMissing));
       access.canCancel = (profileEditMode || (access.runtimeEditable && hasPendingChanges));
 
       // Carregar perfil continua permitido com o EA bloqueado: um bloqueio pode ser

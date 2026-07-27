@@ -549,10 +549,17 @@ public:
                                          snapshot.winStreak == m_snapshot.winStreak);
       bool protectionPageVisible = (m_configProtectionCreated && IsConfigPageVisible(FUSION_CFG_PROTECTION));
       bool drawdownPageVisible = (protectionPageVisible && m_protectPage == FUSION_PROTECT_DRAWDOWN);
+      bool profileFileStateChanged = (snapshot.activeProfileFileMissing != m_snapshot.activeProfileFileMissing);
       m_snapshot = snapshot;
       if(editBlockExited)
          RestoreCommittedDraftToControls();
       UpdateHeaderButtons();
+      // O rotulo do perfil e o estilo do SALVAR so sao recalculados em eventos de
+      // navegacao ou validacao. Sem isto, o marcador "(sem arquivo)" continuaria na
+      // tela depois de o arquivo ser recriado. Refeito so na transicao, para nao
+      // sobrescrever a cada quadro o rotulo que a validacao controla.
+      if(profileFileStateChanged)
+         RefreshHeaderTheme();
       if(drawdownRuntimeOnlyChanged && protectionPageVisible)
         {
          if(drawdownPageVisible)

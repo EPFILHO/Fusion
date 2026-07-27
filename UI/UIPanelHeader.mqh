@@ -112,7 +112,7 @@
         }
 
       SUIAccessState access = CurrentAccessState();
-      if(!access.runtimeEditable || !access.hasPendingChanges)
+      if(!access.runtimeEditable || (!access.hasPendingChanges && !m_snapshot.activeProfileFileMissing))
          FusionApplyNeutralButtonStyle(m_btnSave);
       else if(access.canSave)
          FusionApplyActionButtonStyle(m_btnSave, FUSION_CLR_GOOD, true);
