@@ -153,10 +153,37 @@ bool     g_toggleOn[TOGGLE_COUNT] = {true, false};
 int      g_toggleX[TOGGLE_COUNT], g_toggleY[TOGGLE_COUNT];
 int      g_toggleCount = 0;
 
-//--- Rolagem do conteudo de CONFIG
+//--- Rolagem do conteudo de CONFIG. Tres entradas de proposito: roda serve o
+//--- mouse, arrasto serve o touchpad do notebook, teclado serve quem nao usa
+//--- nenhum dos dois. Uma so nao cobre todo mundo.
 int      g_scroll   = 0;    // deslocamento atual, em pixels
 int      g_contentH = 0;    // altura medida no ultimo render
 int      g_alertH   = 62;   // altura do aviso do rodape no ultimo render
+bool     g_scrollDrag = false;
+int      g_scrollDragY = 0, g_scrollDragBase = 0;
+
+#define VK_PRIOR_ 33
+#define VK_NEXT_  34
+#define VK_HOME_  36
+#define VK_END_   35
+#define VK_UP_    38
+#define VK_DOWN_  40
+
+//--- Aplica um passo de rolagem respeitando os limites. Devolve true se mudou.
+bool ScrollBy(const int delta)
+  {
+   int viewH = ContentBottom() - ContentTop();
+   int maxScroll = g_contentH - viewH;
+   if(maxScroll <= 0)
+      return false;
+   int ns = g_scroll + delta;
+   if(ns < 0) ns = 0;
+   if(ns > maxScroll) ns = maxScroll;
+   if(ns == g_scroll)
+      return false;
+   g_scroll = ns;
+   return true;
+  }
 
 //+------------------------------------------------------------------+
 //| Helpers de desenho                                                |
@@ -330,9 +357,10 @@ void DrawTitlebar(void)
 //--- No prototipo a subaba SL/TP esta sempre invalida, para exercitar o estado.
 bool ConfigHasError(void) { return true; }
 
+//--- O chrome nao limpa mais o fundo: em telas rolaveis ele e desenhado DEPOIS
+//--- do conteudo, para que nada rolado possa pintar por cima das abas.
 void DrawChrome(const bool running,const bool dirty)
   {
-   g_canvas.Erase(T.ground);
    DrawTitlebar();
 
    Txt(PAD, 52, "BTCUSD", T.fg, FONT_UI, 110, FW_SEMI, TA_LEFT|TA_VCENTER);
@@ -487,79 +515,103 @@ bool EditVisible(const int ly)
    return (ly >= ContentTop() && ly + EDIT_H <= ContentBottom());
   }
 
-void DrawConfig(void)
-  {
-   int x1 = PAD, x2 = PANEL_W - PAD;
-   int y  = TABS_BOTTOM + PAD;
-   g_editCount = 0;
+//--- Combobox desenhado: fechado e um campo com seta; aberto, a lista e pintada
+//--- por ultimo, acima de tudo. Aqui o canvas e mais simples que o nativo — nao
+//--- existe objeto para sobrepor nem ordem de criacao a respeitar, so ordem de
+//--- desenho. Foi o controle que mais deu trabalho com objetos nativos.
+#define COMBO_ITEMS 6
+string   g_comboItems[COMBO_ITEMS] = {"M1","M5","M15","M30","H1","H4"};
+int      g_comboIndex = 0;
+bool     g_comboOpen  = false;
+int      g_comboX = 0, g_comboY = 0, g_comboW = 0;
 
-   int sx = x1;
+void DrawComboClosed(const int gx1,const int gx2,const int ry,const string label)
+  {
+   Txt(gx1+13, ry+15, label, T.fg, FONT_UI, 88, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+
+   int w  = 96;
+   int cx = gx2 - 13 - w;
+   int cy = ry + 3;
+   g_comboX = cx; g_comboY = cy; g_comboW = w;
+
+   RoundFrame(cx, cy, cx+w, cy+EDIT_H, 5,
+              g_comboOpen ? T.accent : T.line, T.raised, T.surface);
+   Txt(cx+11, cy+EDIT_H/2, g_comboItems[g_comboIndex], T.fg, FONT_MONO, 90, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+
+   int ax = cx + w - 16, ay = cy + EDIT_H/2 - 2;
+   for(int i = 0; i < 4; ++i)
+      g_canvas.FillRectangle(ax-3+i, ay+i, ax+3-i, ay+i, T.muted);
+  }
+
+void DrawComboPopup(void)
+  {
+   if(!g_comboOpen)
+      return;
+
+   int ih = 24;
+   int h  = COMBO_ITEMS*ih + 8;
+   int y  = g_comboY + EDIT_H + 3;
+   if(y + h > PANEL_H - PAD)            // sem espaco abaixo: abre para cima
+      y = g_comboY - h - 3;
+
+   RoundFrame(g_comboX, y, g_comboX+g_comboW, y+h, 6, T.accent, T.surface, T.ground);
+   for(int i = 0; i < COMBO_ITEMS; ++i)
+     {
+      int iy = y + 4 + i*ih;
+      if(i == g_comboIndex)
+         RoundRect(g_comboX+4, iy, g_comboX+g_comboW-4, iy+ih, 4, T.accentDim, T.surface);
+      Txt(g_comboX+13, iy+ih/2, g_comboItems[i],
+          (i == g_comboIndex) ? T.accentStr : T.fg, FONT_MONO, 90, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+     }
+  }
+
+bool HandleComboClick(const int lx,const int ly)
+  {
+   if(g_comboOpen)
+     {
+      int ih = 24;
+      int h  = COMBO_ITEMS*ih + 8;
+      int y  = g_comboY + EDIT_H + 3;
+      if(y + h > PANEL_H - PAD)
+         y = g_comboY - h - 3;
+
+      if(lx >= g_comboX && lx < g_comboX+g_comboW && ly >= y && ly < y+h)
+        {
+         int idx = (ly - y - 4) / ih;
+         if(idx >= 0 && idx < COMBO_ITEMS)
+           {
+            g_comboIndex = idx;
+            Print("Timeframe agora: ", g_comboItems[idx]);
+           }
+        }
+      g_comboOpen = false;      // qualquer clique fecha a lista
+      Render();
+      return true;
+     }
+
+   if(g_comboY >= ContentTop() && g_comboY+EDIT_H <= ContentBottom() &&
+      lx >= g_comboX && lx < g_comboX+g_comboW &&
+      ly >= g_comboY && ly < g_comboY+EDIT_H)
+     {
+      g_comboOpen = true;
+      Render();
+      return true;
+     }
+
+   return false;
+  }
+
+//+------------------------------------------------------------------+
+void DrawConfigSubtabs(void)
+  {
+   int x1 = PAD;
+   int sx = x1, sy = TABS_BOTTOM + PAD;
    for(int i = 0; i < SUBTAB_COUNT; ++i)
      {
       int w = TxtW(g_subNames[i], FONT_UI, 78, FW_BOLD_) + 22;
       g_subX[i] = sx; g_subW[i] = w;
       //--- Selecao e erro sao estados independentes e devem ser lidos juntos: o
       //--- preenchimento diz qual esta aberta, a cor diz qual precisa de atencao.
-      //--- Se a selecao apagasse o vermelho, abrir a subaba com problema faria o
-      //--- problema sumir da tela justamente ao ir resolve-lo.
-      bool on  = (i == g_subtab);
-      bool err = (i == 1);
-      if(on && err) RoundFrame(sx, y, sx+w, y+26, 5, T.bad, T.badDim, T.ground);
-      else if(on)   RoundFrame(sx, y, sx+w, y+26, 5, T.accent, T.accentDim, T.ground);
-      else if(err)  RoundFrame(sx, y, sx+w, y+26, 5, T.bad, T.surface, T.ground);
-      else          RoundRect (sx, y, sx+w, y+26, 5, T.surface, T.ground);
-      Txt(sx+w/2, y+13, g_subNames[i],
-          err ? T.bad : (on ? T.accentStr : T.dim), FONT_UI, 78, FW_BOLD_, TA_CENTER|TA_VCENTER);
-      sx += w + 6;
-     }
-   y += 38;
-
-   //--- A partir daqui o conteudo rola. O deslocamento entra no desenho; o que
-   //--- cai fora da area util simplesmente nao e pintado.
-   int contentStart = y;
-   y -= g_scroll;
-
-   //--- VOLUME: titulo(26) + 2 linhas de 42
-   int gh = 26 + 42 + 42;
-   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
-   Txt(x1+13, y+17, "VOLUME", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
-   FieldRow(x1, x2, y+26,    "Lote fixo", "Min. 0,01 · passo 0,01", T.dim, g_editCount);
-   FieldRow(x1, x2, y+26+42, "Slippage",  "Desvio maximo aceito",   T.dim, g_editCount);
-   y += gh + 12;
-
-   //--- STOPS: titulo(26) + 2 linhas de 42 + 2 toggles de 30
-   gh = 26 + 42 + 42 + 30 + 30;
-   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
-   Txt(x1+13, y+17, "STOPS", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
-   FieldRow  (x1, x2, y+26,     "Stop Loss",   "Abaixo do minimo da corretora", T.bad, g_editCount);
-   FieldRow  (x1, x2, y+26+42,  "Take Profit", "0 desativa",                    T.dim, g_editCount);
-   g_toggleCount = 0;
-   ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", g_toggleCount);
-   ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", g_toggleCount);
-   y += gh + 12;
-
-   //--- Bloco extra so para forcar rolagem e exercitar o recorte.
-   gh = 26 + 30 + 30;
-   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
-   Txt(x1+13, y+17, "AVANCADO", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
-   Txt(x1+13, y+41, "Bloco extra para exercitar a rolagem", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
-   Txt(x1+13, y+65, "Role com a roda do mouse sobre o conteudo", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
-   y += gh;
-
-   //--- Altura total medida neste render define o limite da rolagem.
-   g_contentH = (y + g_scroll) - contentStart;
-
-   //--- O conteudo e pintado por cima da area util inteira; repintar as faixas
-   //--- de fora devolve o recorte que o canvas nao faz sozinho.
-   g_canvas.FillRectangle(0, TABS_BOTTOM, PANEL_W-1, ContentTop()-1, T.ground);
-   g_canvas.FillRectangle(0, ContentBottom()+1, PANEL_W-1, PANEL_H-1, T.ground);
-
-   //--- Subabas foram cobertas pelo recorte acima; redesenha por cima.
-   sx = x1;
-   int sy = TABS_BOTTOM + PAD;
-   for(int i = 0; i < SUBTAB_COUNT; ++i)
-     {
-      int w = g_subW[i];
       bool on  = (i == g_subtab);
       bool err = (i == 1);
       if(on && err) RoundFrame(sx, sy, sx+w, sy+26, 5, T.bad, T.badDim, T.ground);
@@ -570,25 +622,69 @@ void DrawConfig(void)
           err ? T.bad : (on ? T.accentStr : T.dim), FONT_UI, 78, FW_BOLD_, TA_CENTER|TA_VCENTER);
       sx += w + 6;
      }
+  }
 
-   //--- Indicador de rolagem: sem ele nada avisa que ha conteudo abaixo.
-   int viewH = ContentBottom() - ContentTop();
-   if(g_contentH > viewH)
-     {
-      int trackH = viewH;
-      int thumbH = (int)MathMax(24, (double)trackH * viewH / g_contentH);
-      int maxScroll = g_contentH - viewH;
-      int thumbY = ContentTop() + (int)((double)(trackH - thumbH) * g_scroll / maxScroll);
-      RoundRect(PANEL_W-8, thumbY, PANEL_W-5, thumbY+thumbH, 1, T.line, T.ground);
-     }
-
-   //--- Texto longo de proposito: e a mensagem mais extensa do projeto (193
-   //--- caracteres), usada aqui para provar que a caixa acompanha.
-   AlertBottom(x1, x2, PANEL_H - PAD, "PERFIL",
+void DrawConfigAlert(void)
+  {
+   AlertBottom(PAD, PANEL_W - PAD, PANEL_H - PAD, "PERFIL",
                "Perfil BTCUSD do grafico nao pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operacao. Assumir outro mudaria lote e Magic.",
                T.bad, T.badDim, T.alertTextBad);
   }
 
+void DrawScrollbar(void)
+  {
+   int viewH = ContentBottom() - ContentTop();
+   if(g_contentH <= viewH)
+      return;
+   int thumbH = (int)MathMax(24, (double)viewH * viewH / g_contentH);
+   int maxScroll = g_contentH - viewH;
+   int thumbY = ContentTop() + (int)((double)(viewH - thumbH) * g_scroll / maxScroll);
+   RoundRect(PANEL_W-8, thumbY, PANEL_W-5, thumbY+thumbH, 1, T.line, T.ground);
+  }
+
+void DrawConfigContent(void)
+  {
+   int x1 = PAD, x2 = PANEL_W - PAD;
+   int contentStart = ContentTop();
+   int y = contentStart - g_scroll;
+   g_editCount = 0;
+
+   //--- VOLUME
+   int gh = 26 + 42 + 42;
+   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
+   Txt(x1+13, y+17, "VOLUME", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
+   FieldRow(x1, x2, y+26,    "Lote fixo", "Min. 0,01 · passo 0,01", T.dim, g_editCount);
+   FieldRow(x1, x2, y+26+42, "Slippage",  "Desvio maximo aceito",   T.dim, g_editCount);
+   y += gh + 12;
+
+   //--- STOPS
+   gh = 26 + 42 + 42 + 30 + 30;
+   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
+   Txt(x1+13, y+17, "STOPS", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
+   FieldRow  (x1, x2, y+26,     "Stop Loss",   "Abaixo do minimo da corretora", T.bad, g_editCount);
+   FieldRow  (x1, x2, y+26+42,  "Take Profit", "0 desativa",                    T.dim, g_editCount);
+   g_toggleCount = 0;
+   ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", g_toggleCount);
+   ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", g_toggleCount);
+   y += gh + 12;
+
+   //--- TIMEFRAME: exercita o combobox
+   gh = 26 + 32;
+   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
+   Txt(x1+13, y+17, "TIMEFRAME", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
+   DrawComboClosed(x1, x2, y+26, "Timeframe operacional");
+   y += gh + 12;
+
+   //--- Bloco extra so para forcar rolagem
+   gh = 26 + 30 + 30;
+   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
+   Txt(x1+13, y+17, "AVANCADO", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
+   Txt(x1+13, y+41, "Role com roda, arrasto ou setas do teclado", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   Txt(x1+13, y+65, "Bloco extra para exercitar a rolagem", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   y += gh;
+
+   g_contentH = (y + g_scroll) - contentStart;
+  }
 //+------------------------------------------------------------------+
 //| Campos nativos — criados apos o canvas para ficarem por cima      |
 //+------------------------------------------------------------------+
@@ -652,19 +748,32 @@ void Render(void)
    ObjectSetInteger(0, g_canvasName, OBJPROP_XDISTANCE, g_px);
    ObjectSetInteger(0, g_canvasName, OBJPROP_YDISTANCE, g_py);
 
+   g_canvas.Erase(T.ground);
+
    if(g_minimized)
-     {
-      g_canvas.Erase(T.ground);
       DrawTitlebar();
+   else if(g_tab == 5)
+     {
+      //--- Ordem importa: o conteudo rolavel pode transbordar para cima e para
+      //--- baixo, entao ele vem primeiro, as faixas de fora sao repintadas, e o
+      //--- chrome fecha por cima. Assim nenhum recorte precisa ser calculado.
+      DrawConfigContent();
+      g_canvas.FillRectangle(0, 0, PANEL_W-1, ContentTop()-1, T.ground);
+      g_canvas.FillRectangle(0, ContentBottom()+1, PANEL_W-1, PANEL_H-1, T.ground);
+      DrawChrome(false, true);
+      DrawConfigSubtabs();
+      DrawConfigAlert();
+      DrawScrollbar();
+      DrawComboPopup();          // dropdown aberto cobre tudo, entao vem por ultimo
      }
    else
      {
-      bool config = (g_tab == 5);
-      DrawChrome(!config, config);
-      if(config) DrawConfig(); else DrawStatus();
-      //--- contorno externo: separa o painel de qualquer fundo de grafico
-      g_canvas.Rectangle(0, 0, PANEL_W-1, h-1, T.shell);
+      DrawChrome(true, false);
+      DrawStatus();
      }
+
+   if(!g_minimized)
+      g_canvas.Rectangle(0, 0, PANEL_W-1, h-1, T.shell);
 
    g_canvas.Update(false);
    BuildEdits();
@@ -713,6 +822,10 @@ void HandlePress(const int cx,const int cy)
 
    if(g_minimized) return;
 
+   //--- Lista aberta captura o proximo clique, venha de onde vier.
+   if(g_tab == 5 && HandleComboClick(lx, ly))
+      return;
+
    if(ly >= HEADER_BOTTOM && ly < TABS_BOTTOM)
      {
       for(int i = 0; i < TAB_COUNT; ++i)
@@ -751,7 +864,25 @@ void HandlePress(const int cx,const int cy)
             Render();
             return;
            }
+
+      //--- Nenhum controle sob o cursor: o arrasto na area util rola o conteudo.
+      //--- E o que atende touchpad, onde nao ha roda.
+      if(ly >= ContentTop() && ly <= ContentBottom())
+        {
+         g_scrollDrag = true;
+         g_scrollDragY = cy;
+         g_scrollDragBase = g_scroll;
+        }
      }
+  }
+
+void HandleScrollDrag(const int cy)
+  {
+   //--- Arrastar para cima leva o conteudo para cima, como no toque de um
+   //--- celular: o dedo empurra o conteudo, nao a barra de rolagem.
+   int target = g_scrollDragBase + (g_scrollDragY - cy);
+   if(ScrollBy(target - g_scroll))
+      Render();
   }
 
 void HandleDrag(const int cx,const int cy)
@@ -820,20 +951,32 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
       if(g_minimized || g_tab != 5 || !InsidePanel(cx, cy))
          return;
 
+      if(ScrollBy((dparam > 0) ? -40 : 40))
+         Render();
+      return;
+     }
+
+   if(id == CHARTEVENT_KEYDOWN)
+     {
+      //--- So responde com o cursor sobre o painel: senao o EA roubaria as setas
+      //--- de quem esta navegando o grafico.
+      if(g_minimized || g_tab != 5 || !g_overPanel)
+         return;
+
       int viewH = ContentBottom() - ContentTop();
-      int maxScroll = g_contentH - viewH;
-      if(maxScroll <= 0)
-         return;
-
-      int step = (dparam > 0) ? -40 : 40;
-      int ns = g_scroll + step;
-      if(ns < 0) ns = 0;
-      if(ns > maxScroll) ns = maxScroll;
-      if(ns == g_scroll)
-         return;
-
-      g_scroll = ns;
-      Render();
+      int step = 0;
+      switch((int)lparam)
+        {
+         case VK_UP_:    step = -40;        break;
+         case VK_DOWN_:  step =  40;        break;
+         case VK_PRIOR_: step = -viewH;     break;
+         case VK_NEXT_:  step =  viewH;     break;
+         case VK_HOME_:  step = -g_contentH; break;
+         case VK_END_:   step =  g_contentH; break;
+         default: return;
+        }
+      if(ScrollBy(step))
+         Render();
       return;
      }
 
@@ -855,9 +998,14 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
          HandlePress(cx, cy);
       else if(down && g_dragging)
          HandleDrag(cx, cy);
+      else if(down && g_scrollDrag)
+         HandleScrollDrag(cy);
 
-      if(!down && g_dragging)
-         g_dragging = false;
+      if(!down)
+        {
+         g_dragging   = false;
+         g_scrollDrag = false;
+        }
 
       g_mouseDown = down;
       return;
