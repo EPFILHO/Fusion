@@ -257,14 +257,21 @@ void AlertBottom(const int x1,const int x2,const int bottomY,const string title,
    int textX  = x1 + 24;
    int maxW   = (x2 - 14) - textX;
    int lineH  = 15;
-   int lines  = WrapText(textX, 0, maxW, lineH, body, textClr, 82, false);
-   int h      = 30 + lines*lineH + 11;
-   int y      = bottomY - h;
+   int titleH = 16;
+   int gap    = 4;
+   int padV   = 14;
+
+   int lines    = WrapText(textX, 0, maxW, lineH, body, textClr, 82, false);
+   //--- O bloco titulo+texto define a altura, e o respiro fica igual em cima e
+   //--- embaixo: com padding fixo, uma mensagem de 1 ou 3 linhas ficaria torta.
+   int contentH = titleH + gap + lines*lineH;
+   int h        = contentH + 2*padV;
+   int y        = bottomY - h;
 
    RoundRect(x1, y, x2, y+h, 8, bgClr, T.ground);
-   g_canvas.FillRectangle(x1+12, y+13, x1+14, y+h-13, accentClr);
-   Txt(textX, y+21, title, accentClr, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
-   WrapText(textX, y+40, maxW, lineH, body, textClr, 82, true);
+   g_canvas.FillRectangle(x1+12, y+padV, x1+14, y+h-padV, accentClr);
+   Txt(textX, y+padV+titleH/2, title, accentClr, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
+   WrapText(textX, y+padV+titleH+gap+lineH/2, maxW, lineH, body, textClr, 82, true);
   }
 
 void Pill(const int x,const int y,const string label,const uint fg,const uint bg,const uint under)
@@ -306,6 +313,9 @@ void DrawTitlebar(void)
    else
       g_canvas.FillRectangle(mx-6, 17, mx+6, 18, T.muted);
   }
+
+//--- No prototipo a subaba SL/TP esta sempre invalida, para exercitar o estado.
+bool ConfigHasError(void) { return true; }
 
 void DrawChrome(const bool running,const bool dirty)
   {
@@ -368,9 +378,13 @@ void DrawChrome(const bool running,const bool dirty)
       int w = TxtW(g_tabNames[i], FONT_UI, 82, FW_SEMI) + 22;
       g_tabX[i] = tx; g_tabW[i] = w;
       bool on = (i == g_tab);
+      //--- Uma aba herda o erro das suas subabas: quem esta em STATUS precisa
+      //--- enxergar que existe problema em CONFIG sem abrir CONFIG.
+      bool err = (i == 5 && ConfigHasError());
       Txt(tx + w/2, HEADER_BOTTOM + TABS_H/2, g_tabNames[i],
-          on ? T.fg : T.dim, FONT_UI, 82, FW_SEMI, TA_CENTER|TA_VCENTER);
-      if(on) g_canvas.FillRectangle(tx+4, TABS_BOTTOM-3, tx+w-4, TABS_BOTTOM-1, T.accent);
+          err ? T.bad : (on ? T.fg : T.dim), FONT_UI, 82, FW_SEMI, TA_CENTER|TA_VCENTER);
+      if(on)
+         g_canvas.FillRectangle(tx+4, TABS_BOTTOM-3, tx+w-4, TABS_BOTTOM-1, err ? T.bad : T.accent);
       tx += w + 2;
      }
    HLine(0, PANEL_W-1, TABS_BOTTOM-1, T.line);
