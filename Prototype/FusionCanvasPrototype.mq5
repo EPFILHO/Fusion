@@ -218,13 +218,15 @@ int TxtW(const string s,const string font,const int pt10,const int weight)
 
 //--- Quebra o texto pela largura real medida, e nao por contagem de letras:
 //--- rotulo traduzido ou fonte diferente mudaria o ponto de corte.
-void WrapText(const int x,const int y,const int maxW,const int lineH,const string s,
-              const uint clr,const int pt10)
+//--- Quebra pela largura medida. Com draw=false so conta as linhas, o que
+//--- permite dimensionar a caixa antes de desenhar.
+int WrapText(const int x,const int y,const int maxW,const int lineH,const string s,
+             const uint clr,const int pt10,const bool draw)
   {
    string words[];
    int n = StringSplit(s, ' ', words);
    string line = "";
-   int ly = y;
+   int ly = y, count = 0;
 
    for(int i = 0; i < n; ++i)
      {
@@ -233,23 +235,36 @@ void WrapText(const int x,const int y,const int maxW,const int lineH,const strin
          line = cand;
       else
         {
-         Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
-         ly += lineH;
+         if(draw) Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+         ly += lineH; count++;
          line = words[i];
         }
      }
    if(line != "")
-      Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+     {
+      if(draw) Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+      count++;
+     }
+   return count;
   }
 
-//--- Aviso com faixa de severidade e texto que respeita a caixa.
-void Alert(const int x1,const int x2,const int y,const int h,const string title,
-           const string body,const uint accentClr,const uint bgClr,const uint textClr)
+//--- Aviso ancorado no rodape que CRESCE conforme o texto. O painel atual nao
+//--- consegue isso: ele tem tres CLabel fixos e corta em 174 caracteres. Aqui a
+//--- mensagem define a altura da caixa, entao nenhuma instrucao se perde.
+void AlertBottom(const int x1,const int x2,const int bottomY,const string title,
+                 const string body,const uint accentClr,const uint bgClr,const uint textClr)
   {
+   int textX  = x1 + 24;
+   int maxW   = (x2 - 14) - textX;
+   int lineH  = 15;
+   int lines  = WrapText(textX, 0, maxW, lineH, body, textClr, 82, false);
+   int h      = 30 + lines*lineH + 11;
+   int y      = bottomY - h;
+
    RoundRect(x1, y, x2, y+h, 8, bgClr, T.ground);
    g_canvas.FillRectangle(x1+12, y+13, x1+14, y+h-13, accentClr);
-   Txt(x1+24, y+21, title, accentClr, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
-   WrapText(x1+24, y+40, (x2-14) - (x1+24), 15, body, textClr, 82);
+   Txt(textX, y+21, title, accentClr, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
+   WrapText(textX, y+40, maxW, lineH, body, textClr, 82, true);
   }
 
 void Pill(const int x,const int y,const string label,const uint fg,const uint bg,const uint under)
@@ -402,9 +417,9 @@ void DrawStatus(void)
       y += 32;
      }
 
-   Alert(x1, x2, PANEL_H - PAD - 62, 62, "SESSAO",
-         "Janela operacional encerra as 18:00. Entradas novas bloqueiam 5 min antes.",
-         T.warn, T.warnDim, T.alertTextWarn);
+   AlertBottom(x1, x2, PANEL_H - PAD, "SESSAO",
+               "Janela operacional encerra as 18:00. Entradas novas bloqueiam 5 min antes.",
+               T.warn, T.warnDim, T.alertTextWarn);
   }
 
 //+------------------------------------------------------------------+
@@ -439,12 +454,18 @@ void DrawConfig(void)
      {
       int w = TxtW(g_subNames[i], FONT_UI, 78, FW_BOLD_) + 22;
       g_subX[i] = sx; g_subW[i] = w;
-      bool on = (i == g_subtab), err = (i == 1 && !on);
-      if(on)       RoundFrame(sx, y, sx+w, y+26, 5, T.accent, T.accentDim, T.ground);
-      else if(err) RoundFrame(sx, y, sx+w, y+26, 5, T.bad, T.surface, T.ground);
-      else         RoundRect (sx, y, sx+w, y+26, 5, T.surface, T.ground);
+      //--- Selecao e erro sao estados independentes e devem ser lidos juntos: o
+      //--- preenchimento diz qual esta aberta, a cor diz qual precisa de atencao.
+      //--- Se a selecao apagasse o vermelho, abrir a subaba com problema faria o
+      //--- problema sumir da tela justamente ao ir resolve-lo.
+      bool on  = (i == g_subtab);
+      bool err = (i == 1);
+      if(on && err) RoundFrame(sx, y, sx+w, y+26, 5, T.bad, T.badDim, T.ground);
+      else if(on)   RoundFrame(sx, y, sx+w, y+26, 5, T.accent, T.accentDim, T.ground);
+      else if(err)  RoundFrame(sx, y, sx+w, y+26, 5, T.bad, T.surface, T.ground);
+      else          RoundRect (sx, y, sx+w, y+26, 5, T.surface, T.ground);
       Txt(sx+w/2, y+13, g_subNames[i],
-          on ? T.accentStr : (err ? T.bad : T.dim), FONT_UI, 78, FW_BOLD_, TA_CENTER|TA_VCENTER);
+          err ? T.bad : (on ? T.accentStr : T.dim), FONT_UI, 78, FW_BOLD_, TA_CENTER|TA_VCENTER);
       sx += w + 6;
      }
    y += 38;
@@ -466,9 +487,11 @@ void DrawConfig(void)
    ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", true);
    ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", false);
 
-   Alert(x1, x2, PANEL_H - PAD - 62, 62, "SL/TP",
-         "Stop Loss de 120 pts esta abaixo do minimo exigido pela corretora (180 pts) para BTCUSD.",
-         T.bad, T.badDim, T.alertTextBad);
+   //--- Texto longo de proposito: e a mensagem mais extensa do projeto (193
+   //--- caracteres), usada aqui para provar que a caixa acompanha.
+   AlertBottom(x1, x2, PANEL_H - PAD, "PERFIL",
+               "Perfil BTCUSD do grafico nao pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operacao. Assumir outro mudaria lote e Magic.",
+               T.bad, T.badDim, T.alertTextBad);
   }
 
 //+------------------------------------------------------------------+

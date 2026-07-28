@@ -270,8 +270,10 @@ private:
            }
          else
            {
-            ApplyRuntimeBlock("O grafico usava o perfil " + restoredProfile +
-                              ", que nao pode ser carregado. O Fusion nao assume outro perfil sozinho porque isso mudaria lote e Magic. Carregue um perfil na aba PERFIS para liberar a operacao.");
+            // O aviso do painel corta em 174 caracteres. A instrucao acionavel
+            // vem primeiro; o porque completo esta em docs/DECISIONS.md (20).
+            ApplyRuntimeBlock("Perfil " + restoredProfile +
+                              " do grafico nao pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operacao. Assumir outro mudaria lote e Magic.");
             m_runtimeBlockedByChartProfile = true;
            }
         }

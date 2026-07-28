@@ -168,7 +168,7 @@ public:
       else if(snapshot.activeProfileFileMissing)
         {
          noticeTitle = "PERFIL SEM ARQUIVO";
-         noticeText = "O perfil " + snapshot.activeProfileName + " nao existe mais em disco. O EA segue com os valores do estado do grafico. Salve para recriar o arquivo ou carregue outro perfil.";
+         noticeText = "Perfil " + snapshot.activeProfileName + " sem arquivo em disco. O EA segue com os valores do estado do grafico. Salve para recriar o arquivo.";
          noticeColor = FUSION_CLR_WARN;
         }
       else if(snapshot.hasPosition && !snapshot.started)
