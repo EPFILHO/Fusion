@@ -146,6 +146,13 @@ int      g_subX[SUBTAB_COUNT], g_subW[SUBTAB_COUNT];
 int      g_editY[4];
 int      g_editCount = 0;
 
+//--- Toggles: estado proprio e caixa de clique publicada pelo desenho, pelo
+//--- mesmo motivo dos campos — alvo e pintura nao podem divergir.
+#define TOGGLE_COUNT 2
+bool     g_toggleOn[TOGGLE_COUNT] = {true, false};
+int      g_toggleX[TOGGLE_COUNT], g_toggleY[TOGGLE_COUNT];
+int      g_toggleCount = 0;
+
 //+------------------------------------------------------------------+
 //| Helpers de desenho                                                |
 //+------------------------------------------------------------------+
@@ -449,12 +456,16 @@ void FieldRow(const int gx1,const int gx2,const int ry,const string label,
    editSlot++;
   }
 
-void ToggleRow(const int gx1,const int gx2,const int ry,const string label,const bool on)
+void ToggleRow(const int gx1,const int gx2,const int ry,const string label,int &slot)
   {
+   bool on = g_toggleOn[slot];
    Txt(gx1+13, ry+15, label, T.fg, FONT_UI, 88, FW_NORMAL_, TA_LEFT|TA_VCENTER);
    int tx = gx2 - 13 - 40, ty = ry + 4;
    RoundRect(tx, ty, tx+40, ty+22, 11, on ? T.good : T.toggleOff, T.surface);
    g_canvas.FillCircle(on ? tx+29 : tx+11, ty+11, 9, T.knob);
+   g_toggleX[slot] = tx;
+   g_toggleY[slot] = ty;
+   slot++;
   }
 
 void DrawConfig(void)
@@ -498,8 +509,9 @@ void DrawConfig(void)
    Txt(x1+13, y+17, "STOPS", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
    FieldRow  (x1, x2, y+26,     "Stop Loss",   "Abaixo do minimo da corretora", T.bad, g_editCount);
    FieldRow  (x1, x2, y+26+42,  "Take Profit", "0 desativa",                    T.dim, g_editCount);
-   ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", true);
-   ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", false);
+   g_toggleCount = 0;
+   ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", g_toggleCount);
+   ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", g_toggleCount);
 
    //--- Texto longo de proposito: e a mensagem mais extensa do projeto (193
    //--- caracteres), usada aqui para provar que a caixa acompanha.
@@ -645,12 +657,27 @@ void HandlePress(const int cx,const int cy)
      {
       int sy = TABS_BOTTOM + PAD;
       if(ly >= sy && ly < sy+26)
+        {
          for(int i = 0; i < SUBTAB_COUNT; ++i)
             if(lx >= g_subX[i] && lx < g_subX[i]+g_subW[i])
               {
                if(g_subtab != i) { g_subtab = i; Render(); }
                return;
               }
+         return;
+        }
+
+      //--- Area de clique um pouco maior que o desenho: o alvo tem 40x22 e
+      //--- exigir precisao de pixel num toggle irrita mais do que ajuda.
+      for(int t = 0; t < g_toggleCount; ++t)
+         if(lx >= g_toggleX[t]-6 && lx < g_toggleX[t]+46 &&
+            ly >= g_toggleY[t]-6 && ly < g_toggleY[t]+28)
+           {
+            g_toggleOn[t] = !g_toggleOn[t];
+            Print("Toggle ", t, " agora: ", (g_toggleOn[t] ? "ON" : "OFF"));
+            Render();
+            return;
+           }
      }
   }
 
