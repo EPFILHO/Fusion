@@ -33,6 +33,7 @@ EA. Ele foi anexado a um grafico real e respondeu:
 | `OBJ_EDIT` fica acima do canvas e aceita digitacao? | Sim. Valores digitados chegam por `CHARTEVENT_OBJECT_ENDEDIT`. |
 | Alvo desenhado recebe clique? | Sim. Abas, subabas e toggles sao pixels; o clique chega por `CHARTEVENT_MOUSE_MOVE` e e resolvido por coordenada. |
 | Arrastar e minimizar? | Sim, mas precisam ser implementados — ver secao 4. |
+| Conteudo rolavel convive com campos nativos? | Sim, com a regra de recorte abaixo. |
 
 ### Regras tecnicas confirmadas
 
@@ -49,6 +50,20 @@ EA. Ele foi anexado a um grafico real e respondeu:
   misturando com a cor de fundo conhecida (`RoundRect` no prototipo).
 - **`color` do MQL5 e BGR; o canvas trabalha em ARGB.** Converter explicitamente
   ao configurar objetos nativos, senao vermelho vira azul.
+- **Objeto nativo nao se recorta.** Rolar o canvas e so um deslocamento no Y do
+  desenho, mas um `OBJ_EDIT` parcialmente fora da area util seria desenhado
+  inteiro pelo terminal, vazando por cima das abas ou do rodape. Regra: campo que
+  nao cabe **inteiro** na area visivel e destruido, nao reposicionado. E depois de
+  pintar o conteudo, repintar as faixas de fora da area util — e isso que devolve
+  ao canvas o recorte que ele nao faz sozinho.
+- **Publicar a caixa de clique durante o desenho.** Alvo e pintura nao podem
+  divergir, e o alvo passa a acompanhar a rolagem sem nenhuma aritmetica extra.
+  Ainda assim, verificar explicitamente se o controle esta dentro da area visivel
+  antes de aceitar o clique: a caixa publicada sozinha nao prova que ele esta na
+  tela.
+- **Roda do mouse:** `CHARTEVENT_MOUSE_WHEEL` exige `CHART_EVENT_MOUSE_WHEEL`
+  habilitado. `lparam` empacota X na palavra baixa e Y na alta; `dparam` traz o
+  delta.
 
 ---
 
