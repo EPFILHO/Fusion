@@ -631,15 +631,70 @@ void DrawConfigAlert(void)
                T.bad, T.badDim, T.alertTextBad);
   }
 
+//--- Geometria da barra, compartilhada entre desenho e clique.
+#define SB_X       (PANEL_W-10)
+#define SB_W        5
+#define SB_ARROW   12
+
+void ChevronUp(const int cx,const int cy,const uint clr)
+  {
+   for(int i = 0; i < 4; ++i)
+      g_canvas.FillRectangle(cx-3+i, cy+3-i, cx+3-i, cy+3-i, clr);
+  }
+
+void ChevronDown(const int cx,const int cy,const uint clr)
+  {
+   for(int i = 0; i < 4; ++i)
+      g_canvas.FillRectangle(cx-3+i, cy+i, cx+3-i, cy+i, clr);
+  }
+
+//--- Trilho visivel e setas direcionais. So a alcinha era discreto demais para
+//--- avisar que existe conteudo fora da vista; a seta acesa diz para que lado
+//--- ainda da para ir, e a apagada diz que aquele lado acabou.
 void DrawScrollbar(void)
   {
-   int viewH = ContentBottom() - ContentTop();
+   int top = ContentTop(), bottom = ContentBottom();
+   int viewH = bottom - top;
    if(g_contentH <= viewH)
       return;
-   int thumbH = (int)MathMax(24, (double)viewH * viewH / g_contentH);
+
    int maxScroll = g_contentH - viewH;
-   int thumbY = ContentTop() + (int)((double)(viewH - thumbH) * g_scroll / maxScroll);
-   RoundRect(PANEL_W-8, thumbY, PANEL_W-5, thumbY+thumbH, 1, T.line, T.ground);
+   int trackTop  = top + SB_ARROW;
+   int trackBot  = bottom - SB_ARROW;
+   int trackH    = trackBot - trackTop;
+
+   RoundRect(SB_X, trackTop, SB_X+SB_W, trackBot, 2, T.lineSoft, T.ground);
+
+   int thumbH = (int)MathMax(26, (double)trackH * viewH / g_contentH);
+   int thumbY = trackTop + (int)((double)(trackH - thumbH) * g_scroll / maxScroll);
+   RoundRect(SB_X, thumbY, SB_X+SB_W, thumbY+thumbH, 2, T.dim, T.lineSoft);
+
+   int cx = SB_X + SB_W/2;
+   ChevronUp  (cx, top + 4,     (g_scroll > 0)         ? T.accent : T.lineSoft);
+   ChevronDown(cx, bottom - 11, (g_scroll < maxScroll) ? T.accent : T.lineSoft);
+  }
+
+//--- As setas tambem rolam ao clique: quarta entrada, para quem nao usa roda,
+//--- nao arrasta e nao recorre ao teclado.
+bool HandleScrollbarClick(const int lx,const int ly)
+  {
+   int top = ContentTop(), bottom = ContentBottom();
+   if(g_contentH <= bottom - top)
+      return false;
+   if(lx < SB_X - 5 || lx > SB_X + SB_W + 5)
+      return false;
+
+   if(ly >= top && ly < top + SB_ARROW)
+     {
+      if(ScrollBy(-40)) Render();
+      return true;
+     }
+   if(ly <= bottom && ly > bottom - SB_ARROW)
+     {
+      if(ScrollBy(40)) Render();
+      return true;
+     }
+   return false;
   }
 
 void DrawConfigContent(void)
@@ -839,6 +894,9 @@ void HandlePress(const int cx,const int cy)
 
    if(g_tab == 5)
      {
+      if(HandleScrollbarClick(lx, ly))
+         return;
+
       int sy = TABS_BOTTOM + PAD;
       if(ly >= sy && ly < sy+26)
         {
@@ -867,7 +925,9 @@ void HandlePress(const int cx,const int cy)
 
       //--- Nenhum controle sob o cursor: o arrasto na area util rola o conteudo.
       //--- E o que atende touchpad, onde nao ha roda.
-      if(ly >= ContentTop() && ly <= ContentBottom())
+      //--- A faixa da barra fica de fora: ali o arrasto do conteudo iria para o
+      //--- lado oposto do que se espera ao puxar uma barra de rolagem.
+      if(ly >= ContentTop() && ly <= ContentBottom() && lx < SB_X - 5)
         {
          g_scrollDrag = true;
          g_scrollDragY = cy;
