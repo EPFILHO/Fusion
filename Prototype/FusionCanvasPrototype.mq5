@@ -155,6 +155,26 @@ int  g_comboIndex=0; bool g_comboOpen=false;
 int  g_comboX=0, g_comboY=0, g_comboW=0;
 int  g_profSel = 0;
 
+//--- Grade de cores. O MQL5 nao expoe o seletor do Windows (so via DLL, que
+//--- exige permissao do usuario e nao cabe num EA distribuido). No canvas a
+//--- grade e melhor de qualquer forma: uma escolha em vez de onze cliques
+//--- ciclando a paleta, que e como o painel atual funciona.
+#define SWATCH_COUNT 12
+uint g_swatches[SWATCH_COUNT] =
+  {
+   OPAQUE(0,230,118),  OPAQUE(0,137,71),   OPAQUE(255,82,82),  OPAQUE(176,0,32),
+   OPAQUE(233,30,99),  OPAQUE(41,121,255), OPAQUE(26,35,126),  OPAQUE(255,214,0),
+   OPAQUE(255,171,0),  OPAQUE(0,229,255),  OPAQUE(255,109,0),  OPAQUE(236,239,241)
+  };
+int  g_colorSel[3] = {0,2,5};
+int  g_colorOpen = -1;               // qual seletor esta aberto
+int  g_colorX[3], g_colorY[3];
+int  g_colorCount = 0;
+
+//--- barra de rolagem: geometria publicada pelo desenho
+int  g_thumbY=0, g_thumbH=0, g_trackTop=0, g_trackH=0;
+bool g_barDrag=false; int g_barDragY=0, g_barDragBase=0;
+
 #define VK_PRIOR_ 33
 #define VK_NEXT_  34
 #define VK_HOME_  36
@@ -298,10 +318,20 @@ void DrawTitlebar(void)
    int bw=TxtW("EP Fusion",FONT_UI,95,FW_SEMI);
    Txt(13+bw+8,17,"2.000",T.faint,FONT_MONO,80,FW_NORMAL_,TA_LEFT|TA_VCENTER);
 
-   int tx=PANEL_W-52;
+   //--- tema
+   int tx=PANEL_W-76;
    g_canvas.Circle(tx,16,7,T.muted);
    for(int dy=-6;dy<=6;++dy) for(int dx=-6;dx<=0;++dx)
       if(dx*dx+dy*dy<=36) g_canvas.PixelSet(tx+dx,16+dy,T.muted);
+
+   //--- reajustar altura ao grafico. O painel nunca cresce sozinho, entao
+   //--- precisa de um caminho explicito para voltar a ocupar o espaco.
+   int rx=PANEL_W-50;
+   for(int i=0;i<4;++i)
+     {
+      g_canvas.FillRectangle(rx-4+i,19-i,rx+4-i,19-i,T.muted);   // seta para cima
+      g_canvas.FillRectangle(rx-4+i,13+i,rx+4-i,13+i,T.muted);   // e para baixo
+     }
 
    int mx=PANEL_W-24;
    if(g_minimized)
@@ -363,8 +393,12 @@ void DrawHeader(void)
 //+------------------------------------------------------------------+
 //| Area util rolavel                                                 |
 //+------------------------------------------------------------------+
+//--- Folga entre os dois fichários: apertada de proposito. Eles sao niveis
+//--- vizinhos da mesma hierarquia e devem parecer encaixados, nao separados.
+#define F2_GAP 7
 int Surf1Top(void)   { return F1_BOTTOM; }
-int ContentTop(void) { return (g_tab==5) ? F1_BOTTOM + PAD + F2_H + PAD : F1_BOTTOM + PAD; }
+int F2Top(void)      { return F1_BOTTOM + F2_GAP; }
+int ContentTop(void) { return (g_tab==5) ? F2Top() + F2_H + 10 : F1_BOTTOM + PAD; }
 int ContentBottom(void){ return g_ph - PAD - g_alertH - (g_alertH>0 ? 9 : 0); }
 
 bool ScrollBy(const int d)
@@ -443,6 +477,57 @@ void DrawComboClosed(const int gx1,const int gx2,const int ry,const string label
    Txt(cx+10,cy+EDIT_H/2,g_comboItems[g_comboIndex],T.fg,FONT_MONO,90,FW_NORMAL_,TA_LEFT|TA_VCENTER);
    int ax=cx+w-15, ay=cy+EDIT_H/2-2;
    for(int i=0;i<4;++i) g_canvas.FillRectangle(ax-3+i,ay+i,ax+3-i,ay+i,T.muted);
+  }
+
+void ColorRow(const int gx1,const int gx2,const int ry,const string label,int &slot)
+  {
+   Txt(gx1+12,ry+15,label,T.fg,FONT_UI,88,FW_NORMAL_,TA_LEFT|TA_VCENTER);
+   int w=64, cx=gx2-12-w, cy=ry+4;
+   g_colorX[slot]=cx; g_colorY[slot]=cy;
+   RoundFrame(cx,cy,cx+w,cy+22,5,(g_colorOpen==slot)?T.acc:T.line,g_swatches[g_colorSel[slot]],T.surface);
+   slot++;
+  }
+
+//--- Grade aberta por ultimo, como o combo: no canvas basta ordem de desenho.
+void DrawColorPopup(void)
+  {
+   if(g_colorOpen<0) return;
+   int cell=26, cols=4, rows=SWATCH_COUNT/cols;
+   int w=cols*cell+10, h=rows*cell+10;
+   int x=g_colorX[g_colorOpen]+64-w;
+   int y=g_colorY[g_colorOpen]+24;
+   if(y+h>g_ph-PAD) y=g_colorY[g_colorOpen]-h-2;
+   RoundFrame(x,y,x+w,y+h,6,T.acc,T.surface,T.ground);
+   for(int i=0;i<SWATCH_COUNT;++i)
+     {
+      int cxx=x+5+(i%cols)*cell, cyy=y+5+(i/cols)*cell;
+      bool sel=(i==g_colorSel[g_colorOpen]);
+      RoundFrame(cxx+1,cyy+1,cxx+cell-3,cyy+cell-3,4,
+                 sel?T.fg:T.line,g_swatches[i],T.surface);
+     }
+  }
+
+bool HandleColorClick(const int lx,const int ly)
+  {
+   if(g_colorOpen>=0)
+     {
+      int cell=26, cols=4, rows=SWATCH_COUNT/cols;
+      int w=cols*cell+10, h=rows*cell+10;
+      int x=g_colorX[g_colorOpen]+64-w, y=g_colorY[g_colorOpen]+24;
+      if(y+h>g_ph-PAD) y=g_colorY[g_colorOpen]-h-2;
+      if(lx>=x && lx<x+w && ly>=y && ly<y+h)
+        {
+         int c=(lx-x-5)/cell, r=(ly-y-5)/cell;
+         int idx=r*cols+c;
+         if(c>=0 && c<cols && idx>=0 && idx<SWATCH_COUNT)
+           { g_colorSel[g_colorOpen]=idx; Print("Cor ",g_colorOpen," -> indice ",idx); }
+        }
+      g_colorOpen=-1; Render(); return true;
+     }
+   for(int i=0;i<g_colorCount;++i)
+      if(lx>=g_colorX[i] && lx<g_colorX[i]+64 && ly>=g_colorY[i] && ly<g_colorY[i]+22)
+        { g_colorOpen=i; Render(); return true; }
+   return false;
   }
 
 void DrawComboPopup(void)
@@ -543,6 +628,31 @@ void DrawConfigContent(void)
   {
    int railX=PAD, paneX=PAD+RAIL_W+2, x2=PANEL_W-PAD;
    int top=ContentTop();
+   g_colorCount=0;
+
+   //--- Sistema e Visual nao tem terceiro nivel: sem trilho, conteudo cheio.
+   if(g_cfg>=2)
+     {
+      int yv=top-g_scroll;
+      int ghv=26+34+34+34;
+      RoundRect(PAD,yv,x2,yv+ghv,8,T.surface,T.ground);
+      Txt(PAD+12,yv+17,(g_cfg==2)?"IDENTIFICACAO":"CORES DAS LINHAS",
+          T.faint,FONT_UI,78,FW_SEMI,TA_LEFT|TA_VCENTER);
+      if(g_cfg==3)
+        {
+         ColorRow(PAD,x2,yv+26,"Media rapida",g_colorCount);
+         ColorRow(PAD,x2,yv+60,"Media lenta",g_colorCount);
+         ColorRow(PAD,x2,yv+94,"Bandas",g_colorCount);
+        }
+      else
+        {
+         g_editCount=0;
+         FieldRow(PAD,x2,yv+26,"Magic Number","Identifica as ordens deste grafico",T.faint,g_editCount);
+         FieldRow(PAD,x2,yv+68,"Slippage","Desvio maximo aceito",T.faint,g_editCount);
+        }
+      g_contentH=ghv;
+      return;
+     }
 
    if(g_cfg==0)      DrawRail(railX,top,ContentBottom()-top,g_railRisco,5,g_rail>=5?0:g_rail,0);
    else if(g_cfg==1) DrawRail(railX,top,ContentBottom()-top,g_railProt,7,g_rail,1);
@@ -575,24 +685,61 @@ void DrawConfigContent(void)
    g_contentH=(y+g_scroll)-top;
   }
 
+#define SB_X    (PANEL_W-11)
+#define SB_W      6
+#define SB_ARROW 14
+
 void DrawScrollbar(void)
   {
    int top=ContentTop(), bottom=ContentBottom(), viewH=bottom-top;
+   g_trackH=0;
    if(g_contentH<=viewH) return;
    int maxS=g_contentH-viewH;
-   int tTop=top+12, tBot=bottom-12, tH=tBot-tTop;
-   RoundRect(PANEL_W-10,tTop,PANEL_W-5,tBot,2,T.soft,T.surface);
-   int thH=(int)MathMax(26,(double)tH*viewH/g_contentH);
-   int thY=tTop+(int)((double)(tH-thH)*g_scroll/maxS);
-   RoundRect(PANEL_W-10,thY,PANEL_W-5,thY+thH,2,T.faint,T.soft);
-   int cx=PANEL_W-8;
+   g_trackTop=top+SB_ARROW;
+   int tBot=bottom-SB_ARROW;
+   g_trackH=tBot-g_trackTop;
+   RoundRect(SB_X,g_trackTop,SB_X+SB_W,tBot,3,T.soft,T.surface);
+   g_thumbH=(int)MathMax(28,(double)g_trackH*viewH/g_contentH);
+   g_thumbY=g_trackTop+(int)((double)(g_trackH-g_thumbH)*g_scroll/maxS);
+   RoundRect(SB_X,g_thumbY,SB_X+SB_W,g_thumbY+g_thumbH,3,T.faint,T.soft);
+   int cx=SB_X+SB_W/2;
    for(int i=0;i<4;++i)
      {
       uint cu=(g_scroll>0)?T.acc:T.soft;
       uint cd=(g_scroll<maxS)?T.acc:T.soft;
-      g_canvas.FillRectangle(cx-3+i,top+7-i,cx+3-i,top+7-i,cu);
-      g_canvas.FillRectangle(cx-3+i,bottom-11+i,cx+3-i,bottom-11+i,cd);
+      g_canvas.FillRectangle(cx-3+i,top+8-i,cx+3-i,top+8-i,cu);
+      g_canvas.FillRectangle(cx-3+i,bottom-12+i,cx+3-i,bottom-12+i,cd);
      }
+  }
+
+//--- Setas, alcinha e trilho. A alcinha arrasta na direcao da barra; o trilho
+//--- pagina. Sao gestos diferentes do arrasto do conteudo, que vai ao contrario.
+bool HandleScrollbarClick(const int lx,const int ly)
+  {
+   if(g_trackH<=0) return false;
+   int top=ContentTop(), bottom=ContentBottom();
+   if(lx<SB_X-6 || lx>SB_X+SB_W+6) return false;
+
+   if(ly>=top && ly<top+SB_ARROW)      { if(ScrollBy(-40)) Render(); return true; }
+   if(ly<=bottom && ly>bottom-SB_ARROW){ if(ScrollBy( 40)) Render(); return true; }
+
+   if(ly>=g_thumbY && ly<g_thumbY+g_thumbH)
+     { g_barDrag=true; g_barDragY=ly; g_barDragBase=g_scroll; return true; }
+
+   int page=(bottom-top);
+   if(ly<g_thumbY)      { if(ScrollBy(-page)) Render(); return true; }
+   if(ly>=g_thumbY+g_thumbH) { if(ScrollBy(page)) Render(); return true; }
+   return true;
+  }
+
+void HandleBarDrag(const int ly)
+  {
+   int viewH=ContentBottom()-ContentTop();
+   int maxS=g_contentH-viewH;
+   int span=g_trackH-g_thumbH;
+   if(maxS<=0 || span<=0) return;
+   int target=g_barDragBase+(int)((double)(ly-g_barDragY)*maxS/span);
+   if(ScrollBy(target-g_scroll)) Render();
   }
 
 //+------------------------------------------------------------------+
@@ -675,9 +822,10 @@ void Render(void)
 
       if(g_tab==5)
         {
-         FolderStrip(F1_BOTTOM+PAD,F2_H,PAD,PANEL_W-PAD,g_cfgNames,CFG_COUNT,g_cfg,78,T.ground,g_cfgX,g_cfgW,true,1);
+         FolderStrip(F2Top(),F2_H,PAD,PANEL_W-PAD,g_cfgNames,CFG_COUNT,g_cfg,82,T.ground,g_cfgX,g_cfgW,true,1);
          DrawScrollbar();
          DrawComboPopup();
+         DrawColorPopup();
         }
       else if(g_tab==4) DrawProfilesScreen();
       else              DrawStatusScreen();
@@ -727,12 +875,16 @@ void HandlePress(const int cx,const int cy)
    if(ly<TITLEBAR_H)
      {
       if(lx>=PANEL_W-40) { g_minimized=!g_minimized; Render(); return; }
-      if(lx>=PANEL_W-66 && lx<PANEL_W-40)
+      if(lx>=PANEL_W-64 && lx<PANEL_W-40)
+        { g_ph=DecidePanelHeight(); g_scroll=0; Render();
+          Print("Altura reajustada ao grafico: ",g_ph,"px"); return; }
+      if(lx>=PANEL_W-90 && lx<PANEL_W-64)
         { g_userTheme=true; if(g_dark) ApplyLight(); else ApplyDark(); Render(); return; }
       g_dragging=true; g_dragDX=lx; g_dragDY=ly; return;
      }
    if(g_minimized) return;
 
+   if(g_tab==5 && HandleColorClick(lx,ly)) return;
    if(g_tab==5 && HandleComboClick(lx,ly)) return;
 
    //--- botoes do cabecalho: alternam o estado de pendencia, para exercitar
@@ -753,7 +905,7 @@ void HandlePress(const int cx,const int cy)
 
    if(g_tab==5)
      {
-      int f2y=F1_BOTTOM+PAD;
+      int f2y=F2Top();
       if(ly>=f2y && ly<f2y+F2_H)
         {
          for(int i=0;i<CFG_COUNT;++i)
@@ -762,7 +914,9 @@ void HandlePress(const int cx,const int cy)
          return;
         }
 
-      if(lx<PAD+RAIL_W)
+      if(HandleScrollbarClick(lx,ly)) return;
+
+      if(g_cfg<2 && lx<PAD+RAIL_W)
         {
          for(int i=0;i<g_railCount;++i)
             if(ly>=g_railY[i] && ly<g_railY[i]+RAIL_ROW)
@@ -899,9 +1053,10 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
 
       if(down && !g_mouseDown && over)   HandlePress(cx,cy);
       else if(down && g_dragging)        HandleDrag(cx,cy);
+      else if(down && g_barDrag)         HandleBarDrag(cy-g_py);
       else if(down && g_scrollDrag)      HandleScrollDrag(cy);
 
-      if(!down) { g_dragging=false; g_scrollDrag=false; }
+      if(!down) { g_dragging=false; g_scrollDrag=false; g_barDrag=false; }
       g_mouseDown=down;
       return;
      }
