@@ -83,6 +83,22 @@ Ordem usada pelo script:
 3. `VisualIndicators/FusionVisualRSI.mq5`;
 4. `Fusion.mq5`.
 
+### Projeto fora da pasta MQL5
+
+A partir do MetaEditor `5.0.0.6061`, o compilador exige que os arquivos declarados em `#resource` resolvam dentro da arvore `MQL5`. Um clone mantido fora dela falha com `error 313: invalid resource path` nos tres indicadores, mesmo com o codigo correto.
+
+Use `build-linked.ps1` nesse caso. Ele cria um vinculo de diretorio em `MQL5\Experts\FusionBuild\<nome-da-pasta>`, chama o `build.ps1` por esse caminho e remove o vinculo ao final. Os EX5 continuam sendo gravados na pasta do projeto, e o repositorio permanece onde esta.
+
+```powershell
+.\build-linked.ps1 `
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
+  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+```
+
+Ambos os parametros sao obrigatorios aqui. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
+
+Se o clone ja estiver dentro de `MQL5`, o `build.ps1` sozinho basta.
+
 ### Uso com caminhos explicitos
 
 Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5:
