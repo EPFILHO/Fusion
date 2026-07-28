@@ -46,14 +46,17 @@ struct STheme
 
 STheme T;
 bool   g_dark = true;
+bool   g_userTheme = false;   // usuario escolheu pelo painel: nao sobrescrever
 
 void ApplyDark(void)
   {
    T.ground=OPAQUE(15,19,25);      T.surface=OPAQUE(23,28,36);
    T.raised=OPAQUE(30,36,46);      T.line=OPAQUE(38,46,58);
    T.lineSoft=OPAQUE(31,38,48);
-   T.fg=OPAQUE(228,233,240);       T.muted=OPAQUE(125,136,153);
-   T.dim=OPAQUE(90,101,119);
+   //--- Sobre fundo escuro o olho perde tom baixo antes do esperado; muted e dim
+   //--- ficam mais claros aqui do que a simetria com o tema claro sugeriria.
+   T.fg=OPAQUE(233,238,245);       T.muted=OPAQUE(154,166,184);
+   T.dim=OPAQUE(122,134,152);
    T.accent=OPAQUE(62,159,224);    T.accentStr=OPAQUE(95,180,236);
    T.accentDim=OPAQUE(35,68,95);
    T.good=OPAQUE(47,191,113);      T.goodDim=OPAQUE(22,53,42);
@@ -213,6 +216,42 @@ int TxtW(const string s,const string font,const int pt10,const int weight)
    return (int)g_canvas.TextWidth(s);
   }
 
+//--- Quebra o texto pela largura real medida, e nao por contagem de letras:
+//--- rotulo traduzido ou fonte diferente mudaria o ponto de corte.
+void WrapText(const int x,const int y,const int maxW,const int lineH,const string s,
+              const uint clr,const int pt10)
+  {
+   string words[];
+   int n = StringSplit(s, ' ', words);
+   string line = "";
+   int ly = y;
+
+   for(int i = 0; i < n; ++i)
+     {
+      string cand = (line == "") ? words[i] : line + " " + words[i];
+      if(TxtW(cand, FONT_UI, pt10, FW_NORMAL_) <= maxW || line == "")
+         line = cand;
+      else
+        {
+         Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+         ly += lineH;
+         line = words[i];
+        }
+     }
+   if(line != "")
+      Txt(x, ly, line, clr, FONT_UI, pt10, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+  }
+
+//--- Aviso com faixa de severidade e texto que respeita a caixa.
+void Alert(const int x1,const int x2,const int y,const int h,const string title,
+           const string body,const uint accentClr,const uint bgClr,const uint textClr)
+  {
+   RoundRect(x1, y, x2, y+h, 8, bgClr, T.ground);
+   g_canvas.FillRectangle(x1+12, y+13, x1+14, y+h-13, accentClr);
+   Txt(x1+24, y+21, title, accentClr, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
+   WrapText(x1+24, y+40, (x2-14) - (x1+24), 15, body, textClr, 82);
+  }
+
 void Pill(const int x,const int y,const string label,const uint fg,const uint bg,const uint under)
   {
    int w = TxtW(label, FONT_UI, 80, FW_BOLD_) + 30;
@@ -231,6 +270,14 @@ void DrawTitlebar(void)
    Txt(14, 17, "EP Fusion", T.fg, FONT_UI, 95, FW_SEMI, TA_LEFT|TA_VCENTER);
    int bw = TxtW("EP Fusion", FONT_UI, 95, FW_SEMI);
    Txt(14+bw+8, 18, "1.058", T.dim, FONT_MONO, 80, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+
+   //--- alternador de tema: circulo com metade preenchida
+   int tx = PANEL_W - 52;
+   g_canvas.Circle(tx, 17, 7, T.muted);
+   for(int dy = -6; dy <= 6; ++dy)
+      for(int dx = -6; dx <= 0; ++dx)
+         if(dx*dx + dy*dy <= 36)
+            g_canvas.PixelSet(tx+dx, 17+dy, T.muted);
 
    //--- botao minimizar / restaurar
    int mx = PANEL_W - 24;
@@ -355,12 +402,9 @@ void DrawStatus(void)
       y += 32;
      }
 
-   int ay = PANEL_H - PAD - 58;
-   RoundRect(x1, ay, x2, ay+58, 8, T.warnDim, T.ground);
-   g_canvas.FillRectangle(x1+12, ay+13, x1+14, ay+45, T.warn);
-   Txt(x1+24, ay+21, "SESSAO", T.warn, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
-   Txt(x1+24, ay+39, "Janela operacional encerra as 18:00. Entradas novas bloqueiam 5 min antes.",
-       T.alertTextWarn, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   Alert(x1, x2, PANEL_H - PAD - 62, 62, "SESSAO",
+         "Janela operacional encerra as 18:00. Entradas novas bloqueiam 5 min antes.",
+         T.warn, T.warnDim, T.alertTextWarn);
   }
 
 //+------------------------------------------------------------------+
@@ -422,19 +466,22 @@ void DrawConfig(void)
    ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", true);
    ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", false);
 
-   int ay = PANEL_H - PAD - 62;
-   RoundRect(x1, ay, x2, ay+62, 8, T.badDim, T.ground);
-   g_canvas.FillRectangle(x1+12, ay+13, x1+14, ay+49, T.bad);
-   Txt(x1+24, ay+21, "SL/TP", T.bad, FONT_UI, 78, FW_BOLD_, TA_LEFT|TA_VCENTER);
-   Txt(x1+24, ay+40, "Stop Loss de 120 pts esta abaixo do minimo exigido pela",
-       T.alertTextBad, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
-   Txt(x1+24, ay+54, "corretora (180 pts) para BTCUSD.",
-       T.alertTextBad, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   Alert(x1, x2, PANEL_H - PAD - 62, 62, "SL/TP",
+         "Stop Loss de 120 pts esta abaixo do minimo exigido pela corretora (180 pts) para BTCUSD.",
+         T.bad, T.badDim, T.alertTextBad);
   }
 
 //+------------------------------------------------------------------+
 //| Campos nativos — criados apos o canvas para ficarem por cima      |
 //+------------------------------------------------------------------+
+//--- O canvas trabalha em ARGB (0xAARRGGBB); o tipo `color` do MQL5 e BGR.
+//--- Sem esta troca, vermelho vira azul nos objetos nativos.
+color ToChartColor(const uint argb)
+  {
+   int r = (int)((argb>>16)&0xFF), g = (int)((argb>>8)&0xFF), b = (int)(argb&0xFF);
+   return (color)((b<<16)|(g<<8)|r);
+  }
+
 void MakeEdit(const string id,const int lx,const int ly,const string value,
               const uint borderClr,const uint textClr)
   {
@@ -445,9 +492,9 @@ void MakeEdit(const string id,const int lx,const int ly,const string value,
    ObjectSetInteger(0, n, OBJPROP_XSIZE, EDIT_W);
    ObjectSetInteger(0, n, OBJPROP_YSIZE, EDIT_H);
    ObjectSetInteger(0, n, OBJPROP_CORNER, CORNER_LEFT_UPPER);
-   ObjectSetInteger(0, n, OBJPROP_BGCOLOR, (color)(T.raised & 0x00FFFFFF));
-   ObjectSetInteger(0, n, OBJPROP_BORDER_COLOR, (color)(borderClr & 0x00FFFFFF));
-   ObjectSetInteger(0, n, OBJPROP_COLOR, (color)(textClr & 0x00FFFFFF));
+   ObjectSetInteger(0, n, OBJPROP_BGCOLOR, ToChartColor(T.raised));
+   ObjectSetInteger(0, n, OBJPROP_BORDER_COLOR, ToChartColor(borderClr));
+   ObjectSetInteger(0, n, OBJPROP_COLOR, ToChartColor(textClr));
    ObjectSetInteger(0, n, OBJPROP_FONTSIZE, 10);
    ObjectSetInteger(0, n, OBJPROP_ALIGN, ALIGN_RIGHT);
    ObjectSetInteger(0, n, OBJPROP_SELECTABLE, false);
@@ -527,6 +574,14 @@ void HandlePress(const int cx,const int cy)
       if(lx >= PANEL_W-40)
         {
          g_minimized = !g_minimized;
+         Render();
+         return;
+        }
+      if(lx >= PANEL_W-66 && lx < PANEL_W-40)
+        {
+         //--- escolha manual do tema; passa a mandar sobre a deteccao automatica
+         g_userTheme = true;
+         if(g_dark) ApplyLight(); else ApplyDark();
          Render();
          return;
         }
@@ -610,7 +665,7 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
   {
    if(id == CHARTEVENT_CHART_CHANGE)
      {
-      if(inp_Theme == PROTO_THEME_AUTO)
+      if(inp_Theme == PROTO_THEME_AUTO && !g_userTheme)
         {
          bool wasDark = g_dark;
          ResolveTheme();
