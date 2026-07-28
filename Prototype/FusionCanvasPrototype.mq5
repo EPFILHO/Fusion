@@ -153,6 +153,11 @@ bool     g_toggleOn[TOGGLE_COUNT] = {true, false};
 int      g_toggleX[TOGGLE_COUNT], g_toggleY[TOGGLE_COUNT];
 int      g_toggleCount = 0;
 
+//--- Rolagem do conteudo de CONFIG
+int      g_scroll   = 0;    // deslocamento atual, em pixels
+int      g_contentH = 0;    // altura medida no ultimo render
+int      g_alertH   = 62;   // altura do aviso do rodape no ultimo render
+
 //+------------------------------------------------------------------+
 //| Helpers de desenho                                                |
 //+------------------------------------------------------------------+
@@ -274,6 +279,7 @@ void AlertBottom(const int x1,const int x2,const int bottomY,const string title,
    int contentH = titleH + gap + lines*lineH;
    int h        = contentH + 2*padV;
    int y        = bottomY - h;
+   g_alertH     = h;   // a area rolavel precisa saber onde o aviso comeca
 
    RoundRect(x1, y, x2, y+h, 8, bgClr, T.ground);
    g_canvas.FillRectangle(x1+12, y+padV, x1+14, y+h-padV, accentClr);
@@ -468,6 +474,19 @@ void ToggleRow(const int gx1,const int gx2,const int ry,const string label,int &
    slot++;
   }
 
+//--- Area util de conteudo rolavel: entre as subabas e o aviso do rodape.
+int ContentTop(void)    { return TABS_BOTTOM + PAD + 26 + 12; }
+int ContentBottom(void) { return PANEL_H - PAD - g_alertH - 10; }
+
+//--- O canvas se recorta sozinho (basta nao desenhar fora). Um OBJ_EDIT nao:
+//--- ele e objeto do grafico e desenharia inteiro, vazando por cima das abas
+//--- ou do rodape. Por isso o campo que sai da area util e destruido, nao
+//--- reposicionado.
+bool EditVisible(const int ly)
+  {
+   return (ly >= ContentTop() && ly + EDIT_H <= ContentBottom());
+  }
+
 void DrawConfig(void)
   {
    int x1 = PAD, x2 = PANEL_W - PAD;
@@ -495,6 +514,11 @@ void DrawConfig(void)
      }
    y += 38;
 
+   //--- A partir daqui o conteudo rola. O deslocamento entra no desenho; o que
+   //--- cai fora da area util simplesmente nao e pintado.
+   int contentStart = y;
+   y -= g_scroll;
+
    //--- VOLUME: titulo(26) + 2 linhas de 42
    int gh = 26 + 42 + 42;
    RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
@@ -512,6 +536,51 @@ void DrawConfig(void)
    g_toggleCount = 0;
    ToggleRow (x1, x2, y+26+84,  "Compensar spread no SL", g_toggleCount);
    ToggleRow (x1, x2, y+26+114, "Compensar spread no TP", g_toggleCount);
+   y += gh + 12;
+
+   //--- Bloco extra so para forcar rolagem e exercitar o recorte.
+   gh = 26 + 30 + 30;
+   RoundRect(x1, y, x2, y+gh, 8, T.surface, T.ground);
+   Txt(x1+13, y+17, "AVANCADO", T.dim, FONT_UI, 78, FW_SEMI, TA_LEFT|TA_VCENTER);
+   Txt(x1+13, y+41, "Bloco extra para exercitar a rolagem", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   Txt(x1+13, y+65, "Role com a roda do mouse sobre o conteudo", T.muted, FONT_UI, 82, FW_NORMAL_, TA_LEFT|TA_VCENTER);
+   y += gh;
+
+   //--- Altura total medida neste render define o limite da rolagem.
+   g_contentH = (y + g_scroll) - contentStart;
+
+   //--- O conteudo e pintado por cima da area util inteira; repintar as faixas
+   //--- de fora devolve o recorte que o canvas nao faz sozinho.
+   g_canvas.FillRectangle(0, TABS_BOTTOM, PANEL_W-1, ContentTop()-1, T.ground);
+   g_canvas.FillRectangle(0, ContentBottom()+1, PANEL_W-1, PANEL_H-1, T.ground);
+
+   //--- Subabas foram cobertas pelo recorte acima; redesenha por cima.
+   sx = x1;
+   int sy = TABS_BOTTOM + PAD;
+   for(int i = 0; i < SUBTAB_COUNT; ++i)
+     {
+      int w = g_subW[i];
+      bool on  = (i == g_subtab);
+      bool err = (i == 1);
+      if(on && err) RoundFrame(sx, sy, sx+w, sy+26, 5, T.bad, T.badDim, T.ground);
+      else if(on)   RoundFrame(sx, sy, sx+w, sy+26, 5, T.accent, T.accentDim, T.ground);
+      else if(err)  RoundFrame(sx, sy, sx+w, sy+26, 5, T.bad, T.surface, T.ground);
+      else          RoundRect (sx, sy, sx+w, sy+26, 5, T.surface, T.ground);
+      Txt(sx+w/2, sy+13, g_subNames[i],
+          err ? T.bad : (on ? T.accentStr : T.dim), FONT_UI, 78, FW_BOLD_, TA_CENTER|TA_VCENTER);
+      sx += w + 6;
+     }
+
+   //--- Indicador de rolagem: sem ele nada avisa que ha conteudo abaixo.
+   int viewH = ContentBottom() - ContentTop();
+   if(g_contentH > viewH)
+     {
+      int trackH = viewH;
+      int thumbH = (int)MathMax(24, (double)trackH * viewH / g_contentH);
+      int maxScroll = g_contentH - viewH;
+      int thumbY = ContentTop() + (int)((double)(trackH - thumbH) * g_scroll / maxScroll);
+      RoundRect(PANEL_W-8, thumbY, PANEL_W-5, thumbY+thumbH, 1, T.line, T.ground);
+     }
 
    //--- Texto longo de proposito: e a mensagem mais extensa do projeto (193
    //--- caracteres), usada aqui para provar que a caixa acompanha.
@@ -564,10 +633,12 @@ void BuildEdits(void)
       return;
 
    int ex = PANEL_W - PAD - 13 - EDIT_W;
-   MakeEdit("edit_lot",  ex, g_editY[0], "0.06", T.accent, T.fg);
-   MakeEdit("edit_slip", ex, g_editY[1], "30",   T.line,   T.fg);
-   MakeEdit("edit_sl",   ex, g_editY[2], "120",  T.bad,    T.bad);
-   MakeEdit("edit_tp",   ex, g_editY[3], "0",    T.line,   T.fg);
+   //--- So existe o campo que cabe inteiro na area util. Um campo parcialmente
+   //--- fora seria desenhado inteiro pelo terminal, vazando do painel.
+   if(EditVisible(g_editY[0])) MakeEdit("edit_lot",  ex, g_editY[0], "0.06", T.accent, T.fg);
+   if(EditVisible(g_editY[1])) MakeEdit("edit_slip", ex, g_editY[1], "30",   T.line,   T.fg);
+   if(EditVisible(g_editY[2])) MakeEdit("edit_sl",   ex, g_editY[2], "120",  T.bad,    T.bad);
+   if(EditVisible(g_editY[3])) MakeEdit("edit_tp",   ex, g_editY[3], "0",    T.line,   T.fg);
   }
 
 //+------------------------------------------------------------------+
@@ -671,7 +742,9 @@ void HandlePress(const int cx,const int cy)
       //--- exigir precisao de pixel num toggle irrita mais do que ajuda.
       for(int t = 0; t < g_toggleCount; ++t)
          if(lx >= g_toggleX[t]-6 && lx < g_toggleX[t]+46 &&
-            ly >= g_toggleY[t]-6 && ly < g_toggleY[t]+28)
+            ly >= g_toggleY[t]-6 && ly < g_toggleY[t]+28 &&
+            //--- toggle que rolou para fora da area util nao esta na tela
+            g_toggleY[t] >= ContentTop() && g_toggleY[t]+22 <= ContentBottom())
            {
             g_toggleOn[t] = !g_toggleOn[t];
             Print("Toggle ", t, " agora: ", (g_toggleOn[t] ? "ON" : "OFF"));
@@ -696,6 +769,7 @@ int OnInit(void)
   {
    ResolveTheme();
    ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true);
+   ChartSetInteger(0, CHART_EVENT_MOUSE_WHEEL, true);
    g_origScroll = (bool)ChartGetInteger(0, CHART_MOUSE_SCROLL);
 
    g_canvasName = g_prefix + "canvas";
@@ -735,6 +809,31 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
          ResolveTheme();
          if(wasDark != g_dark) Render();
         }
+      return;
+     }
+
+   if(id == CHARTEVENT_MOUSE_WHEEL)
+     {
+      //--- lparam empacota X na palavra baixa e Y na alta; dparam traz o delta.
+      int cx = (int)(short)(lparam & 0xFFFF);
+      int cy = (int)(short)((lparam >> 16) & 0xFFFF);
+      if(g_minimized || g_tab != 5 || !InsidePanel(cx, cy))
+         return;
+
+      int viewH = ContentBottom() - ContentTop();
+      int maxScroll = g_contentH - viewH;
+      if(maxScroll <= 0)
+         return;
+
+      int step = (dparam > 0) ? -40 : 40;
+      int ns = g_scroll + step;
+      if(ns < 0) ns = 0;
+      if(ns > maxScroll) ns = maxScroll;
+      if(ns == g_scroll)
+         return;
+
+      g_scroll = ns;
+      Render();
       return;
      }
 
