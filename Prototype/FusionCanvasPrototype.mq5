@@ -159,12 +159,17 @@ int  g_profSel = 0;
 //--- exige permissao do usuario e nao cabe num EA distribuido). No canvas a
 //--- grade e melhor de qualquer forma: uma escolha em vez de onze cliques
 //--- ciclando a paleta, que e como o painel atual funciona.
-#define SWATCH_COUNT 12
+//--- Organizada por matiz na horizontal e por luminosidade na vertical: assim a
+//--- grade se navega pelo olho, sem procurar cor a cor.
+#define SWATCH_COUNT 30
+#define SWATCH_COLS   6
 uint g_swatches[SWATCH_COUNT] =
   {
-   OPAQUE(0,230,118),  OPAQUE(0,137,71),   OPAQUE(255,82,82),  OPAQUE(176,0,32),
-   OPAQUE(233,30,99),  OPAQUE(41,121,255), OPAQUE(26,35,126),  OPAQUE(255,214,0),
-   OPAQUE(255,171,0),  OPAQUE(0,229,255),  OPAQUE(255,109,0),  OPAQUE(236,239,241)
+   OPAQUE(105,240,174), OPAQUE(128,216,255), OPAQUE(179,157,219), OPAQUE(255,138,128), OPAQUE(255,224,130), OPAQUE(255,255,255),
+   OPAQUE(0,230,118),   OPAQUE(41,182,246),  OPAQUE(149,117,205), OPAQUE(255,82,82),   OPAQUE(255,193,7),   OPAQUE(207,216,220),
+   OPAQUE(0,200,83),    OPAQUE(41,121,255),  OPAQUE(124,77,255),  OPAQUE(244,67,54),   OPAQUE(255,152,0),   OPAQUE(144,164,174),
+   OPAQUE(0,137,71),    OPAQUE(21,101,192),  OPAQUE(81,45,168),   OPAQUE(198,40,40),   OPAQUE(230,81,0),    OPAQUE(84,110,122),
+   OPAQUE(0,229,255),   OPAQUE(26,35,126),   OPAQUE(233,30,99),   OPAQUE(136,14,79),   OPAQUE(121,85,72),   OPAQUE(38,50,56)
   };
 int  g_colorSel[3] = {0,2,5};
 int  g_colorOpen = -1;               // qual seletor esta aberto
@@ -174,6 +179,16 @@ int  g_colorCount = 0;
 //--- barra de rolagem: geometria publicada pelo desenho
 int  g_thumbY=0, g_thumbH=0, g_trackTop=0, g_trackH=0;
 bool g_barDrag=false; int g_barDragY=0, g_barDragBase=0;
+
+//--- Retangulo do popup aberto. Objeto nativo fica SEMPRE acima do canvas, e
+//--- nenhum z-order muda isso: um dropdown desenhado seria furado pelos campos
+//--- que cobrisse. Entao o popup publica sua area e os campos sob ela nao sao
+//--- criados. Regra permanente do modelo hibrido, nao ajuste pontual.
+bool g_popupOn=false;
+int  g_popupX1=0, g_popupY1=0, g_popupX2=0, g_popupY2=0;
+
+void PublishPopup(const int x1,const int y1,const int x2,const int y2)
+  { g_popupOn=true; g_popupX1=x1; g_popupY1=y1; g_popupX2=x2; g_popupY2=y2; }
 
 #define VK_PRIOR_ 33
 #define VK_NEXT_  34
@@ -324,14 +339,12 @@ void DrawTitlebar(void)
    for(int dy=-6;dy<=6;++dy) for(int dx=-6;dx<=0;++dx)
       if(dx*dx+dy*dy<=36) g_canvas.PixelSet(tx+dx,16+dy,T.muted);
 
-   //--- reajustar altura ao grafico. O painel nunca cresce sozinho, entao
-   //--- precisa de um caminho explicito para voltar a ocupar o espaco.
+   //--- Reajustar altura ao grafico. Duas setas divergentes liam como "X" de
+   //--- fechar; num painel que opera dinheiro, sugerir fechamento por engano e
+   //--- inaceitavel. Retangulo e o simbolo de maximizar que todo mundo conhece.
    int rx=PANEL_W-50;
-   for(int i=0;i<4;++i)
-     {
-      g_canvas.FillRectangle(rx-4+i,19-i,rx+4-i,19-i,T.muted);   // seta para cima
-      g_canvas.FillRectangle(rx-4+i,13+i,rx+4-i,13+i,T.muted);   // e para baixo
-     }
+   g_canvas.Rectangle(rx-6,11,rx+6,21,T.muted);
+   g_canvas.FillRectangle(rx-6,11,rx+6,12,T.muted);
 
    int mx=PANEL_W-24;
    if(g_minimized)
@@ -492,11 +505,12 @@ void ColorRow(const int gx1,const int gx2,const int ry,const string label,int &s
 void DrawColorPopup(void)
   {
    if(g_colorOpen<0) return;
-   int cell=26, cols=4, rows=SWATCH_COUNT/cols;
+   int cell=26, cols=SWATCH_COLS, rows=SWATCH_COUNT/cols;
    int w=cols*cell+10, h=rows*cell+10;
    int x=g_colorX[g_colorOpen]+64-w;
    int y=g_colorY[g_colorOpen]+24;
    if(y+h>g_ph-PAD) y=g_colorY[g_colorOpen]-h-2;
+   PublishPopup(x,y,x+w,y+h);
    RoundFrame(x,y,x+w,y+h,6,T.acc,T.surface,T.ground);
    for(int i=0;i<SWATCH_COUNT;++i)
      {
@@ -511,7 +525,7 @@ bool HandleColorClick(const int lx,const int ly)
   {
    if(g_colorOpen>=0)
      {
-      int cell=26, cols=4, rows=SWATCH_COUNT/cols;
+      int cell=26, cols=SWATCH_COLS, rows=SWATCH_COUNT/cols;
       int w=cols*cell+10, h=rows*cell+10;
       int x=g_colorX[g_colorOpen]+64-w, y=g_colorY[g_colorOpen]+24;
       if(y+h>g_ph-PAD) y=g_colorY[g_colorOpen]-h-2;
@@ -535,6 +549,7 @@ void DrawComboPopup(void)
    if(!g_comboOpen) return;
    int ih=24, h=COMBO_ITEMS*ih+8, y=g_comboY+EDIT_H+3;
    if(y+h>g_ph-PAD) y=g_comboY-h-3;
+   PublishPopup(g_comboX,y,g_comboX+g_comboW,y+h);
    RoundFrame(g_comboX,y,g_comboX+g_comboW,y+h,6,T.acc,T.surface,T.ground);
    for(int i=0;i<COMBO_ITEMS;++i)
      {
@@ -604,14 +619,19 @@ void DrawProfilesScreen(void)
       if(sel) RoundFrame(x1,ry,lx2,ry+30,6,T.acc,T.accd,T.surface);
       else    RoundFrame(x1,ry,lx2,ry+30,6,T.soft,T.ground,T.surface);
       Txt(x1+11,ry+15,nm[i],T.fg,FONT_UI,90,FW_SEMI,TA_LEFT|TA_VCENTER);
-      int nw=TxtW(nm[i],FONT_UI,90,FW_SEMI);
-      Txt(x1+11+nw+10,ry+15,mg[i],T.faint,FONT_MONO,78,FW_NORMAL_,TA_LEFT|TA_VCENTER);
+
+      //--- O badge define o limite direito. Sem ele, o limite e a borda da linha.
+      //--- Assim os numeros ficam numa coluna so, legiveis de cima a baixo, em
+      //--- vez de flutuarem conforme o comprimento de cada nome.
+      int metaRight = lx2 - 11;
       if(i==0)
         {
-         int tw2=TxtW("ATIVO",FONT_UI,72,FW_BOLD_)+18;
+         int tw2=TxtW("ATIVO",FONT_UI,74,FW_BOLD_)+18;
          RoundRect(lx2-tw2-9,ry+7,lx2-9,ry+23,8,T.gdim,sel?T.accd:T.ground);
-         Txt(lx2-tw2/2-9,ry+15,"ATIVO",T.good,FONT_UI,72,FW_BOLD_,TA_CENTER|TA_VCENTER);
+         Txt(lx2-tw2/2-9,ry+15,"ATIVO",T.good,FONT_UI,74,FW_BOLD_,TA_CENTER|TA_VCENTER);
+         metaRight = lx2 - tw2 - 20;
         }
+      Txt(metaRight,ry+15,mg[i],T.muted,FONT_MONO,86,FW_NORMAL_,TA_RIGHT|TA_VCENTER);
      }
 
    string ab[4]={"CARREGAR","NOVO","DUPLICAR","EXCLUIR"};
@@ -791,8 +811,14 @@ void BuildEdits(void)
    string ids[4] ={"edit_a","edit_b","edit_c","edit_d"};
    int n=(g_editCount<4)?g_editCount:4;
    for(int i=0;i<n;++i)
-      if(EditVisible(g_editY[i]))
-         MakeEdit(ids[i],ex,g_editY[i],vals[i],T.line,T.fg);
+     {
+      if(!EditVisible(g_editY[i])) continue;
+      //--- campo sob um popup aberto nao e criado: ele apareceria por cima dele
+      if(g_popupOn &&
+         ex <= g_popupX2 && ex+EDIT_W >= g_popupX1 &&
+         g_editY[i] <= g_popupY2 && g_editY[i]+EDIT_H >= g_popupY1) continue;
+      MakeEdit(ids[i],ex,g_editY[i],vals[i],T.line,T.fg);
+     }
   }
 
 //+------------------------------------------------------------------+
@@ -804,6 +830,7 @@ void Render(void)
    ObjectSetInteger(0,g_canvasName,OBJPROP_YDISTANCE,g_py);
 
    g_canvas.Erase(T.ground);
+   g_popupOn=false;
 
    if(g_minimized) { DrawTitlebar(); }
    else
