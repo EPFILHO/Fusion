@@ -628,7 +628,12 @@ void DrawConfigContent(void)
   {
    int railX=PAD, paneX=PAD+RAIL_W+2, x2=PANEL_W-PAD;
    int top=ContentTop();
+   //--- Zerados no inicio de cada render: os campos nativos sao recriados a
+   //--- partir daqui, e um contador herdado da subaba anterior faria aparecer
+   //--- controle de outra tela, em posicao velha.
    g_colorCount=0;
+   g_editCount=0;
+   g_toggleCount=0;
 
    //--- Sistema e Visual nao tem terceiro nivel: sem trilho, conteudo cheio.
    if(g_cfg>=2)
@@ -646,7 +651,6 @@ void DrawConfigContent(void)
         }
       else
         {
-         g_editCount=0;
          FieldRow(PAD,x2,yv+26,"Magic Number","Identifica as ordens deste grafico",T.faint,g_editCount);
          FieldRow(PAD,x2,yv+68,"Slippage","Desvio maximo aceito",T.faint,g_editCount);
         }
@@ -671,7 +675,6 @@ void DrawConfigContent(void)
    Txt(paneX+12,y+17,"COMPORTAMENTO",T.faint,FONT_UI,78,FW_SEMI,TA_LEFT|TA_VCENTER);
    FieldRow(paneX,x2,y+26,"Buffer","Folga antes de bloquear",T.faint,g_editCount);
    FieldRow(paneX,x2,y+26+42,"Rearme","Minutos ate liberar",T.faint,g_editCount);
-   g_toggleCount=0;
    ToggleRow(paneX,x2,y+26+84,"Encerrar o dia",g_toggleCount);
    ToggleRow(paneX,x2,y+26+114,"Avisar no painel",g_toggleCount);
    y+=gh+11;
@@ -780,11 +783,14 @@ void DestroyEdits(void) { ObjectsDeleteAll(0,g_prefix+"edit_"); }
 void BuildEdits(void)
   {
    DestroyEdits();
-   if(g_tab!=5 || g_minimized || g_editCount<4) return;
+   if(g_tab!=5 || g_minimized) return;
+   //--- Cria exatamente os campos que a tela atual desenhou. Antes exigia
+   //--- quatro, entao Sistema desenhava dois rotulos sem caixa nenhuma.
    int ex=PANEL_W-PAD-12-EDIT_W;
    string vals[4]={"2.50","0.00","0.30","15"};
    string ids[4] ={"edit_a","edit_b","edit_c","edit_d"};
-   for(int i=0;i<4;++i)
+   int n=(g_editCount<4)?g_editCount:4;
+   for(int i=0;i<n;++i)
       if(EditVisible(g_editY[i]))
          MakeEdit(ids[i],ex,g_editY[i],vals[i],T.line,T.fg);
   }
