@@ -170,11 +170,12 @@
          return false;
 
       ReleaseButton(m_cfgSystemDebugBtn);
-      if(!CanEditActiveProfile())
-         return true;
-
-      m_draftSettings.debugLogs = !m_draftSettings.debugLogs;
-      RefreshConfigValidation();
+      //--- Debug deixou de ser configuracao do perfil: vem so do input
+      //--- inp_EnableDebugLogs, e a fronteira de aplicacao reimpoe esse valor.
+      //--- Alternar aqui daria a impressao de mudar o diagnostico e seria
+      //--- desfeito no proximo SALVAR — entao o clique nao faz mais nada.
+      //--- O botao segue desenhado porque o painel 1.x esta congelado; ele
+      //--- desaparece junto com o painel na Fase 4.
       return true;
      }
 

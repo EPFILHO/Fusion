@@ -72,6 +72,20 @@ anexado a um grafico real ao longo de varias rodadas. Padroes validados:
 - **Nao existe seletor de cores do sistema em MQL5.** Só via importacao de DLL,
   que obriga o usuario a baixar uma protecao — nao cabe num EA distribuido. A
   grade desenhada resolve melhor de qualquer forma.
+- **Objeto nativo em foco nao acompanha o objeto.** Com um `OBJ_EDIT` em edicao,
+  o controle interno do terminal nao segue a mudanca de posicao: rolar o
+  conteudo deixa o controle parado, solto sobre o painel. Destruir o objeto
+  tambem nao resolve — o controle sobrevive a ele. E **nao ha API** para
+  consultar nem para soltar o foco; as unicas solucoes publicadas usam WinAPI
+  via DLL. Tentado e reprovado: soltar o foco por `OBJPROP_TIMEFRAMES`.
+  **Consequencia aceita: com um campo em edicao, a roda do mouse nao rola o
+  conteudo.** Barra de rolagem, setinhas, teclado e arrasto continuam
+  funcionando, e confirmar o campo devolve a roda no ato.
+- **Campos nativos sao sincronizados por diferenca, nunca apagados em massa.**
+  Apagar e recriar a cada quadro perdia o texto ainda nao confirmado no meio da
+  digitacao, alem de orfanar o controle de edicao. Sai so o que saiu da tela,
+  nasce so o que entrou, o que permanece e movido, e o texto so e reescrito
+  quando o valor de origem muda.
 
 ### Risco ainda nao medido
 
@@ -140,8 +154,17 @@ secao 5. Os fragmentos de validacao, draft e acesso sao incluidos praticamente c
 estao — sao fragmentos de corpo de classe.
 
 **Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
-convivem, comparaveis no mesmo grafico, com reversao imediata. **O EA nao muda uma
-linha.**
+convivem, comparaveis no mesmo grafico, com reversao imediata.
+
+> **Correcao (Fase 1).** A promessa original — "o EA nao muda uma linha" — estava
+> errada. `m_panel` e um `CFusionPanel` concreto em `Core/EAApplication.mqh`, e
+> escolher o painel em tempo de execucao exige uma indirecao que nao existe.
+> **Decidido: troca em tempo de compilacao.** Um `#define` escolhe qual classe o
+> membro `m_panel` tem. O fonte do EA realmente nao muda, o custo em codigo e
+> nulo e nao existe indirecao para manter depois que a Fase 4 remover o painel
+> antigo. O preco e nao poder alternar sem recompilar — aceitavel, porque quem
+> compara os dois durante a transicao e quem desenvolve, e recompilar leva
+> segundos com o `build-linked.ps1`.
 
 **Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
 
@@ -190,8 +213,8 @@ o fundo da superficie logo abaixo; a linha do fichario atravessa **toda a largur
 na cor do estado — azul normal, vermelha com erro dentro. E isso que faz a selecao
 ser vista de longe e o nivel 2 parecer contido no nivel 1, sem caixas aninhadas.
 
-Nivel 3 vira **trilho vertical** de 136 px, so onde existe (Config > Risco e
-Config > Protecao). Sete itens numa faixa horizontal de 590 px ficariam com 80 px
+Nivel 3 vira **trilho vertical** de 136 px, so onde existe (Gestao > Risco e
+Gestao > Protecao). Sete itens numa faixa horizontal de 590 px ficariam com 80 px
 cada e rotulos abreviados; no trilho cabem por extenso.
 
 ### Estados
@@ -223,15 +246,31 @@ Portugues, com ingles apenas no jargao de mercado.
 
 | Nivel | Rotulos |
 |---|---|
-| 1 | Status · Resultados · Estrategias · Filtros · Perfis · Config |
-| 2 (Config) | Risco · Protecao · Sistema · Visual |
+| 1 | Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout |
+| 2 (Gestao) | Risco · Protecao |
 | 2 (Estrategias) | Geral · Medias · RSI · Bollinger |
 | 2 (Filtros) | Geral · Tendencia · RSI · Bollinger |
 | 3 (Risco) | Lote · SL/TP · TP Parcial · BreakEven · Trailing |
 | 3 (Protecao) | Geral · Spread/Lado · Sessao · Noticias · Limites Diarios · Drawdown · Sequencias |
 
-Ficam em ingles: `Drawdown`, `Trailing`, `BreakEven`, `SL/TP`, `Spread` — jargao
-sem equivalente melhor. `Status`, `Config` e `Visual` sao iguais nas duas linguas.
+A aba **Config** deixou de existir. Ela agrupava coisas sem parentesco: Risco e
+Protecao decidem dinheiro, a antiga subaba Visual decide aparencia. "Config" nao
+descrevia conteudo — descrevia a indecisao sobre onde as coisas moravam. Agora
+**Gestao** reune o que decide dinheiro e **Layout** e aba propria (nome de
+tela, nao a aba antiga — mais reconhecivel que "Visual" para quem chega de
+outros produtos). A ordem de nivel 1 passa a contar a sequencia de configurar o
+EA: quando entrar, quando nao entrar, quanto arriscar, o que guardar.
+
+Magic Number foi para **Perfis** (identidade do perfil, e a lista ja o exibe) e
+Resolver Conflito para **Estrategias > Geral** (e regra entre estrategias). Logs
+Debug saiu da GUI: e ferramenta de quem desenvolve, e o input basta.
+
+**Restricao criada:** sao sete abas em 590 px logicos. Nenhum rotulo de aba pode
+crescer sem medir. O painel loga a folga da faixa ao anexar.
+
+Ficam em ingles: `Drawdown`, `Trailing`, `BreakEven`, `SL/TP`, `Spread`,
+`Layout` — jargao sem equivalente melhor ou termo ja consagrado no genero.
+`Status` e `Config` sao iguais nas duas linguas (Config nao existe mais como aba).
 
 ### Icones
 
@@ -263,6 +302,9 @@ testando:
 
 A partir do MetaEditor `5.0.0.6061`, `#resource` exige que o arquivo resolva dentro
 da arvore `MQL5`. Com o projeto fora dela, usar `build-linked.ps1` (ver
-`README.md`). O gate continua sendo **0 errors, 0 warnings** nos 4 alvos.
+`README.md`). O gate continua sendo **0 errors, 0 warnings** nos alvos — **cinco**
+desde a Fase 1: os tres indicadores, o `Fusion.mq5` e o harness
+`Prototype/FusionCanvasPhase1.mq5`, que compila os modulos de `UI/Canvas/` e
+por isso entra no gate. O harness sai quando a Fase 4 remover o painel antigo.
 
 O deploy e manual: copiar o `.ex5` para `<terminal>\MQL5\Experts\`.

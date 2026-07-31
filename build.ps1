@@ -193,6 +193,7 @@ $targets = @(
     'VisualIndicators\FusionVisualMA.mq5',
     'VisualIndicators\FusionVisualBands.mq5',
     'VisualIndicators\FusionVisualRSI.mq5',
+    'Prototype\FusionCanvasPhase1.mq5',
     'Fusion.mq5'
 )
 

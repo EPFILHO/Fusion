@@ -12,7 +12,11 @@ bool FusionSaveSettingsBlock(const int handle,const SEASettings &settings)
    ok = FusionSettingsWriteLine(handle, "defaultProfileName", settings.defaultProfileName) && ok;
    ok = FusionSettingsWriteLine(handle, "magicNumber", IntegerToString(settings.magicNumber)) && ok;
    ok = FusionSettingsWriteLine(handle, "slippagePoints", IntegerToString(settings.slippagePoints)) && ok;
-   ok = FusionSettingsWriteLine(handle, "debugLogs", IntegerToString((int)settings.debugLogs)) && ok;
+   //--- debugLogs NAO e gravado: e diagnostico de sessao, decidido pelo input
+   //--- inp_EnableDebugLogs e reaplicado apos cada carregamento de perfil.
+   //--- Guardar por perfil nao fazia sentido — ninguem quer um perfil que loga
+   //--- e outro que nao — e criava um estado impossivel de desligar pela GUI
+   //--- depois que o controle saiu dela.
    ok = FusionSettingsWriteLine(handle, "showChartIndicators", IntegerToString((int)settings.showChartIndicators)) && ok;
    ok = FusionSettingsWriteLine(handle, "visualMAFastColor", IntegerToString((int)settings.visualMAFastColor)) && ok;
    ok = FusionSettingsWriteLine(handle, "visualMASlowColor", IntegerToString((int)settings.visualMASlowColor)) && ok;
@@ -197,7 +201,8 @@ void FusionApplySetting(const string key,const string value,SEASettings &setting
    else if(key == "defaultProfileName") settings.defaultProfileName = value;
    else if(key == "magicNumber") settings.magicNumber = (int)StringToInteger(value);
    else if(key == "slippagePoints") settings.slippagePoints = (int)StringToInteger(value);
-   else if(key == "debugLogs") settings.debugLogs = (bool)StringToInteger(value);
+   //--- "debugLogs" e ignorado de proposito. Perfis gravados por versoes
+   //--- anteriores ainda trazem a chave; le-la sobrescreveria o input.
    else if(key == "showChartIndicators") settings.showChartIndicators = (bool)StringToInteger(value);
    else if(key == "visualMAFastColor") settings.visualMAFastColor = (color)StringToInteger(value);
    else if(key == "visualMASlowColor") settings.visualMASlowColor = (color)StringToInteger(value);

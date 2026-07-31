@@ -4,7 +4,13 @@
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
 #define FUSION_NEWS_WINDOW_COUNT 3
 #define FUSION_SETTINGS_SCHEMA_VERSION 14
-#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 142
+//--- Quantas linhas o FusionSaveSettingsBlock grava. A validacao usa >=, entao
+//--- arquivos de versoes anteriores com mais linhas continuam aceitos — mas
+//--- ACRESCENTAR OU REMOVER UMA LINHA DO GRAVADOR EXIGE ATUALIZAR ESTE NUMERO.
+//--- Esquecer faz todo perfil recem-salvo ser recusado como incompleto no
+//--- carregamento seguinte, sem erro de compilacao para avisar. Ja aconteceu
+//--- ao tirar debugLogs do perfil: 142 virou 141.
+#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 141
 
 enum ENUM_SIGNAL_TYPE
   {

@@ -111,6 +111,8 @@
            }
 
          loadedSettings.isTester = m_settings.isTester;
+         //--- mesma razao do boot: diagnostico e de sessao, nao do perfil
+         loadedSettings.debugLogs = inp_EnableDebugLogs;
          ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
          if(ProfileLoadBlockedByActiveDrawdown(profileName, loadedSettings))
             return;

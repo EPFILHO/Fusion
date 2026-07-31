@@ -137,7 +137,10 @@
          m_draftSettings.visualMATrend2Style != m_committedSettings.visualMATrend2Style ||
          m_draftSettings.visualBBStyle != m_committedSettings.visualBBStyle)
          return true;
-      return (m_draftSettings.debugLogs != m_committedSettings.debugLogs);
+      //--- debugLogs saiu do perfil: nao e mais gravado, entao alterna-lo nao
+      //--- pode marcar o perfil como pendente de SALVAR — seria pendencia sem
+      //--- destino, e o botao prometeria guardar algo que nao vai guardar.
+      return false;
      }
 
    bool                       HasSignalTogglePendingChanges(void)

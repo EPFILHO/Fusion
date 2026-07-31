@@ -20,6 +20,10 @@
          return false;
 
       loadedSettings.isTester = m_settings.isTester;
+      //--- debugLogs nao pertence ao perfil: e diagnostico de sessao, decidido
+      //--- pelo input. Sem esta linha o carregamento traria o valor padrao
+      //--- (falso) do SetDefaultSettings e apagaria a escolha do input.
+      loadedSettings.debugLogs = inp_EnableDebugLogs;
       ResolveOperationalTimeframes(loadedSettings, fallbackTimeframe);
       settingsOut = loadedSettings;
       return true;
@@ -40,6 +44,11 @@
    bool                    ApplySettings(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope)
      {
       SEASettings resolvedSettings = settings;
+      //--- Fronteira de aplicacao: qualquer caminho que ative configuracoes
+      //--- passa por aqui, inclusive o SALVAR do painel. Forcar o input aqui
+      //--- garante que nenhum rascunho de GUI consiga contrariar o diagnostico
+      //--- escolhido para a sessao.
+      resolvedSettings.debugLogs = inp_EnableDebugLogs;
       ResolveOperationalTimeframes(resolvedSettings, OperationalFallbackTimeframe());
       bool identityChanged = (m_settings.magicNumber != resolvedSettings.magicNumber);
       if(identityChanged)

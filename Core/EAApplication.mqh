@@ -197,6 +197,11 @@ private:
            {
             restoredStateApplied = true;
             restoredSettings.isTester = m_settings.isTester;
+            //--- Mesma razao do isTester acima: diagnostico e da sessao. Com
+            //--- posicao aberta ou DD travado o perfil canonico nao e
+            //--- recarregado, entao sem esta linha o valor viria do estado
+            //--- gravado — que ja nao guarda debugLogs — e cairia no default.
+            restoredSettings.debugLogs = inp_EnableDebugLogs;
             ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
                                               ? (ENUM_TIMEFRAMES)restoredContext.periodValue
                                               : OperationalFallbackTimeframe();
