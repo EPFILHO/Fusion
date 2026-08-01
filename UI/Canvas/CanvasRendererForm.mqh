@@ -14,7 +14,8 @@ void RowsReset(void) { m_rowCount=0; }
 
 void RowPush(const int kind,const string label,const string hint,
              const string value,const int aux,
-             const bool enabled,const bool valid)
+             const bool enabled,const bool valid,
+             const int fid=FCV_FLD_NONE)
   {
    if(m_rowCount>=FCV_ROWS_MAX) return;
    m_rows[m_rowCount].kind   =kind;
@@ -22,12 +23,31 @@ void RowPush(const int kind,const string label,const string hint,
    m_rows[m_rowCount].hint   =hint;
    m_rows[m_rowCount].value  =value;
    m_rows[m_rowCount].aux    =aux;
+   m_rows[m_rowCount].fid    =fid;
    //--- Editavel so quando o perfil aceita edicao. E a camada de acesso da
    //--- 1.058: com o EA operando, os campos ficam bloqueados.
-   m_rows[m_rowCount].enabled=enabled && !m_locked;
+   //--- A trava so alcanca o que aceita interacao. Estatico, selo e nota sao
+   //--- informacao operacional — apaga-los com o EA rodando tiraria a leitura
+   //--- justamente quando ela mais importa, e "desabilitado" nem significa
+   //--- nada para um texto que nunca respondeu a clique.
+   bool interactive=(kind==FCV_ROW_FIELD  || kind==FCV_ROW_TOGGLE ||
+                     kind==FCV_ROW_COMBO  || kind==FCV_ROW_COLOR  ||
+                     kind==FCV_ROW_COLORSTYLE);
+   m_rows[m_rowCount].enabled=enabled && (!interactive || !FieldsLocked());
    m_rows[m_rowCount].valid  =valid;
    m_rowCount++;
   }
+
+//--- Variantes ligadas a um campo de SEASettings: o valor exibido vem do
+//--- rascunho e o clique/digitacao volta para ele. Nenhum valor padrao aqui —
+//--- o padrao e o proprio rascunho.
+void RowFieldF (const string label,const string hint,const int fid,
+                const bool valid=true,const bool enabled=true)
+  { RowPush(FCV_ROW_FIELD,label,hint,"",0,enabled,valid,fid); }
+void RowToggleF(const string label,const int fid,const bool enabled=true)
+  { RowPush(FCV_ROW_TOGGLE,label,"","",0,enabled,true,fid); }
+void RowComboF (const string label,const int kind,const int fid,const bool enabled=true)
+  { RowPush(FCV_ROW_COMBO,label,"","",kind,enabled,true,fid); }
 
 void RowField (const string label,const string hint,const string def,
                const bool valid=true,const bool enabled=true)
@@ -51,6 +71,15 @@ void RowStatic(const string label,const string value,const int sem=FCV_SEM_NEUTR
   { RowPush(FCV_ROW_STATIC,label,"",value,sem,true,true); }
 void RowBadge (const string label,const string value,const int sem)
   { RowPush(FCV_ROW_BADGE,label,"",value,sem,true,true); }
+
+//--- Estado de uma chave como SELO, para as telas de panorama. Chave apagada
+//--- ali seria um controle que nao responde — o classico convite ao clique que
+//--- nao faz nada. O selo diz a mesma coisa sem prometer interacao.
+void RowState (const string label,const int fid)
+  {
+   bool on=FieldGetBool(fid);
+   RowBadge(label,on ? "LIGADO" : "DESLIGADO",on ? FCV_SEM_GOOD : FCV_SEM_BAD);
+  }
 void RowNote  (const string text)
   { RowPush(FCV_ROW_NOTE,"",text,"",0,true,true); }
 
@@ -85,6 +114,16 @@ uint SemColor(const int sem)
    if(sem==FCV_SEM_BAD)  return m_t.bad;
    if(sem==FCV_SEM_WARN) return m_t.warn;
    return m_t.fg;
+  }
+
+//--- Trilho da chave. Desligado em vermelho, nao em cinza: cinza e a cor de
+//--- "indisponivel", e usa-la para "escolhi desligar" confundia as duas coisas.
+//--- O vermelho e suavizado contra o fundo — o vermelho cheio e da paleta de
+//--- ERRO, e um filtro desligado nao e defeito, e decisao.
+uint ToggleTrack(const bool on,const bool en)
+  {
+   if(!en) return m_t.disabled;
+   return on ? m_t.good : Blend(m_t.bad,m_t.surface,0.68);
   }
 
 uint SemDim(const int sem)
@@ -277,11 +316,11 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
   }
 
 void PutCombo(const int cx,const int cy,const int w,const int kind,
-              const int slot,const bool en)
+              const int slot,const bool en,const int fid=FCV_FLD_NONE)
   {
    string items[];
    int n=ComboItems(kind,items);
-   int idx=m_stCombo[slot];
+   int idx=(fid!=FCV_FLD_NONE) ? FieldGetIndex(fid) : m_stCombo[slot];
    if(idx<0 || idx>=n) idx=0;
 
    bool open=(en && m_comboOpen>=0 && m_comboOpen==m_comboCount);
@@ -302,6 +341,7 @@ void PutCombo(const int cx,const int cy,const int w,const int kind,
    m_comboW[m_comboCount]=w;
    m_comboKind[m_comboCount]=kind;
    m_comboSlot[m_comboCount]=slot;
+   m_comboFid[m_comboCount]=fid;
    m_comboCount++;
   }
 
@@ -366,12 +406,16 @@ void DrawRow(const int i,const int ry,const int rh)
          //--- pertence a posicao na tela e nao pode escorregar so porque uma
          //--- linha ficou bloqueada.
          int slot=NextSlot();
+         int fid=m_rows[i].fid;
          if(m_editCount>=FCV_CTRL_MAX) break;
          int ex=rx-FCV_EDIT_W;
          m_editX[m_editCount]=ex;
          m_editY[m_editCount]=ry+22-FCV_EDIT_H/2;
          m_editSlot[m_editCount]=slot;
-         m_editVal[m_editCount]=(m_stEdit[slot]=="") ? m_rows[i].value : m_stEdit[slot];
+         m_editFid[m_editCount]=fid;
+         //--- Ligado a um campo, o valor vem do rascunho; solto, do slot local.
+         m_editVal[m_editCount]=(fid!=FCV_FLD_NONE) ? FieldGetText(fid)
+                                : ((m_stEdit[slot]=="") ? m_rows[i].value : m_stEdit[slot]);
          m_editEnabled[m_editCount]=en;
          m_editValid[m_editCount]=ok;
          m_editCount++;
@@ -381,10 +425,10 @@ void DrawRow(const int i,const int ry,const int rh)
       case FCV_ROW_TOGGLE:
         {
          int slot=NextSlot();
-         bool on=m_stToggle[slot];
+         int fid=m_rows[i].fid;
+         bool on=(fid!=FCV_FLD_NONE) ? FieldGetBool(fid) : m_stToggle[slot];
          int tx=rx-38, ty=ry+rh/2-10;
-         uint track = !en ? m_t.disabled : (on ? m_t.good : m_t.line);
-         RoundRect(tx,ty,tx+38,ty+21,10,track,m_t.surface);
+         RoundRect(tx,ty,tx+38,ty+21,10,ToggleTrack(on,en),m_t.surface);
          Disc(on?tx+28:tx+10,ty+10,8,!en ? m_t.fieldDim : m_t.ground);
          //--- Controle bloqueado nao publica caixa de clique. Nao basta parecer
          //--- desligado: ele nao pode responder.
@@ -392,6 +436,7 @@ void DrawRow(const int i,const int ry,const int rh)
          m_toggleX[m_toggleCount]=tx;
          m_toggleY[m_toggleCount]=ty;
          m_toggleSlot[m_toggleCount]=slot;
+         m_toggleFid[m_toggleCount]=fid;
          m_toggleCount++;
          break;
         }
@@ -399,16 +444,18 @@ void DrawRow(const int i,const int ry,const int rh)
       case FCV_ROW_COMBO:
         {
          int slot=NextSlot();
+         int fid=m_rows[i].fid;
+         int selIdx=(fid!=FCV_FLD_NONE) ? FieldGetIndex(fid) : m_stCombo[slot];
          //--- A explicacao acompanha a escolha atual, e por isso e resolvida
          //--- aqui, depois de saber o indice — nao na declaracao da tela.
          if(twoLine)
-            Txt(lx,ry+30,ComboOptionHint(m_rows[i].aux,m_stCombo[slot]),hintClr,
+            Txt(lx,ry+30,ComboOptionHint(m_rows[i].aux,selIdx),hintClr,
                 FCV_FONT_UI,FCV_FS_CAP,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
          //--- Mesma largura e mesma coluna do campo de digitacao. Alem do ritmo
          //--- visual, isso faz o popup cobrir exatamente a coluna onde os
          //--- OBJ_EDIT vivem — e sao eles que o popup precisa suprimir.
          int cyMid=twoLine ? ry+22 : ry+rh/2;
-         PutCombo(rx-FCV_EDIT_W,cyMid-FCV_EDIT_H/2,FCV_EDIT_W,m_rows[i].aux,slot,en);
+         PutCombo(rx-FCV_EDIT_W,cyMid-FCV_EDIT_H/2,FCV_EDIT_W,m_rows[i].aux,slot,en,fid);
          break;
         }
 

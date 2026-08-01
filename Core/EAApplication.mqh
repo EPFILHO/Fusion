@@ -2,6 +2,7 @@
 #define __FUSION_APPLICATION_MQH__
 
 #include "Inputs.mqh"
+#include "SettingsNotices.mqh"
 #include "Logger.mqh"
 #include "TradePermissionGuard.mqh"
 #include "PendingReverseExit.mqh"

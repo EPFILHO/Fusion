@@ -46,7 +46,11 @@ bool HandleColorClick(const int lx,const int ly)
          int c=(lx-x-5)/26, r=(ly-y-5)/26;
          int idx=r*FCV_SWATCH_COLS+c;
          if(c>=0 && c<FCV_SWATCH_COLS && idx>=0 && idx<FCV_SWATCH_COUNT)
-           { m_stColor[m_colorSlot[m_colorOpen]]=idx; m_dirty=true; }
+           {
+            //--- Reescolher a mesma cor nao e alteracao.
+            int cs=m_colorSlot[m_colorOpen];
+            if(m_stColor[cs]!=idx) { m_stColor[cs]=idx; m_dirty=true; }
+           }
         }
       m_colorOpen=-1; Render(); return true;
      }
@@ -90,10 +94,51 @@ void ApplyComboSideEffect(const int kind,const int value)
      }
   }
 
+//--- Rolagem do popup pela posicao vertical do cursor. Serve ao clique na
+//--- trilha e ao arrasto do polegar com a mesma conta: o topo do polegar
+//--- acompanha o cursor, descontada a metade da sua altura.
+void HandleComboBarDrag(const int ly)
+  {
+   if(m_comboOpen<0 || m_comboOpen>=m_comboCount) return;
+   int x,y,w,h,n;
+   ComboPopupBox(m_comboOpen,x,y,w,h,n);
+   int maxS=ComboMaxScroll(n);
+   if(maxS<=0) return;
+   int vis=ComboVisibleCount(n);
+   int t1=y+5, t2=y+h-5, track=t2-t1;
+   int th=(int)MathMax(20,(double)track*vis/n);
+   int span=track-th;
+   if(span<=0) return;
+   int rel=ly-t1-th/2;
+   if(rel<0) rel=0;
+   if(rel>span) rel=span;
+   int ns=(int)MathRound((double)rel*maxS/span);
+   if(ns!=m_comboScroll) { m_comboScroll=ns; Render(); }
+  }
+
+//--- A barra do popup ocupa a faixa direita dele. A area de clique e mais
+//--- larga que os 4 px desenhados: mirar um fio de 4 px e exigir precisao que
+//--- o desenho nao promete.
+bool InComboBar(const int lx,const int ly)
+  {
+   if(m_comboOpen<0 || m_comboOpen>=m_comboCount) return false;
+   int x,y,w,h,n;
+   ComboPopupBox(m_comboOpen,x,y,w,h,n);
+   if(ComboMaxScroll(n)<=0) return false;          // sem barra, sem alvo
+   int tx=x+w-9;
+   return (lx>=tx-4 && lx<=tx+8 && ly>=y+5 && ly<=y+h-5);
+  }
+
 bool HandleComboClick(const int lx,const int ly)
   {
    if(m_comboOpen>=0 && m_comboOpen<m_comboCount)
      {
+      //--- A barra vem antes da lista: ela fica DENTRO da caixa do popup, e sem
+      //--- este desvio o clique nela caia na faixa de um item — ou, pior, no
+      //--- fechamento. Era por isso que a barra parecia inerte.
+      if(InComboBar(lx,ly))
+        { m_comboBarDrag=true; HandleComboBarDrag(ly); return true; }
+
       int x,y,w,h,n;
       ComboPopupBox(m_comboOpen,x,y,w,h,n);
       if(lx>=x && lx<x+w && ly>=y && ly<y+h)
@@ -102,11 +147,21 @@ bool HandleComboClick(const int lx,const int ly)
          if(idx>=0 && idx<n)
            {
             int kind=m_comboKind[m_comboOpen];
-            m_stCombo[m_comboSlot[m_comboOpen]]=idx;
-            if(kind==FCV_COMBO_PALETTE || kind==FCV_COMBO_THEMEMODE || kind==FCV_COMBO_SCALE)
-               ApplyComboSideEffect(kind,idx);
+            int fid=m_comboFid[m_comboOpen];
+            //--- Ligado a um campo, a escolha vai para o rascunho (que marca a
+            //--- pendencia); solto, para o slot local da tela.
+            if(fid!=FCV_FLD_NONE)
+               FieldSetIndex(fid,idx);
             else
-               m_dirty=true;
+              {
+               int cs=m_comboSlot[m_comboOpen];
+               bool changed=(m_stCombo[cs]!=idx);
+               m_stCombo[cs]=idx;
+               if(kind==FCV_COMBO_PALETTE || kind==FCV_COMBO_THEMEMODE || kind==FCV_COMBO_SCALE)
+                  ApplyComboSideEffect(kind,idx);
+               else if(changed)          // reescolher a mesma opcao nao e alteracao
+                  m_dirty=true;
+              }
            }
         }
       m_comboOpen=-1; Render(); return true;
@@ -119,7 +174,8 @@ bool HandleComboClick(const int lx,const int ly)
          //--- abre mostrando o item selecionado, nao o topo da lista
          string items[];
          int n=ComboItems(m_comboKind[i],items);
-         int sel=m_stCombo[m_comboSlot[i]];
+         int sel=(m_comboFid[i]!=FCV_FLD_NONE) ? FieldGetIndex(m_comboFid[i])
+                                               : m_stCombo[m_comboSlot[i]];
          int maxS=ComboMaxScroll(n);
          m_comboScroll=sel-FCV_COMBO_WINDOW/2;
          if(m_comboScroll>maxS) m_comboScroll=maxS;
@@ -160,16 +216,32 @@ bool HandleButtonClick(const int lx,const int ly)
       if(m_btnY[i]>=ContentTop() && !InContentView(m_btnY[i],m_btnH[i])) continue;
       switch(m_btnId[i])
         {
-         case FCV_BTN_NEW:    m_profEdit=FCV_PROF_NEW; break;
-         case FCV_BTN_DUP:    m_profEdit=FCV_PROF_DUP; break;
+         //--- Comecar uma criacao limpa o formulario. Sem isto, cancelar e
+         //--- recomecar traria de volta o que foi digitado antes.
+         case FCV_BTN_NEW:    m_profEdit=FCV_PROF_NEW; ClearProfileForm(); break;
+         case FCV_BTN_DUP:    m_profEdit=FCV_PROF_DUP; ClearProfileForm(); break;
          case FCV_BTN_SAVE:
          case FCV_BTN_CANCEL: m_profEdit=FCV_PROF_VIEW; break;
          case FCV_BTN_LOAD:   m_profSel=m_profSel;      break; // fake: nada muda
          case FCV_BTN_DEL:    Print("EXCLUIR (simulacao): pediria confirmacao."); break;
-         //--- cabecalho: na Fase 1 so exercitam a regra do unico preenchido
-         case FCV_BTN_START:
-         case FCV_BTN_SAVECFG:
-         case FCV_BTN_CANCELCFG: m_dirty=!m_dirty; break;
+         //--- INICIAR nao mexe em pendencia: ligar o EA nao e alteracao de
+         //--- configuracao. Ele alterna o estado operacional, que e o que a
+         //--- capsula e o Status mostram.
+         case FCV_BTN_START:  m_snap.started=!m_snap.started; break;
+         //--- Gravar e descartar ambos encerram a pendencia. Quem a CRIA e a
+         //--- edicao de um campo ou controle, nao um botao do cabecalho.
+         //--- TODO Fase 2d: virar comando de verdade e a pendencia passar a
+         //--- vir de HasUnsavedDraftChanges, nao deste sinalizador local.
+         //--- CANCELAR restaura o COMPROMETIDO, nao o padrao de fabrica: a
+         //--- 1.058 chama RestoreCommittedDraftToControls e anuncia "Perfil
+         //--- salvo restaurado". Descartar edicao e voltar ao que esta salvo.
+         //--- Sem isto o botao so apagaria a pendencia e deixaria os valores
+         //--- editados na tela — diria que nao ha alteracao mostrando-a.
+         case FCV_BTN_CANCELCFG: m_draft=m_committed; m_dirty=false; break;
+         //--- Provisorio: aplica localmente para a tela ficar coerente. Na
+         //--- Etapa 2c isto vira um comando ao EA, e o comprometido volta a
+         //--- ser atualizado so pelo snapshot de resposta.
+         case FCV_BTN_SAVECFG:   m_committed=m_draft; m_dirty=false; break;
         }
       m_scroll=0;
       Render();
@@ -184,9 +256,14 @@ bool HandleToggleClick(const int lx,const int ly)
       if(lx>=m_toggleX[t]-6 && lx<m_toggleX[t]+44 &&
          ly>=m_toggleY[t]-6 && ly<m_toggleY[t]+27 && InContentView(m_toggleY[t],21))
         {
-         int slot=m_toggleSlot[t];
-         m_stToggle[slot]=!m_stToggle[slot];
-         m_dirty=true;
+         if(m_toggleFid[t]!=FCV_FLD_NONE)
+            FieldToggleBool(m_toggleFid[t]);   // ja marca a pendencia
+         else
+           {
+            int slot=m_toggleSlot[t];
+            m_stToggle[slot]=!m_stToggle[slot];
+            m_dirty=true;
+           }
          Render();
          return true;
         }
@@ -231,6 +308,16 @@ void HandlePress(const int cx,const int cy)
 
    if(ly<FCV_TITLEBAR_H)
      {
+      //--- Clique na barra encerra a edicao em curso. Este caminho saia antes
+      //--- da marcacao de foco, entao ajustar altura, trocar o tema ou arrastar
+      //--- deixavam o foco preso e a roda bloqueada. O arrasto e o pior: um
+      //--- OBJ_EDIT com foco nao acompanha a posicao do objeto, e o editor do
+      //--- terminal ficava parado no ar enquanto o painel se movia.
+      //--- O Render fica atras da condicao porque ReleaseEditFocus destroi o
+      //--- objeto e o tira do registro — sem reconstruir, o arrasto seguinte
+      //--- nao teria o que reposicionar e o campo sumiria.
+      if(m_focusSlot>=0) { ReleaseEditFocus(); Render(); }
+
       if(lx>=FCV_PANEL_W-40) { m_minimized=!m_minimized; Render(); return; }
       //--- o alvo so existe quando o icone existe
       if(!m_minimized && lx>=FCV_PANEL_W-64 && lx<FCV_PANEL_W-40)
@@ -255,13 +342,26 @@ void HandlePress(const int cx,const int cy)
      }
    if(m_minimized) return;
 
-   //--- Clique dentro de um campo marca o foco. Nao limpamos aqui: quem
-   //--- encerra a edicao e o terminal, e ele avisa por ENDEDIT.
-   NoteEditFocus(lx,ly);
-
    //--- popup aberto consome o clique antes de qualquer outro alvo
    if(HandleColorClick(lx,ly)) return;
    if(HandleComboClick(lx,ly)) return;
+
+   //--- Marcar o foco SO depois dos popups. O popup ocupa de proposito a mesma
+   //--- coluna e a mesma largura dos campos de digitacao, entao escolher uma
+   //--- opcao quase sempre cai dentro da caixa de um OBJ_EDIT que esta atras.
+   //--- Marcado antes, esse clique dava foco a um campo que o usuario nunca
+   //--- tocou; como so o ENDEDIT libera, e ele nunca vinha, a roda do mouse
+   //--- ficava bloqueada para o resto da sessao.
+   bool wasPending=HasPending(), wasEditing=EditingNow();
+   NoteEditFocus(lx,ly);
+   //--- Sair do campo confirma o texto, e o texto pode criar a pendencia que
+   //--- HABILITA o SALVAR e o CANCELAR. As caixas de clique deles vem do quadro
+   //--- anterior, quando ainda estavam apagados e nao publicaram nada — sem
+   //--- este redesenho, o primeiro clique em SALVAR so confirmava a digitacao.
+   //--- Tambem redesenha ao ENTRAR num campo: e o que acende SALVAR e CANCELAR
+   //--- no instante em que a edicao comeca, sem esperar o texto que o terminal
+   //--- so publica no fim.
+   if(HasPending()!=wasPending || EditingNow()!=wasEditing) Render();
 
    //--- Todo botao, do cabecalho ou de conteudo, e resolvido pelo registro
    //--- publicado no desenho. Antes o cabecalho tinha a propria aritmetica de
@@ -367,9 +467,43 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
 
    if(id==CHARTEVENT_KEYDOWN)
      {
-      if((int)lparam==FCV_VK_M) { RunPerfSuite(); return; }
-      if((int)lparam==FCV_VK_S) { ToggleStress(); return; }
-      if((int)lparam==FCV_VK_B)
+      //--- ESC fecha o que estiver aberto, antes de qualquer outra leitura.
+      if((int)lparam==FCV_VK_ESC && (m_comboOpen>=0 || m_colorOpen>=0))
+        { m_comboOpen=-1; m_colorOpen=-1; Render(); return; }
+
+      //--- Com um popup aberto, as setas rolam A LISTA, nao o conteudo atras.
+      //--- Sem isto a roda era o unico jeito de alcancar um item fora da
+      //--- janela de 10 — e desligar a roda deixaria a lista inacessivel.
+      if(m_comboOpen>=0 && m_comboOpen<m_comboCount)
+        {
+         int px,py,pw,ph,n;
+         ComboPopupBox(m_comboOpen,px,py,pw,ph,n);
+         int vis=ComboVisibleCount(n), maxS=ComboMaxScroll(n), st=0;
+         switch((int)lparam)
+           {
+            case FCV_VK_UP:    st=-1;   break;
+            case FCV_VK_DOWN:  st= 1;   break;
+            case FCV_VK_PRIOR: st=-vis; break;
+            case FCV_VK_NEXT:  st= vis; break;
+            case FCV_VK_HOME:  st=-n;   break;
+            case FCV_VK_END:   st= n;   break;
+            default: return;   // demais teclas nao vazam para o conteudo
+           }
+         int ns=m_comboScroll+st;
+         if(ns<0)    ns=0;
+         if(ns>maxS) ns=maxS;
+         if(ns!=m_comboScroll) { m_comboScroll=ns; Render(); }
+         return;
+        }
+
+      //--- Teclas de diagnostico da Fase 1. Nao podem disparar com um campo em
+      //--- edicao: digitar "m" num campo nao pode rodar a suite de medicao.
+      if(!EditHasFocus())
+        {
+         if((int)lparam==FCV_VK_M) { RunPerfSuite(); return; }
+         if((int)lparam==FCV_VK_S) { ToggleStress(); return; }
+        }
+      if((int)lparam==FCV_VK_B && !EditHasFocus())
         {
          //--- simula o perfil bloqueado da 1.058 para exercitar o estado
          m_locked=!m_locked;
@@ -402,17 +536,46 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       bool over=InsidePanel(cx,cy);
       if(over!=m_overPanel) { SetChartScroll(over?false:m_origScroll); m_overPanel=over; }
 
-      if(down && !m_mouseDown && over)   HandlePress(cx,cy);
+      //--- m_mouseDown e atualizado ANTES do despacho: o BuildEdits disparado
+      //--- de dentro do clique precisa saber que o botao esta apertado para
+      //--- nao criar campo nativo sob o cursor.
+      bool press=(down && !m_mouseDown && over);
+      //--- Clique FORA do painel tambem encerra a edicao. Sem isto o foco ficava
+      //--- preso: o painel nunca via esse clique, continuava se achando em
+      //--- edicao, e a roda seguia bloqueada ate um novo clique dentro dele.
+      //--- Decidido ANTES de atualizar m_mouseDown, que e quem marca a borda.
+      bool pressOut=(down && !m_mouseDown && !over);
+      m_mouseDown=down;
+
+      if(pressOut && m_focusSlot>=0) { ReleaseEditFocus(); Render(); }
+
+      if(press)                          HandlePress(cx,cy);
       else if(down && m_dragging)        HandleDrag(cx,cy);
       else if(down && m_barDrag)         HandleBarDrag(L(cy-m_py));
       else if(down && m_scrollDrag)      HandleScrollDrag(L(cy-m_py));
+      else if(down && m_comboBarDrag)    HandleComboBarDrag(L(cy-m_py));
 
-      if(!down) { m_dragging=false; m_scrollDrag=false; m_barDrag=false; }
-      m_mouseDown=down;
+      if(!down)
+        {
+         m_dragging=false; m_scrollDrag=false; m_barDrag=false; m_comboBarDrag=false;
+         //--- Botao solto: agora os campos adiados podem nascer em paz.
+         if(m_editsPending) { m_editsPending=false; Render(); }
+        }
       return;
      }
 
    if(id==CHARTEVENT_OBJECT_ENDEDIT && StringFind(sparam,m_prefix+"edit_")==0)
-     { m_focusSlot=-1; StoreEditText(sparam); Render(); return; }
+     {
+      //--- So limpa o foco se quem terminou foi o campo que o detem. Indo
+      //--- direto de um campo para outro, o aviso de encerramento do primeiro
+      //--- pode chegar quando m_focusSlot ja aponta para o segundo — limpar sem
+      //--- conferir apagaria SALVAR/CANCELAR e liberaria a roda com o segundo
+      //--- campo ainda em edicao.
+      int endedSlot=(int)StringToInteger(StringSubstr(sparam,StringLen(m_prefix+"edit_")));
+      if(m_focusSlot==endedSlot) m_focusSlot=-1;
+      StoreEditText(sparam);
+      Render();
+      return;
+     }
   }
 private:

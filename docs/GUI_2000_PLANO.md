@@ -153,6 +153,37 @@ desenhadas, com todos os estados visuais. Medir o custo de desenho cedo.
 secao 5. Os fragmentos de validacao, draft e acesso sao incluidos praticamente como
 estao — sao fragmentos de corpo de classe.
 
+### Pendencias registradas para a Etapa 2d (validacao / acesso / conflito)
+
+Tres coisas foram deixadas de fora de proposito ate aqui. Nenhuma e esquecimento;
+todas pertencem a mesma camada e se resolvem juntas.
+
+**1. A camada de acesso — FEITA.** Os predicados da 1.058 (`UIPanelAccessState.mqh`)
+foram portados para `CanvasRendererChrome.mqh`: iniciar, pausar, salvar, cancelar,
+carregar, criar e excluir perfil, alem do bloqueio dos campos com o EA rodando ou
+com posicao aberta. Falta apenas `configInputsValid`, que depende do item 2 — ate
+la vale `true`, o que **afrouxa** a regra e nunca a aperta.
+
+**2. Validacao e regras cruzadas.** Digitar letra num campo numerico vira zero sem
+reclamar. Faltam as faixas (`prioridade 0..1000`, `periodo 1..1000`) e as relacoes
+entre campos (`MA rapida < MA lenta`, `sobrevenda < media < sobrecompra`). As regras
+existem na 1.058; o que precisa ser reescrito e a camada de leitura, porque o modelo
+por slot nao tem os membros nomeados que os fragmentos originais esperam.
+
+**3. Politica de conflito durante a edicao.** Enquanto o usuario digita, o texto em
+andamento esta protegido — mas nao pela regra do `m_dirty`, e sim porque a
+sincronizacao diferencial compara o valor de origem com **o que nos escrevemos por
+ultimo no objeto**, nao com o que esta na caixa. Enquanto o valor de origem daquele
+campo nao muda, o `OBJ_EDIT` nao e reescrito e a digitacao sobrevive ao refresh
+periodico.
+
+O caso residual e quando o valor de origem **muda de verdade** no meio da digitacao:
+carga ou troca de perfil, restauracao, importacao. Ai o novo valor disputa com o
+texto ainda nao confirmado. Nao ha resposta obviamente certa — descartar o que o
+usuario digitava ou ignorar o que o EA mandou — e por isso e uma decisao de politica,
+nao um bug a corrigir sozinho. Fica com o item 1: "o campo aceita edicao agora?" e
+"quem ganha se o valor mudar por baixo?" sao a mesma pergunta vista de dois angulos.
+
 **Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
 convivem, comparaveis no mesmo grafico, com reversao imediata.
 

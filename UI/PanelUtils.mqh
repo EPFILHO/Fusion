@@ -7,6 +7,7 @@
 #include <Controls\ComboBox.mqh>
 #include <Controls\Panel.mqh>
 #include "../Core/Types.mqh"
+#include "../Core/SettingsNotices.mqh"
 
 #define FUSION_CLR_BG            C'34,40,52'
 #define FUSION_CLR_PANEL         C'47,56,72'
@@ -431,28 +432,9 @@ bool FusionPopulateBBModeCombo(CComboBox &combo)
    return true;
   }
 
-bool FusionUsesTPSLExit(const SEASettings &settings)
-  {
-   return ((settings.useMACross && settings.maExitMode == EXIT_TP_SL) ||
-           (settings.useRSI && settings.rsiExitMode == RSI_EXIT_TP_SL) ||
-           (settings.useBollinger && settings.bbExitMode == EXIT_TP_SL));
-  }
-
-string FusionTPSLExitZeroNotice(const SEASettings &settings)
-  {
-   if(!FusionUsesTPSLExit(settings))
-      return "";
-
-   bool slZero = (settings.fixedSLPoints <= 0);
-   bool tpZero = (settings.fixedTPPoints <= 0);
-   if(slZero && tpZero)
-      return "ATENCAO: saida TP/SL ativa com SL e TP zerados.";
-   if(slZero)
-      return "ATENCAO: operar sem SL e ARRISCADO.";
-   if(tpZero)
-      return "Saida TP/SL ativa com TP fixo zerado.";
-   return "";
-  }
+//--- FusionUsesTPSLExit e FusionTPSLExitZeroNotice mudaram para
+//--- Core/SettingsNotices.mqh: dependem so de SEASettings e agora sao lidas
+//--- tambem pelo painel 2.0, que nao pode incluir este arquivo.
 
 string FusionConflictText(const ENUM_CONFLICT_RESOLUTION mode)
   {

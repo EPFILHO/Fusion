@@ -37,7 +37,8 @@ int ScreenId(void)
    if(m_tab==1)              return FCV_SCREEN_RESULTS;
    if(m_tab==2)              return FCV_SCREEN_STRAT0 +m_sub[2];
    if(m_tab==3)              return FCV_SCREEN_FILTER0+m_sub[3];
-   if(m_tab==FCV_TAB_PERFIS) return FCV_SCREEN_PROFILES;
+   if(m_tab==FCV_TAB_PERFIS)
+      return (m_profEdit==FCV_PROF_VIEW) ? FCV_SCREEN_PROFILES : FCV_SCREEN_PROFILE_EDIT;
    if(m_tab==FCV_TAB_VISUAL) return FCV_SCREEN_VISUAL;
    return (m_sub[FCV_TAB_GESTAO]==0) ? FCV_SCREEN_RISK0+m_railSel[0]
                                      : FCV_SCREEN_PROT0+m_railSel[1];
@@ -140,7 +141,9 @@ void DrawComboPopup(void)
    ComboPopupBox(m_comboOpen,x,y,w,h,n);
    string items[];
    ComboItems(m_comboKind[m_comboOpen],items);
-   int sel=m_stCombo[m_comboSlot[m_comboOpen]];
+   int sel=(m_comboFid[m_comboOpen]!=FCV_FLD_NONE)
+           ? FieldGetIndex(m_comboFid[m_comboOpen])
+           : m_stCombo[m_comboSlot[m_comboOpen]];
    if(sel<0 || sel>=n) sel=0;
 
    int vis=ComboVisibleCount(n);
@@ -204,21 +207,101 @@ void DrawColorPopup(void)
 //+------------------------------------------------------------------+
 //| Telas de nivel 1 sem formulario                                   |
 //+------------------------------------------------------------------+
+//--- A linha de aviso da Sessao mostra o motivo mais grave que existir. A
+//--- ordem e deliberada: o que impede de operar vem antes do que apenas
+//--- suspende entradas, que vem antes de recado informativo. Mostrar o menos
+//--- grave enquanto existe um pior seria esconder o que importa.
+//--- A escada completa da 1.058 (UI/Pages/StatusPage.mqh), na mesma ordem.
+//--- A ordem E a regra: o primeiro ramo que casar vence, entao inverter dois
+//--- degraus faz o painel anunciar o problema menor e calar o maior.
+//--- A versao anterior cobria 6 dos 14 casos e, nos outros 8, dizia
+//--- "Sem alertas." durante bloqueio real — a pior mentira que esta tela pode
+//--- contar.
+bool StatusNotice(string &title,string &body,int &sem)
+  {
+   sem=FCV_SEM_WARN;
+   if(m_snap.runtimeBlocked)
+     { title="ATENCAO OPERACIONAL"; body=m_snap.runtimeBlockReason; sem=FCV_SEM_BAD; return true; }
+   if(HasText(m_snap.startBlockedReason))
+     { title="INICIO BLOQUEADO"; body=m_snap.startBlockedReason; return true; }
+   if(HasText(m_snap.activeProfileBlockedReason))
+     { title="PERFIL BLOQUEADO"; body=m_snap.activeProfileBlockedReason; return true; }
+   if(m_snap.tradePermissionBlocked)
+     { title="AUTOTRADING OFF"; body=m_snap.tradePermissionReason; return true; }
+   if(m_snap.pendingReverseExit)
+     {
+      title="VIRADA DE MAO";
+      body="VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
+      return true;
+     }
+   if(m_snap.activeProfileFileMissing)
+     {
+      title="PERFIL SEM ARQUIVO";
+      body="Perfil "+m_snap.activeProfileName+" sem arquivo em disco. O EA segue com os "
+           "valores do estado do grafico. Salve para recriar o arquivo.";
+      return true;
+     }
+   if(m_snap.hasPosition && !m_snap.started)
+     {
+      title="ENTRADAS SUSPENSAS";
+      body="Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas futuras.";
+      return true;
+     }
+   if(m_snap.entryBlockIsRiskStops)
+     {
+      title="RISCO SL/TP";
+      body=m_snap.entryBlockReason+" "+m_snap.entryBlockDetail;
+      sem=FCV_SEM_BAD; return true;
+     }
+   if(HasText(m_snap.entryBlockReason))
+     { title="ENTRADA BLOQUEADA"; body=m_snap.entryBlockReason; return true; }
+   if(m_snap.dailyLimitsBlocked)
+     { title="LIMITE DIARIO"; body=m_snap.dailyLimitsBlockReason; return true; }
+   if(m_snap.drawdownLimitReached)
+     { title="DRAWDOWN"; body=m_snap.drawdownConfigLockReason; return true; }
+   //--- Os dois filtros so falam quando estao ligados: anunciar bloqueio de
+   //--- sessao com o filtro desligado seria acusar quem nao agiu.
+   if(m_snap.settings.enableSessionFilter && m_snap.sessionProtectionBlocked)
+     { title="SESSAO"; body=m_snap.sessionProtectionBlockReason; return true; }
+   if(FusionHasEnabledNewsWindow(m_snap.settings) && m_snap.newsProtectionBlocked)
+     { title="NEWS"; body=m_snap.newsProtectionBlockReason; return true; }
+   if(HasText(m_snap.runtimeNotice))
+     {
+      title=m_snap.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";
+      body=m_snap.runtimeNotice; return true;
+     }
+   string tpsl=FusionTPSLExitZeroNotice(m_snap.settings);
+   if(HasText(tpsl))
+     { title="RISCO TP/SL"; body=tpsl; return true; }
+
+   title="Sem alertas."; body="Contexto do grafico estavel."; sem=FCV_SEM_NEUTRAL;
+   return false;
+  }
+
 void ScreenStatus(void)
   {
    int x1=m_fx1, x2=m_fx2, y=m_fy;
 
    RoundRect(x1,y,x2,y+56,FCV_RADIUS_CARD,m_t.surface,m_t.ground);
    Txt(x1+14,y+18,"ESTADO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
-   Txt(x1+14,y+38,"Pausado",m_t.fg,FCV_FONT_UI,FCV_FS_HERO,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
+   //--- O estado grande usa a cor do proprio estado: e a primeira coisa que se
+   //--- olha ao abrir o painel, e cor informa mais rapido que leitura.
+   Txt(x1+14,y+38,RunStateText(),RunStateColor(),FCV_FONT_UI,FCV_FS_HERO,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
    Txt(x2-14,y+18,"POSICAO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
-   Txt(x2-14,y+38,"Nenhuma",m_t.muted,FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
+   Txt(x2-14,y+38,m_snap.hasPosition ? "Aberta" : "Nenhuma",
+       m_snap.hasPosition ? m_t.fg : m_t.muted,
+       FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
    y+=66;
 
-   string tk[4]={"ESTRATEGIAS","FILTROS","MAGIC","TF OPERACIONAL"};
-   string tv[4]={"1","0","1","M1"};
-   int tw=(x2-x1-24)/4;
-   for(int i=0;i<4;++i)
+   //--- Tres blocos, nao quatro: o TF operacional saiu daqui. Ele e um resumo
+   //--- por estrategia ("MA M1/M5 | RSI M15") e nao cabe num bloco estreito —
+   //--- foi para uma linha de largura inteira no cartao abaixo.
+   string tk[3]={"ESTRATEGIAS","FILTROS","MAGIC"};
+   string tv[3]={IntegerToString(m_snap.activeStrategies),
+                 IntegerToString(m_snap.activeFilters),
+                 IntegerToString(m_snap.magicNumber)};
+   int tw=(x2-x1-16)/3;
+   for(int i=0;i<3;++i)
      {
       int bx=x1+i*(tw+8);
       RoundRect(bx,y,bx+tw,y+54,FCV_RADIUS_CARD,m_t.surface,m_t.ground);
@@ -238,33 +321,92 @@ void ScreenStatus(void)
    //--- Resultados. Repetir numero em duas telas cria duas fontes da mesma
    //--- verdade, e uma delas fatalmente atrasa em relacao a outra.
    RowsReset();
-   RowStatic("Ativo Operacional","BTCUSD");
-   RowStatic("Responsavel","—");
-   RowStatic("Conflito","PRIORIDADE");
-   RowNote  ("Sem alertas.");
+   RowStatic("Ativo Operacional",m_snap.symbol);
+   //--- Resumo dos timeframes de cada estrategia ligada. Sem estrategia
+   //--- nenhuma o EA manda string vazia; travessao diz "nao ha", vazio parece
+   //--- campo que nao carregou.
+   RowStatic("TF Operacional",m_snap.timeframe=="" ? "—" : m_snap.timeframe);
+   //--- Sem responsavel definido o campo mostra travessao, nao vazio: espaco em
+   //--- branco parece falha de desenho, travessao diz "nao ha".
+   RowStatic("Responsavel",m_snap.ownerStrategyName=="" ? "—" : m_snap.ownerStrategyName);
+   RowStatic("Conflito",m_snap.conflictMode==CONFLICT_PRIORITY ? "PRIORIDADE" : "CANCELAR");
+   //--- Titulo em selo colorido pela gravidade, corpo em nota. A 1.058 pinta os
+   //--- dois com a cor do aviso; aqui a cor fica no selo, que e o que se le
+   //--- primeiro, e o corpo permanece legivel.
+   string ntTitle,ntBody; int ntSem;
+   StatusNotice(ntTitle,ntBody,ntSem);
+   RowBadge("Alerta",ntTitle,ntSem);
+   RowNote (ntBody);
    Card("SESSAO");
+  }
+
+//--- Lucro colore pelo sinal, igual ao ResultColor da 1.058. O zero fica
+//--- neutro de proposito: pintar zero de verde sugeriria ganho onde nao ha.
+int ProfitSem(const double v)
+  {
+   if(v >  0.0000001) return FCV_SEM_GOOD;
+   if(v < -0.0000001) return FCV_SEM_BAD;
+   return FCV_SEM_NEUTRAL;
   }
 
 void ScreenResults(void)
   {
-   //--- Campos reais da 1.058 (UI/Pages/ResultsPage.mqh). Numeros com virgula,
-   //--- como o resto do painel — trocar o separador so nesta tela obrigaria o
-   //--- usuario a ler dois formatos.
+   //--- Mapeamento e formatos conferidos contra UI/Pages/ResultsPage.mqh.
+   //--- Ponto decimal, nao virgula: e o que a 1.058 mostra (DoubleToString).
+   bool pend=m_snap.partialReconciliationPending;
+
    RowsReset();
-   RowStatic("P/L Bruto Fechado","0,00");
-   RowStatic("P/L Bruto Flutuante","0,00");
-   RowStatic("P/L Bruto Projetado","0,00");
+   //--- Com parcial em reconciliacao o fechado ainda nao e final; a 1.058
+   //--- marca "(confirmado)" na parte que ja fechou e pinta de atencao.
+   RowStatic("P/L Bruto Fechado",
+             DoubleToString(m_snap.dailyClosedProfit,2)+(pend ? " (confirmado)" : ""),
+             pend ? FCV_SEM_WARN : ProfitSem(m_snap.dailyClosedProfit));
+   RowStatic("P/L Bruto Flutuante",
+             DoubleToString(m_snap.dailyFloatingProfit,2),
+             ProfitSem(m_snap.dailyFloatingProfit));
+   //--- O projetado nao existe enquanto a parcial nao reconcilia: mostrar um
+   //--- numero ali seria mostrar um valor que vai mudar.
+   RowStatic("P/L Bruto Projetado",
+             pend ? "RECONCILIANDO PARCIAL" : DoubleToString(m_snap.dailyProjectedProfit,2),
+             pend ? FCV_SEM_WARN : ProfitSem(m_snap.dailyProjectedProfit));
    Card("RESULTADO DO DIA");
 
-   RowsReset();
-   RowStatic("Trades do Dia","0");
-   RowStatic("Streak Loss/Win Atual","0 / 0");
-   Card("CONTAGEM");
+   string trades=IntegerToString(m_snap.dailyTradeCount);
+   if(m_snap.dailyOutcomeCountsKnown)
+     {
+      trades+=StringFormat(" (%d Loss / %d Win",m_snap.dailyLossCount,m_snap.dailyWinCount);
+      if(m_snap.dailyBreakevenCount>0) trades+=StringFormat(" / %d BE",m_snap.dailyBreakevenCount);
+      trades+=")";
+     }
+   //--- Streak desligada mostra OFF, nao zero: zero diria "nenhuma perda
+   //--- seguida", quando na verdade ninguem esta contando.
+   string ls=m_snap.settings.lossStreakEnabled ? IntegerToString(m_snap.lossStreak) : "OFF";
+   string ws=m_snap.settings.winStreakEnabled  ? IntegerToString(m_snap.winStreak)  : "OFF";
 
    RowsReset();
-   RowBadge ("Estado DD","AGUARDANDO META",FCV_SEM_WARN);
-   RowStatic("Pico / Piso DD","0,00 / 0,00");
-   RowStatic("Folga DD","0,00");
+   RowStatic("Trades do Dia",trades);
+   RowStatic("Streak Loss/Win Atual","Loss "+ls+" | Win "+ws);
+   Card("CONTAGEM");
+
+   //--- Sem base de drawdown os numeros nao significam nada ainda: a 1.058
+   //--- mostra "--" em vez de zeros que pareceriam medidos.
+   bool hasBase=(m_snap.drawdownProtectionActive || m_snap.drawdownLimitReached ||
+                 m_snap.drawdownPeakProfit>0.0);
+   string ddState = !m_snap.settings.enableDrawdown ? "OFF"
+                    : (m_snap.drawdownLimitReached ? "ATINGIDO"
+                       : (m_snap.drawdownProtectionActive ? "ATIVO" : "AGUARDANDO META"));
+   int ddSem = m_snap.drawdownLimitReached ? FCV_SEM_BAD
+               : (m_snap.settings.enableDrawdown ? FCV_SEM_GOOD : FCV_SEM_NEUTRAL);
+
+   RowsReset();
+   RowBadge ("Estado DD",ddState,ddSem);
+   RowStatic("Pico / Piso DD",
+             hasBase ? StringFormat("%.2f / %.2f",m_snap.drawdownPeakProfit,m_snap.drawdownFloorProfit)
+                     : "--");
+   //--- Folga zerada ou negativa e o aviso de que o bloqueio esta na porta.
+   RowStatic("Folga DD",
+             hasBase ? DoubleToString(m_snap.drawdownBufferProfit,2) : "--",
+             (hasBase && m_snap.drawdownBufferProfit<=0.0) ? FCV_SEM_WARN : FCV_SEM_NEUTRAL);
    Card("DRAWDOWN");
   }
 
@@ -317,12 +459,17 @@ void ScreenProfiles(void)
    //--- Cada acao acende conforme o que e possivel agora. Um unico preenchido:
    //--- em repouso o proximo passo e CARREGAR o selecionado; em edicao, SALVAR.
    bool isActive =(m_profSel==0);          // fake: o primeiro da lista e o ativo
-   bool canLoad  =(!editing && !isActive);
-   bool canDelete=(!editing && !isActive); // o ativo nao se apaga sozinho
-   PutButton(lx2+11,y+0*34,aw,30,"CARREGAR",canLoad,m_t.acc,m_t.onAcc,FCV_BTN_LOAD,canLoad);
-   PutButton(lx2+11,y+1*34,aw,30,"NOVO",    false,  m_t.acc,m_t.onAcc,FCV_BTN_NEW, !editing);
-   PutButton(lx2+11,y+2*34,aw,30,"DUPLICAR",false,  m_t.acc,m_t.onAcc,FCV_BTN_DUP, !editing);
-   PutButton(lx2+11,y+3*34,aw,30,"EXCLUIR", false,  m_t.bad,m_t.onAcc,FCV_BTN_DEL, canDelete);
+   bool canLoad  =(!editing && !isActive && AccCanLoadProfile());
+   //--- o ativo nao se apaga sozinho
+   bool canDelete=(!editing && !isActive && AccCanAdminProfile());
+   bool canCreate=(!editing && AccCanCreateProfile());
+   //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
+   //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o
+   //--- que a acao FAZ; estar habilitado diz se ela cabe agora.
+   PutButton(lx2+11,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
+   PutButton(lx2+11,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
+   PutButton(lx2+11,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canCreate);
+   PutButton(lx2+11,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
 
    m_fy=y+6*34+FCV_CARD_GAP;
 
@@ -379,17 +526,24 @@ void ScreenStrategies(void)
    int s=m_sub[2];
    if(s==0)
      {
+      //--- As mesmas chaves aparecem aqui e no cabecalho de cada subaba. Ligadas
+      //--- ao mesmo campo, andam juntas sem codigo de sincronizacao.
+      //--- Somente leitura: o Geral e um panorama, nao um controle. Quem liga e
+      //--- desliga e o "Ativo" de cada subaba, onde os parametros daquela
+      //--- estrategia estao a vista — decidir com eles fora de campo e decidir
+      //--- no escuro.
       RowsReset();
-      RowToggle("MA Cross");
-      RowToggle("RSI");
-      RowToggle("Bollinger");
+      RowState("MA Cross" ,FCV_FLD_USE_MACROSS);
+      RowState("RSI"      ,FCV_FLD_USE_RSI);
+      RowState("Bollinger",FCV_FLD_USE_BB);
+      RowNote ("Ligue ou desligue em cada subaba, junto dos parametros.");
       Card("ESTRATEGIAS");
 
       //--- Resolver Conflito mora aqui, e nao em Config > Sistema como na
       //--- 1.058: e uma regra entre estrategias, e le-se junto de quais estao
       //--- ligadas e com que prioridade. O campo continua sendo o mesmo.
       RowsReset();
-      RowCombo("Resolver Conflito",FCV_COMBO_CONFLICT);
+      RowComboF("Resolver Conflito",FCV_COMBO_CONFLICT,FCV_FLD_CONFLICT);
       RowNote ("PRIORIDADE: em sinais opostos, o maior numero vence. CANCELAR: sinais opostos cancelam a entrada.");
       Card("CONFLITO");
       return;
@@ -397,83 +551,86 @@ void ScreenStrategies(void)
    if(s==1)
      {
       RowsReset();
-      RowNote  ("Cruza medias rapida e lenta com parametros independentes.");
-      RowToggle("Ativo");
-      RowField ("Prioridade","Em sinais opostos, o maior numero vence","1");
+      RowNote   ("Cruza medias rapida e lenta com parametros independentes.");
+      RowToggleF("Ativo",FCV_FLD_USE_MACROSS);
+      RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_MA_PRIORITY);
       Card("MA CROSS");
 
       RowsReset();
-      RowField("Periodo","Numero de velas","9");
-      RowCombo("Timeframe",FCV_COMBO_TF);
-      RowCombo("Tipo",FCV_COMBO_METHOD);
-      RowCombo("Preco",FCV_COMBO_PRICE);
+      RowFieldF("Periodo","Numero de velas",FCV_FLD_MA_FAST_PERIOD);
+      RowComboF("Timeframe",FCV_COMBO_TF    ,FCV_FLD_MA_FAST_TF);
+      RowComboF("Tipo"     ,FCV_COMBO_METHOD,FCV_FLD_MA_FAST_METHOD);
+      RowComboF("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_FAST_PRICE);
       Card("MEDIA RAPIDA");
 
       RowsReset();
-      RowField("Periodo","Numero de velas","21");
-      RowCombo("Timeframe",FCV_COMBO_TF);
-      RowCombo("Tipo",FCV_COMBO_METHOD);
-      RowCombo("Preco",FCV_COMBO_PRICE);
+      RowFieldF("Periodo","Numero de velas",FCV_FLD_MA_SLOW_PERIOD);
+      RowComboF("Timeframe",FCV_COMBO_TF    ,FCV_FLD_MA_SLOW_TF);
+      RowComboF("Tipo"     ,FCV_COMBO_METHOD,FCV_FLD_MA_SLOW_METHOD);
+      RowComboF("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_SLOW_PRICE);
       Card("MEDIA LENTA");
 
       RowsReset();
-      RowField("Dist. Min","Distancia minima entre as medias, em pontos","0");
-      RowCombo("Modo",FCV_COMBO_ENTRY);
+      RowFieldF("Dist. Min","Distancia minima entre as medias, em pontos",FCV_FLD_MA_MIN_DIST);
+      RowComboF("Modo",FCV_COMBO_ENTRY,FCV_FLD_MA_ENTRY_MODE);
       Card("ENTRADA");
 
       RowsReset();
-      RowCombo("Modo",FCV_COMBO_EXIT);
-      RowNote ("Saida usa SL/TP globais; 0 desliga cada nivel.");
+      RowComboF("Modo",FCV_COMBO_EXIT,FCV_FLD_MA_EXIT_MODE);
+      RowNote  ("Saida usa SL/TP globais; 0 desliga cada nivel.");
       Card("SAIDA");
       return;
      }
    if(s==2)
      {
       RowsReset();
-      RowNote  ("Sinais: Saida da Zona, Dentro da Zona ou Cruz. Media.");
-      RowToggle("Ativo");
-      RowField ("Prioridade","Em sinais opostos, o maior numero vence","2");
+      RowNote   ("Sinais: Saida da Zona, Dentro da Zona ou Cruz. Media.");
+      RowToggleF("Ativo",FCV_FLD_USE_RSI);
+      RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_RSI_PRIORITY);
       Card("RSI");
 
       RowsReset();
-      RowField("Periodo","Numero de velas","14");
-      RowCombo("Timeframe",FCV_COMBO_TF);
-      RowCombo("Preco",FCV_COMBO_PRICE);
+      RowFieldF("Periodo","Numero de velas",FCV_FLD_RSI_PERIOD);
+      RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_RSI_TF);
+      RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_RSI_PRICE);
       Card("PARAMETROS");
 
       //--- Sobrevenda antes de sobrecompra, como na 1.058: a ordem segue a
       //--- escala do indicador, de baixo para cima.
       RowsReset();
-      RowCombo("Modo",FCV_COMBO_RSIMODE);
-      RowField("Sobrevenda","Abaixo disso, procura compra","30");
-      RowField("Sobrecompra","Acima disso, procura venda","70");
-      RowField("Linha media","Referencia para cruzamento","50");
+      RowComboF("Modo",FCV_COMBO_RSIMODE,FCV_FLD_RSI_MODE);
+      RowFieldF("Sobrevenda" ,"Abaixo disso, procura compra",FCV_FLD_RSI_OVERSOLD);
+      RowFieldF("Sobrecompra","Acima disso, procura venda"  ,FCV_FLD_RSI_OVERBOUGHT);
+      RowFieldF("Linha media","Referencia para cruzamento"  ,FCV_FLD_RSI_MIDDLE);
       Card("SINAL");
 
       RowsReset();
-      RowCombo("Modo",FCV_COMBO_RSIEXIT);
+      RowComboF("Modo",FCV_COMBO_RSIEXIT,FCV_FLD_RSI_EXIT_MODE);
       Card("SAIDA");
       return;
      }
+   //--- A descricao existe nas outras duas e faltava aqui; e ela que diz de
+   //--- saida quais sao os tres modos de sinal.
    RowsReset();
-   RowToggle("Ativo");
-   RowField ("Prioridade","Em sinais opostos, o maior numero vence","3");
+   RowNote   ("Sinais: FFFD, Toque/Rejeicao ou Rompimento.");
+   RowToggleF("Ativo",FCV_FLD_USE_BB);
+   RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_BB_PRIORITY);
    Card("BOLLINGER");
 
    RowsReset();
-   RowField("Periodo","Numero de velas","20");
-   RowField("Desvio","Multiplicador do desvio padrao","2.0");
-   RowCombo("Timeframe",FCV_COMBO_TF);
-   RowCombo("Preco",FCV_COMBO_PRICE);
+   RowFieldF("Periodo","Numero de velas",FCV_FLD_BB_PERIOD);
+   RowFieldF("Desvio" ,"Multiplicador do desvio padrao",FCV_FLD_BB_DEVIATION);
+   RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_BB_TF);
+   RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_BB_PRICE);
    Card("PARAMETROS");
 
    RowsReset();
-   RowCombo("Modo",FCV_COMBO_BBMODE);
-   RowNote ("Recomenda-se usar filtro TREND.");
+   RowComboF("Modo",FCV_COMBO_BBMODE,FCV_FLD_BB_MODE);
+   RowNote  ("Recomenda-se usar filtro TREND.");
    Card("SINAL");
 
    RowsReset();
-   RowCombo("Modo",FCV_COMBO_EXIT);
+   RowComboF("Modo",FCV_COMBO_EXIT,FCV_FLD_BB_EXIT_MODE);
    Card("SAIDA");
   }
 
@@ -485,10 +642,14 @@ void ScreenFilters(void)
    int s=m_sub[3];
    if(s==0)
      {
+      //--- Somente leitura, como em Estrategias > Geral. "Tendencia" e ainda um
+      //--- caso especial: e resumo das duas medias (ligado com qualquer uma
+      //--- delas ligada), nao uma chave — nem existe o que clicar.
       RowsReset();
-      RowToggle("Tendencia");
-      RowToggle("RSI");
-      RowToggle("Bollinger");
+      RowState("Tendencia",FCV_FLD_USE_TREND);
+      RowState("RSI"      ,FCV_FLD_USE_RSIF);
+      RowState("Bollinger",FCV_FLD_USE_BBF);
+      RowNote ("Ligue ou desligue em cada subaba. Tendencia fica ligado quando ao menos uma das duas medias esta ligada.");
       Card("FILTROS");
 
       RowsReset();
@@ -501,71 +662,71 @@ void ScreenFilters(void)
       //--- Cada media tem a propria chave: a 1.058 permite usar so a M1, e
       //--- uma chave unica no topo esconderia isso.
       RowsReset();
-      RowNote  ("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
-      RowToggle("Ativo");
-      RowField ("Periodo","Numero de velas","50");
-      RowCombo ("Timeframe",FCV_COMBO_TF);
-      RowCombo ("Metodo",FCV_COMBO_METHOD);
-      RowCombo ("Preco",FCV_COMBO_PRICE);
+      RowNote   ("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
+      RowToggleF("Ativo",FCV_FLD_TR_MA1_ON);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE);
       Card("MEDIA 1");
 
       RowsReset();
-      RowToggle("Ativo");
-      RowField ("Periodo","Numero de velas","200");
-      RowCombo ("Timeframe",FCV_COMBO_TF);
-      RowCombo ("Metodo",FCV_COMBO_METHOD);
-      RowCombo ("Preco",FCV_COMBO_PRICE);
-      RowNote  ("Com ambas ON, M1 deve ser mais longa que M2 (periodo x TF).");
+      RowToggleF("Ativo",FCV_FLD_TR_MA2_ON);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE);
+      RowNote   ("Com ambas ON, M1 deve ser mais longa que M2 (periodo x TF).");
       Card("MEDIA 2");
       return;
      }
    if(s==2)
      {
       RowsReset();
-      RowNote  ("Filtra entradas por faixa operacional do RSI.");
-      RowToggle("Ativo");
+      RowNote   ("Filtra entradas por faixa operacional do RSI.");
+      RowToggleF("Ativo",FCV_FLD_USE_RSIF);
       Card("RSI FILTER");
 
       RowsReset();
-      RowField("Periodo","Numero de velas","14");
-      RowCombo("Timeframe",FCV_COMBO_TF);
-      RowCombo("Preco",FCV_COMBO_PRICE);
+      RowFieldF("Periodo","Numero de velas",FCV_FLD_RF_PERIOD);
+      RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_RF_TF);
+      RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_RF_PRICE);
       Card("PARAMETROS");
 
       //--- Sao dois limites, nao quatro: sobrecompra e sobrevenda aparecem na
       //--- 1.058 como legenda que muda com o modo, nao como campo proprio.
       RowsReset();
-      RowCombo("Modo",FCV_COMBO_RSIFILTER);
-      RowField("Min Compra","RSI minimo para liberar compra","50");
-      RowField("Max Venda","RSI maximo para liberar venda","50");
-      RowNote ("Filtro nao abre ordem; apenas aprova ou bloqueia entradas.");
+      RowComboF("Modo",FCV_COMBO_RSIFILTER,FCV_FLD_RF_MODE);
+      RowFieldF("Min Compra","RSI minimo para liberar compra",FCV_FLD_RF_BUYMIN);
+      RowFieldF("Max Venda" ,"RSI maximo para liberar venda" ,FCV_FLD_RF_SELLMAX);
+      RowNote  ("Filtro nao abre ordem; apenas aprova ou bloqueia entradas.");
       Card("FAIXA");
       return;
      }
    RowsReset();
-   RowNote  ("Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
-   RowToggle("Ativo");
+   RowNote   ("Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
+   RowToggleF("Ativo",FCV_FLD_USE_BBF);
    Card("BOLLINGER FILTER");
 
    RowsReset();
-   RowField("Periodo","Numero de velas","20");
-   RowField("Desvio","Multiplicador do desvio padrao","2.0");
-   RowCombo("Timeframe",FCV_COMBO_TF);
-   RowCombo("Preco",FCV_COMBO_PRICE);
+   RowFieldF("Periodo","Numero de velas",FCV_FLD_BF_PERIOD);
+   RowFieldF("Desvio" ,"Multiplicador do desvio padrao",FCV_FLD_BF_DEV);
+   RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_BF_TF);
+   RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_BF_PRICE);
    Card("PARAMETROS");
 
    RowsReset();
-   RowCombo("Modo",FCV_COMBO_BBWIDTH);
-   RowField("Min Pts","Largura minima em pontos do simbolo","0");
-   RowField("Min %","Largura minima como % da linha media","0.0");
+   RowComboF("Modo",FCV_COMBO_BBWIDTH,FCV_FLD_BF_MODE);
+   RowFieldF("Min Pts","Largura minima em pontos do simbolo",FCV_FLD_BF_MINPTS);
+   RowFieldF("Min %"  ,"Largura minima como % da linha media",FCV_FLD_BF_MINPCT);
    Card("LARGURA");
 
    //--- Direcao aqui e a inclinacao das bandas, e e uma chave — nao a escolha
    //--- de lado da operacao. Eram coisas diferentes com o mesmo nome.
    RowsReset();
-   RowToggle("Direcao");
-   RowField ("Candles","Velas usadas para medir a inclinacao","1");
-   RowField ("Incl. min.","Pontos por candle; zero deixa mais sensivel","0");
+   RowToggleF("Direcao",FCV_FLD_BF_SLOPE_ON);
+   RowFieldF ("Candles","Velas usadas para medir a inclinacao",FCV_FLD_BF_SLOPE_BACK);
+   RowFieldF ("Incl. min.","Pontos por candle; zero deixa mais sensivel",FCV_FLD_BF_SLOPE_MINPTS);
    Card("INCLINACAO");
   }
 

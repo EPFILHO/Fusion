@@ -104,6 +104,7 @@ void BuildEdits(void)
          m_liveEditX[j]   =m_liveEditX[j+1];
          m_liveEditY[j]   =m_liveEditY[j+1];
          m_liveEditSlot[j]=m_liveEditSlot[j+1];
+         m_liveEditFid[j] =m_liveEditFid[j+1];
          m_liveEditText[j]=m_liveEditText[j+1];
         }
       m_liveEditCount--;
@@ -123,15 +124,26 @@ void BuildEdits(void)
       if(live<0)
         {
          if(m_liveEditCount>=FCV_CTRL_MAX) continue;
+         //--- NUNCA criar objeto nativo com o botao do mouse pressionado.
+         //--- O popup do combo apaga os campos que ficam atras dele (o objeto
+         //--- nativo pintaria por cima do desenho). Ao escolher um item, o
+         //--- popup fecha e este BuildEdits recriava o campo exatamente sob o
+         //--- cursor, com o botao ainda apertado — e o terminal entregava o
+         //--- foco ao objeto recem-nascido. Era assim que clicar em "MN1"
+         //--- acabava selecionando o campo "Desvio" que estava atras.
+         //--- Adiado para a soltura do botao, que dispara um novo Render.
+         if(m_mouseDown) { m_editsPending=true; continue; }
          MakeEdit(id,m_editX[i],m_editY[i],m_editVal[i],m_editEnabled[i],m_editValid[i]);
          m_liveEditName[m_liveEditCount]=nm;
          m_liveEditX[m_liveEditCount]=m_editX[i];
          m_liveEditY[m_liveEditCount]=m_editY[i];
          m_liveEditSlot[m_liveEditCount]=m_editSlot[i];
+         m_liveEditFid[m_liveEditCount]=m_editFid[i];
          m_liveEditText[m_liveEditCount]=m_editVal[i];
          m_liveEditCount++;
          continue;
         }
+      m_liveEditFid[live]=m_editFid[i];
 
       if(m_liveEditX[live]!=m_editX[i] || m_liveEditY[live]!=m_editY[i])
         {
@@ -171,6 +183,56 @@ void BuildEdits(void)
 //| o campo deixa de existir. Limpar no clique seguinte seria errado: |
 //| clicar no canvas nem sempre encerra a edicao.                     |
 //+------------------------------------------------------------------+
+//--- Soltar o foco quando o clique foi para outro lugar. Esquecer o slot nao
+//--- basta: o controle de edicao do terminal continua ativo e reapareceria
+//--- solto sobre o painel ao rolar. Sem API para soltar o foco, a unica forma
+//--- certa e destruir o objeto — o BuildEdits do mesmo quadro o recria na
+//--- posicao correta, com o valor atual do rascunho.
+void ReleaseEditFocus(void)
+  {
+   if(m_focusSlot<0) return;
+   for(int k=0;k<m_liveEditCount;++k)
+      if(m_liveEditSlot[k]==m_focusSlot)
+        {
+         //--- LER ANTES DE DESTRUIR. O objeto e a unica copia do que foi
+         //--- digitado ate aqui: o terminal so avisa por ENDEDIT, e sair
+         //--- clicando num botao nao gera esse aviso. Destruir sem ler jogava
+         //--- fora o valor — digitar um periodo e clicar em SALVAR salvava o
+         //--- valor antigo. Sair do campo confirma o que esta nele, que e o que
+         //--- a 1.058 faz ao ler os controles na hora de salvar.
+         if(ObjectFind(m_chart,m_liveEditName[k])>=0)
+           {
+            string txt=ObjectGetString(m_chart,m_liveEditName[k],OBJPROP_TEXT);
+            if(m_liveEditFid[k]!=FCV_FLD_NONE)
+               FieldSetText(m_liveEditFid[k],txt);   // pendencia vem da diferenca
+            else if(m_focusSlot>=0 && m_focusSlot<FCV_STATE_MAX && txt!=m_liveEditText[k])
+              {
+               //--- Compara com o que NOS escrevemos no objeto, nao com o slot:
+               //--- o slot nasce vazio enquanto o campo ja mostra o padrao
+               //--- declarado da linha, e comparar com ele acusava alteracao so
+               //--- por entrar e sair de um campo intocado.
+               m_stEdit[m_focusSlot]=txt;
+               m_dirty=true;
+              }
+           }
+         ObjectDelete(m_chart,m_liveEditName[k]);
+         //--- Sai tambem do registro de vivos: deixado la, o proximo quadro
+         //--- tentaria mover um objeto que nao existe mais e o campo sumiria.
+         for(int j=k;j<m_liveEditCount-1;++j)
+           {
+            m_liveEditName[j]=m_liveEditName[j+1];
+            m_liveEditX[j]   =m_liveEditX[j+1];
+            m_liveEditY[j]   =m_liveEditY[j+1];
+            m_liveEditSlot[j]=m_liveEditSlot[j+1];
+            m_liveEditFid[j] =m_liveEditFid[j+1];
+            m_liveEditText[j]=m_liveEditText[j+1];
+           }
+         m_liveEditCount--;
+         break;
+        }
+   m_focusSlot=-1;
+  }
+
 void NoteEditFocus(const int lx,const int ly)
   {
    for(int i=0;i<m_editCount;++i)
@@ -178,6 +240,10 @@ void NoteEditFocus(const int lx,const int ly)
          lx>=m_editX[i] && lx<m_editX[i]+FCV_EDIT_W &&
          ly>=m_editY[i] && ly<m_editY[i]+FCV_EDIT_H)
         { m_focusSlot=m_editSlot[i]; return; }
+   //--- Clique fora de qualquer campo encerra a edicao. Sem isto o foco so
+   //--- morria por ENDEDIT, que nao vem quando o usuario sai clicando num
+   //--- botao — e a roda ficava bloqueada indefinidamente.
+   ReleaseEditFocus();
   }
 
 //--- Ha campo em edicao agora? Se o objeto ja nao existe (troca de aba,
@@ -190,6 +256,13 @@ bool EditHasFocus(void)
    return true;
   }
 
+//--- Zera os campos do formulario de perfil (nome e magic).
+void ClearProfileForm(void)
+  {
+   for(int i=0;i<FCV_SLOT_MAX;++i)
+      m_stEdit[FCV_SCREEN_PROFILE_EDIT*FCV_SLOT_MAX+i]="";
+  }
+
 //--- O texto digitado volta para o slot da tela, nao para uma posicao na
 //--- lista: a lista se refaz a cada passada, o slot nao.
 void StoreEditText(const string objName)
@@ -197,6 +270,30 @@ void StoreEditText(const string objName)
    string tail=StringSubstr(objName,StringLen(m_prefix+"edit_"));
    int slot=(int)StringToInteger(tail);
    if(slot<0 || slot>=FCV_STATE_MAX) return;
-   m_stEdit[slot]=ObjectGetString(m_chart,objName,OBJPROP_TEXT);
+   //--- O objeto pode ja ter sido destruido (troca de tela, foco solto). Ler
+   //--- dele devolveria "" e gravaria zero no campo — um valor apagado sem que
+   //--- o usuario tenha digitado nada.
+   if(ObjectFind(m_chart,objName)<0) return;
+   string txt=ObjectGetString(m_chart,objName,OBJPROP_TEXT);
+   //--- O identificador de campo vem do registro vivo, nao do nome do objeto:
+   //--- o nome carrega so o slot, e o mesmo slot serve telas diferentes.
+   int fid=FCV_FLD_NONE, live=-1;
+   for(int k=0;k<m_liveEditCount;++k)
+      if(m_liveEditName[k]==objName) { fid=m_liveEditFid[k]; live=k; break; }
+   if(fid!=FCV_FLD_NONE)
+     {
+      FieldSetText(fid,txt);          // pendencia vem da diferenca
+      //--- O rascunho normaliza o texto (" 14 " vira "14"). Guardar o que o
+      //--- campo mostra evita que a sincronizacao por diferenca reescreva o
+      //--- objeto no quadro seguinte e mova o cursor do usuario.
+      if(live>=0) m_liveEditText[live]=txt;
+      return;
+     }
+   //--- Compara com o que NOS escrevemos, nao com o slot: ele nasce vazio
+   //--- enquanto o campo ja mostra o padrao declarado da linha.
+   if(live>=0 && m_liveEditText[live]==txt) return;
+   if(m_stEdit[slot]==txt) return;
+   m_stEdit[slot]=txt;
+   if(live>=0) m_liveEditText[live]=txt;
    m_dirty=true;
   }

@@ -23,13 +23,11 @@
       return (StringFind(notice, "Janela de news ") == 0);
      }
 
+   //--- Delega para a versao livre em Core/SettingsNotices.mqh, que o painel
+   //--- 2.0 tambem le. Duas copias da mesma pergunta responderiam diferente
+   //--- assim que uma delas fosse ajustada.
    bool                    HasEnabledNewsWindow(const SEASettings &settings) const
-     {
-      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
-         if(settings.newsWindows[newsIndex].enabled)
-            return true;
-      return false;
-     }
+     { return FusionHasEnabledNewsWindow(settings); }
 
    bool                    ProtectionNoticeAllowedBySettings(const string notice,const SEASettings &settings) const
      {

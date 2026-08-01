@@ -68,6 +68,11 @@
 #define FCV_SCREEN_RISK0    10    // + item do trilho (0..4)
 #define FCV_SCREEN_PROT0    15    // + item do trilho (0..6)
 #define FCV_SCREEN_PROFILES 22
+//--- O formulario de criar/duplicar e uma TELA PROPRIA, nao um modo da lista.
+//--- Compartilhar a identidade fazia os campos compartilharem slot: o "Nome"
+//--- da criacao e o "Magic Number" da lista caiam no mesmo slot 0, e o nome
+//--- digitado reaparecia dentro do Magic ao voltar.
+#define FCV_SCREEN_PROFILE_EDIT 24
 #define FCV_RAIL_MAX      7
 #define FCV_SWATCH_COUNT 30
 #define FCV_SWATCH_COLS   6
@@ -107,6 +112,7 @@
 #define FCV_SB_ARROW 14
 #define FCV_SB_X    (FCV_PANEL_W-11)
 
+#define FCV_VK_ESC   27
 #define FCV_VK_PRIOR 33
 #define FCV_VK_NEXT  34
 #define FCV_VK_END   35

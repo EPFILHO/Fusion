@@ -19,8 +19,17 @@
 
 #include <Canvas\Canvas.mqh>
 #include "..\..\Core\Version.mqh"
+//--- Fase 2b: as telas passam a ler do snapshot que o EA monta, em vez dos
+//--- valores fixos da Fase 1. O renderizador deixa de ser um widget avulso e
+//--- passa a conhecer o formato de dados do EA — que e o proposito dele.
+#include "..\..\Core\Types.mqh"
+//--- Avisos derivados so de SEASettings, compartilhados com o painel 1.058.
+#include "..\..\Core\SettingsNotices.mqh"
+//--- Comparacao campo a campo: e ela que responde "ha alteracao pendente?".
+#include "..\..\Core\SettingsCompare.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"
+#include "CanvasFields.mqh"
 #include "CanvasForm.mqh"
 
 class CFusionCanvasRenderer
@@ -43,7 +52,12 @@ private:
    int               m_sub[FCV_TAB_COUNT];    // nivel 2, guardado por aba
    int               m_railSel[2];            // nivel 3, guardado por Risco e Protecao
    bool              m_minimized;
-   bool              m_dirty;                 // ha alteracoes nao salvas (fake)
+   //--- Pendencia de controles ainda NAO ligados a SEASettings (Gestao, Perfis,
+   //--- Layout). A pendencia de configuracao nao mora aqui: e a diferenca entre
+   //--- rascunho e comprometido, calculada em HasPending().
+   bool              m_dirty;
+   //--- Pendencia que a tela esta mostrando agora, para o pulso comparar.
+   bool              m_lastPending;
 
    string            m_tabNames[FCV_TAB_COUNT];
    int               m_tabX[FCV_TAB_COUNT], m_tabW[FCV_TAB_COUNT];
@@ -67,15 +81,15 @@ private:
 
    //--- Caixas publicadas pelo desenho da tela atual
    int               m_editX[FCV_CTRL_MAX], m_editY[FCV_CTRL_MAX];
-   int               m_editSlot[FCV_CTRL_MAX];
+   int               m_editSlot[FCV_CTRL_MAX], m_editFid[FCV_CTRL_MAX];
    string            m_editVal[FCV_CTRL_MAX];
    bool              m_editEnabled[FCV_CTRL_MAX], m_editValid[FCV_CTRL_MAX];
    int               m_editCount;
    int               m_toggleX[FCV_CTRL_MAX], m_toggleY[FCV_CTRL_MAX];
-   int               m_toggleSlot[FCV_CTRL_MAX];
+   int               m_toggleSlot[FCV_CTRL_MAX], m_toggleFid[FCV_CTRL_MAX];
    int               m_toggleCount;
    int               m_comboX[FCV_CTRL_MAX], m_comboY[FCV_CTRL_MAX], m_comboW[FCV_CTRL_MAX];
-   int               m_comboSlot[FCV_CTRL_MAX], m_comboKind[FCV_CTRL_MAX];
+   int               m_comboSlot[FCV_CTRL_MAX], m_comboKind[FCV_CTRL_MAX], m_comboFid[FCV_CTRL_MAX];
    int               m_comboCount;
    int               m_colorX[FCV_CTRL_MAX], m_colorY[FCV_CTRL_MAX], m_colorW[FCV_CTRL_MAX];
    int               m_colorSlot[FCV_CTRL_MAX];
@@ -96,7 +110,7 @@ private:
    //--- que foram criados. E o que permite mover o painel sem repintar nada.
    string            m_liveEditName[FCV_CTRL_MAX];
    int               m_liveEditX[FCV_CTRL_MAX], m_liveEditY[FCV_CTRL_MAX];
-   int               m_liveEditSlot[FCV_CTRL_MAX];
+   int               m_liveEditSlot[FCV_CTRL_MAX], m_liveEditFid[FCV_CTRL_MAX];
    string            m_liveEditText[FCV_CTRL_MAX];
    int               m_liveEditCount;
    //--- slot do campo que o terminal provavelmente colocou em edicao. Nao ha
@@ -114,6 +128,11 @@ private:
    //--- barra de rolagem: geometria publicada pelo desenho
    int               m_thumbY, m_thumbH, m_trackTop, m_trackH;
    bool              m_barDrag;
+   //--- Arrasto da barra do proprio popup, independente da barra do conteudo.
+   bool              m_comboBarDrag;
+   //--- Ha campo nativo esperando para nascer porque o botao do mouse continua
+   //--- pressionado. Ver a nota em BuildEdits.
+   bool              m_editsPending;
    int               m_barDragY, m_barDragBase;
 
    //--- Retangulo do popup aberto. Objeto nativo fica SEMPRE acima do canvas:
@@ -134,6 +153,15 @@ private:
    //--- lembrar paleta, tema e tamanho entre sessoes
    bool              m_remember;
 
+   //--- Dados vindos do EA. Fonte unica de verdade das telas: nenhum valor
+   //--- exibido deve estar escrito no desenho.
+   SUIPanelSnapshot  m_snap;
+   //--- Rascunho de configuracao: o que os controles editam. O comprometido e
+   //--- o espelho do que o EA aplicou; o rascunho diverge dele enquanto o
+   //--- usuario edita, e a diferenca e a pendencia.
+   SEASettings       m_draft;
+   SEASettings       m_committed;
+
    //--- medicao
    bool              m_stress;                // tela sintetica de pior caso
    int               m_frameTexts, m_frameTextsVis, m_frameRects; // contadores da ultima passada
@@ -147,6 +175,31 @@ public:
                             const int x,const int y);
    void              Destroy(void);
    void              Render(void);
+
+   //--- Pulso periodico. O painel observa uma coisa que ninguem lhe conta: o
+   //--- texto digitado e ainda nao confirmado, que muda o estado dos botoes.
+   //--- Sem isto, SALVAR e CANCELAR so acendiam no proximo evento de mouse —
+   //--- e o usuario via botao apagado sobre uma edicao ja feita. O EA chama
+   //--- pelo Update(); o harness, por temporizador.
+   void              Pulse(void)
+     {
+      if(HasPending()==m_lastPending) return;
+      Render();
+     }
+   //--- Regra da 1.058: o snapshot so sobrescreve o rascunho quando nao ha
+   //--- edicao pendente. Com pendencia, o que o usuario digitou permanece ate
+   //--- SALVAR ou CANCELAR — senao a atualizacao periodica do EA (ate 5x/s com
+   //--- posicao aberta) apagaria o valor no meio da digitacao.
+   void              SetSnapshot(const SUIPanelSnapshot &snap)
+     {
+      m_snap=snap;
+      //--- A pendencia e medida contra o comprometido ANTERIOR. Medida depois
+      //--- da troca, uma mudanca vinda do EA pareceria edicao do usuario e o
+      //--- painel se recusaria a exibi-la — ficaria preso no valor velho.
+      bool pending=HasPending();
+      m_committed=snap.settings;
+      if(!pending) { m_draft=m_committed; SyncDerivedSettings(); }
+     }
    void              MoveTo(const int x,const int y);
    void              ToggleStress(void);
    //--- ChartEvent e RunPerfSuite sao definidos nos fragmentos Input e Perf
@@ -160,6 +213,7 @@ private:
      { m_popupOn=true; m_popupX1=x1; m_popupY1=y1; m_popupX2=x2; m_popupY2=y2; }
 
 #include "CanvasRendererPrimitives.mqh"
+#include "CanvasRendererFields.mqh"
 #include "CanvasRendererChrome.mqh"
 #include "CanvasRendererForm.mqh"
 #include "CanvasRendererScreens.mqh"
@@ -182,7 +236,11 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    for(int i=0;i<FCV_TAB_COUNT;++i) m_sub[i]=0;
    m_sub[FCV_TAB_GESTAO]=1;          // abre em Gestao > Protecao ao alternar
    m_railSel[0]=0; m_railSel[1]=5;
-   m_minimized=false; m_dirty=true;
+   //--- Painel recem-criado nao tem alteracao pendente. Nascia com m_dirty=true
+   //--- na Fase 1, so para os botoes aparecerem acesos na demonstracao — e isso
+   //--- passou a impedir que o primeiro snapshot semeasse o rascunho, deixando
+   //--- a tela presa nos valores padrao.
+   m_minimized=false; m_dirty=false; m_lastPending=false;
    m_railCount=0;
 
    m_mouseDown=false; m_dragging=false; m_scrollDrag=false; m_overPanel=false;
@@ -201,7 +259,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    for(int i=0;i<FCV_CTRL_MAX;++i)
      {
       m_liveEditName[i]=""; m_liveEditX[i]=0; m_liveEditY[i]=0;
-      m_liveEditSlot[i]=-1; m_liveEditText[i]="";
+      m_liveEditSlot[i]=-1; m_liveEditFid[i]=FCV_FLD_NONE; m_liveEditText[i]="";
      }
    m_focusSlot=-1;
    for(int i=0;i<FCV_STATE_MAX;++i)
@@ -209,11 +267,28 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
 
    m_thumbY=0; m_thumbH=0; m_trackTop=0; m_trackH=0;
    m_barDrag=false; m_barDragY=0; m_barDragBase=0;
+   m_comboBarDrag=false; m_editsPending=false;
 
    m_popupOn=false; m_popupX1=0; m_popupY1=0; m_popupX2=0; m_popupY2=0;
 
+   //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
+   //--- com campos vazios no primeiro quadro — parece defeito, nao "sem dado".
+   m_snap.symbol="—";
+   m_snap.timeframe="—";
+   m_snap.activeProfileName="—";
+   m_snap.ownerStrategyName="";
+   m_snap.started=false;
+   m_snap.hasPosition=false;
+   m_snap.runtimeBlocked=false;
+   m_snap.magicNumber=0;
+   m_snap.activeStrategies=0;
+   m_snap.activeFilters=0;
+   m_snap.conflictMode=CONFLICT_PRIORITY;
+
    m_fontName=""; m_fontPt10=0; m_fontWeight=0;
    m_scale=FCV_SCALE_DEFAULT; m_locked=false; m_remember=true;
+   SetDefaultSettings(m_draft);
+   SetDefaultSettings(m_committed);
    m_stress=false; m_frameTexts=0; m_frameTextsVis=0; m_frameRects=0;
 
    string tn[FCV_TAB_COUNT]={"Status","Resultados","Estrategias","Filtros",
@@ -229,10 +304,11 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    for(int i=0;i<FCV_RAIL_MAX;++i)  m_railY[i]=0;
    for(int i=0;i<FCV_CTRL_MAX;++i)
      {
-      m_editX[i]=0; m_editY[i]=0; m_editSlot[i]=0; m_editVal[i]="";
+      m_editX[i]=0; m_editY[i]=0; m_editSlot[i]=0; m_editFid[i]=FCV_FLD_NONE; m_editVal[i]="";
       m_editEnabled[i]=true; m_editValid[i]=true;
-      m_toggleX[i]=0; m_toggleY[i]=0; m_toggleSlot[i]=0;
+      m_toggleX[i]=0; m_toggleY[i]=0; m_toggleSlot[i]=0; m_toggleFid[i]=FCV_FLD_NONE;
       m_comboX[i]=0; m_comboY[i]=0; m_comboW[i]=0; m_comboSlot[i]=0; m_comboKind[i]=0;
+      m_comboFid[i]=FCV_FLD_NONE;
       m_colorX[i]=0; m_colorY[i]=0; m_colorW[i]=64; m_colorSlot[i]=0;
      }
 
@@ -421,6 +497,9 @@ void CFusionCanvasRenderer::Render(void)
    m_canvas.Update(false);
    BuildEdits();
    ChartRedraw(m_chart);
+   //--- Guardado DEPOIS do desenho: e o estado que a tela esta mostrando, e e
+   //--- contra ele que o pulso decide se ha algo novo a mostrar.
+   m_lastPending=HasPending();
   }
 
 //+------------------------------------------------------------------+

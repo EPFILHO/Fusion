@@ -18,13 +18,9 @@ private:
    CLabel            m_noticeTitle;
    CLabel            m_noticeLines[FUSION_STATUS_NOTICE_LINE_COUNT];
 
+   //--- Delega para Core/SettingsNotices.mqh, mesma fonte do EA e do painel 2.0.
    bool              HasEnabledNewsWindow(const SEASettings &settings) const
-     {
-      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
-         if(settings.newsWindows[newsIndex].enabled)
-            return true;
-      return false;
-     }
+     { return FusionHasEnabledNewsWindow(settings); }
 
    bool              AddLabel(CFusionPanel *parent,CLabel &label,const long chartId,const int subwin,
                               const string name,const int x1,const int y1,const int x2,const int y2,

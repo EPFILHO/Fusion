@@ -89,6 +89,7 @@ struct SCanvasFormRow
    string hint;      // dica sob o rotulo, ou o corpo da nota
    string value;     // valor padrao do campo, ou texto do valor/selo
    int    aux;       // tipo do combo, ou semantica do selo
+   int    fid;       // campo de SEASettings que a linha edita; FCV_FLD_NONE = estado local
    //--- Os dois estados que a 1.058 tem e a 2.0 precisa reproduzir. Sao
    //--- propriedade da linha, nao da tela: numa mesma tela um campo pode
    //--- estar invalido e o vizinho nao.

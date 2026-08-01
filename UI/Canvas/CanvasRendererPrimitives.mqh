@@ -13,6 +13,12 @@
 //+------------------------------------------------------------------+
 
 //--- logico -> dispositivo
+//--- Texto presente? NAO usar `s!=""` com campo de snapshot: em MQL5 uma
+//--- string nunca atribuida vale NULL, e NULL nao e igual a "". A comparacao
+//--- direta dava "tem texto" para campo vazio, e foi o que travou o INICIAR e
+//--- o SALVAR no harness — que, ao contrario do EA, nao atribui todos eles.
+bool HasText(const string s) const { return (StringLen(s)>0); }
+
 int S(const int v) const { return (v*m_scale)/100; }
 //--- dispositivo -> logico
 int L(const int v) const { return (v*100)/m_scale; }
