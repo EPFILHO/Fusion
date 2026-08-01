@@ -22,8 +22,8 @@ int Level2Count(const int tab) { return (tab==FCV_TAB_GESTAO) ? 2 : 4; }
 
 int Level2Names(const int tab,string &out[])
   {
-   if(tab==2) { ArrayResize(out,4); string a[4]={"Geral","Medias","RSI","Bollinger"};    ArrayCopy(out,a); return 4; }
-   if(tab==3) { ArrayResize(out,4); string a[4]={"Geral","Tendencia","RSI","Bollinger"}; ArrayCopy(out,a); return 4; }
+   if(tab==2) { ArrayResize(out,4); string a[4]={"Geral","Medias","IFR / RSI","Bollinger"};    ArrayCopy(out,a); return 4; }
+   if(tab==3) { ArrayResize(out,4); string a[4]={"Geral","Tendencia","IFR / RSI","Bollinger"}; ArrayCopy(out,a); return 4; }
    ArrayResize(out,2); string a[2]={"Risco","Protecao"}; ArrayCopy(out,a); return 2;
   }
 
@@ -534,7 +534,7 @@ void ScreenStrategies(void)
       //--- no escuro.
       RowsReset();
       RowState("MA Cross" ,FCV_FLD_USE_MACROSS);
-      RowState("RSI"      ,FCV_FLD_USE_RSI);
+      RowState("IFR / RSI",FCV_FLD_USE_RSI);
       RowState("Bollinger",FCV_FLD_USE_BB);
       RowNote ("Ligue ou desligue em cada subaba, junto dos parametros.");
       Card("ESTRATEGIAS");
@@ -656,7 +656,7 @@ void ScreenFilters(void)
       //--- delas ligada), nao uma chave — nem existe o que clicar.
       RowsReset();
       RowState("Tendencia",FCV_FLD_USE_TREND);
-      RowState("RSI"      ,FCV_FLD_USE_RSIF);
+      RowState("IFR / RSI",FCV_FLD_USE_RSIF);
       RowState("Bollinger",FCV_FLD_USE_BBF);
       RowNote ("Ligue ou desligue em cada subaba. Tendencia fica ligado quando ao menos uma das duas medias esta ligada.");
       Card("FILTROS");
