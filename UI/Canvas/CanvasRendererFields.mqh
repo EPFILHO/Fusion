@@ -100,6 +100,18 @@ bool RsiUsesMiddle(void)
 bool RsiFilterUsesSecondLevel(void)
   { return (m_draft.rsiFilterMode!=RSI_FILTER_DIRECTION); }
 
+//--- Niveis padrao de cada modo do filtro RSI (UI/RSIFilterPanel.mqh). Cada
+//--- par ja nasce respeitando a ordem que o modo exige:
+//---   Direcao  50/50 — uma linha so, os dois campos apontam para ela
+//---   Neutro   60/40 — venda < compra, com o meio bloqueado entre eles
+//---   Extremos 30/70 — sobrevenda < sobrecompra
+void ApplyRsiFilterModeDefaults(const ENUM_RSI_FILTER_MODE mode)
+  {
+   if(mode==RSI_FILTER_NEUTRAL)       { m_draft.rsiFilterBuyMin=60; m_draft.rsiFilterSellMax=40; }
+   else if(mode==RSI_FILTER_EXTREMES) { m_draft.rsiFilterBuyMin=30; m_draft.rsiFilterSellMax=70; }
+   else                               { m_draft.rsiFilterBuyMin=50; m_draft.rsiFilterSellMax=50; }
+  }
+
 //--- Filtro Bollinger: a largura minima e medida em pontos OU em porcento,
 //--- nunca nos dois; e a inclinacao so existe com o filtro ligado.
 bool BbFilterAbsolute(void)
@@ -232,7 +244,18 @@ void FieldSetIndex(const int fid,const int idx)
       case FCV_FLD_TR_MA2_PRICE:   m_draft.trendSellMAPrice=(ENUM_APPLIED_PRICE)(idx+1); break;
       case FCV_FLD_RF_TF:          m_draft.rsiFilterTimeframe=TfFromIndex(idx); break;
       case FCV_FLD_RF_PRICE:       m_draft.rsiFilterPrice=(ENUM_APPLIED_PRICE)(idx+1); break;
-      case FCV_FLD_RF_MODE:        m_draft.rsiFilterMode=(ENUM_RSI_FILTER_MODE)idx; break;
+      //--- Trocar o modo do filtro RSI REDEFINE os dois niveis. Nao e cortesia:
+      //--- a ordem exigida se INVERTE entre os modos (Neutro pede venda <
+      //--- compra; Extremos pede compra < venda), entao o par que era valido em
+      //--- um modo costuma ser invalido no outro. Sair de Direcao com 50/50
+      //--- deixaria Neutro invalido no ato. Valores da 1.058.
+      case FCV_FLD_RF_MODE:
+        {
+         ENUM_RSI_FILTER_MODE nm=(ENUM_RSI_FILTER_MODE)idx;
+         if(m_draft.rsiFilterMode!=nm) ApplyRsiFilterModeDefaults(nm);
+         m_draft.rsiFilterMode=nm;
+         break;
+        }
       case FCV_FLD_BF_TF:          m_draft.bbFilterTimeframe=TfFromIndex(idx); break;
       case FCV_FLD_BF_PRICE:       m_draft.bbFilterPrice=(ENUM_APPLIED_PRICE)(idx+1); break;
       case FCV_FLD_BF_MODE:        m_draft.bbFilterMode=(ENUM_BB_FILTER_WIDTH_MODE)idx; break;
@@ -294,7 +317,15 @@ void FieldSetText(const int fid,const string text)
       case FCV_FLD_TR_MA1_PERIOD:  m_draft.trendMAPeriod     =(int)StringToInteger(text); break;
       case FCV_FLD_TR_MA2_PERIOD:  m_draft.trendSellMAPeriod =(int)StringToInteger(text); break;
       case FCV_FLD_RF_PERIOD:      m_draft.rsiFilterPeriod   =(int)StringToInteger(text); break;
-      case FCV_FLD_RF_BUYMIN:      m_draft.rsiFilterBuyMin   =(int)StringToInteger(text); break;
+      //--- No modo Direcao os dois campos sao a MESMA linha: o segundo nao
+      //--- aparece na tela, mas continua existindo no struct e sendo lido pelo
+      //--- EA se o modo mudar depois. Mante-lo em sincronia evita que uma linha
+      //--- fantasma, de outro modo, ressurja com valor de outra epoca.
+      case FCV_FLD_RF_BUYMIN:
+         m_draft.rsiFilterBuyMin=(int)StringToInteger(text);
+         if(m_draft.rsiFilterMode==RSI_FILTER_DIRECTION)
+            m_draft.rsiFilterSellMax=m_draft.rsiFilterBuyMin;
+         break;
       case FCV_FLD_RF_SELLMAX:     m_draft.rsiFilterSellMax  =(int)StringToInteger(text); break;
       case FCV_FLD_BF_PERIOD:      m_draft.bbFilterPeriod    =(int)StringToInteger(text); break;
       case FCV_FLD_BF_DEV:         m_draft.bbFilterDeviation =StringToDouble(text);       break;
