@@ -544,7 +544,13 @@ void ScreenStrategies(void)
       //--- ligadas e com que prioridade. O campo continua sendo o mesmo.
       RowsReset();
       RowComboF("Resolver Conflito",FCV_COMBO_CONFLICT,FCV_FLD_CONFLICT);
-      RowNote ("PRIORIDADE: em sinais opostos, o maior numero vence. CANCELAR: sinais opostos cancelam a entrada.");
+      //--- A nota vai alem do texto da 1.058 em dois pontos verificados no
+      //--- codigo dos resolvedores, e ambos surpreendem quem le so o rotulo:
+      //--- em PRIORIDADE, opostos de MESMA prioridade tambem cancelam; e em
+      //--- CANCELAR a prioridade continua valendo entre sinais que CONCORDAM,
+      //--- para eleger a estrategia dona — que e quem manda na saida.
+      RowNote ("PRIORIDADE: em sinais opostos, o maior numero vence; empate na maior prioridade cancela.");
+      RowNote ("CANCELAR: sinais opostos cancelam a entrada. A prioridade segue valendo quando os sinais concordam: ela elege a estrategia dona da posicao, e e a saida dela que vale.");
       Card("CONFLITO");
       return;
      }
@@ -598,10 +604,13 @@ void ScreenStrategies(void)
       //--- Sobrevenda antes de sobrecompra, como na 1.058: a ordem segue a
       //--- escala do indicador, de baixo para cima.
       RowsReset();
+      //--- As zonas so valem nos modos que as usam; a linha media, quando o
+      //--- sinal ou a saida dependem dela. Editar o que o EA vai ignorar e
+      //--- trabalho perdido sem aviso.
       RowComboF("Modo",FCV_COMBO_RSIMODE,FCV_FLD_RSI_MODE);
-      RowFieldF("Sobrevenda" ,"Abaixo disso, procura compra",FCV_FLD_RSI_OVERSOLD);
-      RowFieldF("Sobrecompra","Acima disso, procura venda"  ,FCV_FLD_RSI_OVERBOUGHT);
-      RowFieldF("Linha media","Referencia para cruzamento"  ,FCV_FLD_RSI_MIDDLE);
+      RowFieldF("Sobrevenda" ,"Abaixo disso, procura compra",FCV_FLD_RSI_OVERSOLD  ,true,RsiUsesZones());
+      RowFieldF("Sobrecompra","Acima disso, procura venda"  ,FCV_FLD_RSI_OVERBOUGHT,true,RsiUsesZones());
+      RowFieldF("Linha media","Referencia para cruzamento"  ,FCV_FLD_RSI_MIDDLE    ,true,RsiUsesMiddle());
       Card("SINAL");
 
       RowsReset();
@@ -662,20 +671,23 @@ void ScreenFilters(void)
       //--- Cada media tem a propria chave: a 1.058 permite usar so a M1, e
       //--- uma chave unica no topo esconderia isso.
       RowsReset();
+      //--- Cada media governa os proprios parametros: com ela desligada, o EA
+      //--- nao a consulta. E o unico caso em que uma chave apaga o bloco dela.
+      bool ma1=m_draft.trendMA1Enabled, ma2=m_draft.trendMA2Enabled;
       RowNote   ("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
       RowToggleF("Ativo",FCV_FLD_TR_MA1_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD);
-      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD,true,ma1);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF    ,ma1);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD,ma1);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE ,ma1);
       Card("MEDIA 1");
 
       RowsReset();
       RowToggleF("Ativo",FCV_FLD_TR_MA2_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD);
-      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD,true,ma2);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF    ,ma2);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD,ma2);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE ,ma2);
       RowNote   ("Com ambas ON, M1 deve ser mais longa que M2 (periodo x TF).");
       Card("MEDIA 2");
       return;
@@ -696,9 +708,27 @@ void ScreenFilters(void)
       //--- Sao dois limites, nao quatro: sobrecompra e sobrevenda aparecem na
       //--- 1.058 como legenda que muda com o modo, nao como campo proprio.
       RowsReset();
+      //--- Os dois campos sao os MESMOS em todos os modos, mas significam
+      //--- coisas diferentes — e em Extremos o papel ate se inverte (o primeiro
+      //--- passa a ser o nivel BAIXO). Por isso a 1.058 renomeia os rotulos:
+      //--- um nome fixo estaria errado nos tres modos. Era o caso de
+      //--- "Min Compra", que nao existe no modo Direcao nem em Extremos.
+      string rfLbl1="Linha", rfLbl2="Nao usado";
+      string rfHint1="Acima dela so compra; abaixo so venda";
+      string rfHint2="O modo Direcao usa uma linha so";
+      if(m_draft.rsiFilterMode==RSI_FILTER_NEUTRAL)
+        {
+         rfLbl1="Compra >="; rfHint1="RSI minimo para liberar compra";
+         rfLbl2="Venda <=";  rfHint2="RSI maximo para liberar venda";
+        }
+      else if(m_draft.rsiFilterMode==RSI_FILTER_EXTREMES)
+        {
+         rfLbl1="Sobrevenda";  rfHint1="Abaixo disso, nenhuma entrada";
+         rfLbl2="Sobrecompra"; rfHint2="Acima disso, nenhuma entrada";
+        }
       RowComboF("Modo",FCV_COMBO_RSIFILTER,FCV_FLD_RF_MODE);
-      RowFieldF("Min Compra","RSI minimo para liberar compra",FCV_FLD_RF_BUYMIN);
-      RowFieldF("Max Venda" ,"RSI maximo para liberar venda" ,FCV_FLD_RF_SELLMAX);
+      RowFieldF(rfLbl1,rfHint1,FCV_FLD_RF_BUYMIN);
+      RowFieldF(rfLbl2,rfHint2,FCV_FLD_RF_SELLMAX,true,RsiFilterUsesSecondLevel());
       RowNote  ("Filtro nao abre ordem; apenas aprova ou bloqueia entradas.");
       Card("FAIXA");
       return;
@@ -716,17 +746,26 @@ void ScreenFilters(void)
    Card("PARAMETROS");
 
    RowsReset();
+   //--- A largura minima e medida em pontos OU em porcento, nunca nos dois: o
+   //--- modo escolhe qual dos campos vale, e o outro fica apagado.
    RowComboF("Modo",FCV_COMBO_BBWIDTH,FCV_FLD_BF_MODE);
-   RowFieldF("Min Pts","Largura minima em pontos do simbolo",FCV_FLD_BF_MINPTS);
-   RowFieldF("Min %"  ,"Largura minima como % da linha media",FCV_FLD_BF_MINPCT);
+   RowFieldF("Min Pts","Largura minima em pontos do simbolo",FCV_FLD_BF_MINPTS,
+             true, BbFilterAbsolute());
+   RowFieldF("Min %"  ,"Largura minima como % da linha media",FCV_FLD_BF_MINPCT,
+             true,!BbFilterAbsolute());
    Card("LARGURA");
 
    //--- Direcao aqui e a inclinacao das bandas, e e uma chave — nao a escolha
    //--- de lado da operacao. Eram coisas diferentes com o mesmo nome.
    RowsReset();
-   RowToggleF("Direcao",FCV_FLD_BF_SLOPE_ON);
-   RowFieldF ("Candles","Velas usadas para medir a inclinacao",FCV_FLD_BF_SLOPE_BACK);
-   RowFieldF ("Incl. min.","Pontos por candle; zero deixa mais sensivel",FCV_FLD_BF_SLOPE_MINPTS);
+   //--- A inclinacao pertence ao filtro: sem ele ligado nao ha o que inclinar.
+   //--- E seus parametros so valem com a propria chave de direcao ligada.
+   RowToggleF("Nao operar contra a inclinacao",FCV_FLD_BF_SLOPE_ON,BbFilterSlopeEditable());
+   RowFieldF ("Candles","Velas fechadas usadas para medir a inclinacao",FCV_FLD_BF_SLOPE_BACK,
+              true,BbFilterSlopeParams());
+   RowFieldF ("Incl. min.","Pontos por candle a partir dos quais bloqueia; zero bloqueia a qualquer inclinacao",
+              FCV_FLD_BF_SLOPE_MINPTS,true,BbFilterSlopeParams());
+   RowNote   ("Mede para onde aponta a linha central das bandas. Subindo, bloqueia venda; descendo, bloqueia compra.");
    Card("INCLINACAO");
   }
 

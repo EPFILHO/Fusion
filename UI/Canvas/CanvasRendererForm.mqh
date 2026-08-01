@@ -249,17 +249,20 @@ string ComboOptionHint(const int kind,const int idx)
          if(idx==0) return "Sinal quando o RSI deixa a zona extrema.";
          if(idx==1) return "Sinal enquanto o RSI permanece na zona.";
          return "Sinal quando o RSI cruza a linha media.";
+      //--- Textos da 1.058 (UI/RSIFilterPanel.mqh). Os meus estavam errados nos
+      //--- modos Neutro e Extremos, e o de Extremos dizia o INVERSO do que o
+      //--- filtro faz — ele bloqueia nas zonas extremas, nao libera.
       case FCV_COMBO_RSIFILTER:
-         if(idx==0) return "Libera compra com RSI alto e venda com RSI baixo.";
-         if(idx==1) return "So libera com o RSI fora das zonas extremas.";
-         return "So libera com o RSI dentro das zonas extremas.";
+         if(idx==0) return "Direcao: BUY so acima da linha; SELL so abaixo.";
+         if(idx==1) return "Neutro: bloqueia o meio; BUY so acima, SELL so abaixo.";
+         return "Extremos: bloqueia qualquer entrada nas zonas extremas.";
       case FCV_COMBO_BBMODE:
          if(idx==0) return "Fechou fora, fechou dentro: entra no retorno para dentro das bandas.";
          if(idx==1) return "Entra quando o preco toca a banda e e rejeitado.";
          return "Entra quando o preco fecha fora da banda.";
       case FCV_COMBO_BBWIDTH:
-         if(idx==0) return "Largura minima medida em pontos.";
-         return "Largura minima como percentual do preco.";
+         if(idx==0) return "Absoluto: mede largura das bandas em pontos do simbolo.";
+         return "Relativo: mede largura das bandas como % da linha media.";
       case FCV_COMBO_STREAK:
          if(idx==0) return "Para por alguns minutos e volta sozinho.";
          return "Encerra o dia; so volta no proximo.";

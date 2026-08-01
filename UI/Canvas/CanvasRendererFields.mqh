@@ -80,6 +80,36 @@ void SyncDerivedSettings(void)
   { m_draft.useTrendFilter=(m_draft.trendMA1Enabled || m_draft.trendMA2Enabled); }
 
 //+------------------------------------------------------------------+
+//| Dependencias entre campos: quem so faz sentido com o que.         |
+//|                                                                   |
+//| Extraidas UMA A UMA dos paineis da 1.058, nao deduzidas. A regra  |
+//| que eu supunha — "estrategia desligada apaga seus parametros" —   |
+//| esta ERRADA: ali os parametros seguem editaveis, porque configurar|
+//| antes de ligar e uso legitimo. O que a 1.058 apaga e so o que o   |
+//| EA vai ignorar POR CAUSA DE OUTRA ESCOLHA.                        |
+//+------------------------------------------------------------------+
+//--- RSI (estrategia): as zonas so valem nos modos que as usam, e a linha
+//--- media so vale quando o sinal OU a saida dependem dela.
+bool RsiUsesZones(void)
+  { return (m_draft.rsiMode==RSI_SIGNAL_CROSSOVER || m_draft.rsiMode==RSI_SIGNAL_ZONE); }
+bool RsiUsesMiddle(void)
+  { return (m_draft.rsiMode==RSI_SIGNAL_MIDDLE || m_draft.rsiExitMode==RSI_EXIT_MIDDLE_TARGET); }
+
+//--- Filtro RSI: o segundo nivel nao existe no modo Direcao, que usa uma
+//--- linha so.
+bool RsiFilterUsesSecondLevel(void)
+  { return (m_draft.rsiFilterMode!=RSI_FILTER_DIRECTION); }
+
+//--- Filtro Bollinger: a largura minima e medida em pontos OU em porcento,
+//--- nunca nos dois; e a inclinacao so existe com o filtro ligado.
+bool BbFilterAbsolute(void)
+  { return (m_draft.bbFilterMode==BB_FILTER_WIDTH_ABSOLUTE); }
+bool BbFilterSlopeEditable(void)
+  { return m_draft.bbFilterEnabled; }
+bool BbFilterSlopeParams(void)
+  { return (m_draft.bbFilterEnabled && m_draft.bbFilterSlopeDirectionEnabled); }
+
+//+------------------------------------------------------------------+
 //| Ha alteracao pendente?                                            |
 //|                                                                   |
 //| Pela DIFERENCA real entre rascunho e comprometido, nao por uma     |
