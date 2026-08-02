@@ -149,6 +149,11 @@ private:
    bool              m_selRuntimeLocked;
    bool              m_selProfileLocked;
    string            m_selLockReason;
+   //--- Quando as travas foram consultadas pela ultima vez. Elas descrevem
+   //--- OUTROS graficos, que iniciam, param e trocam de perfil sem avisar este:
+   //--- consultar so na troca de selecao deixava a linha selecionada habilitada
+   //--- depois de ganhar um conflito, ou bloqueada depois de perde-lo.
+   uint              m_selLocksAt;
    //--- Arquivos de perfil que existem mas nao puderam ser lidos. Contados, e
    //--- nao ignorados: some-los da lista esconde justamente o arquivo que
    //--- precisa de atencao.
@@ -249,6 +254,10 @@ public:
    //--- por baixo de um desenho velho, que e a pior combinacao das duas.
    void              Pulse(void)
      {
+      //--- Antes da decisao de repintar: uma trava que apareceu ou sumiu em
+      //--- outro grafico e exatamente o tipo de mudanca que ninguem vem contar,
+      //--- e sem isto a tela so a mostraria no proximo clique.
+      if(TouchProfileLocks()) m_viewDirty=true;
       if(!m_viewDirty && HasPending()==m_lastPending) return;
       Render();
      }
@@ -387,6 +396,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_profRefreshWanted=false; m_viewDirty=false;
    m_profEdit=FCV_PROF_VIEW; m_btnCount=0;
    m_selRuntimeLocked=false; m_selProfileLocked=false; m_selLockReason="";
+   m_selLocksAt=0;
    ArrayResize(m_profName,0); ArrayResize(m_profMagic,0);
    ArrayResize(m_profLot,0);  ArrayResize(m_profDup,0);
    for(int i=0;i<FCV_BTN_MAX;++i)
@@ -619,6 +629,11 @@ void CFusionCanvasRenderer::DrawFrame(void)
 //+------------------------------------------------------------------+
 void CFusionCanvasRenderer::Render(void)
   {
+   //--- O EA redesenha por Update() e nao passa pelo Pulse; sem esta chamada o
+   //--- caminho de producao ficaria com as travas congeladas. O limite de um
+   //--- segundo esta dentro da funcao, entao chamar por quadro nao custa.
+   TouchProfileLocks();
+
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    if(!EnsureSize(S(FCV_PANEL_W),S(h))) return;
    ObjectSetInteger(m_chart,m_canvasName,OBJPROP_XDISTANCE,m_px);

@@ -399,6 +399,7 @@ string DuplicateMagicNote(const int idx)
 //+------------------------------------------------------------------+
 void RefreshSelectedProfileLocks(void)
   {
+   m_selLocksAt=GetTickCount();
    m_selRuntimeLocked=false;
    m_selProfileLocked=false;
    m_selLockReason="";
@@ -420,6 +421,31 @@ void RefreshSelectedProfileLocks(void)
       m_selProfileLocked=true;
       m_selLockReason=reason;
      }
+  }
+
+//--- Reconsulta periodica das travas, com limite de uma vez por segundo.
+//---
+//--- Elas descrevem o que OUTROS graficos estao fazendo, e nenhum evento deste
+//--- painel avisa quando um deles inicia, para ou troca de perfil. Sem isto, a
+//--- tela mantinha para sempre a resposta do instante em que a selecao mudou.
+//---
+//--- Um segundo, e nao por quadro: cada consulta percorre as variaveis globais
+//--- do terminal duas vezes, e sao duas consultas. So roda com a aba Perfis a
+//--- vista — no resto do painel a resposta nao e usada por ninguem.
+//---
+//--- Devolve true quando o estado MUDOU, para quem chama decidir se repinta.
+//--- ⚠ Isto mantem o DESENHO fresco; nao substitui reconsultar na hora de
+//--- executar CARREGAR/DUPLICAR/EXCLUIR, que entra com os comandos na 2c — ali
+//--- a janela entre o que a tela mostrou e o clique ainda existe.
+bool TouchProfileLocks(void)
+  {
+   if(m_tab!=FCV_TAB_PERFIS || m_minimized) return false;
+   uint now=GetTickCount();
+   if(m_selLocksAt!=0 && (now-m_selLocksAt)<1000) return false;
+
+   bool wasRuntime=m_selRuntimeLocked, wasProfile=m_selProfileLocked;
+   RefreshSelectedProfileLocks();
+   return (wasRuntime!=m_selRuntimeLocked || wasProfile!=m_selProfileLocked);
   }
 
 //+------------------------------------------------------------------+

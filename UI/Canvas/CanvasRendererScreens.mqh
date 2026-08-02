@@ -474,7 +474,11 @@ void ScreenProfiles(void)
    //--- Lista real, enumerada por quem constroi o painel. Nao ha mais nomes
    //--- inventados aqui; se ela vier vazia, e porque nao ha perfil em disco.
    int activeIdx=ActiveProfileIndex();
-   if(m_profCount<=0)
+   //--- O atalho de lista vazia vale so no modo de NAVEGACAO. Sem o !editing,
+   //--- clicar em NOVO com a pasta vazia trocava o modo, redesenhava, caia neste
+   //--- mesmo retorno e o formulario nunca aparecia — o unico botao oferecido
+   //--- era tambem o unico que nao levava a lugar nenhum.
+   if(m_profCount<=0 && !editing)
      {
       //--- Lista vazia ainda precisa das duas saidas: NOVO (que o proprio texto
       //--- manda usar) e Atualizar lista. A versao anterior devolvia antes de
