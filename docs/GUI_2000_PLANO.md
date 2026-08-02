@@ -150,8 +150,35 @@ sem alterar o EA.
 desenhadas, com todos os estados visuais. Medir o custo de desenho cedo.
 
 **Fase 2 — `CFusionCanvasPanel` com a mesma interface.** Implementa os 8 metodos da
-secao 5. Os fragmentos de validacao, draft e acesso sao incluidos praticamente como
-estao — sao fragmentos de corpo de classe.
+secao 5.
+
+> **Correcao (Etapa 2b).** A frase original dizia que os fragmentos de validacao,
+> draft e acesso seriam "incluidos praticamente como estao, por serem fragmentos de
+> corpo de classe". **Isso e falso e ja custou uma expectativa errada de esforco.**
+> Eles sao metodos de `CFusionPanel` que referenciam um membro `CEdit` NOMEADO por
+> campo (`m_cfgRiskLotEdit`, `m_cfgSystemMagicEdit`, dezenas deles). O renderizador
+> em canvas e deliberadamente o oposto: modelo generico indexado por slot, e e isso
+> que o deixa ~30% menor. O que se reaproveita de verdade sao as **funcoes de
+> validacao em si** (`FusionIsIntegerText`, as faixas, as regras cruzadas), que ja
+> sao livres de `CEdit`. O que precisa ser **reescrito** e a camada fina de leitura.
+> E adaptador, nao reescrita grande — mas e trabalho real, nao `#include`.
+
+A Fase 2 avanca em quatro etapas:
+
+| Etapa | Entrega | Estado |
+|---|---|---|
+| **2a** | Esqueleto: os 8 metodos, ciclo de vida delegando ao renderizador | feita |
+| **2b** | Telas lendo e escrevendo o rascunho de `SEASettings` | Status, Resultados, Estrategias, Filtros e Gestao feitas; **faltam Perfis e Layout** |
+| **2c** | Comandos saindo do painel: `ConsumeCommand` | pendente |
+| **2d** | Validacao, `configInputsValid` e politica de conflito | pendente |
+
+⚠️ **2c e 2d precisam fechar juntas, e a ordem importa.** Ate a 2c existir, nao ha
+caminho do rascunho ate o EA: nada e gravado, e por isso a ausencia de validacao **nao
+e risco operacional** — e so uma tela que aceita numero ruim. No instante em que a 2c
+abrir esse caminho, a mesma ausencia passa a permitir **gravar configuracao invalida
+no perfil**, que e outra classe de problema. Fechar a 2c sozinha, ainda que compile e
+pareca funcionar, e o unico ponto deste plano em que uma etapa isolada piora o
+sistema em vez de melhorar.
 
 ### Pendencias registradas para a Etapa 2d (validacao / acesso / conflito)
 
@@ -333,7 +360,26 @@ testando:
 
 A partir do MetaEditor `5.0.0.6061`, `#resource` exige que o arquivo resolva dentro
 da arvore `MQL5`. Com o projeto fora dela, usar `build-linked.ps1` (ver
-`README.md`). O gate continua sendo **0 errors, 0 warnings** nos alvos — **cinco**
+`README.md`).
+
+⚠️ **A partir do `5.0.0.6090`, NAO passar `/inc` ao MetaEditor.** Com ele, a
+compilacao quebra em dois lugares, ambos dentro de arquivos da propria MetaQuotes —
+o que faz o defeito parecer do ambiente e nao da linha de comando:
+
+- `Include\Canvas\Canvas.mqh` acusa 6 erros dentro do proprio arquivo (`cannot
+  convert parameter 'int' to 'uint&'`, `wrong parameters count` em `TextOut`, com o
+  aviso *"due to new rules of method hiding"*)
+- todo `#resource` e recusado com `invalid resource path`, inclusive os `res\*.bmp`
+  que `Include\Controls` declara e que existem em disco
+
+Sem `/inc` os mesmos arquivos compilam 0/0 — isolado com dois `.mq5` de tres linhas,
+e reproduzido em arvore limpa para descartar o projeto como causa. Sem `/inc` o
+compilador deduz a raiz da localizacao do fonte, que e o que o `build-linked.ps1` ja
+garante. Segunda condicao: a raiz precisa ser **a do proprio MetaEditor**, porque e
+contra a pasta de dados dele que os `#resource` iniciados por `\` resolvem;
+`build-paths.ps1` faz esse pareamento por `origin.txt`.
+
+O gate continua sendo **0 errors, 0 warnings** nos alvos — **cinco**
 desde a Fase 1: os tres indicadores, o `Fusion.mq5` e o harness
 `Prototype/FusionCanvasPhase1.mq5`, que compila os modulos de `UI/Canvas/` e
 por isso entra no gate. O harness sai quando a Fase 4 remover o painel antigo.

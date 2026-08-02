@@ -90,34 +90,31 @@ A partir do MetaEditor `5.0.0.6061`, o compilador exige que os arquivos declarad
 Use `build-linked.ps1` nesse caso. Ele cria um vinculo de diretorio em `MQL5\Experts\FusionBuild\<nome-da-pasta>`, chama o `build.ps1` por esse caminho e remove o vinculo ao final. Os EX5 continuam sendo gravados na pasta do projeto, e o repositorio permanece onde esta.
 
 ```powershell
-.\build-linked.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+.\build-linked.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
 
-Ambos os parametros sao obrigatorios aqui. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
+`-Mql5` **nao precisa ser informado**: a raiz e derivada do proprio MetaEditor, casando por `origin.txt` — o mesmo vinculo instalacao/pasta-de-dados que o MetaEditor usa. Informe-a apenas para forcar outra. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
+
+> **A raiz precisa ser a do MetaEditor escolhido, e nao uma qualquer.** Sem `/inc` (ver abaixo), os `#resource` iniciados por `\` resolvem contra a pasta de dados **do editor**. Apontar para outra faz os tres `#resource` dos indicadores falharem com `invalid resource path` — o arquivo existe, mas nao na arvore que o compilador considera sua. Com dezenas de pastas de dados na maquina, todas com cara de validas, errar era facil e o erro acusava o projeto em vez do argumento.
 
 Se o clone ja estiver dentro de `MQL5`, o `build.ps1` sozinho basta.
 
 ### Uso com caminhos explicitos
 
-Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5:
+Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5 — basta dizer **qual editor**, e a raiz `MQL5` vem pareada com ele:
 
 ```powershell
-.\build.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+.\build.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
-
-`-Mql5` recebe a raiz `MQL5`, e nao apenas a subpasta `Include`.
 
 Se a politica de execucao do PowerShell bloquear scripts:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
+
+`-Mql5` continua existindo como forcador manual e recebe a raiz `MQL5`, nao apenas a subpasta `Include`. Prefira omiti-lo: informar uma raiz que nao seja a do editor escolhido quebra os `#resource`.
 
 ### Autodeteccao
 
@@ -127,7 +124,18 @@ Tambem e possivel executar:
 .\build.ps1
 ```
 
-O script usa autodeteccao somente quando encontra exatamente um `MetaEditor64.exe` e uma unica raiz MQL5 contendo `Include/Controls/Dialog.mqh`. Se houver varias instalacoes, ele lista as opcoes e encerra sem escolher silenciosamente; execute novamente informando `-MetaEditor` e `-Mql5`.
+O script autodetecta o `MetaEditor64.exe` somente quando encontra exatamente um. Havendo varias instalacoes, ele lista as opcoes e encerra sem escolher silenciosamente; execute novamente informando `-MetaEditor`.
+
+A raiz `MQL5`, essa, nunca precisa ser informada: ela e **derivada do MetaEditor** por `origin.txt` (`build-paths.ps1`). A versao anterior aceitava qualquer pasta contendo `Include/Controls/Dialog.mqh` e desistia diante de varias — o que empurrava para informar `-Mql5` a mao, e informar a errada quebrava os `#resource`.
+
+### O compilador e o `/inc`
+
+**O `build.ps1` nao passa `/inc` ao MetaEditor, e nao deve voltar a passar.** A partir do `5.0.0.6090` esse argumento quebra a compilacao em dois lugares, ambos dentro de arquivos da propria MetaQuotes — o que faz o defeito parecer do ambiente:
+
+- `Include\Canvas\Canvas.mqh` acusa 6 erros dentro do proprio arquivo (`cannot convert parameter 'int' to 'uint&'`, `wrong parameters count` em `TextOut`, com o aviso *"due to new rules of method hiding"*);
+- todo `#resource` e recusado com `invalid resource path`, inclusive os `res\*.bmp` que `Include\Controls` declara e que existem em disco.
+
+Sem `/inc`, os mesmos arquivos compilam `0 errors, 0 warnings`. Nesse modo o compilador deduz a raiz `MQL5` pela localizacao do fonte — que e exatamente o que o `build-linked.ps1` garante ao expor o projeto dentro de `Experts`.
 
 O `ExitCode` do MetaEditor nao e usado para julgar sucesso, pois pode ser diferente de zero mesmo em compilacoes validas. A autoridade e `Result: 0 errors, 0 warnings` no log e a existencia do EX5 correspondente.
 
