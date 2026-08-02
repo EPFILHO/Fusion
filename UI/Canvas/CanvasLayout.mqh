@@ -82,8 +82,14 @@
 //--- menos perfis: os quatro botoes de acao vivem ao lado e o bloco abaixo nao
 //--- pode subir e descer conforme a quantidade de perfis em disco.
 #define FCV_PROF_ROWS     6
-#define FCV_SWATCH_COUNT 30
-#define FCV_SWATCH_COLS   6
+//--- Grade de cores: 8 MATIZES em coluna, 5 luminosidades em linha. A promessa
+//--- da Fase 1 era essa — "matiz na horizontal, luminosidade na vertical" —, mas
+//--- a ultima linha era um apanhado de sobras (ciano sob o verde, rosa sob o
+//--- roxo, marrom sob o ambar) e quebrava justamente a leitura que a grade
+//--- existe para dar: descer numa coluna e escurecer a MESMA cor.
+//--- Agora cada coluna e uma rampa de uma cor so, do claro ao escuro.
+#define FCV_SWATCH_COUNT 40
+#define FCV_SWATCH_COLS   8
 
 //--- Controles publicados por passada. O limite e por tela desenhada, nao
 //--- pelo total do painel: o que nao esta na tela nao publica caixa.

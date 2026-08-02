@@ -473,15 +473,25 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
       m_colorX[i]=0; m_colorY[i]=0; m_colorW[i]=64; m_colorSlot[i]=0;
      }
 
-   //--- Grade de cores: matiz na horizontal, luminosidade na vertical, para a
-   //--- grade se navegar pelo olho. Nao existe seletor do sistema em MQL5.
+   //--- Grade de cores, lida como tabela: cada COLUNA e uma cor, cada LINHA um
+   //--- degrau de luminosidade (claro em cima, escuro embaixo). Navega-se pelo
+   //--- olho — "quero este azul, so que mais escuro" e descer uma casa. Nao
+   //--- existe seletor de cor do sistema em MQL5.
+   //---
+   //--- As oito colunas foram escolhidas para serem distinguiveis ENTRE SI numa
+   //--- linha fina sobre o grafico, que e o uso real: cores vizinhas demais
+   //--- viram a mesma linha a dois metros da tela. Por isso entraram turquesa e
+   //--- fucsia, que faltavam, e o dourado ganhou coluna com o laranja em vez de
+   //--- disputar espaco com o amarelo.
+   //---
+   //--- verde · turquesa · azul · roxo · fucsia · vermelho · dourado · cinza
    uint sw[FCV_SWATCH_COUNT]=
      {
-      FCV_OPAQUE(105,240,174), FCV_OPAQUE(128,216,255), FCV_OPAQUE(179,157,219), FCV_OPAQUE(255,138,128), FCV_OPAQUE(255,224,130), FCV_OPAQUE(255,255,255),
-      FCV_OPAQUE(0,230,118),   FCV_OPAQUE(41,182,246),  FCV_OPAQUE(149,117,205), FCV_OPAQUE(255,82,82),   FCV_OPAQUE(255,193,7),   FCV_OPAQUE(207,216,220),
-      FCV_OPAQUE(0,200,83),    FCV_OPAQUE(41,121,255),  FCV_OPAQUE(124,77,255),  FCV_OPAQUE(244,67,54),   FCV_OPAQUE(255,152,0),   FCV_OPAQUE(144,164,174),
-      FCV_OPAQUE(0,137,71),    FCV_OPAQUE(21,101,192),  FCV_OPAQUE(81,45,168),   FCV_OPAQUE(198,40,40),   FCV_OPAQUE(230,81,0),    FCV_OPAQUE(84,110,122),
-      FCV_OPAQUE(0,229,255),   FCV_OPAQUE(26,35,126),   FCV_OPAQUE(233,30,99),   FCV_OPAQUE(136,14,79),   FCV_OPAQUE(121,85,72),   FCV_OPAQUE(38,50,56)
+      FCV_OPAQUE(165,214,167), FCV_OPAQUE(128,222,234), FCV_OPAQUE(144,202,249), FCV_OPAQUE(179,157,219), FCV_OPAQUE(244,143,177), FCV_OPAQUE(239,154,154), FCV_OPAQUE(255,236,179), FCV_OPAQUE(255,255,255),
+      FCV_OPAQUE(102,187,106), FCV_OPAQUE(38,198,218),  FCV_OPAQUE(66,165,245),  FCV_OPAQUE(126,87,194),  FCV_OPAQUE(236,64,122),  FCV_OPAQUE(239,83,80),   FCV_OPAQUE(255,202,40),  FCV_OPAQUE(176,190,197),
+      FCV_OPAQUE(67,160,71),   FCV_OPAQUE(0,172,193),   FCV_OPAQUE(30,136,229),  FCV_OPAQUE(94,53,177),   FCV_OPAQUE(216,27,96),   FCV_OPAQUE(229,57,53),   FCV_OPAQUE(255,160,0),   FCV_OPAQUE(120,144,156),
+      FCV_OPAQUE(46,125,50),   FCV_OPAQUE(0,131,143),   FCV_OPAQUE(21,101,192),  FCV_OPAQUE(69,39,160),   FCV_OPAQUE(173,20,87),   FCV_OPAQUE(198,40,40),   FCV_OPAQUE(245,124,0),   FCV_OPAQUE(69,90,100),
+      FCV_OPAQUE(27,94,32),    FCV_OPAQUE(0,96,100),    FCV_OPAQUE(13,71,161),   FCV_OPAQUE(49,27,146),   FCV_OPAQUE(136,14,79),   FCV_OPAQUE(183,28,28),   FCV_OPAQUE(230,81,0),    FCV_OPAQUE(38,50,56)
      };
    ArrayCopy(m_swatches,sw);
 
@@ -490,7 +500,13 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- e semear o slot local nao muda mais nada — pior, sugere que muda.
    //--- Restam os de Layout, unica aba que ainda nao le do rascunho.
    m_stToggle[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_INDICATORS)]=true;
-   int swatch[5]={6,15,26,16,13};   // MA Rapida, MA Lenta, Trend M1, Trend M2, Bandas
+   //--- Cinco indicadores, cinco matizes BEM separados e todos no mesmo degrau
+   //--- de luminosidade (a segunda linha da grade): cores de brilho parecido
+   //--- pesam igual sobre o grafico, e o que precisa distinguir uma linha da
+   //--- outra e o matiz, nao o tom. As Bandas ficam no cinza claro de proposito
+   //--- — sao envelope, nao direcao, e nao devem competir com as medias.
+   //--- ⚠ Sao INDICES na grade: mudar o numero de colunas move todos eles.
+   int swatch[5]={8,10,12,14,15};   // MA Rapida, MA Lenta, Trend M1, Trend M2, Bandas
    for(int i=0;i<5;++i)
       m_stColor[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_COLOR0+i*FCV_VISUAL_SLOT_STRIDE)]=swatch[i];
   }
