@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+
+  <title>EP Fusion | Expert Advisor modular para MetaTrader 5</title>
+  <meta name="description" content="EP Fusion é um Expert Advisor modular para MetaTrader 5, com múltiplas estratégias, filtros, perfis, gestão de risco e proteções operacionais.">
+  <meta name="author" content="EP Filho">
+  <meta name="robots" content="index, follow">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="EP Fusion | Expert Advisor modular para MetaTrader 5">
+  <meta property="og:description" content="Arquitetura modular, operação segura, múltiplas estratégias, filtros e gestão de risco para MetaTrader 5.">
+  <meta property="og:url" content="https://github.com/EPFILHO/Fusion">
+  <meta property="og:locale" content="pt_BR">
+
+  <link rel="canonical" href="https://github.com/EPFILHO/Fusion">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "EP Fusion",
+    "description": "Expert Advisor modular para MetaTrader 5 com estratégias, filtros, perfis, gestão de risco e proteções operacionais.",
+    "codeRepository": "https://github.com/EPFILHO/Fusion",
+    "programmingLanguage": "MQL5",
+    "runtimePlatform": "MetaTrader 5",
+    "version": "1.058",
+    "author": {
+      "@type": "Person",
+      "name": "EP Filho"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-deep: #040b14;
+      --surface: rgba(13, 28, 47, 0.78);
+      --surface-strong: #0d1c2f;
+      --surface-soft: #10243d;
+      --border: rgba(148, 183, 220, 0.16);
+      --border-strong: rgba(122, 188, 255, 0.30);
+      --text: #f4f8fc;
+      --muted: #a5b7cb;
+      --muted-strong: #c5d2df;
+      --accent: #42a5ff;
+      --accent-strong: #72c2ff;
+      --green: #42d392;
+      --yellow: #f5c451;
+      --red: #ff6b78;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --container: 1160px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 8%, rgba(44, 143, 230, 0.18), transparent 27rem),
+        radial-gradient(circle at 88% 22%, rgba(34, 209, 151, 0.10), transparent 24rem),
+        linear-gradient(180deg, #081523 0%, var(--bg) 42%, var(--bg-deep) 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.24;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, #000, transparent 88%);
+      z-index: -1;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    img,
+    svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    .container {
+      width: min(calc(100% - 40px), var(--container));
+      margin-inline: auto;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      padding: 10px 14px;
+      color: #04111f;
+      background: #fff;
+      border-radius: 10px;
+      transform: translateY(-160%);
+      z-index: 1000;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid transparent;
+      background: rgba(5, 13, 23, 0.68);
+      backdrop-filter: blur(16px);
+      transition: border-color 180ms ease, background 180ms ease;
+    }
+
+    .site-header.scrolled {
+      border-color: var(--border);
+      background: rgba(5, 13, 23, 0.90);
+    }
+
+    .nav {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-size: 1.05rem;
+    }
+
+    .brand-mark {
+      width: 39px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(112, 194, 255, 0.42);
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(66,165,255,0.22), rgba(66,211,146,0.08));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 10px 30px rgba(39,135,218,0.15);
+    }
+
+    .brand-mark svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .brand span:last-child {
+      color: var(--accent-strong);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      color: var(--muted-strong);
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .nav-links a:not(.nav-github) {
+      position: relative;
+      transition: color 180ms ease;
+    }
+
+    .nav-links a:not(.nav-github)::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 100%;
+      bottom: -7px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: right 180ms ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: var(--text);
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a:focus-visible::after {
+      right: 0;
+    }
+
+    .nav-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 11px;
+      background: rgba(75, 163, 241, 0.08);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .nav-github:hover,
+    .nav-github:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(114, 194, 255, 0.65);
+      background: rgba(75, 163, 241, 0.14);
+    }
+
+    .menu-button {
+      display: none;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    .hero {
+      position: relative;
+      padding: 88px 0 78px;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 620px;
+      height: 620px;
+      top: -110px;
+      right: -250px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 159, 248, 0.16), transparent 66%);
+      filter: blur(10px);
+      z-index: -1;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 0.98fr 1.02fr;
+      align-items: center;
+      gap: clamp(48px, 7vw, 86px);
+    }
+
+    .eyebrow {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 23px;
+      padding: 8px 12px;
+      color: #bfe1ff;
+      border: 1px solid rgba(94, 177, 251, 0.27);
+      border-radius: 999px;
+      background: rgba(59, 149, 230, 0.09);
+      font-size: 0.79rem;
+      font-weight: 750;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(66,211,146,0.11), 0 0 18px rgba(66,211,146,0.7);
+    }
+
+    h1 {
+      max-width: 690px;
+      font-size: clamp(3rem, 6.4vw, 5.3rem);
+      line-height: 0.98;
+      letter-spacing: -0.065em;
+      text-wrap: balance;
+    }
+
+    .hero-accent {
+      display: block;
+      color: transparent;
+      background: linear-gradient(90deg, #72c2ff 0%, #58b7ff 42%, #59d9ac 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .hero-description {
+      max-width: 610px;
+      margin-top: 25px;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.4vw, 1.13rem);
+      line-height: 1.78;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+      margin-top: 31px;
+    }
+
+    .button {
+      min-height: 49px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 19px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      font-size: 0.94rem;
+      font-weight: 780;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      transform: translateY(-2px);
+    }
+
+    .button-primary {
+      color: #03111f;
+      background: linear-gradient(135deg, #78c8ff, #49abff 58%, #55d4aa);
+      box-shadow: 0 13px 35px rgba(52, 159, 245, 0.22);
+    }
+
+    .button-primary:hover,
+    .button-primary:focus-visible {
+      box-shadow: 0 17px 42px rgba(52, 159, 245, 0.31);
+    }
+
+    .button-secondary {
+      color: var(--text);
+      border-color: var(--border-strong);
+      background: rgba(14, 31, 52, 0.66);
+    }
+
+    .button-secondary:hover,
+    .button-secondary:focus-visible {
+      border-color: rgba(114, 194, 255, 0.58);
+      background: rgba(20, 45, 74, 0.82);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      margin-top: 26px;
+      color: #8fa5ba;
+      font-size: 0.82rem;
+      font-weight: 650;
+    }
+
+    .hero-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .hero-meta svg {
+      width: 16px;
+      height: 16px;
+      color: var(--green);
+    }
+
+    .terminal-wrap {
+      position: relative;
+      perspective: 1400px;
+    }
+
+    .terminal-wrap::before,
+    .terminal-wrap::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(36px);
+      z-index: -1;
+    }
+
+    .terminal-wrap::before {
+      width: 180px;
+      height: 180px;
+      top: 0;
+      right: 4%;
+      background: rgba(59, 159, 244, 0.18);
+    }
+
+    .terminal-wrap::after {
+      width: 130px;
+      height: 130px;
+      bottom: 4%;
+      left: 2%;
+      background: rgba(66, 211, 146, 0.12);
+    }
+
+    .terminal {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(129, 184, 235, 0.27);
+      border-radius: 19px;
+      background: linear-gradient(160deg, rgba(19, 39, 63, 0.97), rgba(5, 14, 25, 0.99));
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.07);
+      transform: rotateY(-5deg) rotateX(1deg);
+      transform-origin: center center;
+      animation: panelFloat 7s ease-in-out infinite;
+    }
+
+    @keyframes panelFloat {
+      0%, 100% { transform: rotateY(-5deg) rotateX(1deg) translateY(0); }
+      50% { transform: rotateY(-3.5deg) rotateX(0.5deg) translateY(-8px); }
+    }
+
+    .terminal-bar {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 15px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.025);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .window-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b4f64;
+    }
+
+    .window-dots span:first-child { background: var(--red); }
+    .window-dots span:nth-child(2) { background: var(--yellow); }
+    .window-dots span:nth-child(3) { background: var(--green); }
+
+    .terminal-title {
+      color: #aebdd0;
+      font-size: 0.72rem;
+      font-weight: 750;
+      letter-spacing: 0.04em;
+    }
+
+    .terminal-version {
+      padding: 4px 8px;
+      color: #9ecdf6;
+      border: 1px solid rgba(93, 174, 244, 0.2);
+      border-radius: 7px;
+      background: rgba(60, 153, 233, 0.07);
+      font-size: 0.64rem;
+      font-weight: 760;
+    }
+
+    .terminal-body {
+      padding: 12px;
+    }
+
+    .terminal-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .terminal-profile,
+    .terminal-state {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .terminal-label {
+      color: #758ba3;
+      font-size: 0.63rem;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .terminal-value {
+      color: #e8f2fb;
+      font-size: 0.72rem;
+      font-weight: 750;
+    }
+
+    .terminal-state {
+      min-width: 135px;
+      justify-content: center;
+      color: #78e4b7;
+      border-color: rgba(66, 211, 146, 0.21);
+      background: rgba(66, 211, 146, 0.07);
+      font-size: 0.7rem;
+      font-weight: 820;
+      letter-spacing: 0.06em;
+    }
+
+    .terminal-tabs {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .terminal-tab {
+      padding: 8px 4px;
+      color: #7e94aa;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.015);
+      text-align: center;
+      font-size: 0.54rem;
+      font-weight: 820;
+      letter-spacing: 0.035em;
+    }
+
+    .terminal-tab.active {
+      color: #dff1ff;
+      border-color: rgba(80, 171, 247, 0.27);
+      background: rgba(69, 159, 236, 0.12);
+    }
+
+    .terminal-main {
+      display: grid;
+      grid-template-columns: 1.34fr 0.86fr;
+      gap: 10px;
+    }
+
+    .chart-card,
+    .status-card,
+    .metric-card {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: rgba(255,255,255,0.022);
+    }
+
+    .chart-card {
+      min-height: 245px;
+      padding: 13px;
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 9px;
+    }
+
+    .chart-title {
+      color: #dbe9f6;
+      font-size: 0.72rem;
+      font-weight: 790;
+    }
+
+    .chart-subtitle {
+      margin-top: 2px;
+      color: #6f8499;
+      font-size: 0.57rem;
+    }
+
+    .chart-badge {
+      padding: 4px 7px;
+      color: #62dca5;
+      border-radius: 6px;
+      background: rgba(66,211,146,0.08);
+      font-size: 0.57rem;
+      font-weight: 800;
+    }
+
+    .chart-area {
+      position: relative;
+      height: 172px;
+      overflow: hidden;
+      border-radius: 8px;
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 100% 34px, 42px 100%;
+    }
+
+    .chart-area svg {
+      position: absolute;
+      inset: 10px 0 0;
+      width: 100%;
+      height: calc(100% - 10px);
+      overflow: visible;
+    }
+
+    .terminal-side {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-card {
+      padding: 12px;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.045);
+      color: #7f94aa;
+      font-size: 0.58rem;
+    }
+
+    .status-line:last-child {
+      border-bottom: 0;
+    }
+
+    .status-line strong {
+      color: #d2e1ef;
+      font-size: 0.59rem;
+    }
+
+    .status-good {
+      color: #67dca8 !important;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .metric-card strong {
+      margin-top: 3px;
+      color: #dfeaf4;
+      font-size: 0.79rem;
+    }
+
+    .terminal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 0.8fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .terminal-button {
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #a8bbcd;
+      background: rgba(255,255,255,0.026);
+      font-size: 0.59rem;
+      font-weight: 820;
+      letter-spacing: 0.04em;
+    }
+
+    .terminal-button.primary {
+      color: #062017;
+      border-color: transparent;
+      background: linear-gradient(135deg, #5be0a8, #3cc98f);
+    }
+
+    .trust-strip {
+      padding: 24px 0 20px;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: rgba(12, 27, 46, 0.58);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      min-height: 86px;
+      padding: 16px;
+      color: var(--muted-strong);
+      border-right: 1px solid var(--border);
+      font-size: 0.88rem;
+      font-weight: 720;
+      text-align: center;
+    }
+
+    .trust-item:last-child {
+      border-right: 0;
+    }
+
+    .trust-item svg {
+      flex: 0 0 auto;
+      width: 21px;
+      color: var(--accent-strong);
+    }
+
+    .section {
+      padding: 96px 0;
+    }
+
+    .section-alt {
+      position: relative;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: linear-gradient(180deg, rgba(11, 26, 44, 0.38), rgba(7, 17, 31, 0.18));
+    }
+
+    .section-heading {
+      max-width: 690px;
+      margin-bottom: 43px;
+    }
+
+    .section-kicker {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: var(--accent-strong);
+      font-size: 0.77rem;
+      font-weight: 820;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1.08;
+      letter-spacing: -0.045em;
+      text-wrap: balance;
+    }
+
+    .section-heading p {
+      margin-top: 17px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 17px;
+    }
+
+    .feature-card {
+      position: relative;
+      min-height: 245px;
+      overflow: hidden;
+      padding: 25px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(155deg, rgba(17, 38, 63, 0.84), rgba(8, 20, 35, 0.74));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+    }
+
+    .feature-card::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      top: -74px;
+      right: -60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(71, 166, 245, 0.15), transparent 69%);
+      transition: transform 220ms ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(111, 189, 255, 0.29);
+      box-shadow: 0 23px 55px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .feature-card:hover::after {
+      transform: scale(1.15);
+    }
+
+    .feature-icon {
+      width: 47px;
+      height: 47px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 21px;
+      color: var(--accent-strong);
+      border: 1px solid rgba(100, 184, 255, 0.24);
+      border-radius: 13px;
+      background: rgba(68, 158, 235, 0.09);
+    }
+
+    .feature-icon svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .feature-card p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.91rem;
+      line-height: 1.7;
+    }
+
+    .architecture-grid {
+      display: grid;
+      grid-template-columns: 0.88fr 1.12fr;
+      align-items: center;
+      gap: clamp(45px, 8vw, 92px);
+    }
+
+    .architecture-copy p {
+      margin-top: 20px;
+      color: var(--muted);
+      line-height: 1.78;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 13px;
+      margin-top: 27px;
+      list-style: none;
+    }
+
+    .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      color: var(--muted-strong);
+      font-size: 0.94rem;
+    }
+
+    .check-list svg {
+      flex: 0 0 auto;
+      width: 19px;
+      margin-top: 2px;
+      color: var(--green);
+    }
+
+    .module-map {
+      position: relative;
+      min-height: 475px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at center, rgba(59, 157, 239, 0.12), transparent 52%),
+        linear-gradient(145deg, rgba(16, 35, 58, 0.82), rgba(5, 15, 26, 0.86));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), var(--shadow);
+      overflow: hidden;
+    }
+
+    .module-map::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: radial-gradient(circle at center, #000, transparent 76%);
+    }
+
+    .module-core {
+      position: relative;
+      z-index: 2;
+      width: 145px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(114,194,255,0.46);
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 28%, #1c4971, #0c233a 65%, #081729);
+      box-shadow: 0 0 0 14px rgba(66,165,255,0.05), 0 0 70px rgba(66,165,255,0.20), inset 0 1px 0 rgba(255,255,255,0.13);
+      color: #dff3ff;
+      font-size: 1.1rem;
+      font-weight: 860;
+      letter-spacing: -0.02em;
+    }
+
+    .module-core small {
+      display: block;
+      color: #8ebfe9;
+      font-size: 0.58rem;
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .module-node {
+      position: absolute;
+      z-index: 3;
+      min-width: 112px;
+      padding: 11px 14px;
+      color: #c7d8e8;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: rgba(8, 22, 38, 0.93);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.21);
+      font-size: 0.69rem;
+      font-weight: 770;
+      text-align: center;
+    }
+
+    .module-node::after {
+      content: "";
+      position: absolute;
+      width: 52px;
+      height: 1px;
+      top: 50%;
+      background: linear-gradient(90deg, rgba(88,177,252,0.08), rgba(88,177,252,0.46));
+      transform-origin: left center;
+      z-index: -1;
+    }
+
+    .node-signals { top: 61px; left: 54px; }
+    .node-strategies { top: 63px; right: 46px; }
+    .node-filters { top: 50%; right: 28px; transform: translateY(-50%); }
+    .node-risk { bottom: 61px; right: 56px; }
+    .node-protection { bottom: 54px; left: 46px; }
+    .node-ui { top: 50%; left: 30px; transform: translateY(-50%); }
+    .node-execution { bottom: 22px; left: 50%; transform: translateX(-50%); }
+    .node-persistence { top: 22px; left: 50%; transform: translateX(-50%); }
+
+    .node-signals::after,
+    .node-ui::after,
+    .node-protection::after { left: 100%; }
+
+    .node-strategies::after,
+    .node-filters::after,
+    .node-risk::after { right: 100%; transform-origin: right center; background: linear-gradient(90deg, rgba(88,177,252,0.46), rgba(88,177,252,0.08)); }
+
+    .node-persistence::after,
+    .node-execution::after {
+      width: 1px;
+      height: 46px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(rgba(88,177,252,0.45), rgba(88,177,252,0.08));
+    }
+
+    .node-persistence::after { top: 100%; }
+    .node-execution::after { bottom: 100%; background: linear-gradient(rgba(88,177,252,0.08), rgba(88,177,252,0.45)); }
+
+    .safety-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 17px;
+    }
+
+    .safety-panel,
+    .steps-panel {
+      padding: 31px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(150deg, rgba(16, 35, 58, 0.80), rgba(7, 18, 31, 0.80));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .safety-panel h3,
+    .steps-panel h3 {
+      font-size: 1.24rem;
+      letter-spacing: -0.025em;
+    }
+
+    .safety-panel > p,
+    .steps-panel > p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .safety-items {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .safety-item {
+      min-height: 126px;
+      padding: 17px;
+      border: 1px solid rgba(255,255,255,0.065);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.023);
+    }
+
+    .safety-item strong {
+      display: block;
+      font-size: 0.87rem;
+    }
+
+    .safety-item span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .steps {
+      display: grid;
+      gap: 15px;
+      margin-top: 25px;
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .steps li {
+      counter-increment: steps;
+      display: grid;
+      grid-template-columns: 35px 1fr;
+      align-items: start;
+      gap: 12px;
+      color: var(--muted-strong);
+      font-size: 0.9rem;
+    }
+
+    .steps li::before {
+      content: counter(steps, decimal-leading-zero);
+      width: 35px;
+      height: 35px;
+      display: grid;
+      place-items: center;
+      color: var(--accent-strong);
+      border: 1px solid rgba(86,177,253,0.24);
+      border-radius: 10px;
+      background: rgba(62,154,232,0.08);
+      font-size: 0.69rem;
+      font-weight: 830;
+    }
+
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 17px;
+    }
+
+    .doc-card {
+      min-height: 192px;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(13, 29, 49, 0.68);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .doc-card:hover,
+    .doc-card:focus-visible {
+      transform: translateY(-4px);
+      border-color: rgba(112,192,255,0.32);
+      background: rgba(16, 37, 62, 0.78);
+    }
+
+    .doc-card .doc-type {
+      color: var(--accent-strong);
+      font-size: 0.67rem;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .doc-card h3 {
+      margin-top: 12px;
+      font-size: 1.02rem;
+    }
+
+    .doc-card p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.65;
+    }
+
+    .doc-card .doc-link {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: auto;
+      padding-top: 17px;
+      color: #b7dcfb;
+      font-size: 0.78rem;
+      font-weight: 750;
+    }
+
+    .doc-card .doc-link svg {
+      width: 15px;
+      transition: transform 180ms ease;
+    }
+
+    .doc-card:hover .doc-link svg {
+      transform: translateX(3px);
+    }
+
+    .cta {
+      padding: 20px 0 104px;
+    }
+
+    .cta-panel {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(34px, 6vw, 64px);
+      border: 1px solid rgba(114,194,255,0.27);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 88% 20%, rgba(76, 178, 255, 0.18), transparent 28rem),
+        linear-gradient(135deg, rgba(19, 47, 76, 0.94), rgba(7, 22, 38, 0.96));
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.075);
+    }
+
+    .cta-panel::after {
+      content: "F";
+      position: absolute;
+      right: 4%;
+      bottom: -51%;
+      color: rgba(255,255,255,0.028);
+      font-size: 28rem;
+      font-weight: 950;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .cta-content {
+      position: relative;
+      z-index: 2;
+      max-width: 700px;
+    }
+
+    .cta-content p {
+      max-width: 620px;
+      margin-top: 16px;
+      color: #b2c4d5;
+      line-height: 1.75;
+    }
+
+    .cta-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+      margin-top: 28px;
+    }
+
+    .disclaimer {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      max-width: 760px;
+      margin-top: 25px;
+      color: #8ea4b8;
+      font-size: 0.78rem;
+      line-height: 1.65;
+    }
+
+    .disclaimer svg {
+      flex: 0 0 auto;
+      width: 18px;
+      margin-top: 1px;
+      color: var(--yellow);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: rgba(3, 10, 18, 0.62);
+    }
+
+    .footer-inner {
+      min-height: 94px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 25px;
+    }
+
+    .footer-copy {
+      color: #7f94aa;
+      font-size: 0.82rem;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      color: #9fb1c3;
+      font-size: 0.8rem;
+      font-weight: 680;
+    }
+
+    .footer-links a:hover,
+    .footer-links a:focus-visible {
+      color: var(--text);
+    }
+
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+
+    [data-reveal].visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      [data-reveal] {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .architecture-grid,
+      .safety-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        max-width: 760px;
+      }
+
+      .terminal-wrap {
+        width: min(100%, 700px);
+        margin-inline: auto;
+      }
+
+      .terminal {
+        transform: none;
+      }
+
+      @keyframes panelFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      .feature-grid,
+      .docs-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .trust-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .trust-item:nth-child(2) {
+        border-right: 0;
+      }
+
+      .trust-item:nth-child(-n+2) {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .module-map {
+        max-width: 690px;
+        margin-inline: auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .container {
+        width: min(calc(100% - 28px), var(--container));
+      }
+
+      .menu-button {
+        display: grid;
+      }
+
+      .nav-links {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 14px;
+        right: 14px;
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: rgba(7, 18, 31, 0.98);
+        box-shadow: 0 18px 45px rgba(0,0,0,0.32);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+      }
+
+      .nav-links.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .nav-links a {
+        padding: 11px 12px;
+        border-radius: 9px;
+      }
+
+      .nav-links a:not(.nav-github)::after {
+        display: none;
+      }
+
+      .nav-links a:hover,
+      .nav-links a:focus-visible {
+        background: rgba(255,255,255,0.035);
+      }
+
+      .nav-github {
+        justify-content: center;
+        margin-top: 4px;
+      }
+
+      .hero {
+        padding-top: 64px;
+      }
+
+      h1 {
+        font-size: clamp(2.75rem, 14vw, 4.4rem);
+      }
+
+      .terminal-main {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-card {
+        min-height: 222px;
+      }
+
+      .terminal-side {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .status-card {
+        grid-row: span 2;
+      }
+
+      .feature-grid,
+      .docs-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .feature-card {
+        min-height: 0;
+      }
+
+      .section {
+        padding: 78px 0;
+      }
+
+      .module-map {
+        min-height: 460px;
+      }
+
+      .module-node {
+        min-width: 96px;
+        padding: 9px 10px;
+        font-size: 0.62rem;
+      }
+
+      .node-signals { left: 20px; }
+      .node-strategies { right: 18px; }
+      .node-filters { right: 10px; }
+      .node-risk { right: 22px; }
+      .node-protection { left: 18px; }
+      .node-ui { left: 12px; }
+
+      .safety-items {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 27px 0;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero-actions,
+      .cta-actions {
+        display: grid;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .hero-meta {
+        display: grid;
+        gap: 10px;
+      }
+
+      .trust-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .trust-item,
+      .trust-item:nth-child(2) {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .trust-item:last-child {
+        border-bottom: 0;
+      }
+
+      .terminal-tabs {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .terminal-top,
+      .terminal-side {
+        grid-template-columns: 1fr;
+      }
+
+      .terminal-state {
+        min-width: 0;
+      }
+
+      .terminal-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .module-map {
+        min-height: 560px;
+      }
+
+      .module-core {
+        width: 120px;
+      }
+
+      .node-persistence { top: 25px; }
+      .node-signals { top: 120px; left: 15px; }
+      .node-strategies { top: 120px; right: 15px; }
+      .node-ui { top: 50%; left: 11px; }
+      .node-filters { top: 50%; right: 11px; }
+      .node-protection { bottom: 116px; left: 15px; }
+      .node-risk { bottom: 116px; right: 15px; }
+      .node-execution { bottom: 24px; }
+
+      .module-node::after {
+        display: none;
+      }
+
+      .safety-panel,
+      .steps-panel {
+        padding: 24px;
+      }
+
+      .cta-panel {
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+  <header class="site-header" id="topo">
+    <div class="container nav">
+      <a class="brand" href="#topo" aria-label="EP Fusion - início">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 4.5h12M6 4.5v15M6 11.8h9.2" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+            <path d="M16.8 14.5 19.5 17l-2.7 2.5" stroke="#55D4AA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span>EP <span>Fusion</span></span>
+      </a>
+
+      <button class="menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav-links">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
+        <a href="#recursos">Recursos</a>
+        <a href="#arquitetura">Arquitetura</a>
+        <a href="#seguranca">Segurança</a>
+        <a href="#documentacao">Documentação</a>
+        <a class="nav-github" href="https://github.com/EPFILHO/Fusion" target="_blank" rel="noopener noreferrer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 .7A11.3 11.3 0 0 0 8.43 22.72c.57.1.78-.25.78-.55v-2.2c-3.18.69-3.85-1.35-3.85-1.35-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.33.95.1-.74.4-1.24.73-1.53-2.54-.29-5.21-1.27-5.21-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.14 1.17a10.9 10.9 0 0 1 5.72 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.58.23 2.74.11 3.03.74.8 1.18 1.82 1.18 3.07 0 4.4-2.68 5.37-5.23 5.65.41.36.78 1.05.78 2.12v3.14c0 .3.2.66.79.55A11.3 11.3 0 0 0 12 .7Z"/>
+          </svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy" data-reveal>
+          <div class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            Expert Advisor para MetaTrader 5
+          </div>
+
+          <h1>
+            Estratégias em módulos.
+            <span class="hero-accent">Controle em cada decisão.</span>
+          </h1>
+
+          <p class="hero-description">
+            O EP Fusion é um Expert Advisor desenvolvido em MQL5 para combinar estratégias,
+            filtros, gestão de risco e proteções operacionais em uma arquitetura limpa,
+            configurável e preparada para evolução incremental.
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://github.com/EPFILHO/Fusion" target="_blank" rel="noopener noreferrer">
+              Ver projeto no GitHub
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="button button-secondary" href="https://github.com/EPFILHO/Fusion/blob/main/docs/USER_MANUAL.md" target="_blank" rel="noopener noreferrer">
+              Ler manual do usuário
+            </a>
+          </div>
+
+          <div class="hero-meta" aria-label="Informações do projeto">
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Versão 1.058
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Código em MQL5
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Projeto público
+            </span>
+          </div>
+        </div>
+
+        <div class="terminal-wrap" data-reveal>
+          <div class="terminal" aria-label="Representação visual do painel do EP Fusion">
+            <div class="terminal-bar">
+              <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="terminal-title">EP FUSION · XAUUSD</div>
+              <div class="terminal-version">v1.058</div>
+            </div>
+
+            <div class="terminal-body">
+              <div class="terminal-top">
+                <div class="terminal-profile">
+                  <div>
+                    <div class="terminal-label">Perfil carregado</div>
+                    <div class="terminal-value">XAU · Tendência M15</div>
+                  </div>
+                  <div class="terminal-value">Magic 1058001</div>
+                </div>
+                <div class="terminal-state">● RODANDO</div>
+              </div>
+
+              <div class="terminal-tabs" aria-hidden="true">
+                <div class="terminal-tab active">STATUS</div>
+                <div class="terminal-tab">RESULTS</div>
+                <div class="terminal-tab">STRATS</div>
+                <div class="terminal-tab">FILTERS</div>
+                <div class="terminal-tab">RISK</div>
+                <div class="terminal-tab">CONFIG</div>
+              </div>
+
+              <div class="terminal-main">
+                <div class="chart-card">
+                  <div class="chart-head">
+                    <div>
+                      <div class="chart-title">Contexto operacional</div>
+                      <div class="chart-subtitle">Sinais, filtros e proteções em tempo real</div>
+                    </div>
+                    <div class="chart-badge">NORMAL</div>
+                  </div>
+                  <div class="chart-area" aria-hidden="true">
+                    <svg viewBox="0 0 520 180" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stop-color="#55d4aa" stop-opacity=".28"/>
+                          <stop offset="1" stop-color="#55d4aa" stop-opacity="0"/>
+                        </linearGradient>
+                        <linearGradient id="chartLine" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0" stop-color="#42a5ff"/>
+                          <stop offset="1" stop-color="#55d4aa"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0 154 C42 145 50 129 86 132 C121 135 127 110 162 113 C201 116 213 91 249 97 C290 104 293 67 332 74 C372 82 383 51 419 58 C457 65 477 28 520 35 L520 180 L0 180 Z" fill="url(#chartFill)"/>
+                      <path d="M0 154 C42 145 50 129 86 132 C121 135 127 110 162 113 C201 116 213 91 249 97 C290 104 293 67 332 74 C372 82 383 51 419 58 C457 65 477 28 520 35" fill="none" stroke="url(#chartLine)" stroke-width="3" stroke-linecap="round"/>
+                      <circle cx="520" cy="35" r="5" fill="#55d4aa"/>
+                      <circle cx="520" cy="35" r="10" fill="#55d4aa" opacity=".15"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <div class="terminal-side">
+                  <div class="status-card">
+                    <div class="status-line"><span>Estratégias</span><strong>2 ATIVAS</strong></div>
+                    <div class="status-line"><span>Filtros</span><strong>3 ATIVOS</strong></div>
+                    <div class="status-line"><span>Proteções</span><strong class="status-good">LIBERADO</strong></div>
+                    <div class="status-line"><span>Posição</span><strong>SEM POSIÇÃO</strong></div>
+                    <div class="status-line"><span>Conflitos</span><strong>PRIORIDADE</strong></div>
+                  </div>
+
+                  <div class="metrics">
+                    <div class="metric-card">
+                      <span class="terminal-label">Risco</span>
+                      <strong>0,50%</strong>
+                    </div>
+                    <div class="metric-card">
+                      <span class="terminal-label">Sessão</span>
+                      <strong>ATIVA</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="terminal-actions" aria-hidden="true">
+                <div class="terminal-button primary">INICIAR</div>
+                <div class="terminal-button">SALVAR PERFIL</div>
+                <div class="terminal-button">CANCELAR</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip" aria-label="Destaques técnicos">
+      <div class="container trust-grid" data-reveal>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.6 3.1 8.8 7.5 9.8 4.4-1 7.5-5.2 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.8"/><path d="m8.6 12.1 2.1 2.1 4.8-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Operação protegida
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 8h8v8H8z" stroke="currentColor" stroke-width="1.8"/></svg>
+          Arquitetura modular
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9m8 10V5m8 14v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M2.5 19h19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Multi-estratégia
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="7" r="1.7" fill="currentColor"/><circle cx="15" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="17" r="1.7" fill="currentColor"/></svg>
+          Perfis configuráveis
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="recursos">
+      <div class="container">
+        <div class="section-heading" data-reveal>
+          <span class="section-kicker">Recursos</span>
+          <h2>Um motor de automação preparado para diferentes contextos.</h2>
+          <p>
+            Cada camada possui uma responsabilidade clara. Estratégias geram sinais, filtros refinam o contexto,
+            o risco dimensiona a operação e as proteções podem bloquear ou encerrar quando necessário.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 17 9 12l3 3 8-9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 6h5v5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Múltiplas estratégias</h3>
+            <p>Combine diferentes lógicas operacionais com prioridades, timeframes próprios e regras de saída independentes.</p>
+          </article>
+
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16l-6.2 7.1V19l-3.6 1v-7.9L4 5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Filtros plugáveis</h3>
+            <p>Refine sinais por tendência, RSI, Bollinger e outras condições sem misturar responsabilidades no motor principal.</p>
+          </article>
+
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.6 3.1 8.8 7.5 9.8 4.4-1 7.5-5.2 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M9 12h6M12 9v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Gestão de risco</h3>
+            <p>Controle lote, stop loss, take profit, parciais, breakeven e trailing stop em uma camada dedicada.</p>
+          </article>
+
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v4l2.7 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h3>Proteções operacionais</h3>
+            <p>Spread, sessão, limites diários, drawdown, sequência de perdas e outras guardas podem agir independentemente da estratégia.</p>
+          </article>
+
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 12h5M8 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Perfis nomeados</h3>
+            <p>Salve configurações por ativo ou abordagem, com Magic Number exclusivo e persistência segura por gráfico.</p>
+          </article>
+
+          <article class="feature-card" data-reveal>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M8 5v14" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="7" r=".8" fill="currentColor"/></svg>
+            </div>
+            <h3>Painel gráfico</h3>
+            <p>Opere, valide configurações, acompanhe bloqueios e gerencie perfis diretamente pela interface do EA.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="arquitetura">
+      <div class="container architecture-grid">
+        <div class="architecture-copy" data-reveal>
+          <span class="section-kicker">Arquitetura</span>
+          <h2>Cada módulo faz uma coisa — e faz com clareza.</h2>
+          <p>
+            O Fusion foi construído para permitir evolução incremental sem transformar o código em um bloco único.
+            A orquestração central conecta componentes especializados, mantendo regras de negócio, interface,
+            persistência e execução separadas.
+          </p>
+
+          <ul class="check-list">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Estratégias e filtros podem evoluir de forma independente.
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              A interface traduz ações visuais em comandos controlados.
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Persistência e execução possuem fluxos próprios de validação.
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Proteções podem agir mesmo quando a estratégia não solicita saída.
+            </li>
+          </ul>
+        </div>
+
+        <div class="module-map" data-reveal aria-label="Mapa dos módulos do EP Fusion">
+          <div class="module-core">
+            <div>FUSION<small>Core</small></div>
+          </div>
+          <div class="module-node node-persistence">Persistence</div>
+          <div class="module-node node-signals">Signals</div>
+          <div class="module-node node-strategies">Strategies</div>
+          <div class="module-node node-ui">UI</div>
+          <div class="module-node node-filters">Filters</div>
+          <div class="module-node node-protection">Protection</div>
+          <div class="module-node node-risk">Risk</div>
+          <div class="module-node node-execution">Execution</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="seguranca">
+      <div class="container">
+        <div class="section-heading" data-reveal>
+          <span class="section-kicker">Segurança operacional</span>
+          <h2>Automação não precisa significar ausência de controle.</h2>
+          <p>
+            O projeto adota decisões conservadoras para perfis, reinicialização, contexto do terminal,
+            alterações durante posições e sinais detectados sob bloqueio.
+          </p>
+        </div>
+
+        <div class="safety-grid">
+          <div class="safety-panel" data-reveal>
+            <h3>Guardas em diferentes camadas</h3>
+            <p>O Fusion verifica contexto, configuração e permissões antes de permitir novas entradas.</p>
+
+            <div class="safety-items">
+              <div class="safety-item">
+                <strong>Magic Number exclusivo</strong>
+                <span>Evita que instâncias diferentes misturem posições ou configurações.</span>
+              </div>
+              <div class="safety-item">
+                <strong>Perfis persistidos</strong>
+                <span>Gravação controlada e vínculo do perfil preservado por gráfico.</span>
+              </div>
+              <div class="safety-item">
+                <strong>Edição controlada</strong>
+                <span>Configurações operacionais ficam bloqueadas durante situações críticas.</span>
+              </div>
+              <div class="safety-item">
+                <strong>Sinais descartados</strong>
+                <span>Um sinal antigo não é executado depois que o bloqueio termina.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="steps-panel" data-reveal>
+            <h3>Primeiro uso recomendado</h3>
+            <p>Comece em ambiente controlado e valide cada camada antes de operar.</p>
+
+            <ol class="steps">
+              <li>Anexe o EA em uma conta demo e confirme o símbolo do gráfico.</li>
+              <li>Carregue ou crie um perfil com Magic Number exclusivo.</li>
+              <li>Configure estratégias, filtros, risco e proteções.</li>
+              <li>Corrija todas as validações visuais antes de salvar.</li>
+              <li>Habilite a negociação algorítmica e acompanhe a aba STATUS.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="documentacao">
+      <div class="container">
+        <div class="section-heading" data-reveal>
+          <span class="section-kicker">Documentação</span>
+          <h2>Do primeiro uso às decisões de arquitetura.</h2>
+          <p>
+            O repositório reúne documentação para usuários, desenvolvedores e manutenção histórica do projeto.
+          </p>
+        </div>
+
+        <div class="docs-grid">
+          <a class="doc-card" href="https://github.com/EPFILHO/Fusion/blob/main/docs/USER_MANUAL.md" target="_blank" rel="noopener noreferrer" data-reveal>
+            <span class="doc-type">Uso</span>
+            <h3>Manual do usuário</h3>
+            <p>Instalação, primeiro uso, painel, estratégias, filtros, risco, proteções e perfis.</p>
+            <span class="doc-link">Abrir documento <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </a>
+
+          <a class="doc-card" href="https://github.com/EPFILHO/Fusion/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer" data-reveal>
+            <span class="doc-type">Desenvolvimento</span>
+            <h3>Arquitetura</h3>
+            <p>Estrutura do sistema, responsabilidades dos módulos e organização técnica do código.</p>
+            <span class="doc-link">Abrir documento <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </a>
+
+          <a class="doc-card" href="https://github.com/EPFILHO/Fusion/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" data-reveal>
+            <span class="doc-type">Evolução</span>
+            <h3>Changelog</h3>
+            <p>Acompanhe mudanças, correções, refatorações e decisões incorporadas a cada versão.</p>
+            <span class="doc-link">Abrir documento <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container">
+        <div class="cta-panel" data-reveal>
+          <div class="cta-content">
+            <span class="section-kicker">EP Fusion</span>
+            <h2>Explore o código e acompanhe a evolução do projeto.</h2>
+            <p>
+              Consulte a documentação, conheça a arquitetura e veja como o Fusion organiza automação,
+              gestão de risco e proteção operacional no MetaTrader 5.
+            </p>
+
+            <div class="cta-actions">
+              <a class="button button-primary" href="https://github.com/EPFILHO/Fusion" target="_blank" rel="noopener noreferrer">
+                Acessar repositório
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+              <a class="button button-secondary" href="https://github.com/EPFILHO/Fusion/blob/main/docs/README.md" target="_blank" rel="noopener noreferrer">Ver documentação</a>
+            </div>
+
+            <div class="disclaimer">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 3.2v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.2 4.5 3 17a2 2 0 0 0 1.7 3h14.6A2 2 0 0 0 21 17L13.8 4.5a2 2 0 0 0-3.6 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              <span>O Fusion automatiza regras, mas não garante resultados e não substitui testes em conta demo, avaliação de risco e conhecimento das especificações do ativo e da corretora.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-copy">© <span id="year"></span> EP Filho. Projeto EP Fusion.</div>
+      <div class="footer-links">
+        <a href="https://github.com/EPFILHO/Fusion" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/EPFILHO/Fusion/blob/main/docs/USER_MANUAL.md" target="_blank" rel="noopener noreferrer">Manual</a>
+        <a href="https://github.com/EPFILHO/Fusion/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
+        <a href="#topo">Voltar ao topo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const header = document.querySelector('.site-header');
+    const menuButton = document.querySelector('.menu-button');
+    const navLinks = document.querySelector('.nav-links');
+
+    const updateHeader = () => {
+      header.classList.toggle('scrolled', window.scrollY > 12);
+    };
+
+    updateHeader();
+    window.addEventListener('scroll', updateHeader, { passive: true });
+
+    menuButton.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(isOpen));
+      menuButton.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
+    });
+
+    navLinks.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        navLinks.classList.remove('open');
+        menuButton.setAttribute('aria-expanded', 'false');
+        menuButton.setAttribute('aria-label', 'Abrir menu');
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!navLinks.contains(event.target) && !menuButton.contains(event.target)) {
+        navLinks.classList.remove('open');
+        menuButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const revealItems = document.querySelectorAll('[data-reveal]');
+
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+      revealItems.forEach((item) => item.classList.add('visible'));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+
+      revealItems.forEach((item) => observer.observe(item));
+    }
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
