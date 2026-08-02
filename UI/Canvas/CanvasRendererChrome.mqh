@@ -249,7 +249,7 @@ uint RunStateColor(void)
 //--- simulacao, nunca ao estado do EA — os campos seguiam editaveis operando.
 //--- A tecla B continua valendo como forcador manual, para exercitar o estado.
 bool FieldsLocked(void)
-  { return (m_locked || !AccRuntimeEditable()); }
+  { return (m_locked || !AccActiveProfileEditable()); }
 
 //+------------------------------------------------------------------+
 //| Identidade de perfil.                                             |
@@ -500,6 +500,20 @@ bool AccRuntimeEditable(void)
 bool AccRuntimeArmable(void)
   { return (!m_snap.started && !m_snap.runtimeBlocked); }
 
+//--- EDITAR O PERFIL ATIVO exige, alem do EA parado, que o perfil nao esteja
+//--- preso por outro grafico. E o `activeProfileEditable` da 1.058
+//--- (UIPanelAccessState.mqh:75), e e ele — nao o `runtimeEditable` — que
+//--- governa cada campo, o SALVAR e a administracao de perfis.
+//---
+//--- A distincao nao e sutil: com o perfil preso, o `runtimeEditable` sozinho
+//--- deixava os campos aceitarem digitacao enquanto o SALVAR — que ja checava a
+//--- trava — ficava apagado. Dava para criar uma pendencia impossivel de gravar.
+//--- E como CARREGAR segue liberado nesse estado (e a saida do bloqueio) e
+//--- ignora pendencia por regra, a edicao feita ali seria descartada sem aviso
+//--- assim que os comandos existirem.
+bool AccActiveProfileEditable(void)
+  { return (AccRuntimeEditable() && !AccPeerLock()); }
+
 //--- Iniciar com alteracao pendente rodaria a configuracao COMPROMETIDA
 //--- enquanto a tela mostra outra. Por isso a pendencia bloqueia o INICIAR.
 //--- Magic do perfil ativo repetido em disco impede INICIAR. E o Magic que faz
@@ -533,7 +547,7 @@ bool AccCanLoadProfile(void)
 
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.
 bool AccCanAdminProfile(void)
-  { return (AccRuntimeEditable() && !AccPeerLock() && !HasPending()); }
+  { return (AccActiveProfileEditable() && !HasPending()); }
 
 //--- Criar e duplicar nao tocam no perfil ativo, mas ainda exigem EA parado.
 bool AccCanCreateProfile(void)
@@ -612,7 +626,7 @@ void DrawHeader(void)
    PutButton(bx,by,bw2,bh,"SALVAR",  true, m_t.acc,  m_t.onAcc,
              //--- Perfil cujo arquivo sumiu pode ser regravado mesmo sem
              //--- pendencia: salvar recria o arquivo com a configuracao em uso.
-             FCV_BTN_SAVECFG,headerLive && AccRuntimeEditable() && !AccPeerLock() &&
+             FCV_BTN_SAVECFG,headerLive && AccActiveProfileEditable() &&
                              (HasPending() || EditingNow() || m_snap.activeProfileFileMissing));
    bx+=bw2+8;
    PutButton(bx,by,bw2,bh,"CANCELAR",true, m_t.warn, m_t.onAcc,
