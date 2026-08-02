@@ -447,6 +447,7 @@ string FieldGetText(const int fid)
 
    switch(fid)
      {
+      case FCV_FLD_MAGIC:          return IntegerToString(m_draft.magicNumber);
       case FCV_FLD_MA_PRIORITY:    return IntegerToString(m_draft.maCrossPriority);
       case FCV_FLD_MA_FAST_PERIOD: return IntegerToString(m_draft.maFastPeriod);
       case FCV_FLD_MA_SLOW_PERIOD: return IntegerToString(m_draft.maSlowPeriod);
@@ -551,6 +552,7 @@ void FieldSetText(const int fid,const string text)
 
    switch(fid)
      {
+      case FCV_FLD_MAGIC:          m_draft.magicNumber       =(int)StringToInteger(text); break;
       case FCV_FLD_MA_PRIORITY:    m_draft.maCrossPriority   =(int)StringToInteger(text); break;
       case FCV_FLD_MA_FAST_PERIOD: m_draft.maFastPeriod      =(int)StringToInteger(text); break;
       case FCV_FLD_MA_SLOW_PERIOD: m_draft.maSlowPeriod      =(int)StringToInteger(text); break;

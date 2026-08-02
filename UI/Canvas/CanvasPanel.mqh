@@ -17,6 +17,11 @@
 #define __FUSION_CANVAS_PANEL_MQH__
 
 #include "../../Core/Types.mqh"
+//--- A lista de perfis vem do DISCO, nao de SEASettings, e por isso e o painel
+//--- que a busca — mesmo desenho da 1.058, que tem um CSettingsStore dentro do
+//--- proprio painel. O renderizador continua sem tocar em Persistence: ele
+//--- recebe a lista pronta, pelo mesmo caminho por onde recebe o snapshot.
+#include "../../Persistence/SettingsStore.mqh"
 #include "CanvasRenderer.mqh"
 
 class CFusionCanvasPanel
@@ -25,9 +30,44 @@ private:
    CFusionCanvasRenderer m_renderer;
    SUIPanelSnapshot      m_snapshot;
    bool                  m_created;
+   CSettingsStore        m_store;
+   //--- Ultimo perfil ativo visto. Serve de gatilho de releitura: quando o EA
+   //--- troca de perfil, a lista em disco quase sempre mudou junto (carga,
+   //--- gravacao, exclusao). Reler a cada Update seria uma varredura de disco
+   //--- ate 5x por segundo, com um parse de arquivo por perfil.
+   string                m_lastActiveProfile;
+
+   //--- Enumera os perfis e le o Magic de cada um. O Magic exige abrir o
+   //--- arquivo: nao ha caminho barato para le-lo, e a propria 1.058 faz assim
+   //--- em FusionFindProfileByMagicNumber. Por isso esta funcao roda em troca
+   //--- de perfil, nunca por quadro.
+   void              RefreshProfiles(void)
+     {
+      string names[];
+      if(!m_store.ListProfiles(names)) return;
+
+      int total=ArraySize(names);
+      string keep[]; int magics[]; double lots[];
+      ArrayResize(keep,total);
+      ArrayResize(magics,total);
+      ArrayResize(lots,total);
+      int n=0;
+      for(int i=0;i<total;++i)
+        {
+         SEASettings s;
+         //--- Perfil ilegivel fica FORA da lista: exibi-lo sem Magic ofereceria
+         //--- acoes sobre um arquivo que nem abriu.
+         if(!m_store.LoadProfile(names[i],s)) continue;
+         keep[n]  =names[i];
+         magics[n]=s.magicNumber;
+         lots[n]  =s.fixedLot;
+         n++;
+        }
+      m_renderer.SetProfiles(keep,magics,lots,n,total);
+     }
 
 public:
-                     CFusionCanvasPanel(void) { m_created=false; }
+                     CFusionCanvasPanel(void) { m_created=false; m_lastActiveProfile=""; }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.
    bool              CreatePanel(const long chartId,const string name,const int subwin,
@@ -43,6 +83,11 @@ public:
       //--- ora, igual ao harness da Fase 1.
       m_created=m_renderer.Create(chartId,name,FUSION_CANVAS_THEME_AUTO,
                                   FUSION_PALETTE_PETROLEO,true,x1,y1);
+      if(m_created)
+        {
+         RefreshProfiles();
+         m_lastActiveProfile=m_snapshot.activeProfileName;
+        }
       return m_created;
      }
 
@@ -67,6 +112,17 @@ public:
      {
       m_snapshot=snapshot;
       if(!m_created) return;
+      //--- Trocou o perfil ativo: relê o disco antes de desenhar, senao a lista
+      //--- mostraria o estado anterior e o selo ATIVO ficaria na linha errada.
+      if(m_snapshot.activeProfileName!=m_lastActiveProfile)
+        {
+         RefreshProfiles();
+         m_lastActiveProfile=m_snapshot.activeProfileName;
+        }
+      //--- Botao ATUALIZAR: a lista e estado de disco e muda por fora, entao
+      //--- precisa de um gatilho manual alem da troca de perfil ativo.
+      else if(m_renderer.ConsumeProfileRefreshRequest())
+         RefreshProfiles();
       m_renderer.SetSnapshot(m_snapshot);
       m_renderer.Render();
      }

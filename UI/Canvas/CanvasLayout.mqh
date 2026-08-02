@@ -74,6 +74,15 @@
 //--- digitado reaparecia dentro do Magic ao voltar.
 #define FCV_SCREEN_PROFILE_EDIT 24
 #define FCV_RAIL_MAX      7
+//--- Teto de perfis exibiveis. A 1.058 nao tem teto: ela mostra 8 por vez e
+//--- rola sobre um array dinamico. Aqui o limite existe porque o renderizador
+//--- nao aloca — o excedente fica de fora da lista, e por isso o teto e alto o
+//--- bastante para nao ser alcancado por quem organiza perfis a mao.
+#define FCV_PROF_MAX     64
+//--- Linhas visiveis da lista. A altura reservada e sempre esta, mesmo com
+//--- menos perfis: os quatro botoes de acao vivem ao lado e o bloco abaixo nao
+//--- pode subir e descer conforme a quantidade de perfis em disco.
+#define FCV_PROF_ROWS     6
 #define FCV_SWATCH_COUNT 30
 #define FCV_SWATCH_COLS   6
 
@@ -94,6 +103,16 @@
 #define FCV_BTN_START     7
 #define FCV_BTN_SAVECFG   8
 #define FCV_BTN_CANCELCFG 9
+//--- Rolagem da lista de perfis. Botoes, e nao uma segunda barra arrastavel:
+//--- com um OBJ_EDIT em edicao a roda do mouse nao rola (limite do terminal),
+//--- e as setas continuam funcionando sempre. E o que a 1.058 tambem usa.
+#define FCV_BTN_PROFUP   10
+#define FCV_BTN_PROFDN   11
+//--- Reler o disco. NAO e comando do EA: quem tem o CSettingsStore e o painel,
+//--- que reenumera sozinho. A lista e estado de disco e muda por fora — outro
+//--- grafico criando perfil, ou arquivo copiado a mao —, entao sem este botao
+//--- so reanexar o EA mostraria o que apareceu.
+#define FCV_BTN_PROFREFRESH 12
 
 //--- Modo de edicao da aba Perfis
 #define FCV_PROF_VIEW     0

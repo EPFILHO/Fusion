@@ -29,6 +29,12 @@ bool CfgHasError(const int cfg)
 //--- "Config", que nao dizia de que assunto era o problema.
 bool TabHasError(const int tab)
   {
+   //--- Magic repetido acende a aba Perfis. Ao contrario da cadeia de Gestao —
+   //--- que espera a validacao da 2d e por isso esta calada —, este sinal e
+   //--- VERDADEIRO e calculavel hoje: sai da lista que ja foi lida do disco.
+   //--- Nao e reintroduzir o erro fixo da Fase 1; e a mesma cadeia com um dado
+   //--- real do outro lado.
+   if(tab==FCV_TAB_PERFIS) return HasDuplicateMagic();
    if(tab!=FCV_TAB_GESTAO) return false;
    for(int c=0;c<Level2Count(FCV_TAB_GESTAO);++c) if(CfgHasError(c)) return true;
    return false;
@@ -144,18 +150,39 @@ void DrawTitlebar(void)
    else Rect(mx-6,16,mx+6,17,m_t.muted);
   }
 
+//--- Cor REAL do fundo naquela altura. O canvas nao antialiasa sozinho: as
+//--- primitivas suavizam os cantos misturando com uma cor de fundo INFORMADA, e
+//--- informar a errada deixa um halo daquela cor nos quatro cantos.
+//---
+//--- Era o que acontecia com os botoes: eles passavam m_t.ground fixo, mas do
+//--- titulo para baixo o fundo e m_t.surface — no tema claro, cinza contra
+//--- branco. O halo aparecia como uma "sombrinha", e o botao DESABILITADO ainda
+//--- era PREENCHIDO de cinza, virando uma placa em vez de um contorno apagado.
+//--- So a faixa da barra de titulo fica em ground.
+uint BgAt(const int y) { return (y<Surf1Top()) ? m_t.ground : m_t.surface; }
+
 void Btn(const int x,const int y,const int w,const int h,const string label,
          const bool filled,const uint fillClr,const uint onFill)
   {
+   uint bg=BgAt(y);
    if(filled)
      {
-      RoundRect(x,y,x+w,y+h,FCV_RADIUS_CTRL,fillClr,m_t.ground);
+      RoundRect(x,y,x+w,y+h,FCV_RADIUS_CTRL,fillClr,bg);
       Txt(x+w/2,y+h/2,label,onFill,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD,TA_CENTER|TA_VCENTER);
      }
    else
      {
-      RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,m_t.line,m_t.ground,m_t.ground);
-      Txt(x+w/2,y+h/2,label,m_t.muted,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD,TA_CENTER|TA_VCENTER);
+      //--- Sem preenchimento, a COR VAI NO CONTORNO E NO TEXTO. Antes o botao
+      //--- vazado era desenhado em cinza neutro e a cor recebida era descartada
+      //--- — ficava igual a um botao desabilitado, e o usuario nao tinha como
+      //--- saber que aquilo respondia a clique.
+      //---
+      //--- A regra que fica: PREENCHIDO = age sobre um dado (carregar, criar,
+      //--- excluir); VAZADO = acao secundaria, disponivel mas nao protagonista.
+      //--- Desabilitado continua cinza pelo caminho de cima, entao "vazado" e
+      //--- "apagado" deixam de se confundir.
+      RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,fillClr,bg,bg);
+      Txt(x+w/2,y+h/2,label,fillClr,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD,TA_CENTER|TA_VCENTER);
      }
   }
 
@@ -167,7 +194,9 @@ void PutButton(const int x,const int y,const int w,const int h,const string labe
   {
    if(!enabled)
      {
-      RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,m_t.disabled,m_t.ground,m_t.ground);
+      //--- Preenchimento IGUAL ao fundo: botao apagado e contorno, nao placa.
+      uint bg=BgAt(y);
+      RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,m_t.disabled,bg,bg);
       Txt(x+w/2,y+h/2,label,m_t.disabled,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD,TA_CENTER|TA_VCENTER);
       return;
      }
@@ -223,6 +252,142 @@ bool FieldsLocked(void)
   { return (m_locked || !AccRuntimeEditable()); }
 
 //+------------------------------------------------------------------+
+//| Identidade de perfil.                                             |
+//|                                                                   |
+//| Perfil se compara pela forma SANEADA do nome, nunca pelo texto    |
+//| cru: e assim que o arquivo e nomeado em disco, e "BTC USD" e      |
+//| "btcusd" podem ser o mesmo perfil. Mesma funcao que a 1.058 usa   |
+//| (FusionSanitizeProfileName), para os dois paineis concordarem     |
+//| sobre o que e o mesmo perfil.                                     |
+//+------------------------------------------------------------------+
+string ProfileKey(const string name) { return FusionSanitizeProfileName(name); }
+
+//--- Indice do perfil ATIVO na lista, ou -1 se ele nao esta nela (perfil
+//--- apagado por fora, lista ainda nao carregada). Quem manda e o snapshot: o
+//--- ativo e o que o EA carregou, nao o que a tela selecionou.
+int ActiveProfileIndex(void)
+  {
+   string key=ProfileKey(m_snap.activeProfileName);
+   if(StringLen(key)==0) return -1;
+   for(int i=0;i<m_profCount;++i)
+      if(ProfileKey(m_profName[i])==key) return i;
+   return -1;
+  }
+
+//--- O perfil "default" nao se apaga. A 1.058 recusa a exclusao e o proprio
+//--- painel avisa por escrito ("Nao apague o perfil default"); sem esta regra a
+//--- 2.0 ofereceria EXCLUIR num perfil que o EA usa como base de tudo.
+//--- O nome vem da configuracao (defaultProfileName), com "default" como ultimo
+//--- recurso — igual ao DefaultProfileKey da 1.058.
+bool ProfileIsDefault(const int idx)
+  {
+   if(idx<0 || idx>=m_profCount) return false;
+   string def=ProfileKey(m_draft.defaultProfileName);
+   if(StringLen(def)==0) def=ProfileKey(m_committed.defaultProfileName);
+   if(StringLen(def)==0) def="default";
+   string key=ProfileKey(m_profName[idx]);
+   return (StringLen(key)>0 && key==def);
+  }
+
+//--- Geometria das tres colunas de Perfis (lista | setas | acoes), medida da
+//--- direita para a esquerda. Vive aqui, e nao no desenho, porque o alvo do
+//--- clique nas linhas precisa da MESMA borda direita: enquanto ela era um 135
+//--- escrito a mao no hit-test, mudar a largura das colunas deslocava o alvo
+//--- sem deslocar o desenho.
+#define FCV_PROF_ACT_W   124   // coluna dos botoes de acao
+#define FCV_PROF_NAV_W    22   // coluna das setas de rolagem
+//--- Folga entre a moldura da lista e a coluna de acoes. Era 8 e a borda direita
+//--- da moldura ficava colada nos botoes; o contorno precisa de ar para ler-se
+//--- como moldura e nao como parte do botao.
+#define FCV_PROF_COL_GAP  16
+//--- Respiro entre o topo da area util e a moldura. Sem ele a moldura comeca
+//--- exatamente em ContentTop(), e a faixa que o desenho repinta para recortar
+//--- o conteudo rolavel come a linha de cima — era por isso que a borda superior
+//--- da moldura nao aparecia.
+#define FCV_PROF_TOP_PAD   8
+
+int ProfileActionsLeft(void) { return m_fx2-FCV_PROF_ACT_W; }
+int ProfileNavLeft(void)     { return ProfileActionsLeft()-FCV_PROF_COL_GAP-FCV_PROF_NAV_W; }
+int ProfileListRight(void)   { return ProfileNavLeft()-FCV_PROF_COL_GAP; }
+
+//--- Rolagem da lista de perfis. Portada de UIPanelProfileListView.mqh, que
+//--- resolve os mesmos dois casos: nao deixar o deslocamento passar do fim, e
+//--- trazer a selecao de volta para dentro da janela quando ela sai (ao trocar
+//--- de perfil ativo, ou quando a lista encolhe por uma exclusao).
+int  ProfileMaxOffset(void)
+  {
+   int max=m_profCount-FCV_PROF_ROWS;
+   return (max>0) ? max : 0;
+  }
+
+void ClampProfileOffset(void)
+  {
+   int max=ProfileMaxOffset();
+   if(m_profOffset>max) m_profOffset=max;
+   if(m_profOffset<0)   m_profOffset=0;
+  }
+
+void EnsureProfileVisible(void)
+  {
+   if(m_profSel<0) { ClampProfileOffset(); return; }
+   if(m_profSel<m_profOffset) m_profOffset=m_profSel;
+   if(m_profSel>=m_profOffset+FCV_PROF_ROWS)
+      m_profOffset=m_profSel-FCV_PROF_ROWS+1;
+   ClampProfileOffset();
+  }
+
+//--- Ha Magic repetido em disco? Alimenta a cadeia de erro: e um problema que
+//--- precisa ser visto DE FORA da aba Perfis, senao so quem ja desconfia olha.
+bool HasDuplicateMagic(void)
+  {
+   for(int i=0;i<m_profCount;++i) if(m_profDup[i]) return true;
+   return false;
+  }
+
+//--- O Magic DESTE grafico esta repetido em disco? E a pergunta que interessa
+//--- para operar, e nao "ha algum Magic repetido em algum lugar": se GOLD e
+//--- JP225 colidem entre si mas o perfil ativo tem numero proprio, esta conta
+//--- corre sem ambiguidade, e recusar o INICIAR ali seria travar a operacao por
+//--- um arquivo parado que nao participa dela.
+//---
+//--- Com o perfil ativo fora da lista (apagado por fora, lista desatualizada),
+//--- basta o numero existir em algum arquivo: nao da para provar que e o mesmo
+//--- perfil, e no escuro a resposta segura e recusar.
+bool ActiveMagicConflicts(void)
+  {
+   int idx=ActiveProfileIndex();
+   if(idx>=0) return m_profDup[idx];
+   int magic=m_snap.magicNumber;
+   if(magic<=0) return false;
+   for(int i=0;i<m_profCount;++i) if(m_profMagic[i]==magic) return true;
+   return false;
+  }
+
+//--- Quem divide o Magic com quem. Vermelho sozinho manda procurar; o nome
+//--- resolve. Reporta o PRIMEIRO conflito: dizer todos de uma vez viraria um
+//--- paragrafo, e resolver um de cada vez e como se conserta isso mesmo.
+string DuplicateMagicNote(void)
+  {
+   for(int i=0;i<m_profCount;++i)
+     {
+      if(!m_profDup[i]) continue;
+      string peers="";
+      int shared=m_profMagic[i];
+      for(int j=0;j<m_profCount;++j)
+        {
+         if(j==i || m_profMagic[j]!=shared) continue;
+         if(StringLen(peers)>0) peers+=", ";
+         peers+=m_profName[j];
+        }
+      return "Magic "+IntegerToString(shared)+" usado por "+m_profName[i]+
+             " e "+peers+". O EA reconhece as proprias ordens pelo Magic: "+
+             "dois perfis com o mesmo numero em dois graficos fazem cada um "+
+             "adotar as ordens do outro.";
+     }
+   return "";
+  }
+
+//+------------------------------------------------------------------+
 //| Bloqueios operacionais de secao — alem do bloqueio geral.         |
 //|                                                                   |
 //| Sao trancas que o EA impoe a UMA parte da Gestao enquanto ela esta|
@@ -276,8 +441,16 @@ bool AccRuntimeArmable(void)
 
 //--- Iniciar com alteracao pendente rodaria a configuracao COMPROMETIDA
 //--- enquanto a tela mostra outra. Por isso a pendencia bloqueia o INICIAR.
+//--- Magic do perfil ativo repetido em disco impede INICIAR. E o Magic que faz
+//--- o EA reconhecer as proprias ordens: comecar com ele ambiguo e comecar sem
+//--- saber quais ordens sao suas. Bloqueio proprio da 2.0 — a 1.058 so recusa
+//--- CRIAR um perfil com Magic tomado, e nao ve o estado gerado por arquivo
+//--- copiado por fora.
 bool AccCanStart(void)
-  { return (AccRuntimeArmable() && !AccPeerLock() && !HasPending() && !m_snap.tradePermissionBlocked); }
+  {
+   return (AccRuntimeArmable() && !AccPeerLock() && !HasPending() &&
+           !m_snap.tradePermissionBlocked && !ActiveMagicConflicts());
+  }
 
 //--- Pausar nao depende de pendencia: parar de operar nunca deve ficar refem
 //--- de um formulario pela metade. Com posicao aberta, porem, nao ha o que

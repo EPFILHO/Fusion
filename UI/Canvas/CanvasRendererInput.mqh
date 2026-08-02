@@ -185,6 +185,28 @@ bool HandleComboClick(const int lx,const int ly)
    return false;
   }
 
+//--- Roda do mouse sobre a lista de perfis: rola a lista, nao a pagina.
+//--- Devolve true so quando REALMENTE rolou algo, para que no fim da lista a
+//--- roda volte a rolar a pagina em vez de morrer sobre um limite.
+bool HandleProfileWheel(const int lx,const int ly,const int step)
+  {
+   if(m_tab!=FCV_TAB_PERFIS || m_profEdit!=FCV_PROF_VIEW) return false;
+   if(m_profCount<=FCV_PROF_ROWS) return false;
+
+   int top=ContentTop()-m_scroll+FCV_PROF_TOP_PAD;
+   int listBottom=top+FCV_PROF_ROWS*34;
+   if(ly<top-6 || ly>=listBottom) return false;
+   if(lx<m_fx1-6 || lx>=ProfileNavLeft()+FCV_PROF_NAV_W+6) return false;
+
+   int ns=m_profOffset+step;
+   if(ns<0) ns=0;
+   if(ns>ProfileMaxOffset()) ns=ProfileMaxOffset();
+   if(ns==m_profOffset) return false;
+   m_profOffset=ns;
+   Render();
+   return true;
+  }
+
 //--- Roda do mouse sobre um popup aberto rola a lista, nao o conteudo atras.
 bool HandleComboWheel(const int lx,const int ly,const int step)
   {
@@ -224,6 +246,13 @@ bool HandleButtonClick(const int lx,const int ly)
          case FCV_BTN_CANCEL: m_profEdit=FCV_PROF_VIEW; break;
          case FCV_BTN_LOAD:   m_profSel=m_profSel;      break; // fake: nada muda
          case FCV_BTN_DEL:    Print("EXCLUIR (simulacao): pediria confirmacao."); break;
+         //--- Rolagem da lista: move a janela, nunca a selecao. Arrastar a
+         //--- selecao junto faria o usuario perder o perfil escolhido so por
+         //--- olhar o resto da lista.
+         case FCV_BTN_PROFUP: m_profOffset--; ClampProfileOffset(); break;
+         case FCV_BTN_PROFDN: m_profOffset++; ClampProfileOffset(); break;
+         //--- So registra o pedido; quem le o disco e o dono do painel.
+         case FCV_BTN_PROFREFRESH: m_profRefreshWanted=true; break;
          //--- INICIAR nao mexe em pendencia: ligar o EA nao e alteracao de
          //--- configuracao. Ele alterna o estado operacional, que e o que a
          //--- capsula e o Status mostram.
@@ -404,11 +433,25 @@ void HandlePress(const int cx,const int cy)
      {
       //--- durante a edicao a lista nao aceita clique: trocar de selecao no
       //--- meio de criar um perfil deixaria a tela contradizendo o cartao
-      int y=ContentTop()-m_scroll;
-      for(int i=0;i<6;++i)
-         if(ly>=y+i*34 && ly<y+i*34+30 && lx<FCV_PANEL_W-FCV_PAD-135 &&
-            InContentView(y+i*34,30))
-           { if(m_profSel!=i) { m_profSel=i; Render(); } return; }
+      //--- So as linhas REALMENTE desenhadas aceitam clique. Com o laco fixo em
+      //--- seis, clicar no vazio abaixo de uma lista curta selecionava um perfil
+      //--- que nao existe — e as acoes passavam a mirar nele.
+      //--- A linha clicada (r) vira o indice real somando o deslocamento: sem
+      //--- isso, com a lista rolada, clicar na primeira linha selecionaria o
+      //--- primeiro perfil da lista inteira, e nao o que esta sob o cursor.
+      //--- Mesmo respiro de topo que o desenho aplica: alvo e pintura tem de
+      //--- partir da MESMA origem.
+      int y=ContentTop()-m_scroll+FCV_PROF_TOP_PAD;
+      int rows=m_profCount-m_profOffset;
+      if(rows>FCV_PROF_ROWS) rows=FCV_PROF_ROWS;
+      for(int r=0;r<rows;++r)
+         if(ly>=y+r*34 && ly<y+r*34+30 && lx<ProfileListRight() &&
+            InContentView(y+r*34,30))
+           {
+            int i=m_profOffset+r;
+            if(m_profSel!=i) { m_profSel=i; Render(); }
+            return;
+           }
      }
 
    if(ly>=ContentTop() && ly<=ContentBottom() && lx<FCV_PANEL_W-16)
@@ -456,6 +499,14 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       int cx=(int)(short)(lparam & 0xFFFF), cy=(int)(short)((lparam>>16)&0xFFFF);
       if(m_minimized || !InsidePanel(cx,cy)) return;
       if(HandleComboWheel(L(cx-m_px),L(cy-m_py),(dparam>0)?-1:1)) return;
+      //--- Roda sobre a lista de perfis rola a LISTA, nao a pagina.
+      //---
+      //--- E vem ANTES da trava de campo em edicao de proposito: rolar a lista
+      //--- por dentro nao move nenhum objeto nativo — as linhas sao desenhadas
+      //--- no canvas e a altura da janela e fixa, entao o campo Magic abaixo
+      //--- fica onde esta. A trava existe para a rolagem da PAGINA, que desloca
+      //--- os OBJ_EDIT e deixa o controle de edicao solto sobre o painel.
+      if(HandleProfileWheel(L(cx-m_px),L(cy-m_py),(dparam>0)?-1:1)) return;
       //--- Com um campo em edicao a roda nao rola o conteudo: o controle de
       //--- edicao do terminal nao acompanha o objeto e ficaria solto sobre o
       //--- painel. Barra, setinhas, teclado e arrasto continuam disponiveis,

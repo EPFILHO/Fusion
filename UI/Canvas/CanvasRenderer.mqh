@@ -28,6 +28,9 @@
 //--- Comparacao campo a campo: e ela que responde "ha alteracao pendente?".
 #include "..\..\Core\SettingsCompare.mqh"
 #include "..\..\Core\VolumeFormat.mqh"
+//--- Comparacao de nome de perfil. Fica em Core e nao arrasta Persistence: o
+//--- renderizador precisa saber QUAL perfil e o ativo, nao ler o disco.
+#include "..\..\Core\ProfileNameUtils.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"
 #include "CanvasFields.mqh"
@@ -112,6 +115,42 @@ private:
    //--- Perfis: ver a lista, criar um novo ou duplicar o selecionado
    int               m_profEdit;
    int               m_profSel;
+   //--- A lista de perfis mora em DISCO, nao em SEASettings, entao ela nao pode
+   //--- vir do rascunho como todo o resto. O renderizador tambem nao a busca:
+   //--- quem enumera e quem o constroi (o painel no EA, o harness no protótipo),
+   //--- pelo mesmo caminho por onde o snapshot chega. Assim o desenho continua
+   //--- sem tocar em disco e o harness consegue exercita-lo.
+   //--- Vetores paralelos de tipos primitivos de proposito: um struct proprio
+   //--- exigiria um cabecalho compartilhado, e o unico lugar natural para ele
+   //--- arrastaria Persistence para dentro do renderizador.
+   string            m_profName[FCV_PROF_MAX];
+   int               m_profMagic[FCV_PROF_MAX];
+   double            m_profLot[FCV_PROF_MAX];
+   //--- Este perfil divide o Magic com algum outro da lista? Calculado uma vez,
+   //--- na carga: o EA reconhece as PROPRIAS ordens pelo Magic, e dois perfis
+   //--- com o mesmo numero em dois graficos fazem cada EA adotar as ordens do
+   //--- outro. A 1.058 recusa CRIAR um perfil com Magic ja usado, entao este
+   //--- estado so aparece com arquivos copiados por fora.
+   bool              m_profDup[FCV_PROF_MAX];
+   int               m_profCount;
+   //--- Arquivos de perfil que existem mas nao puderam ser lidos. Contados, e
+   //--- nao ignorados: some-los da lista esconde justamente o arquivo que
+   //--- precisa de atencao.
+   int               m_profSkipped;
+   //--- Pedido de releitura feito pelo botao ATUALIZAR. Nao vira SUICommand: o
+   //--- EA nao tem nada a ver com isso — quem le o disco e o dono do painel.
+   //--- Fica como sinalizador consumido por quem constroi, e nao como chamada,
+   //--- porque o renderizador nao conhece (nem deve conhecer) Persistence.
+   bool              m_profRefreshWanted;
+   //--- Algo que a tela mostra mudou fora de um evento de entrada, e por isso
+   //--- ninguem pediu redesenho. Quem altera estado exibido marca aqui; o pulso
+   //--- periodico repinta e o Render limpa.
+   bool              m_viewDirty;
+   //--- Primeira linha visivel da lista. A lista rola por dentro, com altura
+   //--- fixa: deixar o cartao crescer afastaria os botoes de acao das linhas de
+   //--- baixo, e rolar a pagina inteira levaria o CARREGAR para fora da tela
+   //--- justamente quando o perfil escolhido esta no fim.
+   int               m_profOffset;
 
    //--- Campos nativos realmente existentes no grafico, com a posicao local em
    //--- que foram criados. E o que permite mover o painel sem repintar nada.
@@ -188,9 +227,13 @@ public:
    //--- Sem isto, SALVAR e CANCELAR so acendiam no proximo evento de mouse —
    //--- e o usuario via botao apagado sobre uma edicao ja feita. O EA chama
    //--- pelo Update(); o harness, por temporizador.
+   //--- m_viewDirty cobre o que muda SEM ser digitacao: hoje, a lista de perfis
+   //--- relida do disco. Sem ele, "Atualizar lista" trocava os dados e a tela
+   //--- so mostrava no proximo clique em qualquer outra coisa — o dado certo
+   //--- por baixo de um desenho velho, que e a pior combinacao das duas.
    void              Pulse(void)
      {
-      if(HasPending()==m_lastPending) return;
+      if(!m_viewDirty && HasPending()==m_lastPending) return;
       Render();
      }
    //--- Regra da 1.058: o snapshot so sobrescreve o rascunho quando nao ha
@@ -207,6 +250,64 @@ public:
       m_committed=snap.settings;
       if(!pending) { m_draft=m_committed; SyncDerivedSettings(); }
      }
+   //--- Lista de perfis vinda de quem enumera o disco. Recebe os nomes ja na
+   //--- ordem em que devem aparecer; o renderizador nao ordena nem filtra.
+   //--- A selecao e preservada PELO NOME, e nao pelo indice: entre duas
+   //--- chamadas um perfil pode ter sido criado ou apagado, e guardar o indice
+   //--- faria a selecao escorregar silenciosamente para o vizinho.
+   //--- foundTotal = quantos ARQUIVOS de perfil existem; count = quantos foram
+   //--- lidos com sucesso. Os dois numeros existem separados porque a diferenca
+   //--- e informacao: um perfil que esta em disco e nao abriu nao pode
+   //--- simplesmente sumir da tela — foi o que aconteceu com o setimo perfil,
+   //--- descartado em silencio, e o efeito foi identico ao de esconde-lo.
+   void              SetProfiles(const string &names[],const int &magics[],
+                                 const double &lots[],const int count,
+                                 const int foundTotal)
+     {
+      m_profSkipped=foundTotal-count;
+      if(m_profSkipped<0) m_profSkipped=0;
+      string keep=(m_profSel>=0 && m_profSel<m_profCount) ? m_profName[m_profSel] : "";
+      m_profCount=(count<FCV_PROF_MAX) ? count : FCV_PROF_MAX;
+      if(m_profCount<0) m_profCount=0;
+      for(int i=0;i<m_profCount;++i)
+        {
+         m_profName[i] =names[i];
+         m_profMagic[i]=magics[i];
+         m_profLot[i]  =lots[i];
+         m_profDup[i]  =false;
+        }
+      //--- Magic repetido, marcado aqui e nao no desenho: a lista ja esta toda
+      //--- em memoria, entao a comparacao nao custa disco, e o desenho de cada
+      //--- quadro nao precisa refaze-la. Magic <= 0 nao entra: e valor invalido,
+      //--- nao duplicata, e tem aviso proprio na validacao.
+      for(int i=0;i<m_profCount;++i)
+         for(int j=i+1;j<m_profCount;++j)
+            if(m_profMagic[i]>0 && m_profMagic[i]==m_profMagic[j])
+              { m_profDup[i]=true; m_profDup[j]=true; }
+
+      m_profSel=-1;
+      if(StringLen(keep)>0)
+         for(int i=0;i<m_profCount;++i)
+            if(m_profName[i]==keep) { m_profSel=i; break; }
+      //--- Sem correspondencia, cai no ativo; sem ativo, no primeiro. Nunca em
+      //--- -1 com lista cheia: uma tela sem selecao nao tem o que oferecer.
+      if(m_profSel<0) m_profSel=ActiveProfileIndex();
+      if(m_profSel<0 && m_profCount>0) m_profSel=0;
+      EnsureProfileVisible();
+      //--- A lista e a contagem de ilegiveis acabaram de mudar, e nenhum evento
+      //--- de entrada vai pedir o redesenho: quem releu foi o temporizador.
+      m_viewDirty=true;
+     }
+
+   //--- O usuario pediu para reler o disco? Consulta que ZERA o pedido: quem
+   //--- constroi chama uma vez por quadro e reenumera se der true.
+   bool              ConsumeProfileRefreshRequest(void)
+     {
+      if(!m_profRefreshWanted) return false;
+      m_profRefreshWanted=false;
+      return true;
+     }
+
    void              MoveTo(const int x,const int y);
    void              ToggleStress(void);
    //--- ChartEvent e RunPerfSuite sao definidos nos fragmentos Input e Perf
@@ -259,7 +360,14 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_rowCount=0; m_slotSeq=0; m_screen=0;
    m_fx1=FCV_PAD; m_fx2=FCV_PANEL_W-FCV_PAD; m_fy=0;
    m_comboOpen=-1; m_colorOpen=-1; m_comboScroll=0;
-   m_profSel=0; m_profEdit=FCV_PROF_VIEW; m_btnCount=0;
+   //--- Lista vazia ate alguem enumerar o disco. -1 e "nada selecionado", que e
+   //--- a verdade antes da primeira carga; 0 apontaria para um perfil que ainda
+   //--- nao se sabe se existe.
+   m_profSel=-1; m_profCount=0; m_profOffset=0; m_profSkipped=0;
+   m_profRefreshWanted=false; m_viewDirty=false;
+   m_profEdit=FCV_PROF_VIEW; m_btnCount=0;
+   for(int i=0;i<FCV_PROF_MAX;++i)
+     { m_profName[i]=""; m_profMagic[i]=0; m_profLot[i]=0.0; m_profDup[i]=false; }
    for(int i=0;i<FCV_BTN_MAX;++i)
      { m_btnX[i]=0; m_btnY[i]=0; m_btnW[i]=0; m_btnH[i]=0; m_btnId[i]=FCV_BTN_NONE; }
    m_liveEditCount=0;
@@ -503,6 +611,7 @@ void CFusionCanvasRenderer::Render(void)
    //--- Guardado DEPOIS do desenho: e o estado que a tela esta mostrando, e e
    //--- contra ele que o pulso decide se ha algo novo a mostrar.
    m_lastPending=HasPending();
+   m_viewDirty=false;
   }
 
 //+------------------------------------------------------------------+

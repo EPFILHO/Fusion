@@ -95,6 +95,12 @@
 #define FCV_FLD_BF_SLOPE_BACK    108   // int
 #define FCV_FLD_BF_SLOPE_MINPTS  109   // int
 
+//--- Perfis
+//--- O Magic identifica as ordens deste perfil no grafico. Mora em Perfis, e
+//--- nao em Config, porque e identidade do perfil e a lista ja mostra o de
+//--- cada um.
+#define FCV_FLD_MAGIC            118   // int
+
 //--- Gestao > Risco -------------------------------------------------
 //--- O lote e o unico campo formatado pela especificacao do ativo
 //--- (FusionFormatVolume); os demais sao inteiro ou decimal de 2 casas.

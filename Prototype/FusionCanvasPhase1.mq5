@@ -328,6 +328,33 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    return s;
   }
 
+//--- Mesma leitura que CFusionCanvasPanel::RefreshProfiles faz no EA. Duplicada
+//--- aqui de proposito: o harness dirige o RENDERIZADOR direto, sem passar pelo
+//--- painel, e e essa diferenca que faz dele um teste do renderizador e nao do
+//--- painel. Sao dez linhas; compartilha-las exigiria um cabecalho que
+//--- arrastaria Persistence para dentro de UI/Canvas.
+void LoadRealProfiles(void)
+  {
+   CSettingsStore store;
+   string names[];
+   if(!store.ListProfiles(names)) return;
+
+   int total=ArraySize(names);
+   string keep[]; int magics[]; double lots[];
+   ArrayResize(keep,total);
+   ArrayResize(magics,total);
+   ArrayResize(lots,total);
+   int n=0;
+   for(int i=0;i<total;++i)
+     {
+      SEASettings s;
+      if(!store.LoadProfile(names[i],s)) continue;
+      keep[n]=names[i]; magics[n]=s.magicNumber; lots[n]=s.fixedLot; n++;
+     }
+   g_panel.SetProfiles(keep,magics,lots,n,total);
+   PrintFormat("Perfis lidos do disco: %d de %d arquivos.",n,total);
+  }
+
 //+------------------------------------------------------------------+
 int OnInit(void)
   {
@@ -337,6 +364,13 @@ int OnInit(void)
       Print("Fase 1: falha ao criar o canvas.");
       return INIT_FAILED;
      }
+   //--- Perfis sao o unico dado do painel que este harness NAO inventa: a lista
+   //--- vem do disco de verdade, pelo mesmo caminho que o painel usa no EA.
+   //--- Ler perfil e inofensivo — nao opera, nao grava, nao carrega nada — e em
+   //--- troca o protótipo mostra os perfis reais do terminal, com os Magic
+   //--- reais, que e o que revela conflito de Magic e nome estranho em disco.
+   //--- Inventar nomes aqui testaria o desenho e escondia justamente isso.
+   LoadRealProfiles();
    Print("Fase 1 da GUI 2.0 ativa (dados falsos). Teclas: M = medir custo, S = tela de estresse.");
    if(inp_MeasureOnStart) g_panel.RunPerfSuite();
    EventSetMillisecondTimer(200);
@@ -366,5 +400,8 @@ void OnTick(void)
 //--- nao confirmado. O Pulse so redesenha quando ha algo novo a mostrar.
 void OnTimer(void)
   {
+   //--- Mesmo tratamento que CFusionCanvasPanel da ao botao ATUALIZAR: o
+   //--- renderizador so registra o pedido, quem le o disco e quem o conduz.
+   if(g_panel.ConsumeProfileRefreshRequest()) LoadRealProfiles();
    g_panel.Pulse();
   }

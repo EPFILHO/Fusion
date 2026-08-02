@@ -229,6 +229,18 @@ bool StatusNotice(string &title,string &body,int &sem)
      { title="ATENCAO OPERACIONAL"; body=m_snap.runtimeBlockReason; sem=FCV_SEM_BAD; return true; }
    if(HasText(m_snap.startBlockedReason))
      { title="INICIO BLOQUEADO"; body=m_snap.startBlockedReason; return true; }
+   //--- Logo apos os bloqueios que o EA informa, porque ele tambem impede
+   //--- INICIAR — e um botao apagado sem motivo escrito e pior que o problema
+   //--- que ele evita: manda procurar sem dizer onde.
+   if(ActiveMagicConflicts())
+     {
+      title="MAGIC EM CONFLITO";
+      body="O Magic do perfil ativo esta repetido em disco. E por ele que o EA "
+           "reconhece as proprias ordens, entao operar assim e operar sem saber "
+           "quais ordens sao suas. Resolva em Perfis antes de iniciar.";
+      sem=FCV_SEM_BAD;
+      return true;
+     }
    if(HasText(m_snap.activeProfileBlockedReason))
      { title="PERFIL BLOQUEADO"; body=m_snap.activeProfileBlockedReason; return true; }
    if(m_snap.tradePermissionBlocked)
@@ -439,16 +451,55 @@ void ScreenResults(void)
 //+------------------------------------------------------------------+
 void ScreenProfiles(void)
   {
-   int x1=m_fx1, x2=m_fx2, y=m_fy;
-   int aw=124, lx2=x2-aw-11;
+   //--- A lista desce um respiro: encostada em ContentTop() a moldura perdia a
+   //--- borda de cima para a faixa que o desenho repinta ao recortar o conteudo
+   //--- rolavel, e os controles da primeira linha ficavam com o canto
+   //--- exatamente sobre esse limite.
+   int x1=m_fx1, x2=m_fx2, y=m_fy+FCV_PROF_TOP_PAD;
+   //--- Tres colunas, medidas da DIREITA para a esquerda: acoes encostadas na
+   //--- borda, setas de rolagem ao lado, e a lista ocupando o que sobra. A
+   //--- coluna das setas e reservada SEMPRE, mesmo com poucos perfis — se ela
+   //--- aparecesse so quando a lista transborda, a largura das linhas mudaria
+   //--- ao criar um perfil.
+   //---
+   //--- Derivar as tres de x2 e nao somar deslocamentos a partir da lista: era
+   //--- assim que as setas e os botoes de acao acabaram desenhados um sobre o
+   //--- outro, o que aparecia como "sombra" nos botoes e sumia com as setas.
+   int aw=FCV_PROF_ACT_W, navw=FCV_PROF_NAV_W;
+   int ax  =ProfileActionsLeft();
+   int navx=ProfileNavLeft();
+   int lx2 =ProfileListRight();
    bool editing=(m_profEdit!=FCV_PROF_VIEW);
 
-   string nm[6]={"BTCUSD","GOLD","JP225","US500","default","WIN scalp"};
-   string mg[6]={"#1 · lote 0.01","#20 · lote 0.10","#31 · lote 1.00",
-                 "#42 · lote 0.50","#1000 · lote 6.00","#77 · lote 2.00"};
-   for(int i=0;i<6;++i)
+   //--- Lista real, enumerada por quem constroi o painel. Nao ha mais nomes
+   //--- inventados aqui; se ela vier vazia, e porque nao ha perfil em disco.
+   int activeIdx=ActiveProfileIndex();
+   if(m_profCount<=0)
      {
-      int ry=y+i*34;
+      RowsReset();
+      RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
+      Card("PERFIS");
+      return;
+     }
+
+   //--- Janela de FCV_PROF_ROWS linhas deslizando sobre a lista inteira. O
+   //--- indice desenhado (r) e o indice real (i) sao coisas diferentes daqui
+   //--- para baixo: confundi-los faria a selecao e o clique mirarem outro perfil
+   //--- assim que a lista rolasse.
+   ClampProfileOffset();
+   //--- Moldura em volta da lista. Sem ela as linhas ficam soltas e leem-se como
+   //--- seis botoes empilhados; com ela, como uma lista — que e o que sao.
+   //--- Desenhada ANTES das linhas, e do tamanho FIXO da janela, para a borda
+   //--- nao subir e descer conforme a quantidade de perfis.
+   RoundFrame(x1-6,y-6,ProfileNavLeft()+FCV_PROF_NAV_W+6,y+FCV_PROF_ROWS*34+2,
+              FCV_RADIUS_CARD,m_t.line,m_t.surface,m_t.surface);
+
+   int shown=m_profCount-m_profOffset;
+   if(shown>FCV_PROF_ROWS) shown=FCV_PROF_ROWS;
+   for(int r=0;r<shown;++r)
+     {
+      int i=m_profOffset+r;
+      int ry=y+r*34;
       bool sel=(i==m_profSel);
       //--- Durante a edicao a lista fica apagada: o que esta em jogo e o perfil
       //--- que esta sendo criado, e trocar de selecao no meio nao faria sentido.
@@ -456,13 +507,14 @@ void ScreenProfiles(void)
       uint rowFill = (sel && !editing) ? m_t.accd : m_t.ground;
       uint nameClr = editing ? m_t.disabled : m_t.fg;
       RoundFrame(x1,ry,lx2,ry+30,FCV_RADIUS_CTRL,rowLine,rowFill,m_t.surface);
-      Txt(x1+11,ry+15,nm[i],nameClr,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
+      Txt(x1+11,ry+15,m_profName[i],nameClr,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
 
       //--- O badge define o limite direito. Sem ele, o limite e a borda da
       //--- linha. Assim os numeros ficam numa coluna so, legiveis de cima a
       //--- baixo, em vez de flutuarem conforme o comprimento de cada nome.
       int metaRight=lx2-11;
-      if(i==0)
+      //--- O selo vai no perfil que o EA carregou, e nao no primeiro da lista.
+      if(i==activeIdx)
         {
          int tw2=TxtW("ATIVO",FCV_FONT_UI,FCV_FS_CAP,FCV_FW_BOLD)+18;
          RoundRect(lx2-tw2-9,ry+7,lx2-9,ry+23,FCV_RADIUS_PILL,
@@ -471,26 +523,97 @@ void ScreenProfiles(void)
              FCV_FONT_UI,FCV_FS_CAP,FCV_FW_BOLD,TA_CENTER|TA_VCENTER);
          metaRight=lx2-tw2-20;
         }
-      Txt(metaRight,ry+15,mg[i],editing?m_t.disabled:m_t.muted,
+      //--- Magic e lote na mesma coluna. O lote sai de graca — o arquivo ja foi
+      //--- aberto para ler o Magic — e evita o erro caro: carregar o perfil
+      //--- errado dói na proporcao do lote dele.
+      //--- As casas decimais vem do ativo do GRAFICO ATUAL, nao do ativo em que
+      //--- aquele perfil costuma rodar; nao ha como saber o segundo daqui.
+      //--- "lote" por extenso: sem a palavra, o segundo numero e so um numero.
+      //--- O "#" ja diz que o primeiro e identificador; o volume nao tem simbolo
+      //--- proprio que se reconheca sozinho.
+      string meta="#"+IntegerToString(m_profMagic[i])+" · lote "+
+                  FusionFormatVolume(m_profLot[i],m_snap.symbolSpec);
+      //--- Magic repetido em vermelho, na propria linha: quem tem o problema e
+      //--- o perfil, e apontar o culpado vale mais que descrever o sintoma.
+      uint metaClr = editing ? m_t.disabled
+                     : (m_profDup[i] ? m_t.bad : m_t.muted);
+      Txt(metaRight,ry+15,meta,metaClr,
           FCV_FONT_MONO,FCV_FS_BODY,FCV_FW_NORMAL,TA_RIGHT|TA_VCENTER);
+     }
+
+   //--- Barra de rolagem: seta no topo, trilho no meio, seta no fim. E a forma
+   //--- convencional, e ela diz o que duas setas coladas nao dizem — QUANTO de
+   //--- lista existe e onde voce esta nela.
+   bool canUp  =(!editing && m_profOffset>0);
+   bool canDown=(!editing && m_profOffset<ProfileMaxOffset());
+   int listH=FCV_PROF_ROWS*34-4;
+   int navBtn=26;
+   PutButton(navx,y,navw,navBtn,ShortToString(0x25B2),false,
+             m_t.acc,m_t.onAcc,FCV_BTN_PROFUP,canUp);
+   PutButton(navx,y+listH-navBtn,navw,navBtn,ShortToString(0x25BC),false,
+             m_t.acc,m_t.onAcc,FCV_BTN_PROFDN,canDown);
+
+   //--- Trilho e polegar. O polegar SE MOVE e tem tamanho proporcional: parado,
+   //--- ele pareceria indicar posicao e mentiria — pior que nao existir. Nao
+   //--- arrasta (ainda): as setas e a roda ja cobrem o movimento, e arrasto e
+   //--- acrescimo, nao refacao.
+   int trkY1=y+navBtn+4, trkY2=y+listH-navBtn-4;
+   if(trkY2>trkY1)
+     {
+      RoundRect(navx+navw/2-3,trkY1,navx+navw/2+3,trkY2,3,m_t.inset,m_t.surface);
+      if(m_profCount>FCV_PROF_ROWS)
+        {
+         int trkH=trkY2-trkY1;
+         int thumbH=(trkH*FCV_PROF_ROWS)/m_profCount;
+         if(thumbH<18) thumbH=18;
+         int maxOff=ProfileMaxOffset();
+         int thumbY=trkY1+((trkH-thumbH)*m_profOffset)/((maxOff>0)?maxOff:1);
+         RoundRect(navx+navw/2-3,thumbY,navx+navw/2+3,thumbY+thumbH,3,
+                   editing?m_t.disabled:m_t.muted,m_t.surface);
+        }
      }
 
    //--- Cada acao acende conforme o que e possivel agora. Um unico preenchido:
    //--- em repouso o proximo passo e CARREGAR o selecionado; em edicao, SALVAR.
-   bool isActive =(m_profSel==0);          // fake: o primeiro da lista e o ativo
-   bool canLoad  =(!editing && !isActive && AccCanLoadProfile());
-   //--- o ativo nao se apaga sozinho
-   bool canDelete=(!editing && !isActive && AccCanAdminProfile());
+   bool isActive =(m_profSel>=0 && m_profSel==activeIdx);
+   //--- Perfil com Magic repetido NAO CARREGA. Carrega-lo poria dois graficos
+   //--- reconhecendo as mesmas ordens como suas, que e o estrago que o Magic
+   //--- existe para impedir. Bloqueia os DOIS lados do conflito, nao um: nao ha
+   //--- como saber qual deles e o "certo".
+   bool selDup   =(m_profSel>=0 && m_profDup[m_profSel]);
+   bool canLoad  =(!editing && !isActive && !selDup && AccCanLoadProfile());
+   //--- Nem o ativo nem o DEFAULT se apagam. A regra do default vinha faltando:
+   //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
+   //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
+   //--- no perfil que o EA usa como base de tudo.
+   bool isDefault=ProfileIsDefault(m_profSel);
+   //--- ⚠ EXCLUIR e DUPLICAR seguem liberados em perfil conflitante, DE
+   //--- PROPOSITO. Sao a saida do bloqueio: sem elas, um perfil com Magic
+   //--- repetido nao carrega (regra acima) e o Magic so e editavel no perfil
+   //--- ativo — entao o unico conserto seria mexer nos arquivos por fora, que e
+   //--- exatamente como o problema apareceu. Com as duas, ha caminho pela
+   //--- propria GUI: duplicar com outro Magic e apagar o antigo, ou apagar a
+   //--- copia sobrando. E a regra de que todo bloqueio precisa de volta.
+   bool canDelete=(!editing && !isActive && !isDefault && AccCanAdminProfile());
    bool canCreate=(!editing && AccCanCreateProfile());
    //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
    //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o
    //--- que a acao FAZ; estar habilitado diz se ela cabe agora.
-   PutButton(lx2+11,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
-   PutButton(lx2+11,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
-   PutButton(lx2+11,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canCreate);
-   PutButton(lx2+11,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
+   PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
+   PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
+   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canCreate);
+   PutButton(ax,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
+   //--- "Atualizar lista" sempre habilitado, como na 1.058: reler o disco nao
+   //--- altera nada e e a unica forma de ver arquivo criado por fora com o
+   //--- painel aberto. Nao depende de perfil selecionado nem de EA parado.
+   //---
+   //--- Afastado dos quatro acima e em caixa mista de proposito: os outros agem
+   //--- SOBRE UM PERFIL e podem destruir; este so relê a pasta. Separar no
+   //--- espaco e na grafia evita que ele seja lido como quinta acao de perfil.
+   PutButton(ax,y+4*34+14,aw,30,"Atualizar lista",false,m_t.acc,m_t.onAcc,
+             FCV_BTN_PROFREFRESH,!editing);
 
-   m_fy=y+6*34+FCV_CARD_GAP;
+   m_fy=y+FCV_PROF_ROWS*34+FCV_CARD_GAP;   // y ja inclui o respiro do topo
 
    if(editing)
      {
@@ -499,10 +622,13 @@ void ScreenProfiles(void)
       //--- perfis com o mesmo Magic fariam o EA confundir as proprias ordens.
       RowsReset();
       RowField("Nome","Como o perfil aparece na lista","");
-      RowField("Magic","Precisa ser diferente de todos os outros",
-               (m_profEdit==FCV_PROF_DUP) ? "2" : "");
+      //--- O Magic da criacao ainda e local: ele nao pode escrever no rascunho,
+      //--- que descreve o perfil ATIVO, e nao o que esta sendo criado. Quem o
+      //--- transporta para o perfil novo e o comando de gravar, na Etapa 2c.
+      RowField("Magic","Precisa ser diferente de todos os outros","");
       RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Copia de " + nm[m_profSel] + ". Ajuste o Magic e clique CRIAR COPIA."
+               ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
+                 ". Ajuste o Magic e clique CRIAR COPIA."
                : "Informe um nome e clique CRIAR PERFIL.");
       Card(m_profEdit==FCV_PROF_DUP ? "DUPLICAR COMO" : "NOVO PERFIL");
 
@@ -527,13 +653,43 @@ void ScreenProfiles(void)
    //--- parado. A 1.058 nao tem comando para gravar um perfil sem carrega-lo,
    //--- entao um campo editavel sobre um perfil qualquer prometeria uma acao
    //--- que o EA nao sabe executar. Para trocar o Magic de outro: CARREGAR.
+   //--- Ligado ao rascunho SO quando o selecionado e o ativo. Nos demais o
+   //--- campo mostra o Magic gravado no arquivo daquele perfil (a lista acima
+   //--- ja o leu) e nao aceita edicao — escrever ali mexeria no perfil ativo,
+   //--- que nao e o que a tela esta mostrando.
    RowsReset();
-   RowField("Magic Number","Identifica as ordens deste perfil no grafico","1",
-            true,isActive);
    if(isActive)
-      RowNote("Dois perfis nao podem dividir o mesmo Magic: e por ele que o EA reconhece as proprias ordens.");
+     {
+      RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
+                FCV_FLD_MAGIC);
+      RowNote  ("Dois perfis nao podem dividir o mesmo Magic: e por ele que o EA reconhece as proprias ordens.");
+     }
    else
-      RowNote("Somente o perfil ativo tem o Magic editavel, e so com o EA parado. Use CARREGAR para ativar o selecionado.");
+     {
+      RowField("Magic Number","Identifica as ordens deste perfil no grafico",
+               (m_profSel>=0) ? IntegerToString(m_profMagic[m_profSel]) : "--",
+               true,false);
+      RowNote ("Somente o perfil ativo tem o Magic editavel, e so com o EA parado. Use CARREGAR para ativar o selecionado.");
+     }
+   if(isDefault)
+      RowNote("Perfil default: ele e a base do EA e nao pode ser excluido.");
+   //--- O aviso nomeia quem colide e diz o caminho de volta. Um alerta que so
+   //--- acusa deixa o usuario preso: aqui CARREGAR esta desligado, e sem a
+   //--- instrucao ele nao tem como adivinhar que a saida e DUPLICAR/EXCLUIR.
+   if(selDup)
+     {
+      RowNoteSem(DuplicateMagicNote(),FCV_SEM_BAD);
+      RowNoteSem("Por isso CARREGAR esta bloqueado nos dois. Para resolver: "
+                 "DUPLICAR com outro Magic e EXCLUIR o antigo, ou apagar a copia sobrando.",
+                 FCV_SEM_BAD);
+     }
+   //--- Arquivo de perfil que existe e nao abriu. Dizer que ele existe e o
+   //--- minimo: sem isto a lista parece completa e o perfil que sumiu e
+   //--- justamente o que esta com problema.
+   if(m_profSkipped>0)
+      RowNoteSem(IntegerToString(m_profSkipped)+
+                 " arquivo(s) de perfil em disco nao puderam ser lidos e ficaram fora da lista.",
+                 FCV_SEM_BAD);
    Card(isActive ? "PERFIL ATIVO" : "PERFIL SELECIONADO");
   }
 

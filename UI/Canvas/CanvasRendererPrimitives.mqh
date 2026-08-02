@@ -69,12 +69,19 @@ void HLine(const int x1,const int x2,const int y,const uint c)
 #define FCV_CORNER_ALL 0x0F
 #define FCV_CORNER_TOP 0x03
 
-void RoundRect(const int x1,const int y1,const int x2,const int y2,
-               const int r,const uint clr,const uint bg,
-               const int corners=FCV_CORNER_ALL)
+//--- Nucleo em PIXEL DE DISPOSITIVO. Existe separado por causa da moldura: uma
+//--- borda de "1" so tem espessura previsivel se o recuo for de 1 pixel REAL.
+//--- Recuar 1 unidade logica e converter depois nao serve — em 110% a conversao
+//--- e floor(v*1.1), e o passo de y para y+1 vale 1 ou 2 pixels conforme o
+//--- resto de y por 10. Quando calhava de valer 2, aquele controle ganhava uma
+//--- borda de cima com o DOBRO da espessura, e o efeito parecia sombra.
+//--- Foi um caca-fantasma: mudar a altura de qualquer coisa movia o defeito de
+//--- um controle para outro, porque mudava quem caia no resto 9.
+void RoundRectDev(const int dx1,const int dy1,const int dx2,const int dy2,
+                  const int dr,const uint clr,const uint bg,
+                  const int corners=FCV_CORNER_ALL)
   {
    m_frameRects++;
-   int dx1=S(x1), dy1=S(y1), dx2=S(x2), dy2=S(y2), dr=S(r);
    if(dr<=0) { m_canvas.FillRectangle(dx1,dy1,dx2,dy2,clr); return; }
    //--- os cantos nao arredondados sao preenchidos cheios antes do laco
    if((corners&0x01)==0) m_canvas.FillRectangle(dx1,dy1,dx1+dr,dy1+dr,clr);
@@ -105,11 +112,21 @@ void RoundRect(const int x1,const int y1,const int x2,const int y2,
      }
   }
 
+//--- Converte uma vez e desenha em pixel de dispositivo.
+void RoundRect(const int x1,const int y1,const int x2,const int y2,
+               const int r,const uint clr,const uint bg,
+               const int corners=FCV_CORNER_ALL)
+  { RoundRectDev(S(x1),S(y1),S(x2),S(y2),S(r),clr,bg,corners); }
+
+//--- Moldura: rect cheio na cor da borda e, por cima, o preenchimento recuado
+//--- em 1 PIXEL REAL de cada lado. O recuo em pixel — e nao em unidade logica —
+//--- e o que garante espessura igual nos quatro lados em qualquer escala.
 void RoundFrame(const int x1,const int y1,const int x2,const int y2,
                 const int r,const uint border,const uint fill,const uint bg)
   {
-   RoundRect(x1,y1,x2,y2,r,border,bg);
-   RoundRect(x1+1,y1+1,x2-1,y2-1,r-1,fill,border);
+   int dx1=S(x1), dy1=S(y1), dx2=S(x2), dy2=S(y2), dr=S(r);
+   RoundRectDev(dx1,dy1,dx2,dy2,dr,border,bg);
+   RoundRectDev(dx1+1,dy1+1,dx2-1,dy2-1,dr-1,fill,border);
   }
 
 //--- Conta separadamente o texto que cai dentro do bitmap. Num conteudo
