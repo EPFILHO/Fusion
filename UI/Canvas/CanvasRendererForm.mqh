@@ -370,8 +370,14 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
    //--- pode ser branca ou preta, e uma seta legivel em uma some na outra.
    uint plate = !en ? m_t.fieldDim : m_t.inset;
    RoundFrame(cx,cy,cx+w,cy+FCV_EDIT_H,FCV_RADIUS_CTRL-1,border,plate,m_t.surface);
-   RoundRect(cx+1,cy+1,cx+w-FCV_SWATCH_ARROW_W,cy+FCV_EDIT_H-1,
-             FCV_RADIUS_CTRL-2,fill,plate,FCV_CORNER_LEFT);
+   //--- A faixa de cor recua 1 PIXEL REAL, exatamente como o preenchimento que
+   //--- o RoundFrame acabou de desenhar — os dois precisam comecar na MESMA
+   //--- linha de pixel. Recuando 1 unidade logica, o recuo virava 1 ou 2 pixels
+   //--- conforme a altura do controle, e a cor aparecia deslocada da borda em
+   //--- algumas linhas e nao em outras.
+   int dx1=S(cx), dy1=S(cy), dy2=S(cy+FCV_EDIT_H), dr=S(FCV_RADIUS_CTRL-1);
+   RoundRectDev(dx1+1,dy1+1,S(cx+w-FCV_SWATCH_ARROW_W),dy2-1,dr-1,
+                fill,plate,FCV_CORNER_LEFT);
    uint arrow = !en ? m_t.disabled : m_t.muted;
    ChevronDown(cx+w-FCV_SWATCH_ARROW_W/2-1,cy+FCV_EDIT_H/2-2,arrow);
 

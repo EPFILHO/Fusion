@@ -92,11 +92,16 @@ void FolderStrip(const int y,const int h,const int x0,const int xEnd,
          //--- ter um raio so; os de baixo retos, encostando na linha.
          //--- Borda de 1 px, igual a linha, e fundo ate exatamente nela: a aba
          //--- cobre o trecho da linha sob si sem passar por baixo.
+         //--- Recuo de 1 PIXEL REAL, como toda borda: em unidade logica ele
+         //--- virava 1 ou 2 pixels conforme a posicao da aba, e a espessura da
+         //--- borda mudava de aba para aba. Embaixo NAO ha recuo — o fundo tem
+         //--- de alcancar a linha do fichario, que e o que faz a aba parecer
+         //--- aberta sobre ela.
          uint fill = err ? m_t.bdim : surfaceBelow;
-         RoundRect(tx, y+2, tx+w, y+h-2, FCV_RADIUS_CTRL,
-                   err ? m_t.bad : m_t.acc, m_t.ground, FCV_CORNER_TOP);
-         RoundRect(tx+1, y+3, tx+w-1, y+h-2, FCV_RADIUS_CTRL-1,
-                   fill, err ? m_t.bad : m_t.acc, FCV_CORNER_TOP);
+         uint bclr = err ? m_t.bad : m_t.acc;
+         int dx1=S(tx), dy1=S(y+2), dx2=S(tx+w), dy2=S(y+h-2), dr=S(FCV_RADIUS_CTRL);
+         RoundRectDev(dx1,  dy1,  dx2,  dy2,dr,  bclr,m_t.ground,FCV_CORNER_TOP);
+         RoundRectDev(dx1+1,dy1+1,dx2-1,dy2,dr-1,fill,bclr,      FCV_CORNER_TOP);
         }
       Txt(tx+w/2, y+h/2, names[i],
           err ? m_t.bad : (on ? m_t.fg : m_t.faint),
