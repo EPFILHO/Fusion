@@ -8,6 +8,7 @@
 #include <Controls\Panel.mqh>
 #include "../Core/Types.mqh"
 #include "../Core/SettingsNotices.mqh"
+#include "../Core/VolumeFormat.mqh"
 
 #define FUSION_CLR_BG            C'34,40,52'
 #define FUSION_CLR_PANEL         C'47,56,72'
@@ -506,36 +507,9 @@ string FusionNormalizeDecimalText(const string text)
    return normalized;
   }
 
-int FusionVolumeDigits(const double step)
-  {
-   double value = step;
-   int digits = 0;
-
-   while(digits < 8 && MathAbs(value - MathRound(value)) > 0.0000001)
-     {
-      value *= 10.0;
-      digits++;
-     }
-
-   return digits;
-  }
-
-bool FusionIsVolumeAligned(const double volume,const SSymbolSpec &spec)
-  {
-   if(spec.volumeStep <= 0.0)
-      return true;
-
-   double steps = volume / spec.volumeStep;
-   return MathAbs(steps - MathRound(steps)) <= 0.0000001;
-  }
-
-string FusionFormatVolume(const double volume,const SSymbolSpec &spec)
-  {
-   int digits = FusionVolumeDigits(spec.volumeStep);
-   if(digits < 2)
-      digits = 2;
-   return DoubleToString(volume, digits);
-  }
+//--- FusionVolumeDigits, FusionIsVolumeAligned e FusionFormatVolume mudaram
+//--- para Core/VolumeFormat.mqh, incluido no topo: a GUI 2.0 precisa delas e
+//--- nao pode incluir este arquivo, que arrasta a biblioteca Controls.
 
 string FusionTopRuntimeNoticeText(const string notice)
   {

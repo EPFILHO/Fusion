@@ -59,10 +59,10 @@ public:
       if(m_created) m_renderer.ChartEvent(id,lparam,dparam,sparam);
      }
 
-   //--- Dados reais entrando. Etapa 2b: cabecalho e Status ja leem daqui;
-   //--- Ligadas ao snapshot: Status, Resultados, Estrategias e Filtros (as duas
-   //--- ultimas pelo rascunho de SEASettings, via identificador de campo por
-   //--- controle). Ainda com os valores fixos da Fase 1: Gestao e Perfis.
+   //--- Dados reais entrando. Ja leem daqui: cabecalho, Status, Resultados,
+   //--- Estrategias, Filtros e Gestao — as tres ultimas pelo rascunho de
+   //--- SEASettings, via identificador de campo por controle.
+   //--- Ainda com os valores fixos da Fase 1: Perfis e Layout.
    void              Update(const SUIPanelSnapshot &snapshot)
      {
       m_snapshot=snapshot;

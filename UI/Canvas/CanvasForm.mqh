@@ -22,6 +22,14 @@
 //--- e sem ela a cor e o estilo do mesmo indicador ficariam em linhas
 //--- separadas, obrigando a ler duas vezes para configurar um so.
 #define FCV_ROW_COLORSTYLE 7
+//--- Linha de horario: rotulo + hora e minuto em dois campos estreitos, com o
+//--- separador desenhado entre eles. E a estrutura da 1.058
+//--- (UIPanelProtectionBuild usa dois AddTimeEdit por horario), e nao um
+//--- detalhe de desenho: cada metade tem faixa propria — 0..23 e 0..59 — e um
+//--- campo unico "HH:MM" precisaria de uma segunda regra de recorte para
+//--- discordar da que o EA ja aplica. Consome DOIS slots, como a linha de
+//--- cor+estilo.
+#define FCV_ROW_TIME       8
 
 //--- Alturas num passo de 4 px. Antes eram 42, 30, 32, 34, 26, 28, 26 e 10 —
 //--- numeros sem relacao entre si, que produzem um ritmo vertical irregular
@@ -33,6 +41,7 @@
 #define FCV_ROW_STATIC_H  28
 #define FCV_ROW_BADGE_H   28
 #define FCV_ROW_CSTYLE_H  36
+#define FCV_ROW_TIME_H    44
 #define FCV_CARD_HEAD_H   28
 #define FCV_CARD_FOOT_H   12
 #define FCV_CARD_GAP      12
@@ -49,6 +58,13 @@
 //--- os tres vivem na mesma coluna e nao podem ter alturas diferentes.
 #define FCV_SWATCH_W       64
 #define FCV_SWATCH_W_SLIM  40
+
+//--- Campo de hora/minuto: dois digitos e o cursor. Estreito de proposito —
+//--- uma caixa larga para dois digitos convida a digitar mais do que cabe.
+//--- O par ocupa a mesma coluna e a mesma largura total de um campo normal,
+//--- para nao abrir uma segunda coluna de controles na direita da tela.
+#define FCV_TIME_EDIT_W    44
+#define FCV_TIME_GAP       ((FCV_EDIT_W)-2*(FCV_TIME_EDIT_W))
 
 //--- listas de opcoes dos combos, por tipo
 #define FCV_COMBO_TF        0
@@ -90,6 +106,10 @@ struct SCanvasFormRow
    string value;     // valor padrao do campo, ou texto do valor/selo
    int    aux;       // tipo do combo, ou semantica do selo
    int    fid;       // campo de SEASettings que a linha edita; FCV_FLD_NONE = estado local
+   //--- Segundo campo da linha, usado so pelo horario: fid guarda a hora e
+   //--- fid2 o minuto. Sao duas chaves distintas de SEASettings
+   //--- (sessionStartHour e sessionStartMinute), nao duas metades de uma.
+   int    fid2;
    //--- Os dois estados que a 1.058 tem e a 2.0 precisa reproduzir. Sao
    //--- propriedade da linha, nao da tela: numa mesma tela um campo pode
    //--- estar invalido e o vizinho nao.

@@ -24,6 +24,7 @@ void RowPush(const int kind,const string label,const string hint,
    m_rows[m_rowCount].value  =value;
    m_rows[m_rowCount].aux    =aux;
    m_rows[m_rowCount].fid    =fid;
+   m_rows[m_rowCount].fid2   =FCV_FLD_NONE;   // so a linha de horario usa
    //--- Editavel so quando o perfil aceita edicao. E a camada de acesso da
    //--- 1.058: com o EA operando, os campos ficam bloqueados.
    //--- A trava so alcanca o que aceita interacao. Estatico, selo e nota sao
@@ -32,7 +33,7 @@ void RowPush(const int kind,const string label,const string hint,
    //--- nada para um texto que nunca respondeu a clique.
    bool interactive=(kind==FCV_ROW_FIELD  || kind==FCV_ROW_TOGGLE ||
                      kind==FCV_ROW_COMBO  || kind==FCV_ROW_COLOR  ||
-                     kind==FCV_ROW_COLORSTYLE);
+                     kind==FCV_ROW_COLORSTYLE || kind==FCV_ROW_TIME);
    m_rows[m_rowCount].enabled=enabled && (!interactive || !FieldsLocked());
    m_rows[m_rowCount].valid  =valid;
    m_rowCount++;
@@ -48,6 +49,13 @@ void RowToggleF(const string label,const int fid,const bool enabled=true)
   { RowPush(FCV_ROW_TOGGLE,label,"","",0,enabled,true,fid); }
 void RowComboF (const string label,const int kind,const int fid,const bool enabled=true)
   { RowPush(FCV_ROW_COMBO,label,"","",kind,enabled,true,fid); }
+//--- Horario: duas chaves numa linha so. fid recebe a hora e fid2 o minuto.
+void RowTimeF  (const string label,const string hint,const int fidHour,const int fidMinute,
+                const bool valid=true,const bool enabled=true)
+  {
+   RowPush(FCV_ROW_TIME,label,hint,"",0,enabled,valid,fidHour);
+   if(m_rowCount>0) m_rows[m_rowCount-1].fid2=fidMinute;
+  }
 
 void RowField (const string label,const string hint,const string def,
                const bool valid=true,const bool enabled=true)
@@ -81,7 +89,13 @@ void RowState (const string label,const int fid)
    RowBadge(label,on ? "LIGADO" : "DESLIGADO",on ? FCV_SEM_GOOD : FCV_SEM_BAD);
   }
 void RowNote  (const string text)
-  { RowPush(FCV_ROW_NOTE,"",text,"",0,true,true); }
+  { RowPush(FCV_ROW_NOTE,"",text,"",FCV_SEM_NEUTRAL,true,true); }
+//--- Nota que carrega severidade. A 1.058 pinta de vermelho o rodape que avisa
+//--- "operar sem SL e ARRISCADO" e de ambar o que explica um bloqueio em curso.
+//--- Sem isso o aviso sai no mesmo cinza das notas comuns — um alerta que nao
+//--- alerta e pior que nenhum, porque ocupa o lugar de um.
+void RowNoteSem(const string text,const int sem)
+  { RowPush(FCV_ROW_NOTE,"",text,"",sem,true,true); }
 
 //--- altura de uma linha; a nota e a unica que depende do texto
 int RowHeight(const int i)
@@ -89,6 +103,7 @@ int RowHeight(const int i)
    switch(m_rows[i].kind)
      {
       case FCV_ROW_FIELD:  return FCV_ROW_FIELD_H;
+      case FCV_ROW_TIME:   return FCV_ROW_TIME_H;
       case FCV_ROW_TOGGLE: return FCV_ROW_TOGGLE_H;
       //--- Combo com explicacao reserva a linha da dica SEMPRE, mesmo que o
       //--- texto mude com a escolha: a altura da carta e medida antes de
@@ -144,8 +159,12 @@ int ComboItems(const int kind,string &out[])
        ArrayResize(out,7); ArrayCopy(out,a); return 7; }
    if(kind==FCV_COMBO_SIDE)
      { string a[3]={"Ambas","So Compra","So Venda"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+   //--- Ordem do ENUM_NEWS_WINDOW_ACTION: BLOCK_ENTRIES=0, CLOSE_AND_BLOCK=1.
+   //--- Abreviado porque a caixa do combo e estreita: "Fechar + Bloquear" por
+   //--- extenso vazava para fora dela. Quem explica a acao inteira e a dica
+   //--- logo abaixo — o rotulo so precisa distinguir as duas opcoes.
    if(kind==FCV_COMBO_NEWS)
-     { string a[2]={"Bloquear","Fechar"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+     { string a[2]={"Bloquear","Fech. + Bloq."}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_ENTRY)
      { string a[2]={"Proxima Vela","2a Vela"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_EXIT)
@@ -165,12 +184,20 @@ int ComboItems(const int kind,string &out[])
      { string a[2]={"Absoluto","Relativo %"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_STREAK)
      { string a[2]={"Pausar","Parar dia"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
-   if(kind==FCV_COMBO_TARGET)
-     { string a[2]={"Ativar DD","Parar"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
-   if(kind==FCV_COMBO_DDTYPE)
-     { string a[2]={"Percentual","Financeiro"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
-   if(kind==FCV_COMBO_DDPEAK)
-     { string a[2]={"Pico Ganho","Meta Max.Ganho"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+   //--- ⚠ As tres listas abaixo estavam na ORDEM INVERTIDA ate a Etapa 2b.
+   //--- Enquanto nada as lia, o erro era so cosmetico; ligadas ao rascunho, o
+   //--- indice E o valor do enum, e cada uma gravaria o oposto do escolhido:
+   //--- "Parar" viraria ATIVAR_DD, "Financeiro" viraria PERCENTUAL. Ordem
+   //--- conferida em Core/Types.mqh e nos FusionPopulate*Combo de PanelUtils.
+   if(kind==FCV_COMBO_TARGET)     // PROFIT_ACTION_PARAR=0, ATIVAR_DD=1
+     { string a[2]={"Parar","Ativar DD"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+   if(kind==FCV_COMBO_DDTYPE)     // DD_TIPO_FINANCEIRO=0, PERCENTUAL=1
+     { string a[2]={"Financeiro","Percentual"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+   //--- "Meta Max.Ganho" (nome da 1.058) tambem vazava do combo. Encurtado para
+   //--- "Max.Ganho", que e o nome do campo de onde a meta vem; a dica diz de
+   //--- qual tela ele sai, que era a informacao que faltava mesmo no nome longo.
+   if(kind==FCV_COMBO_DDPEAK)     // DD_PICO_REALIZADO=0, FLUTUANTE=1
+     { string a[2]={"Max.Ganho","Pico Ganho"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_PALETTE)
      {
       //--- Nomes vindos da propria paleta, nao de uma copia. Com a lista
@@ -267,20 +294,23 @@ string ComboOptionHint(const int kind,const int idx)
          if(idx==0) return "Para por alguns minutos e volta sozinho.";
          return "Encerra o dia; so volta no proximo.";
       case FCV_COMBO_TARGET:
-         if(idx==0) return "Ao bater a meta, liga a protecao de drawdown.";
-         return "Ao bater a meta, encerra o dia.";
+         if(idx==0) return "Ao bater a meta, encerra o dia.";
+         return "Ao bater a meta, liga a protecao de drawdown.";
+      //--- "Financeiro: valor; Percentual: % da base." (UIPanelProtectionSync).
       case FCV_COMBO_DDTYPE:
-         if(idx==0) return "Limite medido em porcento.";
-         return "Limite medido em dinheiro.";
+         if(idx==0) return "Limite medido em dinheiro.";
+         return "Limite medido como % da base.";
+      //--- A dica diz de ONDE vem a base, que e o que o nome curto nao cabe:
+      //--- Max.Ganho e o campo da tela Limites Diarios.
       case FCV_COMBO_DDPEAK:
-         if(idx==0) return "Mede o recuo a partir do maior ganho do dia.";
-         return "Mede o recuo a partir da meta configurada.";
+         if(idx==0) return "Base fixa: o Max.Ganho definido em Limites Diarios.";
+         return "Pico Ganho acompanha o maior P/L bruto projetado.";
       case FCV_COMBO_CONFLICT:
          if(idx==0) return "Em sinais opostos, o maior numero vence.";
          return "Sinais opostos cancelam a entrada.";
       case FCV_COMBO_NEWS:
          if(idx==0) return "Impede novas entradas durante a janela.";
-         return "Fecha posicoes abertas e impede entradas.";
+         return "Fecha posicoes abertas e impede novas entradas.";
       case FCV_COMBO_SIDE:
          if(idx==0) return "Aceita compra e venda.";
          if(idx==1) return "Recusa vendas.";
@@ -316,6 +346,34 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
    m_colorW[m_colorCount]=w;
    m_colorSlot[m_colorCount]=slot;
    m_colorCount++;
+  }
+
+//--- Registro de um campo nativo. O desenho em si e do BuildEdits — aqui so
+//--- publicamos onde ele fica e o que deve mostrar. Ao contrario do combo e da
+//--- chave, o campo BLOQUEADO tambem e registrado: ele continua existindo,
+//--- apagado e somente-leitura, porque sumir com o valor esconderia justamente
+//--- a informacao que explica por que a linha esta bloqueada.
+void PutEdit(const int cx,const int cy,const int w,const int slot,const int fid,
+             const string value,const bool en,const bool ok)
+  {
+   if(m_editCount>=FCV_CTRL_MAX) return;
+   m_editX[m_editCount]=cx;
+   m_editY[m_editCount]=cy;
+   m_editW[m_editCount]=w;
+   m_editSlot[m_editCount]=slot;
+   m_editFid[m_editCount]=fid;
+   m_editVal[m_editCount]=value;
+   m_editEnabled[m_editCount]=en;
+   m_editValid[m_editCount]=ok;
+   m_editCount++;
+  }
+
+//--- Valor que o campo deve mostrar: do rascunho quando a linha declara um
+//--- campo de SEASettings, do estado local da tela quando nao declara.
+string EditValueFor(const int slot,const int fid,const string fallback)
+  {
+   if(fid!=FCV_FLD_NONE) return FieldGetText(fid);
+   return (m_stEdit[slot]=="") ? fallback : m_stEdit[slot];
   }
 
 void PutCombo(const int cx,const int cy,const int w,const int kind,
@@ -380,7 +438,8 @@ void DrawRow(const int i,const int ry,const int rh)
 
    if(m_rows[i].kind==FCV_ROW_NOTE)
      {
-      WrapText(lx,ry+9,m_fx2-m_fx1-24,15,m_rows[i].hint,m_t.faint,FCV_FS_CAP,true);
+      uint noteClr=(m_rows[i].aux==FCV_SEM_NEUTRAL) ? m_t.faint : SemColor(m_rows[i].aux);
+      WrapText(lx,ry+9,m_fx2-m_fx1-24,15,m_rows[i].hint,noteClr,FCV_FS_CAP,true);
       return;
      }
 
@@ -391,7 +450,8 @@ void DrawRow(const int i,const int ry,const int rh)
    uint labelClr = !en ? m_t.disabled : (ok ? m_t.fg : m_t.bad);
    uint hintClr  = !en ? m_t.disabled : m_t.faint;
 
-   bool twoLine=(m_rows[i].kind==FCV_ROW_FIELD && m_rows[i].hint!="") ||
+   bool twoLine=((m_rows[i].kind==FCV_ROW_FIELD || m_rows[i].kind==FCV_ROW_TIME) &&
+                 m_rows[i].hint!="") ||
                 (m_rows[i].kind==FCV_ROW_COMBO && ComboHasHint(m_rows[i].aux));
    //--- Numa linha de duas alturas o rotulo fica em cima, a dica embaixo e o
    //--- controle no centro dos dois: a caixa da direita alinha com o conjunto
@@ -410,18 +470,29 @@ void DrawRow(const int i,const int ry,const int rh)
          //--- linha ficou bloqueada.
          int slot=NextSlot();
          int fid=m_rows[i].fid;
-         if(m_editCount>=FCV_CTRL_MAX) break;
-         int ex=rx-FCV_EDIT_W;
-         m_editX[m_editCount]=ex;
-         m_editY[m_editCount]=ry+22-FCV_EDIT_H/2;
-         m_editSlot[m_editCount]=slot;
-         m_editFid[m_editCount]=fid;
-         //--- Ligado a um campo, o valor vem do rascunho; solto, do slot local.
-         m_editVal[m_editCount]=(fid!=FCV_FLD_NONE) ? FieldGetText(fid)
-                                : ((m_stEdit[slot]=="") ? m_rows[i].value : m_stEdit[slot]);
-         m_editEnabled[m_editCount]=en;
-         m_editValid[m_editCount]=ok;
-         m_editCount++;
+         PutEdit(rx-FCV_EDIT_W,ry+22-FCV_EDIT_H/2,FCV_EDIT_W,slot,fid,
+                 EditValueFor(slot,fid,m_rows[i].value),en,ok);
+         break;
+        }
+
+      case FCV_ROW_TIME:
+        {
+         //--- Duas caixas na coluna do campo comum: a hora abre a coluna, o
+         //--- minuto encosta na direita, e o separador vive no vao entre elas.
+         //--- Dois slots, um por caixa — compartilhar um faria a hora e o
+         //--- minuto escreverem no mesmo estado.
+         int slotH=NextSlot();
+         int slotM=NextSlot();
+         int cy=(twoLine ? ry+22 : ry+rh/2)-FCV_EDIT_H/2;
+         int hx=rx-FCV_EDIT_W;
+         int mx=rx-FCV_TIME_EDIT_W;
+         PutEdit(hx,cy,FCV_TIME_EDIT_W,slotH,m_rows[i].fid,
+                 EditValueFor(slotH,m_rows[i].fid,""),en,ok);
+         Txt((hx+FCV_TIME_EDIT_W+mx)/2,cy+FCV_EDIT_H/2,":",
+             !en ? m_t.disabled : m_t.faint,
+             FCV_FONT_MONO,FCV_FS_VAL,FCV_FW_SEMI,TA_CENTER|TA_VCENTER);
+         PutEdit(mx,cy,FCV_TIME_EDIT_W,slotM,m_rows[i].fid2,
+                 EditValueFor(slotM,m_rows[i].fid2,""),en,ok);
          break;
         }
 

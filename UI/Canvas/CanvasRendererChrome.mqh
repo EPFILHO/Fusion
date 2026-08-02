@@ -4,10 +4,19 @@
 //| cabecalho, ficharios, trilho, rolagem e aviso.                    |
 //+------------------------------------------------------------------+
 
-//--- Estado de erro fake da Fase 1: Protecao > Noticias esta invalido, e o
-//--- vermelho sobe a cadeia inteira ate a aba de topo.
+//--- Nao ha erro conhecido enquanto a validacao nao existir (Etapa 2d).
+//---
+//--- Ate a Etapa 2b isto era `cfg==1 && idx==3`: um erro FIXO em
+//--- Protecao > Noticias, da epoca dos dados inventados, que servia para exibir
+//--- a cadeia de vermelho subindo do trilho ate a aba. Com a tela lendo o
+//--- rascunho real, ele passou a acusar erro em horarios corretos — e mandava
+//--- corrigir o que ja estava certo.
+//---
+//--- A cadeia em si (trilho -> subaba -> aba) continua montada e e o que a 2d
+//--- vai alimentar; so a resposta e que hoje e "nao sei de nenhum erro". Mesma
+//--- decisao do ScreenAlert, pelo mesmo motivo: melhor calado que errado.
 bool RailHasError(const int cfg,const int idx)
-  { return (cfg==1 && idx==3); }
+  { return false; }
 
 bool CfgHasError(const int cfg)
   {
@@ -212,6 +221,24 @@ uint RunStateColor(void)
 //--- A tecla B continua valendo como forcador manual, para exercitar o estado.
 bool FieldsLocked(void)
   { return (m_locked || !AccRuntimeEditable()); }
+
+//+------------------------------------------------------------------+
+//| Bloqueios operacionais de secao — alem do bloqueio geral.         |
+//|                                                                   |
+//| Sao trancas que o EA impoe a UMA parte da Gestao enquanto ela esta|
+//| valendo, e nao dependem de o EA estar rodando: batido o limite    |
+//| diario, a configuracao daquele limite fica suspensa ate o dia     |
+//| virar, mesmo com o EA pausado. Pausar nao remove nem permite      |
+//| alterar — e essa a razao de existirem: sem elas, quem batesse o   |
+//| limite poderia pausar, aumentar o teto e voltar a operar,         |
+//| desfazendo por edicao a protecao que acabou de agir.              |
+//|                                                                   |
+//| Portadas de UIPanelProtectionValidation.mqh. Cada uma le um campo |
+//| do snapshot; nenhuma e deduzida do rascunho.                      |
+//+------------------------------------------------------------------+
+bool DailyConfigLocked(void)    { return m_snap.dailyLimitsBlocked; }
+bool DrawdownConfigLocked(void) { return m_snap.drawdownConfigLocked; }
+bool StreakConfigLocked(void)   { return m_snap.streakProtectionBlocked; }
 
 //--- Ha um campo em edicao neste instante?
 //---

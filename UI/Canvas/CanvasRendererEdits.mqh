@@ -32,14 +32,14 @@ void StyleEdit(const string n,const bool enabled,const bool valid)
 
 //--- Esta e a terceira e ultima fronteira de escala: aqui as unidades logicas
 //--- viram pixels de grafico. O resto do renderizador nunca ve a escala.
-void MakeEdit(const string id,const int lx,const int ly,const string v,
+void MakeEdit(const string id,const int lx,const int ly,const int lw,const string v,
               const bool enabled,const bool valid)
   {
    string n=m_prefix+id;
    ObjectCreate(m_chart,n,OBJ_EDIT,0,0,0);
    ObjectSetInteger(m_chart,n,OBJPROP_XDISTANCE,m_px+S(lx));
    ObjectSetInteger(m_chart,n,OBJPROP_YDISTANCE,m_py+S(ly));
-   ObjectSetInteger(m_chart,n,OBJPROP_XSIZE,S(FCV_EDIT_W));
+   ObjectSetInteger(m_chart,n,OBJPROP_XSIZE,S(lw));
    ObjectSetInteger(m_chart,n,OBJPROP_YSIZE,S(FCV_EDIT_H));
    ObjectSetInteger(m_chart,n,OBJPROP_CORNER,CORNER_LEFT_UPPER);
    //--- Mesmo degrau tipografico dos numeros desenhados no canvas. O campo
@@ -47,7 +47,11 @@ void MakeEdit(const string id,const int lx,const int ly,const string v,
    //--- conversao arredonda — sem ela o valor dentro da caixa saia maior que
    //--- os valores da mesma coluna, que e o que fazia a coluna parecer torta.
    ObjectSetInteger(m_chart,n,OBJPROP_FONTSIZE,(S(FCV_FS_VAL)+5)/10);
-   ObjectSetInteger(m_chart,n,OBJPROP_ALIGN,ALIGN_RIGHT);
+   //--- Numero alinha a direita para as unidades ficarem numa coluna so. A
+   //--- caixa estreita de hora/minuto e a excecao: dois digitos ocupam quase
+   //--- toda a largura, nao ha coluna para alinhar, e centrado e como a 1.058
+   //--- desenha (AddTimeEdit forca ALIGN_CENTER).
+   ObjectSetInteger(m_chart,n,OBJPROP_ALIGN,(lw<FCV_EDIT_W) ? ALIGN_CENTER : ALIGN_RIGHT);
    ObjectSetInteger(m_chart,n,OBJPROP_SELECTABLE,false);
    ObjectSetInteger(m_chart,n,OBJPROP_ZORDER,100);
    ObjectSetString (m_chart,n,OBJPROP_FONT,FCV_FONT_MONO);
@@ -68,7 +72,7 @@ bool EditWanted(const int i)
    //--- campo sob popup aberto nao existe: o popup e desenhado no canvas e o
    //--- objeto nativo pintaria por cima dele
    if(m_popupOn &&
-      m_editX[i] <= m_popupX2 && m_editX[i]+FCV_EDIT_W >= m_popupX1 &&
+      m_editX[i] <= m_popupX2 && m_editX[i]+m_editW[i] >= m_popupX1 &&
       m_editY[i] <= m_popupY2 && m_editY[i]+FCV_EDIT_H >= m_popupY1) return false;
    return true;
   }
@@ -133,7 +137,7 @@ void BuildEdits(void)
          //--- acabava selecionando o campo "Desvio" que estava atras.
          //--- Adiado para a soltura do botao, que dispara um novo Render.
          if(m_mouseDown) { m_editsPending=true; continue; }
-         MakeEdit(id,m_editX[i],m_editY[i],m_editVal[i],m_editEnabled[i],m_editValid[i]);
+         MakeEdit(id,m_editX[i],m_editY[i],m_editW[i],m_editVal[i],m_editEnabled[i],m_editValid[i]);
          m_liveEditName[m_liveEditCount]=nm;
          m_liveEditX[m_liveEditCount]=m_editX[i];
          m_liveEditY[m_liveEditCount]=m_editY[i];
@@ -237,7 +241,7 @@ void NoteEditFocus(const int lx,const int ly)
   {
    for(int i=0;i<m_editCount;++i)
       if(m_editEnabled[i] &&
-         lx>=m_editX[i] && lx<m_editX[i]+FCV_EDIT_W &&
+         lx>=m_editX[i] && lx<m_editX[i]+m_editW[i] &&
          ly>=m_editY[i] && ly<m_editY[i]+FCV_EDIT_H)
         { m_focusSlot=m_editSlot[i]; return; }
    //--- Clique fora de qualquer campo encerra a edicao. Sem isto o foco so

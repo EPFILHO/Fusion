@@ -36,8 +36,27 @@ int TfToIndex(const ENUM_TIMEFRAMES tf)
 //| struct. Chato de escrever e facil de conferir — a troca certa     |
 //| para codigo que decide o que o usuario ve.                        |
 //+------------------------------------------------------------------+
+//--- As tres janelas de noticia sao iguais e vivem num array. Aqui a janela e o
+//--- campo saem do proprio identificador, em vez de dezoito casos que seriam a
+//--- mesma linha repetida com um indice diferente — e a copia esquecida na
+//--- terceira janela e justamente o erro silencioso que o resto deste arquivo
+//--- evita sendo verboso. O verboso, neste caso, seria a copia.
+bool NewsFieldParts(const int fid,int &w,int &f)
+  {
+   if(fid<FCV_FLD_NEWS0 || fid>FCV_FLD_NEWS_LAST) return false;
+   int off=fid-FCV_FLD_NEWS0;
+   w=off/FCV_FLD_NEWS_STRIDE;
+   f=off%FCV_FLD_NEWS_STRIDE;
+   //--- O resto do bloco de 10 nao e campo de nenhuma janela.
+   return (w>=0 && w<FUSION_NEWS_WINDOW_COUNT && f<=FCV_FLD_NEWS_MODE);
+  }
+
 bool FieldGetBool(const int fid)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_ON)
+      return m_draft.newsWindows[w].enabled;
+
    switch(fid)
      {
       case FCV_FLD_USE_MACROSS: return m_draft.useMACross;
@@ -49,12 +68,37 @@ bool FieldGetBool(const int fid)
       case FCV_FLD_TR_MA1_ON:   return m_draft.trendMA1Enabled;
       case FCV_FLD_TR_MA2_ON:   return m_draft.trendMA2Enabled;
       case FCV_FLD_BF_SLOPE_ON: return m_draft.bbFilterSlopeDirectionEnabled;
+      //--- Gestao > Risco
+      case FCV_FLD_COMP_SL:     return m_draft.compensateSLSpread;
+      case FCV_FLD_COMP_TP:     return m_draft.compensateTPSpread;
+      case FCV_FLD_TP1_ON:      return m_draft.tp1.enabled;
+      case FCV_FLD_TP2_ON:      return m_draft.tp2.enabled;
+      case FCV_FLD_FREE_TP:     return m_draft.freeFinalTP;
+      case FCV_FLD_BE_ON:       return m_draft.useBreakeven;
+      case FCV_FLD_TRAIL_ON:    return m_draft.useTrailing;
+      //--- Gestao > Protecao
+      case FCV_FLD_SPREAD_ON:      return m_draft.enableSpreadProtection;
+      case FCV_FLD_SESSION_ON:     return m_draft.enableSessionFilter;
+      case FCV_FLD_SESS_CLOSE:     return m_draft.closeOnSessionEnd;
+      case FCV_FLD_SESS_OVERNIGHT: return m_draft.sessionOvernight;
+      case FCV_FLD_DAY_ON:         return m_draft.enableDailyLimits;
+      case FCV_FLD_DD_ON:          return m_draft.enableDrawdown;
+      case FCV_FLD_LOSS_STREAK_ON: return m_draft.lossStreakEnabled;
+      case FCV_FLD_WIN_STREAK_ON:  return m_draft.winStreakEnabled;
      }
    return false;
   }
 
 void FieldToggleBool(const int fid)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_ON)
+     {
+      m_draft.newsWindows[w].enabled=!m_draft.newsWindows[w].enabled;
+      SyncDerivedSettings();
+      return;
+     }
+
    switch(fid)
      {
       case FCV_FLD_USE_MACROSS: m_draft.useMACross =!m_draft.useMACross;  break;
@@ -66,18 +110,68 @@ void FieldToggleBool(const int fid)
       case FCV_FLD_TR_MA2_ON:   m_draft.trendMA2Enabled =!m_draft.trendMA2Enabled; break;
       case FCV_FLD_BF_SLOPE_ON:
          m_draft.bbFilterSlopeDirectionEnabled=!m_draft.bbFilterSlopeDirectionEnabled; break;
+      //--- Gestao > Risco. TP2 e TP Final Livre nao tem caso proprio de
+      //--- desligamento: quem os desliga e o SyncDerivedSettings quando TP1 sai,
+      //--- e e o mesmo caminho que corrige um perfil chegando inconsistente.
+      case FCV_FLD_COMP_SL:  m_draft.compensateSLSpread=!m_draft.compensateSLSpread; break;
+      case FCV_FLD_COMP_TP:  m_draft.compensateTPSpread=!m_draft.compensateTPSpread; break;
+      case FCV_FLD_TP1_ON:   m_draft.tp1.enabled  =!m_draft.tp1.enabled;   break;
+      case FCV_FLD_TP2_ON:   m_draft.tp2.enabled  =!m_draft.tp2.enabled;   break;
+      case FCV_FLD_FREE_TP:  m_draft.freeFinalTP  =!m_draft.freeFinalTP;   break;
+      case FCV_FLD_BE_ON:    m_draft.useBreakeven =!m_draft.useBreakeven;  break;
+      case FCV_FLD_TRAIL_ON: m_draft.useTrailing  =!m_draft.useTrailing;   break;
+      //--- Gestao > Protecao
+      case FCV_FLD_SPREAD_ON:
+         m_draft.enableSpreadProtection=!m_draft.enableSpreadProtection; break;
+      case FCV_FLD_SESSION_ON:
+         m_draft.enableSessionFilter=!m_draft.enableSessionFilter; break;
+      case FCV_FLD_SESS_CLOSE:
+         m_draft.closeOnSessionEnd=!m_draft.closeOnSessionEnd; break;
+      case FCV_FLD_SESS_OVERNIGHT:
+         m_draft.sessionOvernight=!m_draft.sessionOvernight; break;
+      case FCV_FLD_DAY_ON:
+         m_draft.enableDailyLimits=!m_draft.enableDailyLimits; break;
+      case FCV_FLD_DD_ON:
+         m_draft.enableDrawdown=!m_draft.enableDrawdown; break;
+      case FCV_FLD_LOSS_STREAK_ON:
+         m_draft.lossStreakEnabled=!m_draft.lossStreakEnabled; break;
+      case FCV_FLD_WIN_STREAK_ON:
+         m_draft.winStreakEnabled=!m_draft.winStreakEnabled; break;
       default: return;
      }
    SyncDerivedSettings();
   }
 
-//--- useTrendFilter NAO e uma chave: e resumo das duas medias, recalculado.
-//--- A 1.058 refaz esta conta em tres lugares (Inputs, TrendFilterPanel e o
-//--- rascunho do painel). Tratado como campo editavel, ele divergia do que as
-//--- medias diziam — era o "Tendencia do Geral nao acompanha" observado.
-//--- E o unico derivado do struct; todos os outros sao chaves de verdade.
+//--- Os campos DERIVADOS do struct — os dois. Nenhum e editavel: ambos sao
+//--- resumo de outras chaves, e tratar qualquer um como campo o faz divergir
+//--- do que as chaves dizem.
+//---
+//--- useTrendFilter e o resumo das duas medias. A 1.058 refaz esta conta em
+//--- tres lugares (Inputs, TrendFilterPanel e o rascunho do painel); tratado
+//--- como campo editavel, ele divergia das medias — era o "Tendencia do Geral
+//--- nao acompanha" observado.
+//---
+//--- usePartialTP e o espelho de tp1.enabled. Core/Inputs.mqh:327, o
+//--- desserializador de perfil e a validacao de Risco da 1.058 refazem esta
+//--- mesma atribuicao — tres lugares, como o outro. E ele NAO e cosmetico: o
+//--- EA le usePartialTP para decidir o gerenciamento da posicao
+//--- (EAApplicationManagePosition, RiskManager), entao um TP1 ligado com
+//--- usePartialTP falso daria uma posicao sem os parciais que a tela promete.
+//---
+//--- A normalizacao junto: TP1 desligado desliga TP2 e o TP Final Livre. Nao e
+//--- so reagir ao clique — um perfil gravado em versao antiga pode chegar com
+//--- essa combinacao, e a 1.058 corrige em toda passada de validacao. Por isso
+//--- fica aqui, que e por onde passam tanto o clique quanto o SetSnapshot.
 void SyncDerivedSettings(void)
-  { m_draft.useTrendFilter=(m_draft.trendMA1Enabled || m_draft.trendMA2Enabled); }
+  {
+   m_draft.useTrendFilter=(m_draft.trendMA1Enabled || m_draft.trendMA2Enabled);
+   if(!m_draft.tp1.enabled)
+     {
+      m_draft.tp2.enabled=false;
+      m_draft.freeFinalTP=false;
+     }
+   m_draft.usePartialTP=m_draft.tp1.enabled;
+  }
 
 //+------------------------------------------------------------------+
 //| Dependencias entre campos: quem so faz sentido com o que.         |
@@ -122,6 +216,48 @@ bool BbFilterSlopeParams(void)
   { return (m_draft.bbFilterEnabled && m_draft.bbFilterSlopeDirectionEnabled); }
 
 //+------------------------------------------------------------------+
+//| Gestao: quem apaga com o que.                                     |
+//|                                                                   |
+//| ⚠ Extraidas UMA A UMA de UIPanelRiskValidation e                  |
+//| UIPanelProtectionValidation. O padrao NAO e uniforme, e supo-lo   |
+//| uniforme erra nos dois sentidos:                                  |
+//|                                                                   |
+//|  - Em Risco, a chave APAGA os parametros (BE desligado apaga      |
+//|    gatilho e offset) — o contrario do que vale nas Estrategias.   |
+//|  - Em Limites Diarios e Drawdown, a chave NAO apaga os numeros:   |
+//|    Max Trades, Max Perda, Max Ganho e Max DD seguem editaveis com |
+//|    a protecao desligada. So os COMBOS apagam.                     |
+//|  - Em Sequencias a chave apaga tudo do seu lado, e a Pausa min    |
+//|    exige ainda que a acao seja Pausar — com "Parar dia" nao ha    |
+//|    pausa a configurar.                                            |
+//|                                                                   |
+//| A sessao e as janelas de noticia nao tem dependencia nenhuma:     |
+//| horario segue editavel com o filtro desligado.                    |
+//+------------------------------------------------------------------+
+//--- TP parcial: TP1 comanda. TP2 so existe com TP1, e seus numeros so com
+//--- TP2 tambem ligado — dois degraus, nao um.
+bool Tp1Params(void)   { return m_draft.tp1.enabled; }
+bool Tp2Editable(void) { return m_draft.tp1.enabled; }
+bool Tp2Params(void)   { return (m_draft.tp1.enabled && m_draft.tp2.enabled); }
+bool FreeTpEditable(void) { return m_draft.tp1.enabled; }
+
+bool BreakevenParams(void) { return m_draft.useBreakeven; }
+bool TrailingParams(void)  { return m_draft.useTrailing; }
+bool SpreadLimitEditable(void) { return m_draft.enableSpreadProtection; }
+
+//--- Combos que dependem da chave da propria secao.
+bool DayActionEditable(void)  { return m_draft.enableDailyLimits; }
+bool DrawdownCombosEditable(void) { return m_draft.enableDrawdown; }
+
+//--- Sequencias, um lado de cada vez.
+bool LossStreakParams(void) { return m_draft.lossStreakEnabled; }
+bool WinStreakParams(void)  { return m_draft.winStreakEnabled; }
+bool LossStreakPauseEditable(void)
+  { return (m_draft.lossStreakEnabled && m_draft.lossStreakAction==STREAK_ACTION_PAUSE); }
+bool WinStreakPauseEditable(void)
+  { return (m_draft.winStreakEnabled && m_draft.winStreakAction==STREAK_ACTION_PAUSE); }
+
+//+------------------------------------------------------------------+
 //| Ha alteracao pendente?                                            |
 //|                                                                   |
 //| Pela DIFERENCA real entre rascunho e comprometido, nao por uma     |
@@ -132,7 +268,7 @@ bool BbFilterSlopeParams(void)
 //| cosmetico: bloqueava a operacao sem causa visivel.                 |
 //|                                                                   |
 //| m_dirty sobrevive apenas para os controles ainda NAO ligados a     |
-//| SEASettings (Gestao, Perfis, Layout). Cada tela ligada o aposenta. |
+//| SEASettings (Perfis e Layout). Cada tela ligada o aposenta.        |
 //+------------------------------------------------------------------+
 //--- O texto publicado pelo objeto ja diverge do que gravamos nele?
 //---
@@ -180,6 +316,10 @@ bool HasPending(void)
 
 int FieldGetIndex(const int fid)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_MODE)
+      return (int)m_draft.newsWindows[w].action;
+
    switch(fid)
      {
       case FCV_FLD_CONFLICT:       return (int)m_draft.conflictMode;
@@ -211,12 +351,28 @@ int FieldGetIndex(const int fid)
       case FCV_FLD_BF_TF:          return TfToIndex(m_draft.bbFilterTimeframe);
       case FCV_FLD_BF_PRICE:       return (int)m_draft.bbFilterPrice-1;
       case FCV_FLD_BF_MODE:        return (int)m_draft.bbFilterMode;
+      //--- Gestao. As cinco listas destes combos foram conferidas contra os
+      //--- FusionPopulate*Combo da 1.058: todas listam na ordem do enum, entao
+      //--- indice e valor coincidem, como nos combos anteriores.
+      case FCV_FLD_DIRECTION:       return (int)m_draft.tradeDirection;
+      case FCV_FLD_DAY_ACTION:      return (int)m_draft.profitTargetAction;
+      case FCV_FLD_DD_TYPE:         return (int)m_draft.drawdownType;
+      case FCV_FLD_DD_PEAK:         return (int)m_draft.drawdownPeakMode;
+      case FCV_FLD_LOSS_STREAK_ACT: return (int)m_draft.lossStreakAction;
+      case FCV_FLD_WIN_STREAK_ACT:  return (int)m_draft.winStreakAction;
      }
    return 0;
   }
 
 void FieldSetIndex(const int fid,const int idx)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_MODE)
+     {
+      m_draft.newsWindows[w].action=(ENUM_NEWS_WINDOW_ACTION)idx;
+      return;
+     }
+
    switch(fid)
      {
       case FCV_FLD_CONFLICT:       m_draft.conflictMode=(ENUM_CONFLICT_RESOLUTION)idx; break;
@@ -259,12 +415,36 @@ void FieldSetIndex(const int fid,const int idx)
       case FCV_FLD_BF_TF:          m_draft.bbFilterTimeframe=TfFromIndex(idx); break;
       case FCV_FLD_BF_PRICE:       m_draft.bbFilterPrice=(ENUM_APPLIED_PRICE)(idx+1); break;
       case FCV_FLD_BF_MODE:        m_draft.bbFilterMode=(ENUM_BB_FILTER_WIDTH_MODE)idx; break;
+      //--- Gestao
+      case FCV_FLD_DIRECTION:  m_draft.tradeDirection=(ENUM_TRADE_DIRECTION)idx;       break;
+      case FCV_FLD_DAY_ACTION: m_draft.profitTargetAction=(ENUM_PROFIT_TARGET_ACTION)idx; break;
+      case FCV_FLD_DD_TYPE:    m_draft.drawdownType=(ENUM_DRAWDOWN_TYPE)idx;           break;
+      case FCV_FLD_DD_PEAK:    m_draft.drawdownPeakMode=(ENUM_DRAWDOWN_PEAK_MODE)idx;  break;
+      case FCV_FLD_LOSS_STREAK_ACT: m_draft.lossStreakAction=(ENUM_STREAK_ACTION)idx;  break;
+      case FCV_FLD_WIN_STREAK_ACT:  m_draft.winStreakAction=(ENUM_STREAK_ACTION)idx;   break;
       default: return;
      }
   }
 
+//--- Hora e minuto sempre com dois digitos: "9:0" alinhado ao lado de "17:30"
+//--- nao se le como horario. Mesmo StringFormat da 1.058 (SyncProtectionControls).
+string TimePartText(const int value) { return StringFormat("%02d",value); }
+
 string FieldGetText(const int fid)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f))
+     {
+      switch(f)
+        {
+         case FCV_FLD_NEWS_START_H: return TimePartText(m_draft.newsWindows[w].startHour);
+         case FCV_FLD_NEWS_START_M: return TimePartText(m_draft.newsWindows[w].startMinute);
+         case FCV_FLD_NEWS_END_H:   return TimePartText(m_draft.newsWindows[w].endHour);
+         case FCV_FLD_NEWS_END_M:   return TimePartText(m_draft.newsWindows[w].endMinute);
+        }
+      return "";
+     }
+
    switch(fid)
      {
       case FCV_FLD_MA_PRIORITY:    return IntegerToString(m_draft.maCrossPriority);
@@ -290,6 +470,35 @@ string FieldGetText(const int fid)
       case FCV_FLD_BF_MINPCT:      return DoubleToString(m_draft.bbFilterMinWidthPercent,2);
       case FCV_FLD_BF_SLOPE_BACK:  return IntegerToString(m_draft.bbFilterSlopeLookback);
       case FCV_FLD_BF_SLOPE_MINPTS:return IntegerToString(m_draft.bbFilterMinSlopePoints);
+      //--- Gestao > Risco. O lote e o unico campo cuja grafia depende do ativo:
+      //--- o passo de volume decide as casas decimais, e escreve-lo com duas
+      //--- fixas mostraria 0.10 num ativo cujo passo e 0.001.
+      case FCV_FLD_FIXED_LOT:   return FusionFormatVolume(m_draft.fixedLot,m_snap.symbolSpec);
+      case FCV_FLD_SLIPPAGE:    return IntegerToString(m_draft.slippagePoints);
+      case FCV_FLD_SL_POINTS:   return IntegerToString(m_draft.fixedSLPoints);
+      case FCV_FLD_TP_POINTS:   return IntegerToString(m_draft.fixedTPPoints);
+      case FCV_FLD_TP1_PCT:     return DoubleToString(m_draft.tp1.percent,2);
+      case FCV_FLD_TP1_DIST:    return IntegerToString(m_draft.tp1.distancePoints);
+      case FCV_FLD_TP2_PCT:     return DoubleToString(m_draft.tp2.percent,2);
+      case FCV_FLD_TP2_DIST:    return IntegerToString(m_draft.tp2.distancePoints);
+      case FCV_FLD_BE_TRIGGER:  return IntegerToString(m_draft.breakevenTriggerPoints);
+      case FCV_FLD_BE_OFFSET:   return IntegerToString(m_draft.breakevenOffsetPoints);
+      case FCV_FLD_TRAIL_START: return IntegerToString(m_draft.trailingStartPoints);
+      case FCV_FLD_TRAIL_STEP:  return IntegerToString(m_draft.trailingStepPoints);
+      //--- Gestao > Protecao
+      case FCV_FLD_SPREAD_MAX:  return IntegerToString(m_draft.maxSpreadPoints);
+      case FCV_FLD_SESS_START_H: return TimePartText(m_draft.sessionStartHour);
+      case FCV_FLD_SESS_START_M: return TimePartText(m_draft.sessionStartMinute);
+      case FCV_FLD_SESS_END_H:   return TimePartText(m_draft.sessionEndHour);
+      case FCV_FLD_SESS_END_M:   return TimePartText(m_draft.sessionEndMinute);
+      case FCV_FLD_DAY_TRADES:  return IntegerToString(m_draft.maxDailyTrades);
+      case FCV_FLD_DAY_LOSS:    return DoubleToString(m_draft.maxDailyLoss,2);
+      case FCV_FLD_DAY_GAIN:    return DoubleToString(m_draft.maxDailyGain,2);
+      case FCV_FLD_DD_MAX:      return DoubleToString(m_draft.maxDrawdown,2);
+      case FCV_FLD_LOSS_STREAK_MAX:   return IntegerToString(m_draft.maxLossStreak);
+      case FCV_FLD_LOSS_STREAK_PAUSE: return IntegerToString(m_draft.lossStreakPauseMinutes);
+      case FCV_FLD_WIN_STREAK_MAX:    return IntegerToString(m_draft.maxWinStreak);
+      case FCV_FLD_WIN_STREAK_PAUSE:  return IntegerToString(m_draft.winStreakPauseMinutes);
      }
    return "";
   }
@@ -298,8 +507,48 @@ string FieldGetText(const int fid)
 //--- faixa e as cruzadas (sobrevenda < sobrecompra...) entram na Etapa 2d,
 //--- que e a camada de validacao. Ate la, valor nao-numerico vira zero — o
 //--- mesmo comportamento cru do StringToInteger, marcado aqui como divida.
+//--- Hora/minuto digitados -> valor recortado a faixa. Copia do SanitizeTimeText
+//--- da 1.058 (UIPanelProtectionInputs): so os digitos contam e o excedente e
+//--- preso no maximo, entao "99" vira 23 numa hora e 59 num minuto.
+//---
+//--- Este recorte NAO e a validacao da Etapa 2d, e nao esta adiantado dela: na
+//--- 1.058 ele tambem mora no fim da edicao, e nao entre as regras de faixa.
+//--- A razao e que hora e minuto nao tem estado invalido para mostrar — nao
+//--- existe "25" para pintar de vermelho, existe um horario que o EA nunca vai
+//--- conseguir usar. Quem valida horario ali e a ordem entre inicio e fim.
+int TimePartValue(const string text,const int maxValue)
+  {
+   string digits="";
+   for(int i=0;i<StringLen(text);++i)
+     {
+      ushort ch=StringGetCharacter(text,i);
+      if(ch>='0' && ch<='9') digits+=StringSubstr(text,i,1);
+     }
+   if(digits=="") return 0;
+   int value=(int)StringToInteger(digits);
+   if(value<0) return 0;
+   return (value>maxValue) ? maxValue : value;
+  }
+
 void FieldSetText(const int fid,const string text)
   {
+   int w,f;
+   if(NewsFieldParts(fid,w,f))
+     {
+      switch(f)
+        {
+         case FCV_FLD_NEWS_START_H:
+            m_draft.newsWindows[w].startHour  =TimePartValue(text,FCV_HOUR_MAX);   return;
+         case FCV_FLD_NEWS_START_M:
+            m_draft.newsWindows[w].startMinute=TimePartValue(text,FCV_MINUTE_MAX); return;
+         case FCV_FLD_NEWS_END_H:
+            m_draft.newsWindows[w].endHour    =TimePartValue(text,FCV_HOUR_MAX);   return;
+         case FCV_FLD_NEWS_END_M:
+            m_draft.newsWindows[w].endMinute  =TimePartValue(text,FCV_MINUTE_MAX); return;
+        }
+      return;
+     }
+
    switch(fid)
      {
       case FCV_FLD_MA_PRIORITY:    m_draft.maCrossPriority   =(int)StringToInteger(text); break;
@@ -333,6 +582,33 @@ void FieldSetText(const int fid,const string text)
       case FCV_FLD_BF_MINPCT:      m_draft.bbFilterMinWidthPercent=StringToDouble(text);      break;
       case FCV_FLD_BF_SLOPE_BACK:  m_draft.bbFilterSlopeLookback  =(int)StringToInteger(text); break;
       case FCV_FLD_BF_SLOPE_MINPTS:m_draft.bbFilterMinSlopePoints =(int)StringToInteger(text); break;
+      //--- Gestao > Risco
+      case FCV_FLD_FIXED_LOT:   m_draft.fixedLot              =StringToDouble(text);       break;
+      case FCV_FLD_SLIPPAGE:    m_draft.slippagePoints        =(int)StringToInteger(text); break;
+      case FCV_FLD_SL_POINTS:   m_draft.fixedSLPoints         =(int)StringToInteger(text); break;
+      case FCV_FLD_TP_POINTS:   m_draft.fixedTPPoints         =(int)StringToInteger(text); break;
+      case FCV_FLD_TP1_PCT:     m_draft.tp1.percent           =StringToDouble(text);       break;
+      case FCV_FLD_TP1_DIST:    m_draft.tp1.distancePoints    =(int)StringToInteger(text); break;
+      case FCV_FLD_TP2_PCT:     m_draft.tp2.percent           =StringToDouble(text);       break;
+      case FCV_FLD_TP2_DIST:    m_draft.tp2.distancePoints    =(int)StringToInteger(text); break;
+      case FCV_FLD_BE_TRIGGER:  m_draft.breakevenTriggerPoints=(int)StringToInteger(text); break;
+      case FCV_FLD_BE_OFFSET:   m_draft.breakevenOffsetPoints =(int)StringToInteger(text); break;
+      case FCV_FLD_TRAIL_START: m_draft.trailingStartPoints   =(int)StringToInteger(text); break;
+      case FCV_FLD_TRAIL_STEP:  m_draft.trailingStepPoints    =(int)StringToInteger(text); break;
+      //--- Gestao > Protecao
+      case FCV_FLD_SPREAD_MAX:  m_draft.maxSpreadPoints       =(int)StringToInteger(text); break;
+      case FCV_FLD_SESS_START_H: m_draft.sessionStartHour  =TimePartValue(text,FCV_HOUR_MAX);   break;
+      case FCV_FLD_SESS_START_M: m_draft.sessionStartMinute=TimePartValue(text,FCV_MINUTE_MAX); break;
+      case FCV_FLD_SESS_END_H:   m_draft.sessionEndHour    =TimePartValue(text,FCV_HOUR_MAX);   break;
+      case FCV_FLD_SESS_END_M:   m_draft.sessionEndMinute  =TimePartValue(text,FCV_MINUTE_MAX); break;
+      case FCV_FLD_DAY_TRADES:  m_draft.maxDailyTrades        =(int)StringToInteger(text); break;
+      case FCV_FLD_DAY_LOSS:    m_draft.maxDailyLoss          =StringToDouble(text);       break;
+      case FCV_FLD_DAY_GAIN:    m_draft.maxDailyGain          =StringToDouble(text);       break;
+      case FCV_FLD_DD_MAX:      m_draft.maxDrawdown           =StringToDouble(text);       break;
+      case FCV_FLD_LOSS_STREAK_MAX:   m_draft.maxLossStreak         =(int)StringToInteger(text); break;
+      case FCV_FLD_LOSS_STREAK_PAUSE: m_draft.lossStreakPauseMinutes=(int)StringToInteger(text); break;
+      case FCV_FLD_WIN_STREAK_MAX:    m_draft.maxWinStreak          =(int)StringToInteger(text); break;
+      case FCV_FLD_WIN_STREAK_PAUSE:  m_draft.winStreakPauseMinutes =(int)StringToInteger(text); break;
       default: return;
      }
   }

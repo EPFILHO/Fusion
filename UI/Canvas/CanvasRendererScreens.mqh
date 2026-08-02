@@ -64,22 +64,27 @@ void ResetControls(void)
 //--- Aviso da tela: medido antes do conteudo para que a area util ja nasca
 //--- com a altura certa. Medir depois faria o conteudo usar a altura do
 //--- quadro anterior.
+//--- Nao ha aviso de tela enquanto a validacao nao existir.
+//---
+//--- Ate a Etapa 2b esta funcao devolvia dois avisos FIXOS, herdados da Fase 1:
+//--- um no Status e outro em Noticias, ambos anunciando que a janela 1 tinha
+//--- horarios invertidos. Eram dados de demonstracao, e faziam sentido enquanto
+//--- a tela mostrava valores inventados. Com Noticias lendo o rascunho real,
+//--- passariam a ACUSAR UM ERRO QUE NAO EXISTE — e mandariam corrigir uma
+//--- janela que esta correta.
+//---
+//--- O aviso volta na Etapa 2d, alimentado pela validacao, que e quem sabe se
+//--- ha erro e onde. Ate la o silencio e a resposta honesta: a moldura de
+//--- medida e desenho continua pronta (MeasureAlert/DrawAlert), so nao ha o que
+//--- afirmar. Os bloqueios operacionais em curso ja se explicam dentro do
+//--- proprio cartao da secao suspensa, com o texto que o EA informou.
 bool ScreenAlert(string &title,string &body,int &sem)
   {
-   if(m_tab==0)
-     {
-      title="GESTAO";
-      body="Notificacoes tem uma janela invalida. Corrija em Gestao > Protecao > Noticias.";
-      sem=FCV_SEM_BAD;
-      return true;
-     }
-   if(m_tab==FCV_TAB_GESTAO && Sub()==1 && m_railSel[1]==3)
-     {
-      title="JANELA INVALIDA";
-      body="O fim da janela 1 e anterior ao inicio. Ajuste os horarios para que a janela feche depois de abrir.";
-      sem=FCV_SEM_BAD;
-      return true;
-     }
+   //--- Preenchidos mesmo devolvendo false: quem chama declara as tres
+   //--- variaveis sem valor e so as usa no true. Deixa-las intactas seria
+   //--- correto e ainda assim renderia aviso de variavel nao inicializada — e o
+   //--- portao exige zero avisos.
+   title=""; body=""; sem=FCV_SEM_NEUTRAL;
    return false;
   }
 
@@ -274,7 +279,10 @@ bool StatusNotice(string &title,string &body,int &sem)
    if(HasText(tpsl))
      { title="RISCO TP/SL"; body=tpsl; return true; }
 
-   title="Sem alertas."; body="Contexto do grafico estavel."; sem=FCV_SEM_NEUTRAL;
+   //--- Sem ponto final: o titulo vira SELO, e selo e rotulo, nao frase. Os
+   //--- outros titulos da escada ("ENTRADA BLOQUEADA", "DRAWDOWN") tambem nao
+   //--- tem. O corpo, esse sim, e frase e mantem a pontuacao.
+   title="Sem alertas"; body="Contexto do grafico estavel."; sem=FCV_SEM_NEUTRAL;
    return false;
   }
 
@@ -390,11 +398,22 @@ void ScreenResults(void)
 
    //--- Sem base de drawdown os numeros nao significam nada ainda: a 1.058
    //--- mostra "--" em vez de zeros que pareceriam medidos.
-   bool hasBase=(m_snap.drawdownProtectionActive || m_snap.drawdownLimitReached ||
-                 m_snap.drawdownPeakProfit>0.0);
-   string ddState = !m_snap.settings.enableDrawdown ? "OFF"
-                    : (m_snap.drawdownLimitReached ? "ATINGIDO"
-                       : (m_snap.drawdownProtectionActive ? "ATIVO" : "AGUARDANDO META"));
+   //--- Mesma pergunta que Gestao > Protecao > Drawdown faz antes de mostrar os
+   //--- numeros; uma funcao so, para as duas telas nao passarem a discordar
+   //--- sobre quando o "--" vira valor.
+   bool hasBase=DrawdownRuntimeKnown();
+   //--- MESMA ordem do resumo em Gestao > Protecao > Geral: estado antes da
+   //--- chave. As duas telas calculavam este estado com prioridades opostas —
+   //--- aqui a chave vinha primeiro, la o runtime — e com DD desligado durante
+   //--- uma protecao em curso uma dizia OFF e a outra ATIVO, no mesmo painel.
+   //--- Vieram de dois arquivos da 1.058 que discordam entre si (ResultsPage e
+   //--- SyncProtectionOverview); unificado no lado seguro, porque protecao em
+   //--- vigor nao pode sumir da tela por causa de uma chave desligada depois.
+   //--- Aqui a chave lida e a COMPROMETIDA (m_snap.settings): esta tela conta o
+   //--- dia que o EA operou, nao o que esta sendo editado.
+   string ddState = m_snap.drawdownLimitReached ? "ATINGIDO"
+                    : (m_snap.drawdownProtectionActive ? "ATIVO"
+                       : (!m_snap.settings.enableDrawdown ? "OFF" : "AGUARDANDO META"));
    int ddSem = m_snap.drawdownLimitReached ? FCV_SEM_BAD
                : (m_snap.settings.enableDrawdown ? FCV_SEM_GOOD : FCV_SEM_NEUTRAL);
 
@@ -770,7 +789,129 @@ void ScreenFilters(void)
   }
 
 //+------------------------------------------------------------------+
-//| Config                                                            |
+//| Gestao — textos derivados.                                        |
+//|                                                                   |
+//| Portados de UIPanelProtectionSync.mqh e UIPanelRiskValidation.mqh.|
+//| Nenhum e escrito de cabeca: sao as mesmas contas e as mesmas       |
+//| palavras que o painel 1.058 mostra, e divergir aqui faria a 2.0    |
+//| descrever o mesmo estado de outro jeito.                           |
+//+------------------------------------------------------------------+
+//--- O nome da direcao sai da lista do proprio combo, e nao de uma copia:
+//--- indice e valor do enum coincidem, entao a lista ja e a traducao.
+string DirectionName(void)
+  {
+   string items[];
+   int n=ComboItems(FCV_COMBO_SIDE,items);
+   int idx=(int)m_draft.tradeDirection;
+   return (idx>=0 && idx<n) ? items[idx] : "";
+  }
+
+//--- Spread do momento, em pontos. E leitura ao vivo dentro de uma tela de
+//--- configuracao, e e util justamente ali: o SL e digitado em pontos, e sem
+//--- saber quanto o spread ja consome nao da para escolher a distancia.
+string SpreadPointsText(void)
+  {
+   if(!HasText(m_snap.symbolSpec.symbol) || m_snap.symbolSpec.point<=0.0) return "--";
+   MqlTick tick;
+   if(!SymbolInfoTick(m_snap.symbolSpec.symbol,tick) ||
+      tick.bid<=0.0 || tick.ask<=0.0 || tick.ask<tick.bid) return "--";
+   long pts=(long)MathRound((tick.ask-tick.bid)/m_snap.symbolSpec.point);
+   return StringFormat("%I64d",pts);
+  }
+
+//--- O que a compensacao de spread faz com as distancias escolhidas. Cada
+//--- combinacao tem sua frase porque o efeito muda de lado: no SL aumenta o
+//--- risco, no TP diminui o alvo.
+string SpreadCompensationNote(void)
+  {
+   string prefix="Spread atual: "+SpreadPointsText()+" pts. ";
+   if(m_draft.compensateSLSpread && m_draft.compensateTPSpread)
+      return prefix+"SL soma; TP subtrai.";
+   if(m_draft.compensateSLSpread) return prefix+"SL ON soma; risco aumenta.";
+   if(m_draft.compensateTPSpread) return prefix+"TP ON subtrai; alvo diminui.";
+   return prefix+"EA valida o minimo da corretora.";
+  }
+
+//--- Panorama de protecao: os seis resumos da subaba GERAL da 1.058.
+//--- Sem o "| Descarta sinais" que a 1.058 concatena aqui. Aquele trecho e
+//--- CONSTANTE — nao muda com configuracao nenhuma —, entao nao informava nada
+//--- por linha e so consumia largura: com o trilho ocupando a esquerda, a
+//--- coluna do valor e estreita e o texto passava por cima do rotulo. A regra
+//--- que ele expressa virou nota no rodape do cartao, que e onde a propria
+//--- 1.058 a escreve ("Sinais surgidos durante bloqueios sao descartados.").
+string ProtEntryText(void)
+  {
+   string spread=!m_draft.enableSpreadProtection ? "Spread OFF"
+                 : "Spread max "+IntegerToString(m_draft.maxSpreadPoints)+" pts";
+   return DirectionName()+" | "+spread;
+  }
+
+string ProtSessionText(void)
+  {
+   if(!m_draft.enableSessionFilter) return "OFF";
+   string t=StringFormat("%02d:%02d - %02d:%02d",
+                         m_draft.sessionStartHour,m_draft.sessionStartMinute,
+                         m_draft.sessionEndHour,m_draft.sessionEndMinute);
+   if(m_draft.sessionOvernight) t+=" +1d";
+   return t;
+  }
+
+string ProtNewsText(void)
+  {
+   int on=0;
+   for(int i=0;i<FUSION_NEWS_WINDOW_COUNT;++i)
+      if(m_draft.newsWindows[i].enabled) on++;
+   return IntegerToString(on)+"/"+IntegerToString(FUSION_NEWS_WINDOW_COUNT)+" janelas ativas";
+  }
+
+string ProtDayText(int &sem)
+  {
+   if(!m_draft.enableDailyLimits) { sem=FCV_SEM_NEUTRAL; return "OFF"; }
+   if(m_snap.dailyLimitsBlocked)  { sem=FCV_SEM_BAD;     return "BLOQUEADO"; }
+   sem=FCV_SEM_GOOD;
+   return "ATIVO";
+  }
+
+//--- A ordem importa e e a da 1.058: atingido e ativo sao verificados ANTES da
+//--- chave. Um DD que ja disparou continua valendo mesmo que a chave tenha sido
+//--- desligada depois — dizer "OFF" ali esconderia um bloqueio em vigor.
+string ProtDrawdownText(int &sem)
+  {
+   if(m_snap.drawdownLimitReached)      { sem=FCV_SEM_WARN;    return "ATINGIDO"; }
+   if(m_snap.drawdownProtectionActive)  { sem=FCV_SEM_GOOD;    return "ATIVO"; }
+   if(!m_draft.enableDrawdown)          { sem=FCV_SEM_NEUTRAL; return "OFF"; }
+   sem=FCV_SEM_NEUTRAL;
+   return "AGUARDANDO META";
+  }
+
+string ProtStreakText(int &sem)
+  {
+   bool on=(m_draft.lossStreakEnabled || m_draft.winStreakEnabled);
+   if(!on) { sem=FCV_SEM_NEUTRAL; return "OFF"; }
+   if(m_snap.streakProtectionBlocked)
+     {
+      //--- Pausa e bloqueio se distinguem so pelo texto do motivo; e o unico
+      //--- sinal que o snapshot oferece, e a 1.058 usa o mesmo.
+      bool paused=(StringFind(m_snap.streakProtectionBlockReason,"em pausa")>=0);
+      sem=paused ? FCV_SEM_WARN : FCV_SEM_BAD;
+      return paused ? "EM PAUSA" : "BLOQUEADO";
+     }
+   sem=FCV_SEM_GOOD;
+   return "ATIVO";
+  }
+
+//--- Leituras do drawdown. Sem base medida elas viram "--": zeros pareceriam
+//--- medicao feita, e "0,00 de folga" diria exatamente o oposto da verdade.
+bool DrawdownRuntimeKnown(void)
+  {
+   return (m_snap.drawdownProtectionActive || m_snap.drawdownLimitReached ||
+           m_snap.drawdownPeakProfit>0.0);
+  }
+string DrawdownRuntimeText(const double v)
+  { return DrawdownRuntimeKnown() ? DoubleToString(v,2) : "--"; }
+
+//+------------------------------------------------------------------+
+//| Gestao > Risco                                                    |
 //+------------------------------------------------------------------+
 void ScreenRisk(void)
   {
@@ -778,162 +919,322 @@ void ScreenRisk(void)
      {
       case 0:
          RowsReset();
-         RowNote ("Define o volume base usado nas novas entradas.");
-         RowField("Lote Fixo","Volume enviado em cada ordem","0.10");
-         RowField("Slippage (pts)","Tolerancia de execucao, nao garantia de preco","20");
-         RowNote ("Use 0 para enviar sem desvio; valido de 0 a 100000 pontos.");
+         RowNote  ("Define o volume base usado nas novas entradas.");
+         RowFieldF("Lote Fixo","",FCV_FLD_FIXED_LOT);
+         RowFieldF("Slippage (pts)","Tolerancia de execucao, nao garantia de preco",
+                   FCV_FLD_SLIPPAGE);
+         RowNote  ("Use 0 para enviar sem desvio; valido de 0 a 100000 pontos.");
          Card("TAMANHO DO LOTE");
          return;
+
       case 1:
          RowsReset();
-         RowNote  ("Distancias fixas aplicadas no envio da ordem.");
-         RowField ("SL Fixo (pts MT5)","Zero desliga o stop fixo","0");
-         RowField ("TP Fixo (pts MT5)","Zero desliga o alvo fixo","0");
-         RowToggle("Compensar Spread SL");
-         RowToggle("Compensar Spread TP");
-         RowNote  ("Use a mesma contagem exibida pela regua do grafico. O EA valida o minimo da corretora.");
+         RowNote   ("Distancias fixas aplicadas no envio da ordem.");
+         RowFieldF ("SL Fixo (pts MT5)","Zero desliga o stop fixo",FCV_FLD_SL_POINTS);
+         RowFieldF ("TP Fixo (pts MT5)","Zero desliga o alvo fixo",FCV_FLD_TP_POINTS);
+         RowToggleF("Compensar Spread SL",FCV_FLD_COMP_SL);
+         RowToggleF("Compensar Spread TP",FCV_FLD_COMP_TP);
+         //--- O aviso de operar sem stop e da 1.058 e vem em vermelho. Ele
+         //--- substitui a instrucao normal, e nao se soma a ela: sem SL, o que
+         //--- precisa ser dito nao e como preencher o campo.
+         if(m_draft.fixedSLPoints<=0)
+            RowNoteSem("ATENCAO: operar sem SL e ARRISCADO.",FCV_SEM_BAD);
+         else
+            RowNote   ("Informe SL/TP em pontos do MT5; 0 desliga.");
+         RowNote   ("Use a mesma contagem exibida pela regua do grafico.");
+         RowNote   (SpreadCompensationNote());
          Card("STOP LOSS E TAKE PROFIT");
          return;
+
+      //--- TP parcial: TP1 comanda. A 1.058 poe TP1 e TP2 lado a lado em duas
+      //--- colunas; aqui viram dois cartoes, porque a coluna estreita nao cabe
+      //--- na largura do painel sem encolher os campos.
       case 2:
          RowsReset();
-         RowNote  ("Fecha partes da posicao em alvos globais antes do TP final.");
-         RowToggle("Ativo");
-         RowField ("Volume %","Fracao da posicao encerrada","50.00");
-         RowField ("Dist pts","Distancia do preco de entrada","150");
+         RowNote   ("Fecha partes da posicao em alvos globais antes do TP final.");
+         RowToggleF("Ativo",FCV_FLD_TP1_ON);
+         RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP1_PCT,true,Tp1Params());
+         RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP1_DIST,true,Tp1Params());
          Card("TP1");
 
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Volume %","Fracao da posicao encerrada","25.00");
-         RowField ("Dist pts","Distancia do preco de entrada","300");
-         RowNote  ("TP1 ON ativa o TP parcial; TP2 depende dele.");
+         RowToggleF("Ativo",FCV_FLD_TP2_ON,Tp2Editable());
+         RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP2_PCT,true,Tp2Params());
+         RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP2_DIST,true,Tp2Params());
+         RowNote   ("TP1 ON ativa o TP parcial; TP2 depende dele.");
          Card("TP2");
 
          RowsReset();
-         RowToggle("TP Final Livre");
-         RowNote  ("Remove o TP final apos o ultimo parcial. Requer trailing ativo; o restante passa a sair pelo trailing.");
+         RowToggleF("TP Final Livre",FCV_FLD_FREE_TP,FreeTpEditable());
+         RowNote   ("Remove o TP final apos o ultimo parcial. Requer trailing ativo; "
+                    "o restante passa a sair pelo trailing.");
+         RowNote   ("Volumes sao ajustados ao lote minimo e passo do ativo.");
          Card("TP FINAL");
          return;
+
       case 3:
          RowsReset();
-         RowNote  ("Ajusta o SL apos a posicao atingir o gatilho em lucro.");
-         RowToggle("Ativo");
-         RowField ("Gatilho (pts)","Lucro necessario para mover o stop","120");
-         RowField ("Offset (pts)","Onde o stop fica em relacao a entrada","10");
-         RowNote  ("Offset 0 move o SL para a entrada; offset maior protege lucro.");
+         RowNote   ("Ajusta o SL apos a posicao atingir o gatilho em lucro.");
+         RowToggleF("Ativo",FCV_FLD_BE_ON);
+         RowFieldF ("Gatilho (pts)","Lucro necessario para mover o stop",
+                    FCV_FLD_BE_TRIGGER,true,BreakevenParams());
+         RowFieldF ("Offset (pts)","Onde o stop fica em relacao a entrada",
+                    FCV_FLD_BE_OFFSET,true,BreakevenParams());
+         RowNote   ("BE apenas ajusta o SL da posicao aberta.");
+         RowNote   ("Offset 0 move o SL para a entrada; offset maior protege lucro.");
          Card("BREAKEVEN");
          return;
+
       default:
          RowsReset();
-         RowNote  ("Move o SL acompanhando o preco apos atingir o inicio em lucro.");
-         RowToggle("Ativo");
-         RowField ("Inicio (pts)","Lucro a partir do qual o trailing liga","150");
-         RowField ("Passo (pts)","Distancia entre preco atual e novo SL","80");
+         RowNote   ("Move o SL acompanhando o preco apos atingir o inicio em lucro.");
+         RowToggleF("Ativo",FCV_FLD_TRAIL_ON);
+         RowFieldF ("Inicio (pts)","Lucro a partir do qual o trailing liga",
+                    FCV_FLD_TRAIL_START,true,TrailingParams());
+         RowFieldF ("Passo (pts)","Distancia entre preco atual e novo SL",
+                    FCV_FLD_TRAIL_STEP,true,TrailingParams());
+         RowNote   ("Trailing apenas ajusta o SL da posicao aberta.");
          Card("TRAILING");
          return;
      }
   }
 
+//+------------------------------------------------------------------+
+//| Gestao > Protecao                                                 |
+//|                                                                   |
+//| Tres secoes podem estar sob BLOQUEIO OPERACIONAL — limites        |
+//| diarios, drawdown e sequencias. Enquanto vale, a secao inteira    |
+//| fica somente-leitura e os rodapes explicam por que. Nao e o mesmo |
+//| bloqueio do EA rodando: este sobrevive a pausa, de proposito.     |
+//+------------------------------------------------------------------+
 void ScreenProtection(void)
   {
    switch(m_railSel[1])
      {
+      //--- Panorama: os seis resumos, com as mesmas contas da 1.058. Repetir
+      //--- aqui o que as outras subabas mostram e o proposito de um panorama —
+      //--- ao contrario do numero repetido entre Status e Resultados, que era
+      //--- duas telas afirmando a mesma coisa sem ser resumo de nada.
       case 0:
+        {
+         int semDay,semDD,semStreak;
+         string day=ProtDayText(semDay);
+         string dd =ProtDrawdownText(semDD);
+         string st =ProtStreakText(semStreak);
+         //--- Cada linha leva o nome do ITEM DO TRILHO que resume, e nao o da
+         //--- 1.058 (Entrada/News/DAY/DD/Streak). O panorama existe para
+         //--- apontar aonde ir; com nomes diferentes dos do trilho, ele
+         //--- descreveria secoes que o usuario nao encontra na lista ao lado.
+         //--- O vocabulario e o que a propria 2.0 ja usa para navegar.
+         //---
+         //--- Duas formas de valor, e a escolha nao e estetica:
+         //---   SELO  para as tres secoes cujo valor e um ESTADO — uma palavra
+         //---         de um conjunto fechado (OFF/ATIVO/BLOQUEADO/ATINGIDO...).
+         //---         E o mesmo tratamento que o Status da a estado, e a cor do
+         //---         selo passa a severidade sem precisar de legenda.
+         //---   TEXTO para as tres cujo valor e ECO DA CONFIGURACAO — direcao,
+         //---         horario, contagem. Num selo, um horario pareceria estado.
          RowsReset();
-         RowBadge("Entrada","LIVRE",FCV_SEM_GOOD);
-         RowBadge("Sessao","LIVRE",FCV_SEM_GOOD);
-         RowBadge("Noticias","INVALIDO",FCV_SEM_BAD);
-         RowBadge("Limites Diarios","LIVRE",FCV_SEM_GOOD);
-         RowBadge("Drawdown","AGUARDANDO",FCV_SEM_WARN);
-         RowBadge("Streak","LIVRE",FCV_SEM_GOOD);
+         RowStatic("Spread/Lado",ProtEntryText());
+         RowStatic("Sessao",ProtSessionText());
+         RowStatic("Noticias",ProtNewsText());
+         RowBadge ("Limites Diarios",day,semDay);
+         RowBadge ("Drawdown",dd,semDD);
+         RowBadge ("Sequencias",st,semStreak);
+         RowNote  ("Sinais surgidos durante bloqueios sao descartados.");
          Card("RESUMO DE PROTECAO");
          return;
+        }
+
       case 1:
          RowsReset();
-         RowToggle("Max Spread");
-         RowField ("Limite (pts)","Acima disso a entrada e recusada","0");
-         RowCombo ("Direcao",FCV_COMBO_SIDE);
+         RowNote   ("Regras globais aplicadas antes de enviar uma nova ordem.");
+         RowToggleF("Max Spread",FCV_FLD_SPREAD_ON);
+         RowFieldF ("Limite (pts)","Acima disso a entrada e recusada",
+                    FCV_FLD_SPREAD_MAX,true,SpreadLimitEditable());
+         RowComboF ("Direcao",FCV_COMBO_SIDE,FCV_FLD_DIRECTION);
+         RowNote   ("Sinais surgidos durante bloqueios sao descartados.");
+         RowNote   ("Direcao nao bloqueia estrategia em VM; guards continuam ativos.");
          Card("PROTECAO DE ENTRADA");
          return;
+
+      //--- Horarios seguem editaveis com o filtro desligado: configurar a
+      //--- janela antes de liga-la e uso legitimo, e a 1.058 tambem nao os
+      //--- apaga (so o `editable` geral alcanca esses campos).
       case 2:
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Inicio","Hora e minuto de abertura","09:00");
-         RowField ("Fim","Hora e minuto de fechamento","17:30");
-         RowToggle("Fechar no fim");
-         RowToggle("Overnight");
+         RowNote   ("Controla horario de operacao do EA no mercado.");
+         RowToggleF("Ativo",FCV_FLD_SESSION_ON);
+         RowTimeF  ("Inicio","Hora e minuto de abertura",
+                    FCV_FLD_SESS_START_H,FCV_FLD_SESS_START_M);
+         RowTimeF  ("Fim","Hora e minuto de fechamento",
+                    FCV_FLD_SESS_END_H,FCV_FLD_SESS_END_M);
+         RowToggleF("Fechar no fim",FCV_FLD_SESS_CLOSE);
+         RowToggleF("Overnight",FCV_FLD_SESS_OVERNIGHT);
+         //--- As duas primeiras notas mudam com a escolha: dizem a regra que
+         //--- VALE agora, e nao as duas possiveis. Textos da 1.058.
+         RowNote   (m_draft.sessionOvernight
+                    ? "Overnight ON: Inicio > Fim e cruza meia-noite."
+                    : "Overnight OFF: Fim > Inicio no mesmo dia.");
+         RowNote   (m_draft.closeOnSessionEnd
+                    ? "Fechar no fim ON: fecha posicoes ao termino da sessao."
+                    : "Fechar no fim OFF: nao fecha posicoes pelo fim da sessao.");
+         RowNote   ("Fora da janela, novas entradas ficam bloqueadas.");
          Card("PROTECAO DE SESSAO");
          return;
+
+      //--- Sao tres janelas (FUSION_NEWS_WINDOW_COUNT), iguais entre si. O laco
+      //--- garante que acrescentar uma quarta no EA a faca aparecer aqui — a
+      //--- versao anterior tinha os tres cartoes copiados a mao.
       case 3:
-         //--- Sao tres janelas (FUSION_NEWS_WINDOW_COUNT), nao duas.
-         //--- O "Fim" da janela 1 esta marcado invalido de proposito: e a folha
-         //--- da cadeia de erro que pinta o trilho, a subaba e a aba Config.
+        {
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Inicio","Hora e minuto de abertura","14:30");
-         RowField ("Fim","Hora e minuto de fechamento","14:00",false);
-         RowCombo ("Modo",FCV_COMBO_NEWS);
-         Card("JANELA 1");
-
-         RowsReset();
-         RowToggle("Ativo");
-         RowField ("Inicio","Hora e minuto de abertura","00:00");
-         RowField ("Fim","Hora e minuto de fechamento","00:00");
-         RowCombo ("Modo",FCV_COMBO_NEWS);
-         Card("JANELA 2");
-
-         RowsReset();
-         RowToggle("Ativo");
-         RowField ("Inicio","Hora e minuto de abertura","00:00");
-         RowField ("Fim","Hora e minuto de fechamento","00:00");
-         RowCombo ("Modo",FCV_COMBO_NEWS);
-         Card("JANELA 3");
+         RowNote("Cada janela pode so bloquear entradas ou fechar posicoes abertas.");
+         Card("JANELAS DE NOTICIAS");
+         for(int w=0;w<FUSION_NEWS_WINDOW_COUNT;++w)
+           {
+            RowsReset();
+            RowToggleF("Ativo",FCV_FLD_NEWS(w,FCV_FLD_NEWS_ON));
+            RowTimeF  ("Inicio","Hora e minuto de abertura",
+                       FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_H),
+                       FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_M));
+            RowTimeF  ("Fim","Hora e minuto de fechamento",
+                       FCV_FLD_NEWS(w,FCV_FLD_NEWS_END_H),
+                       FCV_FLD_NEWS(w,FCV_FLD_NEWS_END_M));
+            RowComboF ("Modo",FCV_COMBO_NEWS,FCV_FLD_NEWS(w,FCV_FLD_NEWS_MODE));
+            Card("JANELA "+IntegerToString(w+1));
+           }
          return;
+        }
+
+      //--- Limites Diarios. ⚠ A chave NAO apaga os numeros: Max Trades, Max
+      //--- Perda e Max Ganho seguem editaveis com a protecao desligada, e so a
+      //--- Acao Ganho depende dela. E o que a 1.058 faz, conferido campo a
+      //--- campo — supor o contrario apagaria tres campos sem motivo.
       case 4:
+        {
+         bool dayOpen=!DailyConfigLocked();
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Max Trades","Quantidade de operacoes no dia","0");
-         RowField ("Max Perda","Perda acumulada que encerra o dia","0.00");
-         RowField ("Max Ganho","Ganho acumulado que encerra o dia","0.00");
-         RowCombo ("Acao Ganho",FCV_COMBO_TARGET);
-         RowNote  ("Campos em zero ficam sem limite. ATIVAR DD exige DRAWDOWN ON com Max DD > 0.");
+         RowNote   ("Controla trades, perda diaria e meta diaria de ganho.");
+         RowToggleF("Ativo",FCV_FLD_DAY_ON,dayOpen);
+         RowFieldF ("Max Trades","Quantidade de operacoes no dia",
+                    FCV_FLD_DAY_TRADES,true,dayOpen);
+         RowFieldF ("Max Perda","Perda acumulada que encerra o dia",
+                    FCV_FLD_DAY_LOSS,true,dayOpen);
+         RowFieldF ("Max Ganho","Ganho acumulado que encerra o dia",
+                    FCV_FLD_DAY_GAIN,true,dayOpen);
+         RowComboF ("Acao Ganho",FCV_COMBO_TARGET,FCV_FLD_DAY_ACTION,
+                    dayOpen && DayActionEditable());
+         if(dayOpen)
+           {
+            RowNote("Campos em zero ficam sem limite.");
+            RowNote("ATIVAR DD exige DRAWDOWN ON com Max DD > 0.");
+            RowNote("Contadores e P/L bruto persistem e resetam no novo dia.");
+           }
+         else
+           {
+            RowNoteSem("DAY em bloqueio: edicao suspensa ate o novo dia.",FCV_SEM_WARN);
+            RowNoteSem("Pausar o EA nao remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
+            if(HasText(m_snap.dailyLimitsBlockReason))
+               RowNoteSem(m_snap.dailyLimitsBlockReason,FCV_SEM_WARN);
+           }
          Card("LIMITES DIARIOS");
          return;
+        }
+
+      //--- Drawdown. Mesma assimetria: Max DD segue editavel com a chave
+      //--- desligada; so os dois combos dependem dela.
       case 5:
+        {
+         bool ddOpen=!DrawdownConfigLocked();
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Max DD","Recuo maximo aceito a partir da base","0.00");
-         RowCombo ("Tipo DD",FCV_COMBO_DDTYPE);
-         RowCombo ("Base DD",FCV_COMBO_DDPEAK);
-         RowNote  ("Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.");
+         RowNote   ("Protege o lucro do dia depois que a meta diaria e atingida.");
+         RowToggleF("Ativo",FCV_FLD_DD_ON,ddOpen);
+         RowFieldF ("Max DD","Recuo maximo aceito a partir da base",
+                    FCV_FLD_DD_MAX,true,ddOpen);
+         RowComboF ("Tipo DD",FCV_COMBO_DDTYPE,FCV_FLD_DD_TYPE,
+                    ddOpen && DrawdownCombosEditable());
+         RowComboF ("Base DD",FCV_COMBO_DDPEAK,FCV_FLD_DD_PEAK,
+                    ddOpen && DrawdownCombosEditable());
+         if(ddOpen)
+           {
+            RowNoteSem("Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.",FCV_SEM_WARN);
+            RowNote   ("Financeiro: valor; Percentual: % da base.");
+           }
+         else if(m_snap.drawdownLimitReached)
+           {
+            RowNoteSem(HasText(m_snap.drawdownConfigLockReason)
+                       ? m_snap.drawdownConfigLockReason
+                       : "DD atingido: edicao suspensa ate o novo dia.",FCV_SEM_WARN);
+           }
+         else
+           {
+            RowNote("DD ativo: protecao de lucro ligada.");
+            RowNote("Novas entradas seguem permitidas ate tocar o Piso DD.");
+            RowNote("Edicao do DD fica suspensa ate o novo dia.");
+           }
          Card("PROTECAO DE DRAWDOWN (DD)");
 
          //--- Leitura ao vivo dentro de uma tela de configuracao: sao os
          //--- numeros que o EA calcula, nao campos. Ficam em cartao proprio
          //--- para nao parecerem editaveis por vizinhanca.
+         //--- Os dois rotulos moveis sao da 1.058: a base muda de nome com o
+         //--- modo de pico, e a folga passa a "atual" depois do gatilho.
          RowsReset();
-         RowStatic("Base atual","0,00");
-         RowStatic("Piso DD","0,00");
-         RowStatic("Folga DD","0,00");
+         RowStatic(m_draft.drawdownPeakMode==DD_PICO_FLUTUANTE ? "Pico atual" : "Base atual",
+                   DrawdownRuntimeText(m_snap.drawdownPeakProfit));
+         RowStatic("Piso DD",DrawdownRuntimeText(m_snap.drawdownFloorProfit));
+         RowStatic(m_snap.drawdownLimitReached ? "Folga atual" : "Folga DD",
+                   DrawdownRuntimeText(m_snap.drawdownBufferProfit),
+                   //--- Folga zerada ou negativa e o gatilho encostando: vermelho.
+                   (DrawdownRuntimeKnown() && m_snap.drawdownBufferProfit<=0.0)
+                      ? FCV_SEM_BAD : FCV_SEM_NEUTRAL);
+         //--- Sem repetir aqui a explicacao do modo de pico: ela ja e a dica do
+         //--- combo Base DD, tres linhas acima, e sair duas vezes na mesma tela
+         //--- fazia parecer que uma delas falava de outra coisa.
          Card("ESTADO ATUAL");
          return;
+        }
+
+      //--- Duas sequencias independentes, perda e ganho, cada uma com limite,
+      //--- acao e pausa proprios. Aqui a chave APAGA o lado inteiro, e a Pausa
+      //--- min exige ainda que a acao seja Pausar — com "Parar dia" nao ha
+      //--- pausa a configurar.
       default:
-         //--- Sao duas sequencias independentes, perda e ganho, cada uma com
-         //--- limite, acao e pausa proprios.
+        {
+         bool stOpen=!StreakConfigLocked();
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Max Loss","Perdas seguidas ate agir","0");
-         RowCombo ("Acao",FCV_COMBO_STREAK);
-         RowField ("Pausa min","Minutos parado apos a sequencia","0");
-         Card("LOSS STREAK");
+         RowNote   ("Bloqueia novas entradas apos sequencias configuradas.");
+         RowToggleF("Ativo",FCV_FLD_LOSS_STREAK_ON,stOpen);
+         RowFieldF ("Max Loss","Perdas seguidas ate agir",
+                    FCV_FLD_LOSS_STREAK_MAX,true,stOpen && LossStreakParams());
+         RowComboF ("Acao",FCV_COMBO_STREAK,FCV_FLD_LOSS_STREAK_ACT,
+                    stOpen && LossStreakParams());
+         RowFieldF ("Pausa min","Minutos parado apos a sequencia",
+                    FCV_FLD_LOSS_STREAK_PAUSE,true,stOpen && LossStreakPauseEditable());
+         Card("SEQUENCIA DE LOSS");
 
          RowsReset();
-         RowToggle("Ativo");
-         RowField ("Max Win","Ganhos seguidos ate agir","0");
-         RowCombo ("Acao",FCV_COMBO_STREAK);
-         RowField ("Pausa min","Minutos parado apos a sequencia","0");
-         Card("WIN STREAK");
+         RowToggleF("Ativo",FCV_FLD_WIN_STREAK_ON,stOpen);
+         RowFieldF ("Max Win","Ganhos seguidos ate agir",
+                    FCV_FLD_WIN_STREAK_MAX,true,stOpen && WinStreakParams());
+         RowComboF ("Acao",FCV_COMBO_STREAK,FCV_FLD_WIN_STREAK_ACT,
+                    stOpen && WinStreakParams());
+         RowFieldF ("Pausa min","Minutos parado apos a sequencia",
+                    FCV_FLD_WIN_STREAK_PAUSE,true,stOpen && WinStreakPauseEditable());
+         if(stOpen)
+           {
+            RowNote("Loss e Win sao independentes; cada lado pode ficar OFF.");
+            RowNote("PAUSAR bloqueia por minutos; PARAR DIA libera no proximo dia.");
+           }
+         else
+           {
+            RowNoteSem("Streak em bloqueio: edicao suspensa ate liberar.",FCV_SEM_WARN);
+            RowNoteSem("Pausar o EA nao remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
+           }
+         Card("SEQUENCIA DE WIN");
          return;
+        }
      }
   }
 

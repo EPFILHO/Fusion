@@ -43,6 +43,43 @@ CFusionCanvasRenderer g_panel;
 //| nome ou tipo, este harness para de compilar — que e exatamente o  |
 //| aviso que queremos.                                               |
 //+------------------------------------------------------------------+
+//--- "PERIOD_M15" -> "M15". Copia do ShortTimeframeName do EA, que e metodo de
+//--- classe e nao alcanca daqui.
+string FakeShortTF(const ENUM_TIMEFRAMES tf)
+  {
+   string name=EnumToString(tf);
+   const string prefix="PERIOD_";
+   if(StringFind(name,prefix)==0) return StringSubstr(name,StringLen(prefix));
+   return name;
+  }
+
+//--- Resumo dos TFs de CADA estrategia ligada — nao e o timeframe do grafico.
+//--- Mesma montagem de OperationalTimeframesSummary (Core/EAApplicationModules),
+//--- inclusive o detalhe de so mostrar a barra quando o TF lento difere do
+//--- rapido, e o "--" quando nenhuma estrategia esta ligada.
+string FakeTimeframesSummary(const SEASettings &st)
+  {
+   string summary="";
+   if(st.useMACross)
+     {
+      string fast=FakeShortTF(st.maFastTimeframe);
+      string slow=FakeShortTF(st.maSlowTimeframe);
+      summary="MA "+fast;
+      if(slow!=fast) summary+="/"+slow;
+     }
+   if(st.useRSI)
+     {
+      if(summary!="") summary+=" | ";
+      summary+="RSI "+FakeShortTF(st.rsiTimeframe);
+     }
+   if(st.useBollinger)
+     {
+      if(summary!="") summary+=" | ";
+      summary+="BB "+FakeShortTF(st.bbTimeframe);
+     }
+   return (summary=="" ? "--" : summary);
+  }
+
 SUIPanelSnapshot BuildFakeSnapshot(void)
   {
    SUIPanelSnapshot s;
@@ -51,18 +88,19 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    //--- memoria. Um valor absurdo vindo dai pareceria defeito do painel.
    SetDefaultSettings(s.settings);
    s.symbol            = _Symbol;
-   //--- Resumo dos TFs das estrategias ligadas, no formato que o EA monta em
-   //--- OperationalTimeframesSummary — NAO e o timeframe do grafico.
-   s.timeframe         = "MA M1/M5 | RSI M15";
+   //--- timeframe, activeStrategies e activeFilters sao DERIVADOS de settings e
+   //--- por isso ficam no fim desta funcao, depois das chaves que os alimentam.
+   //--- Escritos a mao aqui em cima, contradiziam os proprios settings do
+   //--- harness — o resumo dizia "MA M1/M5 | RSI M15" enquanto as medias
+   //--- estavam em M15/H1 e o RSI em M30, e a contagem dizia 1 estrategia com
+   //--- duas ligadas. Quem testava concluia, com razao, que a tela e que estava
+   //--- errada.
    s.activeProfileName = "BTCUSD";
    s.activeProfileFileMissing = false;
    s.started           = false;
    s.hasPosition       = false;
    s.runtimeBlocked    = false;
    s.magicNumber       = 10001;
-   s.activeStrategies  = 1;
-   s.activeFilters     = 0;
-   s.conflictMode      = CONFLICT_PRIORITY;
    s.ownerStrategyName = "";
    //--- Motivos vazios atribuidos EXPLICITAMENTE. Em MQL5 uma string nunca
    //--- atribuida vale NULL, que nao e igual a "": deixados de fora, os testes
@@ -79,12 +117,18 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    s.drawdownConfigLockReason   = "";
    s.sessionProtectionBlockReason = "";
    s.newsProtectionBlockReason  = "";
+   s.streakProtectionBlockReason  = "";
    s.tradePermissionBlocked     = false;
    s.pendingReverseExit         = false;
    s.entryBlockIsRiskStops      = false;
    s.dailyLimitsBlocked         = false;
    s.sessionProtectionBlocked   = false;
    s.newsProtectionBlocked      = false;
+   //--- Os dois bloqueios de secao que a Gestao consulta. Sem valor explicito,
+   //--- uma secao inteira poderia nascer somente-leitura no harness e o defeito
+   //--- pareceria da tela, nao do dado.
+   s.streakProtectionBlocked    = false;
+   s.drawdownConfigLocked       = false;
 
    //--- Resultados: valores escolhidos para exercitar os estados, nao para
    //--- parecerem plausiveis. Fechado positivo e flutuante negativo mostram as
@@ -104,7 +148,14 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    s.settings.lossStreakEnabled = true;
    s.settings.winStreakEnabled  = false;
    s.settings.enableDrawdown  = true;
-   s.drawdownProtectionActive = true;
+   //--- Protecao de DD NAO disparada. E deliberado: com ela em curso, o resumo
+   //--- responde ao ESTADO e ignora a chave — um DD que ja disparou continua
+   //--- valendo mesmo com a chave desligada depois, e dizer "OFF" ali esconderia
+   //--- um bloqueio em vigor (regra da 1.058, preservada). So que no harness o
+   //--- estado e constante, entao o selo ficava preso em ATIVO e a chave parecia
+   //--- morta. Com false, a chave manda e da para testa-la.
+   //--- Para exercitar o caminho oposto, ligar esta linha ou drawdownLimitReached.
+   s.drawdownProtectionActive = false;
    s.drawdownLimitReached     = false;
    s.drawdownPeakProfit       = 180.00;
    s.drawdownFloorProfit      = 144.00;
@@ -182,12 +233,98 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    s.settings.bbFilterSlopeDirectionEnabled = true;
    s.settings.bbFilterSlopeLookback   = 7;
    s.settings.bbFilterMinSlopePoints  = 35;
+
+   //--- Gestao > Risco, tambem fora do padrao, pelo mesmo motivo dos demais.
+   //--- As chaves do TP parcial ficam LIGADAS de proposito: so com TP1 ativo da
+   //--- para ver que TP2 e o TP Final Livre deixam de estar apagados, que e a
+   //--- dependencia mais facil de portar errado.
+   s.settings.fixedLot              = 0.30;
+   s.settings.slippagePoints        = 15;
+   s.settings.fixedSLPoints         = 350;
+   s.settings.fixedTPPoints         = 700;
+   s.settings.compensateSLSpread    = true;
+   s.settings.compensateTPSpread    = false;
+   s.settings.tp1.enabled           = true;
+   s.settings.tp1.percent           = 40.0;
+   s.settings.tp1.distancePoints    = 220;
+   s.settings.tp2.enabled           = true;
+   s.settings.tp2.percent           = 35.0;
+   s.settings.tp2.distancePoints    = 480;
+   s.settings.freeFinalTP           = false;
+   s.settings.usePartialTP          = s.settings.tp1.enabled;   // derivado
+   s.settings.useBreakeven          = true;
+   s.settings.breakevenTriggerPoints= 95;
+   s.settings.breakevenOffsetPoints = 25;
+   s.settings.useTrailing           = false;   // apaga Inicio e Passo
+   s.settings.trailingStartPoints   = 210;
+   s.settings.trailingStepPoints    = 65;
+
+   //--- Gestao > Protecao. Cada combo numa opcao diferente da padrao, senao a
+   //--- ordem invertida de uma lista passaria despercebida — foi exatamente o
+   //--- erro encontrado nas listas de Acao Ganho, Tipo DD e Base DD.
+   s.settings.enableSpreadProtection= true;
+   s.settings.maxSpreadPoints       = 45;
+   s.settings.tradeDirection        = DIRECTION_SELL_ONLY;
+   s.settings.enableSessionFilter   = true;
+   s.settings.sessionStartHour      = 9;
+   s.settings.sessionStartMinute    = 30;
+   s.settings.sessionEndHour        = 17;
+   s.settings.sessionEndMinute      = 45;
+   s.settings.sessionOvernight      = false;
+   s.settings.closeOnSessionEnd     = true;
+   //--- Tres janelas com horarios distintos: um valor repetido nao provaria que
+   //--- cada uma escreve no seu proprio item do array.
+   s.settings.newsWindows[0].enabled     = true;
+   s.settings.newsWindows[0].startHour   = 10;
+   s.settings.newsWindows[0].startMinute = 25;
+   s.settings.newsWindows[0].endHour     = 10;
+   s.settings.newsWindows[0].endMinute   = 40;
+   s.settings.newsWindows[0].action      = NEWS_ACTION_CLOSE_AND_BLOCK;
+   s.settings.newsWindows[1].enabled     = false;
+   s.settings.newsWindows[1].startHour   = 14;
+   s.settings.newsWindows[1].startMinute = 55;
+   s.settings.newsWindows[1].endHour     = 15;
+   s.settings.newsWindows[1].endMinute   = 10;
+   s.settings.newsWindows[1].action      = NEWS_ACTION_BLOCK_ENTRIES;
+   s.settings.newsWindows[2].enabled     = true;
+   s.settings.newsWindows[2].startHour   = 21;
+   s.settings.newsWindows[2].startMinute = 5;
+   s.settings.newsWindows[2].endHour     = 21;
+   s.settings.newsWindows[2].endMinute   = 20;
+   s.settings.newsWindows[2].action      = NEWS_ACTION_CLOSE_AND_BLOCK;
+   s.settings.enableDailyLimits     = true;
+   s.settings.maxDailyTrades        = 12;
+   s.settings.maxDailyLoss          = 250.00;
+   s.settings.maxDailyGain          = 500.00;
+   s.settings.profitTargetAction    = PROFIT_ACTION_ATIVAR_DD;
+   s.settings.maxDrawdown           = 30.00;
+   s.settings.drawdownType          = DD_TIPO_PERCENTUAL;
+   s.settings.drawdownPeakMode      = DD_PICO_REALIZADO;
+   //--- lossStreakEnabled e winStreakEnabled ja foram definidos acima, em
+   //--- estados opostos: mostram de uma vez o lado editavel e o apagado. A acao
+   //--- de perda vai para Parar dia, que APAGA a Pausa min daquele lado.
+   s.settings.maxLossStreak         = 4;
+   s.settings.lossStreakAction      = STREAK_ACTION_STOP_DAY;
+   s.settings.lossStreakPauseMinutes= 45;
+   s.settings.maxWinStreak          = 6;
+   s.settings.winStreakAction       = STREAK_ACTION_PAUSE;
+   s.settings.winStreakPauseMinutes = 20;
+
    //--- O snapshot repete as tres chaves fora de settings; divergir aqui
    //--- mascararia justamente o erro que esses campos existem para revelar.
    s.useMACross  = s.settings.useMACross;
    s.useRSI      = s.settings.useRSI;
    s.useBollinger= s.settings.useBollinger;
    s.conflictMode= s.settings.conflictMode;
+
+   //--- Derivados, calculados a partir das chaves acima e nao escritos a mao.
+   s.timeframe        = FakeTimeframesSummary(s.settings);
+   s.activeStrategies = (s.settings.useMACross ? 1 : 0) +
+                        (s.settings.useRSI ? 1 : 0) +
+                        (s.settings.useBollinger ? 1 : 0);
+   s.activeFilters    = (s.settings.useTrendFilter ? 1 : 0) +
+                        (s.settings.useRSIFilter ? 1 : 0) +
+                        (s.settings.bbFilterEnabled ? 1 : 0);
    return s;
   }
 

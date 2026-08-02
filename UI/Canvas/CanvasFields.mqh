@@ -95,4 +95,86 @@
 #define FCV_FLD_BF_SLOPE_BACK    108   // int
 #define FCV_FLD_BF_SLOPE_MINPTS  109   // int
 
+//--- Gestao > Risco -------------------------------------------------
+//--- O lote e o unico campo formatado pela especificacao do ativo
+//--- (FusionFormatVolume); os demais sao inteiro ou decimal de 2 casas.
+#define FCV_FLD_FIXED_LOT        120   // double(spec)
+#define FCV_FLD_SLIPPAGE         121   // int
+#define FCV_FLD_SL_POINTS        122   // int
+#define FCV_FLD_TP_POINTS        123   // int
+#define FCV_FLD_COMP_SL          124   // bool
+#define FCV_FLD_COMP_TP          125   // bool
+#define FCV_FLD_TP1_ON           126   // bool
+#define FCV_FLD_TP1_PCT          127   // double(2)
+#define FCV_FLD_TP1_DIST         128   // int
+#define FCV_FLD_TP2_ON           129   // bool
+#define FCV_FLD_TP2_PCT          130   // double(2)
+#define FCV_FLD_TP2_DIST         131   // int
+#define FCV_FLD_FREE_TP          132   // bool
+#define FCV_FLD_BE_ON            133   // bool
+#define FCV_FLD_BE_TRIGGER       134   // int
+#define FCV_FLD_BE_OFFSET        135   // int
+#define FCV_FLD_TRAIL_ON         136   // bool
+#define FCV_FLD_TRAIL_START      137   // int
+#define FCV_FLD_TRAIL_STEP       138   // int
+
+//--- Gestao > Protecao > Entrada
+#define FCV_FLD_SPREAD_ON        140   // bool
+#define FCV_FLD_SPREAD_MAX       141   // int
+#define FCV_FLD_DIRECTION        142   // combo SIDE
+
+//--- Faixa de cada metade de um horario. Sao os limites que a 1.058 usa ao
+//--- recortar o texto digitado (IsTimeEditObject).
+#define FCV_HOUR_MAX    23
+#define FCV_MINUTE_MAX  59
+
+//--- Gestao > Protecao > Sessao. Hora e minuto sao chaves separadas no
+//--- struct, com faixas diferentes (0..23 e 0..59).
+#define FCV_FLD_SESSION_ON       143   // bool
+#define FCV_FLD_SESS_START_H     144   // int
+#define FCV_FLD_SESS_START_M     145   // int
+#define FCV_FLD_SESS_END_H       146   // int
+#define FCV_FLD_SESS_END_M       147   // int
+#define FCV_FLD_SESS_CLOSE       148   // bool
+#define FCV_FLD_SESS_OVERNIGHT   149   // bool
+
+//--- Gestao > Protecao > Noticias: tres janelas iguais
+//--- (FUSION_NEWS_WINDOW_COUNT), seis campos cada, em blocos de 10 para o
+//--- indice da janela caber na aritmetica sem tabela.
+#define FCV_FLD_NEWS0            150
+#define FCV_FLD_NEWS_STRIDE       10
+#define FCV_FLD_NEWS_ON           0    // bool    150 / 160 / 170
+#define FCV_FLD_NEWS_START_H      1    // int
+#define FCV_FLD_NEWS_START_M      2    // int
+#define FCV_FLD_NEWS_END_H        3    // int
+#define FCV_FLD_NEWS_END_M        4    // int
+#define FCV_FLD_NEWS_MODE         5    // combo NEWS
+//--- Campo da janela w. Fora deste intervalo os switches nao respondem.
+#define FCV_FLD_NEWS(w,f)  (FCV_FLD_NEWS0+(w)*FCV_FLD_NEWS_STRIDE+(f))
+#define FCV_FLD_NEWS_LAST  (FCV_FLD_NEWS(FUSION_NEWS_WINDOW_COUNT-1,FCV_FLD_NEWS_MODE))
+
+//--- Gestao > Protecao > Limites Diarios
+#define FCV_FLD_DAY_ON           190   // bool
+#define FCV_FLD_DAY_TRADES       191   // int
+#define FCV_FLD_DAY_LOSS         192   // double(2)
+#define FCV_FLD_DAY_GAIN         193   // double(2)
+#define FCV_FLD_DAY_ACTION       194   // combo TARGET
+
+//--- Gestao > Protecao > Drawdown
+#define FCV_FLD_DD_ON            200   // bool
+#define FCV_FLD_DD_MAX           201   // double(2)
+#define FCV_FLD_DD_TYPE          202   // combo DDTYPE
+#define FCV_FLD_DD_PEAK          203   // combo DDPEAK
+
+//--- Gestao > Protecao > Sequencias. Perda e ganho sao independentes: cada
+//--- lado tem chave, limite, acao e pausa proprios.
+#define FCV_FLD_LOSS_STREAK_ON   210   // bool
+#define FCV_FLD_LOSS_STREAK_MAX  211   // int
+#define FCV_FLD_LOSS_STREAK_ACT  212   // combo STREAK
+#define FCV_FLD_LOSS_STREAK_PAUSE 213  // int
+#define FCV_FLD_WIN_STREAK_ON    214   // bool
+#define FCV_FLD_WIN_STREAK_MAX   215   // int
+#define FCV_FLD_WIN_STREAK_ACT   216   // combo STREAK
+#define FCV_FLD_WIN_STREAK_PAUSE 217   // int
+
 #endif

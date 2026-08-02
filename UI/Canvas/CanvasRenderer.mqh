@@ -27,6 +27,7 @@
 #include "..\..\Core\SettingsNotices.mqh"
 //--- Comparacao campo a campo: e ela que responde "ha alteracao pendente?".
 #include "..\..\Core\SettingsCompare.mqh"
+#include "..\..\Core\VolumeFormat.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"
 #include "CanvasFields.mqh"
@@ -52,7 +53,7 @@ private:
    int               m_sub[FCV_TAB_COUNT];    // nivel 2, guardado por aba
    int               m_railSel[2];            // nivel 3, guardado por Risco e Protecao
    bool              m_minimized;
-   //--- Pendencia de controles ainda NAO ligados a SEASettings (Gestao, Perfis,
+   //--- Pendencia de controles ainda NAO ligados a SEASettings (Perfis e
    //--- Layout). A pendencia de configuracao nao mora aqui: e a diferenca entre
    //--- rascunho e comprometido, calculada em HasPending().
    bool              m_dirty;
@@ -81,6 +82,12 @@ private:
 
    //--- Caixas publicadas pelo desenho da tela atual
    int               m_editX[FCV_CTRL_MAX], m_editY[FCV_CTRL_MAX];
+   //--- Largura por campo, e nao FCV_EDIT_W fixo: o par hora/minuto usa caixas
+   //--- estreitas. Como o slot ja carrega a tela e a posicao, a largura de um
+   //--- slot nunca muda — basta grava-la na criacao. Ela e tambem a caixa de
+   //--- acerto do clique e do foco: fixar 112 aqui faria o campo do minuto
+   //--- roubar o clique de quem esta a direita dele.
+   int               m_editW[FCV_CTRL_MAX];
    int               m_editSlot[FCV_CTRL_MAX], m_editFid[FCV_CTRL_MAX];
    string            m_editVal[FCV_CTRL_MAX];
    bool              m_editEnabled[FCV_CTRL_MAX], m_editValid[FCV_CTRL_MAX];
@@ -304,7 +311,8 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    for(int i=0;i<FCV_RAIL_MAX;++i)  m_railY[i]=0;
    for(int i=0;i<FCV_CTRL_MAX;++i)
      {
-      m_editX[i]=0; m_editY[i]=0; m_editSlot[i]=0; m_editFid[i]=FCV_FLD_NONE; m_editVal[i]="";
+      m_editX[i]=0; m_editY[i]=0; m_editW[i]=FCV_EDIT_W;
+      m_editSlot[i]=0; m_editFid[i]=FCV_FLD_NONE; m_editVal[i]="";
       m_editEnabled[i]=true; m_editValid[i]=true;
       m_toggleX[i]=0; m_toggleY[i]=0; m_toggleSlot[i]=0; m_toggleFid[i]=FCV_FLD_NONE;
       m_comboX[i]=0; m_comboY[i]=0; m_comboW[i]=0; m_comboSlot[i]=0; m_comboKind[i]=0;
@@ -324,19 +332,14 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
      };
    ArrayCopy(m_swatches,sw);
 
-   //--- Estados iniciais: dao variedade visual e mantem o erro fake coerente —
-   //--- a janela de noticias esta ATIVA e com horarios invalidos, que e o que
-   //--- justifica o vermelho subindo ate a aba Config.
+   //--- Estado inicial dos controles que AINDA sao locais. Toda tela ligada ao
+   //--- rascunho aposenta a sua linha daqui: o valor passa a vir de SEASettings,
+   //--- e semear o slot local nao muda mais nada — pior, sugere que muda.
+   //--- Restam os de Layout, unica aba que ainda nao le do rascunho.
    m_stToggle[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_INDICATORS)]=true;
    int swatch[5]={6,15,26,16,13};   // MA Rapida, MA Lenta, Trend M1, Trend M2, Bandas
    for(int i=0;i<5;++i)
       m_stColor[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_COLOR0+i*FCV_VISUAL_SLOT_STRIDE)]=swatch[i];
-   m_stToggle[(FCV_SCREEN_STRAT0+0)*FCV_SLOT_MAX+0]=true; // Estrategias > Geral > MA Cross
-   m_stToggle[(FCV_SCREEN_STRAT0+1)*FCV_SLOT_MAX+0]=true; // Estrategias > Medias > Ativo
-   m_stToggle[(FCV_SCREEN_FILTER0+0)*FCV_SLOT_MAX+0]=true;// Filtros > Geral > Tendencia
-   m_stToggle[(FCV_SCREEN_RISK0+1)*FCV_SLOT_MAX+2]=true;  // Risco > SL/TP > Compensar Spread SL
-   m_stToggle[(FCV_SCREEN_PROT0+2)*FCV_SLOT_MAX+0]=true;  // Protecao > Sessao > Ativo
-   m_stToggle[(FCV_SCREEN_PROT0+3)*FCV_SLOT_MAX+0]=true;  // Protecao > Noticias > Janela 1
   }
 
 //+------------------------------------------------------------------+
