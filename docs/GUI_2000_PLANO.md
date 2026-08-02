@@ -168,9 +168,38 @@ A Fase 2 avanca em quatro etapas:
 | Etapa | Entrega | Estado |
 |---|---|---|
 | **2a** | Esqueleto: os 8 metodos, ciclo de vida delegando ao renderizador | feita |
-| **2b** | Telas lendo e escrevendo o rascunho de `SEASettings` | Status, Resultados, Estrategias, Filtros e Gestao feitas; **faltam Perfis e Layout** |
+| **2b** | Telas lendo e escrevendo o rascunho de `SEASettings` | **feita** — as sete abas leem dados reais; nenhum valor fixo da Fase 1 sobrou |
 | **2c** | Comandos saindo do painel: `ConsumeCommand` | pendente |
 | **2d** | Validacao, `configInputsValid` e politica de conflito | pendente |
+
+**O que a 2b entregou, por natureza de dado.** Nem tudo virou campo de
+`SEASettings`, e a diferenca importa para quem for mexer:
+
+- **Rascunho de `SEASettings`** — Estrategias, Filtros, Gestao (Risco e Protecao),
+  o Magic em Perfis e os indicadores visuais em Layout. Passam por SALVAR.
+- **Somente leitura do snapshot** — Status e Resultados.
+- **Estado de DISCO** — a lista de perfis. Quem enumera e quem constroi o painel
+  (`CFusionCanvasPanel` tem um `CSettingsStore`, como a 1.058); o renderizador
+  recebe pronta e nao toca em `Persistence`.
+- **Preferencia de exibicao** — paleta, tema e escala. Vivem em variavel global
+  do terminal, valem para todo grafico e sao aplicadas no ato: **nao** entram no
+  perfil e **nao** criam pendencia.
+
+### Divida registrada para a 2c
+
+Tres coisas foram deixadas prontas para receber comando, e nenhuma pode ser
+esquecida quando ele existir:
+
+1. **Revalidar no instante da acao.** A tela decide o que oferecer com dados em
+   cache — as travas de concorrencia sao reconsultadas no maximo uma vez por
+   segundo, e a checagem de nome/Magic sai da lista de perfis lida na ultima
+   releitura. Entre o que a tela mostrou e o clique existe uma janela: CARREGAR,
+   DUPLICAR, EXCLUIR e a criacao precisam **reconferir** antes de executar.
+2. **Gravar perfil confere o disco de novo.** Outro grafico pode ter criado o
+   mesmo nome nesse intervalo.
+3. **`m_dirty`** sobrou sem uso em tela de producao (so a de estresse ainda tem
+   controle local). Ele fica porque a 2c volta a precisar de pendencia para
+   estado que nao pertence ao perfil — mas se a 2c nao usar, e para remover.
 
 ⚠️ **2c e 2d precisam fechar juntas, e a ordem importa.** Ate a 2c existir, nao ha
 caminho do rascunho ate o EA: nada e gravado, e por isso a ausencia de validacao **nao
@@ -184,6 +213,24 @@ sistema em vez de melhorar.
 
 Tres coisas foram deixadas de fora de proposito ate aqui. Nenhuma e esquecimento;
 todas pertencem a mesma camada e se resolvem juntas.
+
+> **Nota da 2b.** A camada de acesso deu **quatro** furos achados em revisao, todos
+> por um motivo so: **nao existe uma regra unica de "campo"**. Quem for mexer nela
+> comece por aqui.
+> - `activeProfileEditable` = `runtimeEditable && !peerLock` governa os campos do
+>   perfil ativo, o SALVAR e a administracao de perfis. Ligar so `runtimeEditable`
+>   deixava editar um perfil preso por outro grafico e nao poder salvar.
+> - Mas os campos do formulario de **criar** seguem outra regra —
+>   `profileCreateAllowed`, que **nao** exige `activeProfileEditable`, porque criar
+>   nao mexe no que esta preso e e uma saida do bloqueio. Aplicar a regra do perfil
+>   ativo ali trancava o formulario que o NOVO acabara de abrir.
+> - E a pendencia so pesa para **entrar** no formulario, nao dentro dele
+>   (`profileEditMode || !hasPendingChanges`).
+> - O predicado estava **escrito por extenso em varios pontos**, e foi a copia
+>   faltando num terceiro que abriu o furo. Hoje e uma funcao so.
+>
+> Licao para a 2d: auditar essa camada **inteira de uma vez**, e nao tela a tela —
+> ela nao se deixa fechar por partes.
 
 **1. A camada de acesso — FEITA.** Os predicados da 1.058 (`UIPanelAccessState.mqh`)
 foram portados para `CanvasRendererChrome.mqh`: iniciar, pausar, salvar, cancelar,
