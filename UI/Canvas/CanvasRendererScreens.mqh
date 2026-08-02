@@ -650,16 +650,25 @@ void ScreenProfiles(void)
       //--- Nome e Magic sao os dois campos que definem um perfil novo. O Magic
       //--- vem preenchido na duplicacao porque copiar exige troca-lo: dois
       //--- perfis com o mesmo Magic fariam o EA confundir as proprias ordens.
+      //--- Os quatro criterios da 1.058, conferidos contra a lista ja lida:
+      //--- nome preenchido, nome livre, Magic valido e Magic livre.
+      bool nameBad=false, magicBad=false;
+      string formError="";
+      bool formReady=ProfileFormReady(nameBad,magicBad,formError);
+
       RowsReset();
-      RowField("Nome","Como o perfil aparece na lista","");
+      RowField("Nome","Como o perfil aparece na lista","",!nameBad);
       //--- O Magic da criacao ainda e local: ele nao pode escrever no rascunho,
       //--- que descreve o perfil ATIVO, e nao o que esta sendo criado. Quem o
       //--- transporta para o perfil novo e o comando de gravar, na Etapa 2c.
-      RowField("Magic","Precisa ser diferente de todos os outros","");
-      RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
-                 ". Ajuste o Magic e clique CRIAR COPIA."
-               : "Informe um nome e clique CRIAR PERFIL.");
+      RowField("Magic","Precisa ser diferente de todos os outros","",!magicBad);
+      if(StringLen(formError)>0)
+         RowNoteSem(formError,FCV_SEM_BAD);
+      else
+         RowNote (m_profEdit==FCV_PROF_DUP
+                  ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
+                    ". Ajuste o Magic e clique CRIAR COPIA."
+                  : "Informe um nome e um Magic livre, e clique CRIAR PERFIL.");
       Card(m_profEdit==FCV_PROF_DUP ? "DUPLICAR COMO" : "NOVO PERFIL");
 
       //--- Os rotulos nomeiam a acao, nao a categoria. "SALVAR" e "CANCELAR"
@@ -667,9 +676,14 @@ void ScreenProfiles(void)
       //--- alteracoes do perfil ativo. Repetir a palavra faria o usuario
       //--- decidir qual dos dois e o certo em vez de simplesmente ler.
       int bw=(m_fx2-m_fx1-8)/2;
+      //--- So acende com os quatro criterios satisfeitos. Antes acendia sempre,
+      //--- e um botao que promete gravar sem ter o que gravar so descobre o
+      //--- problema depois do clique.
+      //--- Falta ainda o configInputsValid da 1.058 — a validade da configuracao
+      //--- INTEIRA, que e a Etapa 2d. Por ora vale true, o que AFROUXA.
       PutButton(m_fx1,m_fy,bw,30,
                 m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
-                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,true);
+                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady);
       PutButton(m_fx1+bw+8,m_fy,bw,30,"DESCARTAR",
                 false,m_t.warn,m_t.onAcc,FCV_BTN_CANCEL,true);
       m_fy+=30+FCV_CARD_GAP;

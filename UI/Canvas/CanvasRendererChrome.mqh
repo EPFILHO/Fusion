@@ -327,6 +327,108 @@ int ProfileActionsLeft(void) { return m_fx2-FCV_PROF_ACT_W; }
 int ProfileNavLeft(void)     { return ProfileActionsLeft()-FCV_PROF_COL_GAP-FCV_PROF_NAV_W; }
 int ProfileListRight(void)   { return ProfileNavLeft()-FCV_PROF_COL_GAP; }
 
+//+------------------------------------------------------------------+
+//| Formulario de criar/duplicar: o que ele tem e se da para gravar.  |
+//|                                                                   |
+//| A regra e a de ProfileEditDraftState (UIPanelProfileValidation):  |
+//| nome preenchido, nome livre, Magic valido e Magic livre. Os quatro,|
+//| ou o botao nao acende.                                            |
+//|                                                                   |
+//| A 1.058 pergunta ao disco (ProfileExists, FindProfileByMagicNumber)|
+//| a cada passada. Aqui a resposta sai da LISTA JA CARREGADA, que tem |
+//| nome e Magic de todos: mesma informacao, sem tocar em disco por    |
+//| quadro. O preco e a lista poder estar velha — outro grafico pode   |
+//| ter criado um perfil desde a ultima leitura —, e por isso o        |
+//| comando de gravar tera de reconferir no disco na 2c. Aqui o papel  |
+//| e nao deixar o usuario preencher um formulario que ja se sabe      |
+//| impossivel.                                                       |
+//+------------------------------------------------------------------+
+//--- Slots do formulario, na ordem em que as linhas sao declaradas. Nomeados
+//--- porque a validacao le por indice: inverter as duas linhas sem mexer aqui
+//--- faria o nome ser validado como Magic.
+#define FCV_PROF_SLOT_NAME   0
+#define FCV_PROF_SLOT_MAGIC  1
+
+int ProfileFormSlot(const int seq)
+  { return FCV_SCREEN_PROFILE_EDIT*FCV_SLOT_MAX+seq; }
+
+//--- Espacos das pontas fora. A 1.058 apara ANTES de sanear e a ordem importa:
+//--- saneando primeiro, "   " viraria "___" — um nome nao vazio feito de nada.
+string TrimEdges(const string s)
+  {
+   int a=0, b=StringLen(s);
+   while(a<b && StringGetCharacter(s,a)==' ') a++;
+   while(b>a && StringGetCharacter(s,b-1)==' ') b--;
+   return StringSubstr(s,a,b-a);
+  }
+
+//--- Nome ja na forma com que viraria arquivo: e essa que precisa ser unica.
+string ProfileFormName(void)
+  { return ProfileKey(TrimEdges(m_stEdit[ProfileFormSlot(FCV_PROF_SLOT_NAME)])); }
+
+bool ProfileFormMagic(int &magic)
+  {
+   magic=0;
+   string t=TrimEdges(m_stEdit[ProfileFormSlot(FCV_PROF_SLOT_MAGIC)]);
+   if(StringLen(t)==0) return false;
+   //--- Inteiro positivo e so digitos: "12a" nao vira 12 por StringToInteger
+   //--- sem ninguem perceber.
+   for(int i=0;i<StringLen(t);++i)
+     {
+      ushort ch=StringGetCharacter(t,i);
+      if(ch<'0' || ch>'9') return false;
+     }
+   magic=(int)StringToInteger(t);
+   return (magic>0);
+  }
+
+bool ProfileNameTaken(const string key)
+  {
+   if(StringLen(key)==0) return false;
+   for(int i=0;i<m_profCount;++i)
+      if(ProfileKey(m_profName[i])==key) return true;
+   return false;
+  }
+
+bool ProfileMagicTaken(const int magic,string &owner)
+  {
+   owner="";
+   if(magic<=0) return false;
+   for(int i=0;i<m_profCount;++i)
+      if(m_profMagic[i]==magic) { owner=m_profName[i]; return true; }
+   return false;
+  }
+
+//--- Estado completo do formulario. `nameBad`/`magicBad` marcam o campo de
+//--- vermelho, e so quando ha CONTEUDO errado: campo ainda vazio nao e erro, e
+//--- pintar um formulario intocado de vermelho e gritar antes da hora — o botao
+//--- apagado ja diz que falta preencher. (A 1.058 pinta o Magic vazio porque la
+//--- ele nasce preenchido; aqui nasce em branco.)
+bool ProfileFormReady(bool &nameBad,bool &magicBad,string &error)
+  {
+   nameBad=false; magicBad=false; error="";
+
+   string key=ProfileFormName();
+   bool hasName=(StringLen(key)>0);
+   bool nameFree=(hasName && !ProfileNameTaken(key));
+
+   int magic=0;
+   bool magicOk=ProfileFormMagic(magic);
+   string owner="";
+   bool magicFree=(magicOk && !ProfileMagicTaken(magic,owner));
+
+   bool magicTyped=(StringLen(TrimEdges(m_stEdit[ProfileFormSlot(FCV_PROF_SLOT_MAGIC)]))>0);
+
+   if(hasName && !nameFree)
+     { nameBad=true;  error="Nome ja existe. Escolha outro nome."; }
+   else if(magicTyped && !magicOk)
+     { magicBad=true; error="Magic invalido. Informe um numero inteiro positivo."; }
+   else if(magicOk && !magicFree)
+     { magicBad=true; error="Magic ja usado pelo perfil "+owner+"."; }
+
+   return (hasName && nameFree && magicOk && magicFree);
+  }
+
 //--- Rolagem da lista de perfis. Portada de UIPanelProfileListView.mqh, que
 //--- resolve os mesmos dois casos: nao deixar o deslocamento passar do fim, e
 //--- trazer a selecao de volta para dentro da janela quando ela sai (ao trocar
