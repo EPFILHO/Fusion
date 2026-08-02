@@ -88,8 +88,17 @@
 //--- roxo, marrom sob o ambar) e quebrava justamente a leitura que a grade
 //--- existe para dar: descer numa coluna e escurecer a MESMA cor.
 //--- Agora cada coluna e uma rampa de uma cor so, do claro ao escuro.
-#define FCV_SWATCH_COUNT 40
+//--- A ULTIMA linha e de cores PURAS (clrLime, clrMagenta, clrYellow...), cada
+//--- uma na coluna do seu matiz. Elas nao pertencem a rampa: nao sao "mais
+//--- escuras que a mais escura", sao outra categoria — a versao saturada
+//--- daquela cor, que sobre candles le melhor do que o tom harmonico.
+//--- Por isso ganham um VAO antes: sem ele, a leitura "descer escurece" se
+//--- quebraria sem aviso na ultima casa.
+#define FCV_SWATCH_COUNT 48
 #define FCV_SWATCH_COLS   8
+#define FCV_SWATCH_ROWS  (FCV_SWATCH_COUNT/FCV_SWATCH_COLS)
+#define FCV_SWATCH_CELL  26
+#define FCV_SWATCH_GAP    8
 
 //--- Controles publicados por passada. O limite e por tela desenhada, nao
 //--- pelo total do painel: o que nao esta na tela nao publica caixa.

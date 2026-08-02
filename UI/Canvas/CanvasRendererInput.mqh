@@ -43,9 +43,18 @@ bool HandleColorClick(const int lx,const int ly)
       ColorPopupBox(m_colorOpen,x,y,w,h);
       if(lx>=x && lx<x+w && ly>=y && ly<y+h)
         {
-         int c=(lx-x-5)/26, r=(ly-y-5)/26;
-         int idx=r*FCV_SWATCH_COLS+c;
-         if(c>=0 && c<FCV_SWATCH_COLS && idx>=0 && idx<FCV_SWATCH_COUNT)
+         int c=(lx-x-5)/FCV_SWATCH_CELL;
+         //--- A linha e procurada, nao calculada: com o vao antes da faixa das
+         //--- puras, uma divisao simples cairia na casa errada — e clicar no vao
+         //--- passaria a escolher a cor de cima.
+         int rel=ly-y-5, r=-1;
+         for(int rr=0;rr<FCV_SWATCH_ROWS;++rr)
+           {
+            int cy0=SwatchCellY(rr);
+            if(rel>=cy0 && rel<cy0+FCV_SWATCH_CELL) { r=rr; break; }
+           }
+         int idx=(r>=0) ? r*FCV_SWATCH_COLS+c : -1;
+         if(r>=0 && c>=0 && c<FCV_SWATCH_COLS && idx>=0 && idx<FCV_SWATCH_COUNT)
            {
             int fid=m_colorFid[m_colorOpen];
             if(fid!=FCV_FLD_NONE)

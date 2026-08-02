@@ -119,12 +119,7 @@ void DrawTitlebar(void)
    //--- proposito — e o simbolo, nao a amostra do tema atual; um icone tingido
    //--- de acento ficaria ambiguo com o resto dos controles preenchidos.
    int tx=FCV_PANEL_W-76, ty=16, tr=7;
-   for(int dy=-tr;dy<=tr;++dy)
-      for(int dx=-tr;dx<=tr;++dx)
-        {
-         if(dx*dx+dy*dy>tr*tr) continue;
-         Rect(tx+dx,ty+dy,tx+dx,ty+dy,(dx<0)?FCV_OPAQUE(20,20,24):FCV_OPAQUE(248,248,251));
-        }
+   HalfDisc(tx,ty,tr,FCV_OPAQUE(20,20,24),FCV_OPAQUE(248,248,251));
    Ring(tx,ty,tr,m_t.muted);
 
    //--- Reajustar altura ao grafico. Duas setas divergentes liam como "X" de

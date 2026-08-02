@@ -60,6 +60,44 @@ void Ring(const int x,const int y,const int r,const uint c)
 void HLine(const int x1,const int x2,const int y,const uint c)
   { Rect(x1,y,x2,y,c); }
 
+//+------------------------------------------------------------------+
+//| Formas de PIXEL, medidas em pixel de dispositivo.                 |
+//|                                                                   |
+//| Existem porque desenhar forma pequena somando 1 UNIDADE LOGICA de  |
+//| cada vez nao funciona com escala inteira: S(v)=floor(v*escala/100),|
+//| entao o passo de v para v+1 vale 1 ou 2 pixels reais conforme o    |
+//| resto de v. Numa borda isso dobrava a espessura de um lado; numa   |
+//| seta de 4 linhas, umas saem grossas e entre outras abre fresta —   |
+//| e o defeito troca de controle conforme a altura em que ele cai.    |
+//|                                                                   |
+//| Regra: o que depende de "um pixel" se mede em pixel, nunca em      |
+//| unidade logica. A POSICAO continua vindo em unidade logica.        |
+//+------------------------------------------------------------------+
+//--- Seta para baixo dos combos e da amostra de cor. Tamanho constante em
+//--- pixel: e uma marca de interface, nao conteudo — crescer com a escala so a
+//--- deixaria pesada dentro de um controle que quase nao cresce.
+void ChevronDown(const int lx,const int ly,const uint c)
+  {
+   int cx=S(lx), cy=S(ly);
+   for(int k=0;k<4;++k)
+      m_canvas.FillRectangle(cx-3+k,cy+k,cx+3-k,cy+k,c);
+  }
+
+//--- Disco dividido ao meio na vertical. Cada pixel real e pintado UMA vez;
+//--- a versao anterior percorria o circulo em unidade logica e pintava uns
+//--- pixels duas vezes e outros nenhuma, deixando a borda serrilhada irregular
+//--- e a costura entre as metades torta.
+void HalfDisc(const int lx,const int ly,const int lr,const uint left,const uint right)
+  {
+   int cx=S(lx), cy=S(ly), r=S(lr);
+   for(int dy=-r;dy<=r;++dy)
+      for(int dx=-r;dx<=r;++dx)
+        {
+         if(dx*dx+dy*dy>r*r) continue;
+         m_canvas.PixelSet(cx+dx,cy+dy,(dx<0)?left:right);
+        }
+  }
+
 //--- CCanvas nao antialiasa; os cantos sao suavizados a mao, misturando com a
 //--- cor de fundo conhecida. O laco roda em pixels de dispositivo — arredondar
 //--- o raio antes de percorrer deixaria buracos na borda.

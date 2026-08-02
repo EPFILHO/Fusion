@@ -373,8 +373,7 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
    RoundRect(cx+1,cy+1,cx+w-FCV_SWATCH_ARROW_W,cy+FCV_EDIT_H-1,
              FCV_RADIUS_CTRL-2,fill,plate,FCV_CORNER_LEFT);
    uint arrow = !en ? m_t.disabled : m_t.muted;
-   int axx=cx+w-FCV_SWATCH_ARROW_W/2-1, ayy=cy+FCV_EDIT_H/2-2;
-   for(int k=0;k<4;++k) Rect(axx-3+k,ayy+k,axx+3-k,ayy+k,arrow);
+   ChevronDown(cx+w-FCV_SWATCH_ARROW_W/2-1,cy+FCV_EDIT_H/2-2,arrow);
 
    if(!en || m_colorCount>=FCV_CTRL_MAX) return;
    m_colorX[m_colorCount]=cx;
@@ -430,8 +429,7 @@ void PutCombo(const int cx,const int cy,const int w,const int kind,
    //--- Valor de combo e palavra, nao numero: vai na fonte de interface.
    //--- Consolas fica reservada ao que precisa alinhar em coluna.
    Txt(cx+10,cy+FCV_EDIT_H/2,items[idx],text,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
-   int ax=cx+w-15, ay=cy+FCV_EDIT_H/2-2;
-   for(int k=0;k<4;++k) Rect(ax-3+k,ay+k,ax+3-k,ay+k,arrow);
+   ChevronDown(cx+w-15,cy+FCV_EDIT_H/2-2,arrow);
 
    if(!en || m_comboCount>=FCV_CTRL_MAX) return;
    m_comboX[m_comboCount]=cx;

@@ -495,7 +495,12 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
       FCV_OPAQUE(102,187,106), FCV_OPAQUE(38,198,218),  FCV_OPAQUE(66,165,245),  FCV_OPAQUE(126,87,194),  FCV_OPAQUE(236,64,122),  FCV_OPAQUE(239,83,80),   FCV_OPAQUE(255,202,40),  FCV_OPAQUE(176,190,197),
       FCV_OPAQUE(67,160,71),   FCV_OPAQUE(0,172,193),   FCV_OPAQUE(30,136,229),  FCV_OPAQUE(94,53,177),   FCV_OPAQUE(216,27,96),   FCV_OPAQUE(229,57,53),   FCV_OPAQUE(255,160,0),   FCV_OPAQUE(120,144,156),
       FCV_OPAQUE(46,125,50),   FCV_OPAQUE(0,131,143),   FCV_OPAQUE(21,101,192),  FCV_OPAQUE(69,39,160),   FCV_OPAQUE(173,20,87),   FCV_OPAQUE(198,40,40),   FCV_OPAQUE(245,124,0),   FCV_OPAQUE(69,90,100),
-      FCV_OPAQUE(27,94,32),    FCV_OPAQUE(0,96,100),    FCV_OPAQUE(13,71,161),   FCV_OPAQUE(49,27,146),   FCV_OPAQUE(136,14,79),   FCV_OPAQUE(183,28,28),   FCV_OPAQUE(230,81,0),    FCV_OPAQUE(38,50,56)
+      FCV_OPAQUE(27,94,32),    FCV_OPAQUE(0,96,100),    FCV_OPAQUE(13,71,161),   FCV_OPAQUE(49,27,146),   FCV_OPAQUE(136,14,79),   FCV_OPAQUE(183,28,28),   FCV_OPAQUE(230,81,0),    FCV_OPAQUE(38,50,56),
+      //--- Faixa das PURAS, na coluna do proprio matiz. Sao as cores vivas que a
+      //--- 1.058 usa e que sobre candles se destacam mais que o tom harmonico.
+      //--- O preto fecha a coluna neutra: o cinza mais escuro da rampa e
+      //--- 38,50,56, e faltava preto de verdade para fundo claro.
+      FCV_OPAQUE(0,255,0),     FCV_OPAQUE(0,255,255),   FCV_OPAQUE(0,0,255),     FCV_OPAQUE(138,43,226),  FCV_OPAQUE(255,0,255),   FCV_OPAQUE(255,0,0),     FCV_OPAQUE(255,255,0),   FCV_OPAQUE(0,0,0)
      };
    ArrayCopy(m_swatches,sw);
 

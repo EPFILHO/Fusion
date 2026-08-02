@@ -183,11 +183,17 @@ void DrawComboPopup(void)
    RoundRect(tx,ty,tx+4,ty+th,2,m_t.faint,m_t.soft);
   }
 
+//--- Y da celula dentro da grade, JA com o vao que separa a faixa das puras.
+//--- Uma funcao so, usada pelo desenho e pelo hit-test: e a aritmetica que os
+//--- dois precisam concordar, e foi divergencia desse tipo que ja escondeu as
+//--- setas de Perfis atras dos botoes.
+int SwatchCellY(const int row)
+  { return row*FCV_SWATCH_CELL + ((row>=FCV_SWATCH_ROWS-1) ? FCV_SWATCH_GAP : 0); }
+
 void ColorPopupBox(const int idx,int &x,int &y,int &w,int &h)
   {
-   int cell=26, rows=FCV_SWATCH_COUNT/FCV_SWATCH_COLS;
-   w=FCV_SWATCH_COLS*cell+10;
-   h=rows*cell+10;
+   w=FCV_SWATCH_COLS*FCV_SWATCH_CELL+10;
+   h=SwatchCellY(FCV_SWATCH_ROWS-1)+FCV_SWATCH_CELL+10;
    x=m_colorX[idx]+m_colorW[idx]-w;
    y=m_colorY[idx]+24;
    if(y+h>m_ph-FCV_PAD) y=m_colorY[idx]-h-2;
@@ -215,9 +221,15 @@ void DrawColorPopup(void)
 
    PublishPopup(x,y,x+w,y+h);
    RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,m_t.acc,m_t.surface,m_t.ground);
+   //--- Filete no vao: marca que a ultima faixa e outra categoria, e nao mais um
+   //--- degrau da rampa.
+   int sepY=y+5+SwatchCellY(FCV_SWATCH_ROWS-1)-FCV_SWATCH_GAP/2;
+   HLine(x+8,x+w-8,sepY,m_t.line);
+
    for(int i=0;i<FCV_SWATCH_COUNT;++i)
      {
-      int cxx=x+5+(i%FCV_SWATCH_COLS)*26, cyy=y+5+(i/FCV_SWATCH_COLS)*26;
+      int cxx=x+5+(i%FCV_SWATCH_COLS)*FCV_SWATCH_CELL;
+      int cyy=y+5+SwatchCellY(i/FCV_SWATCH_COLS);
       RoundFrame(cxx+1,cyy+1,cxx+23,cyy+23,4,
                  (i==sel)?m_t.fg:m_t.line,m_swatches[i],m_t.surface);
      }
