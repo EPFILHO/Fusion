@@ -669,6 +669,15 @@ void ScreenProfiles(void)
                   ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
                     ". Ajuste o Magic e clique CRIAR COPIA."
                   : "Informe um nome e um Magic livre, e clique CRIAR PERFIL.");
+      //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
+      //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
+      //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que
+      //--- deixar o usuario supor que a checagem cobre tudo — ou que bloquear a
+      //--- criacao ate ele consertar um arquivo que a GUI nem sabe apagar.
+      if(m_profSkipped>0)
+         RowNoteSem(IntegerToString(m_profSkipped)+
+                    " arquivo(s) ilegivel(is): o nome deles e respeitado, mas o "+
+                    "Magic nao pode ser conferido enquanto nao abrirem.",FCV_SEM_WARN);
       Card(m_profEdit==FCV_PROF_DUP ? "DUPLICAR COMO" : "NOVO PERFIL");
 
       //--- Os rotulos nomeiam a acao, nao a categoria. "SALVAR" e "CANCELAR"

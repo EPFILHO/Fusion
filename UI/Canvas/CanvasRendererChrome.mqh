@@ -382,11 +382,15 @@ bool ProfileFormMagic(int &magic)
    return (magic>0);
   }
 
+//--- Varre TODOS os arquivos, nao so os que abriram. Um perfil ilegivel nao
+//--- aparece na lista e mesmo assim ocupa o nome: liberar a criacao sobre ele
+//--- faria a gravacao escrever por cima de um arquivo que so esta com problema
+//--- — e que o usuario provavelmente quer recuperar, nao perder.
 bool ProfileNameTaken(const string key)
   {
    if(StringLen(key)==0) return false;
-   for(int i=0;i<m_profCount;++i)
-      if(ProfileKey(m_profName[i])==key) return true;
+   for(int i=0;i<m_profAllCount;++i)
+      if(ProfileKey(m_profAllName[i])==key) return true;
    return false;
   }
 

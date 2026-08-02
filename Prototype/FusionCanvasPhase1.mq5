@@ -351,7 +351,7 @@ void LoadRealProfiles(void)
       if(!store.LoadProfile(names[i],s)) continue;
       keep[n]=names[i]; magics[n]=s.magicNumber; lots[n]=s.fixedLot; n++;
      }
-   g_panel.SetProfiles(keep,magics,lots,n,total);
+   g_panel.SetProfiles(keep,magics,lots,n,names);
    PrintFormat("Perfis lidos do disco: %d de %d arquivos.",n,total);
   }
 

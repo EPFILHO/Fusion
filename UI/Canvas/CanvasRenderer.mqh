@@ -142,6 +142,13 @@ private:
    //--- estado so aparece com arquivos copiados por fora.
    bool              m_profDup[];
    int               m_profCount;
+   //--- TODOS os nomes enumerados em disco, inclusive os que nao abriram.
+   //--- Existe separado porque um arquivo ilegivel continua OCUPANDO O NOME:
+   //--- ele nao pode ser exibido (nao ha Magic nem lote para mostrar) mas
+   //--- tambem nao pode ser esquecido, senao a tela libera criar um perfil com
+   //--- nome ja existente — e gravar por cima do arquivo que esta com problema.
+   string            m_profAllName[];
+   int               m_profAllCount;
    //--- Travas do perfil SELECIONADO, consultadas nos registros do terminal:
    //--- outro grafico rodando com aquele Magic, ou usando aquele perfil. Ficam
    //--- em cache porque a consulta percorre as variaveis globais duas vezes —
@@ -280,16 +287,22 @@ public:
    //--- A selecao e preservada PELO NOME, e nao pelo indice: entre duas
    //--- chamadas um perfil pode ter sido criado ou apagado, e guardar o indice
    //--- faria a selecao escorregar silenciosamente para o vizinho.
-   //--- foundTotal = quantos ARQUIVOS de perfil existem; count = quantos foram
-   //--- lidos com sucesso. Os dois numeros existem separados porque a diferenca
-   //--- e informacao: um perfil que esta em disco e nao abriu nao pode
-   //--- simplesmente sumir da tela — foi o que aconteceu com o setimo perfil,
-   //--- descartado em silencio, e o efeito foi identico ao de esconde-lo.
+   //--- Duas listas, de proposito:
+   //---   names/magics/lots (count) — os perfis que ABRIRAM. Sao os exibiveis:
+   //---     so deles se conhece Magic e lote.
+   //---   allNames — TODOS os arquivos enumerados. Um perfil ilegivel nao tem o
+   //---     que mostrar, mas continua ocupando o nome em disco, e e por esta
+   //---     lista que a criacao verifica duplicidade. Sem ela, criar
+   //---     "Conservador" com um Conservador.cfg corrompido em disco passaria —
+   //---     e a gravacao escreveria por cima dele.
    void              SetProfiles(const string &names[],const int &magics[],
                                  const double &lots[],const int count,
-                                 const int foundTotal)
+                                 const string &allNames[])
      {
-      m_profSkipped=foundTotal-count;
+      m_profAllCount=ArraySize(allNames);
+      ArrayResize(m_profAllName,m_profAllCount);
+      for(int i=0;i<m_profAllCount;++i) m_profAllName[i]=allNames[i];
+      m_profSkipped=m_profAllCount-count;
       if(m_profSkipped<0) m_profSkipped=0;
       string keep=(m_profSel>=0 && m_profSel<m_profCount) ? m_profName[m_profSel] : "";
       m_profCount=(count>0) ? count : 0;
@@ -396,9 +409,10 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_profRefreshWanted=false; m_viewDirty=false;
    m_profEdit=FCV_PROF_VIEW; m_btnCount=0;
    m_selRuntimeLocked=false; m_selProfileLocked=false; m_selLockReason="";
-   m_selLocksAt=0;
+   m_selLocksAt=0; m_profAllCount=0;
    ArrayResize(m_profName,0); ArrayResize(m_profMagic,0);
    ArrayResize(m_profLot,0);  ArrayResize(m_profDup,0);
+   ArrayResize(m_profAllName,0);
    for(int i=0;i<FCV_BTN_MAX;++i)
      { m_btnX[i]=0; m_btnY[i]=0; m_btnW[i]=0; m_btnH[i]=0; m_btnId[i]=FCV_BTN_NONE; }
    m_liveEditCount=0;

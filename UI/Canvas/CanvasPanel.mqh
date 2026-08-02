@@ -63,7 +63,7 @@ private:
          lots[n]  =s.fixedLot;
          n++;
         }
-      m_renderer.SetProfiles(keep,magics,lots,n,total);
+      m_renderer.SetProfiles(keep,magics,lots,n,names);
      }
 
 public:
