@@ -73,15 +73,18 @@ void HLine(const int x1,const int x2,const int y,const uint c)
 //| Regra: o que depende de "um pixel" se mede em pixel, nunca em      |
 //| unidade logica. A POSICAO continua vindo em unidade logica.        |
 //+------------------------------------------------------------------+
-//--- Seta para baixo dos combos e da amostra de cor. Tamanho constante em
-//--- pixel: e uma marca de interface, nao conteudo — crescer com a escala so a
-//--- deixaria pesada dentro de um controle que quase nao cresce.
-void ChevronDown(const int lx,const int ly,const uint c)
+//--- Seta triangular, para baixo ou para cima. Tamanho constante em pixel: e
+//--- marca de interface, nao conteudo — crescer com a escala so a deixaria
+//--- pesada dentro de um controle que quase nao cresce.
+//--- (lx,ly) e a BASE da seta; a ponta fica tres pixels adiante, no sentido.
+void Chevron(const int lx,const int ly,const bool down,const uint c)
   {
-   int cx=S(lx), cy=S(ly);
+   int cx=S(lx), cy=S(ly), step=down?1:-1;
    for(int k=0;k<4;++k)
-      m_canvas.FillRectangle(cx-3+k,cy+k,cx+3-k,cy+k,c);
+      m_canvas.FillRectangle(cx-3+k,cy+step*k,cx+3-k,cy+step*k,c);
   }
+
+void ChevronDown(const int lx,const int ly,const uint c) { Chevron(lx,ly,true,c); }
 
 //--- Disco dividido ao meio na vertical. Cada pixel real e pintado UMA vez;
 //--- a versao anterior percorria o circulo em unidade logica e pintava uns

@@ -127,25 +127,34 @@ void DrawTitlebar(void)
    HalfDisc(tx,ty,tr,FCV_OPAQUE(20,20,24),FCV_OPAQUE(248,248,251));
    Ring(tx,ty,tr,m_t.muted);
 
-   //--- Reajustar altura ao grafico. Duas setas divergentes liam como "X" de
-   //--- fechar; num painel que opera dinheiro, sugerir fechamento por engano e
-   //--- inaceitavel. Retangulo e o simbolo de maximizar que todo mundo conhece.
-   //--- Escondido enquanto minimizado: la ele nao teria o que reajustar, e
-   //--- controle visivel que nao faz nada e pior do que controle ausente.
+   //--- Reajustar altura ao grafico: SETA DUPLA VERTICAL. Ela diz o que a acao
+   //--- faz — crescer e encolher na vertical — em vez de depender de convencao
+   //--- de janela, que era o problema do retangulo: ele significava "maximizar"
+   //--- e disputava leitura com o botao de restaurar ao lado.
+   //---
+   //--- A decisao anterior de recusar setas continua valendo e nao e esta: o que
+   //--- foi recusado eram duas setas DIVERGENTES na diagonal, que liam como "X"
+   //--- de fechar. Num painel que opera dinheiro, sugerir fechamento por engano
+   //--- e inaceitavel. Vertical nao tem essa ambiguidade.
+   //---
+   //--- Escondido enquanto minimizado: la nao ha o que reajustar, e controle
+   //--- visivel que nao faz nada e pior do que controle ausente.
    if(!m_minimized)
      {
       int rx=FCV_PANEL_W-50;
-      Frame(rx-6,11,rx+6,21,m_t.muted);
-      Rect(rx-6,11,rx+6,12,m_t.muted);
+      Rect(rx,11,rx,21,m_t.muted);            // haste
+      Chevron(rx,14,false,m_t.muted);         // ponta para cima
+      Chevron(rx,18,true, m_t.muted);         // ponta para baixo
      }
 
+   //--- Minimizado, o botao RESTAURA — e a janelinha e o simbolo disso. Ela
+   //--- estava sendo gasta no reajuste de altura, onde nao queria dizer nada:
+   //--- agora cada glifo tem um significado so.
    int mx=FCV_PANEL_W-24;
    if(m_minimized)
      {
-      Rect(mx-6,13,mx+6,14,m_t.muted);
-      Rect(mx-6,13,mx-5,19,m_t.muted);
-      Rect(mx+5,13,mx+6,19,m_t.muted);
-      Rect(mx-6,18,mx+6,19,m_t.muted);
+      Frame(mx-6,12,mx+6,20,m_t.muted);
+      Rect (mx-6,12,mx+6,13,m_t.muted);
      }
    else Rect(mx-6,16,mx+6,17,m_t.muted);
   }
@@ -821,12 +830,10 @@ void DrawScrollbar(void)
    m_thumbH=(int)MathMax(28,(double)m_trackH*viewH/m_contentH);
    m_thumbY=m_trackTop+(int)((double)(m_trackH-m_thumbH)*m_scroll/maxS);
    RoundRect(FCV_SB_X,m_thumbY,FCV_SB_X+FCV_SB_W,m_thumbY+m_thumbH,3,m_t.faint,m_t.soft);
+   //--- Mesmas setas dos combos, pelo mesmo desenho: eram 4 linhas somadas em
+   //--- unidade logica e sofriam do mesmo defeito — umas grossas, outras com
+   //--- fresta, conforme a altura em que a barra comecava.
    int cx=FCV_SB_X+FCV_SB_W/2;
-   for(int i=0;i<4;++i)
-     {
-      uint cu=(m_scroll>0)?m_t.acc:m_t.soft;
-      uint cd=(m_scroll<maxS)?m_t.acc:m_t.soft;
-      Rect(cx-3+i,top+8-i,cx+3-i,top+8-i,cu);
-      Rect(cx-3+i,bottom-12+i,cx+3-i,bottom-12+i,cd);
-     }
+   Chevron(cx,top+8,     false,(m_scroll>0)    ? m_t.acc : m_t.soft);
+   Chevron(cx,bottom-12, true, (m_scroll<maxS) ? m_t.acc : m_t.soft);
   }
