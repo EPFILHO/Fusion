@@ -10,6 +10,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'build-paths.ps1')
+
 function Resolve-RequiredFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -42,69 +44,14 @@ function Resolve-RequiredDirectory {
     return (Resolve-Path -LiteralPath $Path).Path
 }
 
-function Find-MetaEditor {
-    $candidates = New-Object System.Collections.Generic.List[string]
-    $programRoots = @(
-        $env:ProgramFiles,
-        ${env:ProgramFiles(x86)}
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
-
-    foreach ($programRoot in $programRoots) {
-        Get-ChildItem -LiteralPath $programRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-            $candidate = Join-Path $_.FullName 'MetaEditor64.exe'
-            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-                $candidates.Add((Resolve-Path -LiteralPath $candidate).Path)
-            }
-        }
-    }
-
-    $unique = @($candidates | Sort-Object -Unique)
-    if ($unique.Count -eq 1) {
-        return $unique[0]
-    }
-
-    if ($unique.Count -eq 0) {
-        throw 'MetaEditor64.exe nao foi localizado automaticamente. Informe -MetaEditor.'
-    }
-
-    $list = $unique -join [Environment]::NewLine
-    throw "Mais de um MetaEditor64.exe foi encontrado. Informe -MetaEditor para evitar escolha ambigua:`n$list"
-}
-
-function Find-Mql5Root {
-    $terminalRoot = Join-Path $env:APPDATA 'MetaQuotes\Terminal'
-    if (-not (Test-Path -LiteralPath $terminalRoot -PathType Container)) {
-        throw 'Nenhuma pasta de dados MetaQuotes foi localizada. Informe -Mql5.'
-    }
-
-    $candidates = Get-ChildItem -LiteralPath $terminalRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        $candidate = Join-Path $_.FullName 'MQL5'
-        $dialogInclude = Join-Path $candidate 'Include\Controls\Dialog.mqh'
-        if (Test-Path -LiteralPath $dialogInclude -PathType Leaf) {
-            (Resolve-Path -LiteralPath $candidate).Path
-        }
-    } | Sort-Object -Unique
-
-    $matches = @($candidates)
-    if ($matches.Count -eq 1) {
-        return $matches[0]
-    }
-
-    if ($matches.Count -eq 0) {
-        throw 'Nenhuma raiz MQL5 com Include\Controls\Dialog.mqh foi localizada. Informe -Mql5.'
-    }
-
-    $list = $matches -join [Environment]::NewLine
-    throw "Mais de uma raiz MQL5 valida foi encontrada. Informe -Mql5 para evitar escolha ambigua:`n$list"
-}
+# Find-MetaEditor e Find-Mql5RootForEditor moraram aqui ate a Etapa 2b.
+# Foram para build-paths.ps1 porque o build-linked.ps1 precisa das mesmas
+# respostas para decidir onde criar o vinculo.
 
 function Invoke-MetaEditorCompile {
     param(
         [Parameter(Mandatory = $true)]
         [string]$EditorPath,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Mql5Root,
 
         [Parameter(Mandatory = $true)]
         [string]$ProjectRoot,
@@ -123,9 +70,30 @@ function Invoke-MetaEditorCompile {
     }
 
     Write-Host ("Compilando {0}..." -f $RelativeSource) -ForegroundColor Cyan
+    # NAO passar /inc. Ate o build 6061 ele era inofensivo - apontava para a
+    # mesma arvore que o compilador ja usaria. A partir do 6090 ele quebra a
+    # compilacao de duas maneiras, e ambas apontam para arquivos da MetaQuotes,
+    # o que faz o defeito parecer do ambiente e nao da linha de comando:
+    #
+    #  1. A BIBLIOTECA PADRAO PARA DE COMPILAR. Include\Canvas\Canvas.mqh
+    #     acusa 6 erros dentro do proprio arquivo - "cannot convert parameter
+    #     'int' to 'uint&'" em ResourceReadImage/TextGetSize e "wrong parameters
+    #     count" em TextOut, este ultimo com o aviso "due to new rules of method
+    #     hiding". Sem /inc, o MESMO arquivo compila 0/0.
+    #  2. TODO #resource passa a ser recusado com "invalid resource path",
+    #     inclusive os res\*.bmp de Include\Controls que a propria MetaQuotes
+    #     declara e que existem em disco.
+    #
+    # Verificado isolando cada caso: um .mq5 de tres linhas que so faz
+    # #include <Canvas\Canvas.mqh> reproduz (1), e um que so inclui
+    # <Controls\Dialog.mqh> reproduz (2) - com /inc falham, sem /inc passam.
+    #
+    # Sem /inc o compilador deduz a raiz MQL5 da localizacao do fonte, que e
+    # justamente o que o build-linked.ps1 garante ao expor o projeto dentro de
+    # Experts. Por isso a raiz continua sendo calculada e conferida acima: ela
+    # decide ONDE o projeto e encadeado, nao mais o que vai na linha de comando.
     $arguments = @(
         "/compile:`"$source`"",
-        "/inc:`"$Mql5Root`"",
         "/log:`"$log`""
     )
 
@@ -172,7 +140,7 @@ else {
 }
 
 if ([string]::IsNullOrWhiteSpace($Mql5)) {
-    $mql5Root = Find-Mql5Root
+    $mql5Root = Find-Mql5RootForEditor -EditorPath $editorPath
 }
 else {
     $mql5Root = Resolve-RequiredDirectory -Path $Mql5 -Description 'Raiz MQL5'
@@ -198,7 +166,7 @@ $targets = @(
 )
 
 $results = foreach ($target in $targets) {
-    Invoke-MetaEditorCompile -EditorPath $editorPath -Mql5Root $mql5Root -ProjectRoot $projectRoot -RelativeSource $target
+    Invoke-MetaEditorCompile -EditorPath $editorPath -ProjectRoot $projectRoot -RelativeSource $target
 }
 
 Write-Host ''
