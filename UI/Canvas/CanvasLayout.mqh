@@ -74,11 +74,10 @@
 //--- digitado reaparecia dentro do Magic ao voltar.
 #define FCV_SCREEN_PROFILE_EDIT 24
 #define FCV_RAIL_MAX      7
-//--- Teto de perfis exibiveis. A 1.058 nao tem teto: ela mostra 8 por vez e
-//--- rola sobre um array dinamico. Aqui o limite existe porque o renderizador
-//--- nao aloca — o excedente fica de fora da lista, e por isso o teto e alto o
-//--- bastante para nao ser alcancado por quem organiza perfis a mao.
-#define FCV_PROF_MAX     64
+//--- Nao ha teto de perfis: a lista e dinamica, como na 1.058. Existiu um
+//--- FCV_PROF_MAX de 64 e ele foi removido por ser perigoso, nao por ser
+//--- apertado — os perfis alem do teto tambem ficavam fora da deteccao de Magic
+//--- repetido, e uma protecao operacional nao pode ter limite silencioso.
 //--- Linhas visiveis da lista. A altura reservada e sempre esta, mesmo com
 //--- menos perfis: os quatro botoes de acao vivem ao lado e o bloco abaixo nao
 //--- pode subir e descer conforme a quantidade de perfis em disco.

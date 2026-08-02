@@ -476,8 +476,26 @@ void ScreenProfiles(void)
    int activeIdx=ActiveProfileIndex();
    if(m_profCount<=0)
      {
+      //--- Lista vazia ainda precisa das duas saidas: NOVO (que o proprio texto
+      //--- manda usar) e Atualizar lista. A versao anterior devolvia antes de
+      //--- desenhar qualquer botao — recomendava uma acao que nao estava na
+      //--- tela — e engolia junto o aviso de arquivos ilegiveis, justamente o
+      //--- caso em que a lista fica vazia sem a pasta estar vazia.
+      PutButton(ax,y,aw,30,"NOVO",true,m_t.good,m_t.onGood,
+                FCV_BTN_NEW,AccCanCreateProfile());
+      PutButton(ax,y+34+14,aw,30,"Atualizar lista",false,m_t.acc,m_t.onAcc,
+                FCV_BTN_PROFREFRESH,true);
+      m_fy=y+FCV_PROF_ROWS*34+FCV_CARD_GAP;
+
       RowsReset();
-      RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
+      if(m_profSkipped>0)
+        {
+         RowNoteSem(IntegerToString(m_profSkipped)+
+                    " arquivo(s) de perfil em disco nao puderam ser lidos.",FCV_SEM_BAD);
+         RowNote("A pasta nao esta vazia: os arquivos existem, mas nenhum abriu.");
+        }
+      else
+         RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
       Card("PERFIS");
       return;
      }
@@ -581,7 +599,11 @@ void ScreenProfiles(void)
    //--- existe para impedir. Bloqueia os DOIS lados do conflito, nao um: nao ha
    //--- como saber qual deles e o "certo".
    bool selDup   =(m_profSel>=0 && m_profDup[m_profSel]);
-   bool canLoad  =(!editing && !isActive && !selDup && AccCanLoadProfile());
+   //--- Travas vindas dos registros do terminal: outro grafico rodando com este
+   //--- Magic, ou ja usando este perfil. Sao conflito AO VIVO, diferente do
+   //--- Magic repetido em disco — e a 1.058 usa as duas em BuildProfileActionState.
+   bool selLocked=(m_selRuntimeLocked || m_selProfileLocked);
+   bool canLoad  =(!editing && !isActive && !selDup && !selLocked && AccCanLoadProfile());
    //--- Nem o ativo nem o DEFAULT se apagam. A regra do default vinha faltando:
    //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
    //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
@@ -594,14 +616,18 @@ void ScreenProfiles(void)
    //--- exatamente como o problema apareceu. Com as duas, ha caminho pela
    //--- propria GUI: duplicar com outro Magic e apagar o antigo, ou apagar a
    //--- copia sobrando. E a regra de que todo bloqueio precisa de volta.
-   bool canDelete=(!editing && !isActive && !isDefault && AccCanAdminProfile());
+   bool canDelete=(!editing && !isActive && !isDefault && !selLocked && AccCanAdminProfile());
+   //--- NOVO nao depende da selecao: cria do zero. DUPLICAR depende, e olha so a
+   //--- trava de RUNTIME — nao a de perfil ativo em outro grafico. A assimetria
+   //--- e da 1.058 e faz sentido: duplicar nao toca no original.
    bool canCreate=(!editing && AccCanCreateProfile());
+   bool canDup   =(canCreate && !m_selRuntimeLocked);
    //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
    //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o
    //--- que a acao FAZ; estar habilitado diz se ela cabe agora.
    PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
    PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
-   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canCreate);
+   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup);
    PutButton(ax,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
    //--- "Atualizar lista" sempre habilitado, como na 1.058: reler o disco nao
    //--- altera nada e e a unica forma de ver arquivo criado por fora com o
@@ -676,9 +702,14 @@ void ScreenProfiles(void)
    //--- O aviso nomeia quem colide e diz o caminho de volta. Um alerta que so
    //--- acusa deixa o usuario preso: aqui CARREGAR esta desligado, e sem a
    //--- instrucao ele nao tem como adivinhar que a saida e DUPLICAR/EXCLUIR.
+   //--- Trava ao vivo: o motivo vem do proprio registro, com o texto que o EA
+   //--- usaria. Sem ele o botao apagaria sem dizer que a causa esta em OUTRO
+   //--- grafico — coisa que nao se descobre olhando esta tela.
+   if(selLocked)
+      RowNoteSem(m_selLockReason,FCV_SEM_WARN);
    if(selDup)
      {
-      RowNoteSem(DuplicateMagicNote(),FCV_SEM_BAD);
+      RowNoteSem(DuplicateMagicNote(m_profSel),FCV_SEM_BAD);
       RowNoteSem("Por isso CARREGAR esta bloqueado nos dois. Para resolver: "
                  "DUPLICAR com outro Magic e EXCLUIR o antigo, ou apagar a copia sobrando.",
                  FCV_SEM_BAD);

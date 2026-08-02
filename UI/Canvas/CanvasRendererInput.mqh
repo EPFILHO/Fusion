@@ -449,7 +449,9 @@ void HandlePress(const int cx,const int cy)
             InContentView(y+r*34,30))
            {
             int i=m_profOffset+r;
-            if(m_profSel!=i) { m_profSel=i; Render(); }
+            //--- Trocou a selecao: reconsulta os registros do terminal. E aqui
+            //--- e no SetProfiles que isso acontece — nunca por quadro.
+            if(m_profSel!=i) { m_profSel=i; RefreshSelectedProfileLocks(); Render(); }
             return;
            }
      }

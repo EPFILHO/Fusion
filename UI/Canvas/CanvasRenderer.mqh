@@ -31,6 +31,11 @@
 //--- Comparacao de nome de perfil. Fica em Core e nao arrasta Persistence: o
 //--- renderizador precisa saber QUAL perfil e o ativo, nao ler o disco.
 #include "..\..\Core\ProfileNameUtils.mqh"
+//--- Registros de concorrencia entre graficos. Sao Core e guardam estado em
+//--- variaveis globais do terminal — nada de disco —, entao o renderizador pode
+//--- consulta-los sem ganhar dependencia de Persistence.
+#include "..\..\Core\InstanceRegistry.mqh"
+#include "..\..\Core\ActiveProfileRegistry.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"
 #include "CanvasFields.mqh"
@@ -123,16 +128,27 @@ private:
    //--- Vetores paralelos de tipos primitivos de proposito: um struct proprio
    //--- exigiria um cabecalho compartilhado, e o unico lugar natural para ele
    //--- arrastaria Persistence para dentro do renderizador.
-   string            m_profName[FCV_PROF_MAX];
-   int               m_profMagic[FCV_PROF_MAX];
-   double            m_profLot[FCV_PROF_MAX];
+   //--- Vetores DINAMICOS. Havia um teto de 64 aqui, e ele nao era so um limite
+   //--- de exibicao: os perfis excedentes ficavam fora da deteccao de Magic
+   //--- repetido, entao um conflito no perfil 65 deixaria de bloquear o INICIAR.
+   //--- Protecao operacional nao pode depender de um teto silencioso.
+   string            m_profName[];
+   int               m_profMagic[];
+   double            m_profLot[];
    //--- Este perfil divide o Magic com algum outro da lista? Calculado uma vez,
    //--- na carga: o EA reconhece as PROPRIAS ordens pelo Magic, e dois perfis
    //--- com o mesmo numero em dois graficos fazem cada EA adotar as ordens do
    //--- outro. A 1.058 recusa CRIAR um perfil com Magic ja usado, entao este
    //--- estado so aparece com arquivos copiados por fora.
-   bool              m_profDup[FCV_PROF_MAX];
+   bool              m_profDup[];
    int               m_profCount;
+   //--- Travas do perfil SELECIONADO, consultadas nos registros do terminal:
+   //--- outro grafico rodando com aquele Magic, ou usando aquele perfil. Ficam
+   //--- em cache porque a consulta percorre as variaveis globais duas vezes —
+   //--- barato para uma troca de selecao, caro a 5 quadros por segundo.
+   bool              m_selRuntimeLocked;
+   bool              m_selProfileLocked;
+   string            m_selLockReason;
    //--- Arquivos de perfil que existem mas nao puderam ser lidos. Contados, e
    //--- nao ignorados: some-los da lista esconde justamente o arquivo que
    //--- precisa de atencao.
@@ -267,8 +283,11 @@ public:
       m_profSkipped=foundTotal-count;
       if(m_profSkipped<0) m_profSkipped=0;
       string keep=(m_profSel>=0 && m_profSel<m_profCount) ? m_profName[m_profSel] : "";
-      m_profCount=(count<FCV_PROF_MAX) ? count : FCV_PROF_MAX;
-      if(m_profCount<0) m_profCount=0;
+      m_profCount=(count>0) ? count : 0;
+      ArrayResize(m_profName,m_profCount);
+      ArrayResize(m_profMagic,m_profCount);
+      ArrayResize(m_profLot,m_profCount);
+      ArrayResize(m_profDup,m_profCount);
       for(int i=0;i<m_profCount;++i)
         {
          m_profName[i] =names[i];
@@ -294,6 +313,7 @@ public:
       if(m_profSel<0) m_profSel=ActiveProfileIndex();
       if(m_profSel<0 && m_profCount>0) m_profSel=0;
       EnsureProfileVisible();
+      RefreshSelectedProfileLocks();
       //--- A lista e a contagem de ilegiveis acabaram de mudar, e nenhum evento
       //--- de entrada vai pedir o redesenho: quem releu foi o temporizador.
       m_viewDirty=true;
@@ -366,8 +386,9 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_profSel=-1; m_profCount=0; m_profOffset=0; m_profSkipped=0;
    m_profRefreshWanted=false; m_viewDirty=false;
    m_profEdit=FCV_PROF_VIEW; m_btnCount=0;
-   for(int i=0;i<FCV_PROF_MAX;++i)
-     { m_profName[i]=""; m_profMagic[i]=0; m_profLot[i]=0.0; m_profDup[i]=false; }
+   m_selRuntimeLocked=false; m_selProfileLocked=false; m_selLockReason="";
+   ArrayResize(m_profName,0); ArrayResize(m_profMagic,0);
+   ArrayResize(m_profLot,0);  ArrayResize(m_profDup,0);
    for(int i=0;i<FCV_BTN_MAX;++i)
      { m_btnX[i]=0; m_btnY[i]=0; m_btnW[i]=0; m_btnH[i]=0; m_btnId[i]=FCV_BTN_NONE; }
    m_liveEditCount=0;

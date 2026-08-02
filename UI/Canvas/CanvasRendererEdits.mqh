@@ -216,7 +216,8 @@ void ReleaseEditFocus(void)
                //--- declarado da linha, e comparar com ele acusava alteracao so
                //--- por entrar e sair de um campo intocado.
                m_stEdit[m_focusSlot]=txt;
-               m_dirty=true;
+               //--- O formulario de perfil guarda o texto mas NAO cria pendencia.
+               if(!SlotIsProfileForm(m_focusSlot)) m_dirty=true;
               }
            }
          ObjectDelete(m_chart,m_liveEditName[k]);
@@ -260,6 +261,21 @@ bool EditHasFocus(void)
    return true;
   }
 
+//--- O slot pertence ao formulario de criar/duplicar perfil?
+//---
+//--- Importa porque o que se digita ali NAO e alteracao do perfil ativo: e o
+//--- rascunho de um perfil que ainda nao existe. Contado como pendencia, ele
+//--- sobrevivia a saida do formulario — CRIAR, DESCARTAR e troca de aba so
+//--- encerram o modo — e deixava HasPending() verdadeiro sem nada na tela para
+//--- explicar, travando INICIAR, CARREGAR, NOVO, DUPLICAR e EXCLUIR ate alguem
+//--- clicar no CANCELAR do cabecalho.
+//---
+//--- Nao da para simplesmente zerar m_dirty ao sair: ele tambem carrega a
+//--- pendencia de Layout, que e legitima e nao pode ser apagada por tabela.
+//--- Entao a exclusao e na ORIGEM — este formulario nunca marca pendencia.
+bool SlotIsProfileForm(const int slot)
+  { return (slot>=0 && (slot/FCV_SLOT_MAX)==FCV_SCREEN_PROFILE_EDIT); }
+
 //--- Zera os campos do formulario de perfil (nome e magic).
 void ClearProfileForm(void)
   {
@@ -299,5 +315,7 @@ void StoreEditText(const string objName)
    if(m_stEdit[slot]==txt) return;
    m_stEdit[slot]=txt;
    if(live>=0) m_liveEditText[live]=txt;
-   m_dirty=true;
+   //--- Mesma regra do ReleaseEditFocus: rascunho de perfil novo nao e
+   //--- alteracao pendente do perfil ativo.
+   if(!SlotIsProfileForm(slot)) m_dirty=true;
   }

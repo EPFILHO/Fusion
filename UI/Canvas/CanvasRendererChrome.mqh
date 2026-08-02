@@ -363,28 +363,63 @@ bool ActiveMagicConflicts(void)
    return false;
   }
 
-//--- Quem divide o Magic com quem. Vermelho sozinho manda procurar; o nome
-//--- resolve. Reporta o PRIMEIRO conflito: dizer todos de uma vez viraria um
-//--- paragrafo, e resolver um de cada vez e como se conserta isso mesmo.
-string DuplicateMagicNote(void)
+//--- Quem divide o Magic com o perfil INDICADO. Recebe o indice em vez de
+//--- varrer do inicio: havendo mais de um grupo de repetidos, a versao anterior
+//--- descrevia sempre o primeiro grupo — e o cartao de um perfil do segundo
+//--- grupo acusava nomes que nada tinham a ver com ele. Errar o nome do culpado
+//--- e pior que nao nomear ninguem.
+string DuplicateMagicNote(const int idx)
   {
-   for(int i=0;i<m_profCount;++i)
+   if(idx<0 || idx>=m_profCount || !m_profDup[idx]) return "";
+   string peers="";
+   int shared=m_profMagic[idx];
+   for(int j=0;j<m_profCount;++j)
      {
-      if(!m_profDup[i]) continue;
-      string peers="";
-      int shared=m_profMagic[i];
-      for(int j=0;j<m_profCount;++j)
-        {
-         if(j==i || m_profMagic[j]!=shared) continue;
-         if(StringLen(peers)>0) peers+=", ";
-         peers+=m_profName[j];
-        }
-      return "Magic "+IntegerToString(shared)+" usado por "+m_profName[i]+
-             " e "+peers+". O EA reconhece as proprias ordens pelo Magic: "+
-             "dois perfis com o mesmo numero em dois graficos fazem cada um "+
-             "adotar as ordens do outro.";
+      if(j==idx || m_profMagic[j]!=shared) continue;
+      if(StringLen(peers)>0) peers+=", ";
+      peers+=m_profName[j];
      }
-   return "";
+   return "Magic "+IntegerToString(shared)+" usado por "+m_profName[idx]+
+          " e "+peers+". O EA reconhece as proprias ordens pelo Magic: "+
+          "dois perfis com o mesmo numero em dois graficos fazem cada um "+
+          "adotar as ordens do outro.";
+  }
+
+//+------------------------------------------------------------------+
+//| Travas do perfil selecionado, vindas dos registros do terminal.   |
+//|                                                                   |
+//| Portadas de BuildProfileActionState (UIPanelProfileActions.mqh).  |
+//| Sao o OUTRO tipo de conflito: o de Magic repetido olha arquivos    |
+//| parados em disco; estes olham o que esta RODANDO agora em outros   |
+//| graficos. Sem eles a tela habilitaria acoes que o EA recusaria     |
+//| depois — e prometer uma acao que falha e pior que nao oferece-la.  |
+//|                                                                   |
+//| Calculadas na troca de selecao, nunca por quadro: cada consulta    |
+//| percorre as variaveis globais do terminal duas vezes.              |
+//+------------------------------------------------------------------+
+void RefreshSelectedProfileLocks(void)
+  {
+   m_selRuntimeLocked=false;
+   m_selProfileLocked=false;
+   m_selLockReason="";
+   if(m_profSel<0 || m_profSel>=m_profCount) return;
+
+   string reason="";
+   CInstanceRegistry instances;
+   if(instances.HasActiveConflict(m_profMagic[m_profSel],m_chart,reason))
+     {
+      m_selRuntimeLocked=true;
+      m_selLockReason=reason;
+      return;
+     }
+
+   CActiveProfileRegistry profiles;
+   reason="";
+   if(profiles.HasActiveProfilePeer(m_profName[m_profSel],m_chart,reason))
+     {
+      m_selProfileLocked=true;
+      m_selLockReason=reason;
+     }
   }
 
 //+------------------------------------------------------------------+
