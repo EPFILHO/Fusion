@@ -66,8 +66,12 @@ void HLine(const int x1,const int x2,const int y,const uint c)
 //--- Mascara de cantos: bit 0 superior-esquerdo, 1 superior-direito,
 //--- 2 inferior-esquerdo, 3 inferior-direito. Uma aba de fichario arredonda
 //--- so os de cima; os de baixo tem de encostar reto na linha.
-#define FCV_CORNER_ALL 0x0F
-#define FCV_CORNER_TOP 0x03
+#define FCV_CORNER_ALL  0x0F
+#define FCV_CORNER_TOP  0x03
+//--- So os dois da esquerda. Usado pela amostra de cor, que e uma faixa colorida
+//--- encostada por dentro do controle: os cantos da direita precisam ficar
+//--- retos para a cor encontrar o filete do chevron sem deixar falha.
+#define FCV_CORNER_LEFT 0x05
 
 //--- Nucleo em PIXEL DE DISPOSITIVO. Existe separado por causa da moldura: uma
 //--- borda de "1" so tem espessura previsivel se o recuo for de 1 pixel REAL.

@@ -56,8 +56,13 @@
 //--- Amostra de cor: larga quando ocupa a coluna sozinha, estreita quando
 //--- divide a linha com o estilo. A altura e a mesma do campo e do combo —
 //--- os tres vivem na mesma coluna e nao podem ter alturas diferentes.
+//--- A largura precisa comportar a cor E o filete do chevron. A estreita subiu
+//--- de 40 para 48 quando o chevron entrou: com 40, sobravam 26 px de cor, e a
+//--- amostra passava a parecer um combo com um respingo colorido em vez de uma
+//--- cor com um botao de abrir.
 #define FCV_SWATCH_W       64
-#define FCV_SWATCH_W_SLIM  40
+#define FCV_SWATCH_W_SLIM  48
+#define FCV_SWATCH_ARROW_W 14
 
 //--- Campo de hora/minuto: dois digitos e o cursor. Estreito de proposito —
 //--- uma caixa larga para dois digitos convida a digitar mais do que cabe.

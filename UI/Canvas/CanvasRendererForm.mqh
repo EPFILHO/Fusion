@@ -338,7 +338,24 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
    //--- Bloqueada, a amostra e misturada ao fundo: cor viva num controle
    //--- morto passa a impressao de que aceita clique.
    uint fill  = !en ? Blend(m_swatches[idx],m_t.surface,0.35) : m_swatches[idx];
-   RoundFrame(cx,cy,cx+w,cy+FCV_EDIT_H,FCV_RADIUS_CTRL-1,border,fill,m_t.surface);
+
+   //--- A amostra e desenhada como um COMBO cuja area de valor e a cor: moldura
+   //--- igual, altura igual e o mesmo chevron a direita.
+   //---
+   //--- Um retangulo colorido sozinho nao se anuncia como controle — le-se como
+   //--- indicador, e o usuario nao descobre que ele abre uma lista. O painel ja
+   //--- tem um sinal para isso, o chevron dos combos; reusa-lo diz a mesma coisa
+   //--- na lingua que a tela ja fala, em vez de inventar uma dica nova.
+   //---
+   //--- O chevron fica sobre o filete NEUTRO, nunca sobre a cor escolhida: ela
+   //--- pode ser branca ou preta, e uma seta legivel em uma some na outra.
+   uint plate = !en ? m_t.fieldDim : m_t.inset;
+   RoundFrame(cx,cy,cx+w,cy+FCV_EDIT_H,FCV_RADIUS_CTRL-1,border,plate,m_t.surface);
+   RoundRect(cx+1,cy+1,cx+w-FCV_SWATCH_ARROW_W,cy+FCV_EDIT_H-1,
+             FCV_RADIUS_CTRL-2,fill,plate,FCV_CORNER_LEFT);
+   uint arrow = !en ? m_t.disabled : m_t.muted;
+   int axx=cx+w-FCV_SWATCH_ARROW_W/2-1, ayy=cy+FCV_EDIT_H/2-2;
+   for(int k=0;k<4;++k) Rect(axx-3+k,ayy+k,axx+3-k,ayy+k,arrow);
 
    if(!en || m_colorCount>=FCV_CTRL_MAX) return;
    m_colorX[m_colorCount]=cx;
