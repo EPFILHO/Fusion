@@ -187,3 +187,14 @@ color ToChartColor(const uint argb)
    int r=(int)((argb>>16)&0xFF), g=(int)((argb>>8)&0xFF), b=(int)(argb&0xFF);
    return (color)((b<<16)|(g<<8)|r);
   }
+
+//--- Caminho de volta: a cor guardada em SEASettings e 'color' do MQL5 (BGR) e
+//--- precisa virar ARGB para ser desenhada. Sem este par, a amostra de cor
+//--- mostraria vermelho onde o perfil diz azul — e o erro seria invisivel para
+//--- quem nao conhece as duas convencoes.
+uint ChartColorToArgb(const color c)
+  {
+   int v=(int)c;
+   int b=(v>>16)&0xFF, g=(v>>8)&0xFF, r=v&0xFF;
+   return FCV_OPAQUE(r,g,b);
+  }

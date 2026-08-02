@@ -85,8 +85,47 @@ bool FieldGetBool(const int fid)
       case FCV_FLD_DD_ON:          return m_draft.enableDrawdown;
       case FCV_FLD_LOSS_STREAK_ON: return m_draft.lossStreakEnabled;
       case FCV_FLD_WIN_STREAK_ON:  return m_draft.winStreakEnabled;
+      //--- Layout
+      case FCV_FLD_SHOW_INDICATORS: return m_draft.showChartIndicators;
      }
    return false;
+  }
+
+//+------------------------------------------------------------------+
+//| Cor: um terceiro tipo de campo, ao lado de chave, indice e texto. |
+//|                                                                   |
+//| Guarda a COR, nao a posicao na grade. A distincao importa porque   |
+//| um perfil pode trazer cor que nao esta na nossa grade — os padroes |
+//| do EA sao clrLime, clrRed, clrMagenta, clrOrange e clrDodgerBlue, |
+//| e a 1.058 cicla por uma lista de doze que nao e a nossa. Guardando |
+//| indice, abrir um perfil desses mostraria a cor errada; guardando a |
+//| cor, a amostra mostra o que o perfil tem e a grade simplesmente    |
+//| nao marca celula nenhuma ate voce escolher uma.                    |
+//+------------------------------------------------------------------+
+uint FieldGetColor(const int fid)
+  {
+   switch(fid)
+     {
+      case FCV_FLD_VIS_MAFAST_COLOR: return ChartColorToArgb(m_draft.visualMAFastColor);
+      case FCV_FLD_VIS_MASLOW_COLOR: return ChartColorToArgb(m_draft.visualMASlowColor);
+      case FCV_FLD_VIS_TREND1_COLOR: return ChartColorToArgb(m_draft.visualMATrendColor);
+      case FCV_FLD_VIS_TREND2_COLOR: return ChartColorToArgb(m_draft.visualMATrend2Color);
+      case FCV_FLD_VIS_BB_COLOR:     return ChartColorToArgb(m_draft.visualBBColor);
+     }
+   return m_t.muted;
+  }
+
+void FieldSetColor(const int fid,const uint argb)
+  {
+   color c=ToChartColor(argb);
+   switch(fid)
+     {
+      case FCV_FLD_VIS_MAFAST_COLOR: m_draft.visualMAFastColor  =c; break;
+      case FCV_FLD_VIS_MASLOW_COLOR: m_draft.visualMASlowColor  =c; break;
+      case FCV_FLD_VIS_TREND1_COLOR: m_draft.visualMATrendColor =c; break;
+      case FCV_FLD_VIS_TREND2_COLOR: m_draft.visualMATrend2Color=c; break;
+      case FCV_FLD_VIS_BB_COLOR:     m_draft.visualBBColor      =c; break;
+     }
   }
 
 void FieldToggleBool(const int fid)
@@ -137,6 +176,9 @@ void FieldToggleBool(const int fid)
          m_draft.lossStreakEnabled=!m_draft.lossStreakEnabled; break;
       case FCV_FLD_WIN_STREAK_ON:
          m_draft.winStreakEnabled=!m_draft.winStreakEnabled; break;
+      //--- Layout
+      case FCV_FLD_SHOW_INDICATORS:
+         m_draft.showChartIndicators=!m_draft.showChartIndicators; break;
       default: return;
      }
    SyncDerivedSettings();
@@ -267,8 +309,10 @@ bool WinStreakPauseEditable(void)
 //| INICIAR dependendo de nao haver pendencia, isso deixou de ser      |
 //| cosmetico: bloqueava a operacao sem causa visivel.                 |
 //|                                                                   |
-//| m_dirty sobrevive apenas para os controles ainda NAO ligados a     |
-//| SEASettings (Perfis e Layout). Cada tela ligada o aposenta.        |
+//| m_dirty sobrevive para os controles NAO ligados a SEASettings.     |
+//| Fechada a Etapa 2b, nenhuma tela de producao tem mais desses — so  |
+//| a tela de estresse. Ele permanece porque a 2c volta a precisar de  |
+//| pendencia para estado que nao pertence ao perfil.                  |
 //+------------------------------------------------------------------+
 //--- O texto publicado pelo objeto ja diverge do que gravamos nele?
 //---
@@ -360,6 +404,16 @@ int FieldGetIndex(const int fid)
       case FCV_FLD_DD_PEAK:         return (int)m_draft.drawdownPeakMode;
       case FCV_FLD_LOSS_STREAK_ACT: return (int)m_draft.lossStreakAction;
       case FCV_FLD_WIN_STREAK_ACT:  return (int)m_draft.winStreakAction;
+      //--- Layout. ENUM_LINE_STYLE do MQL5: SOLID=0, DASH=1, DOT=2 — o combo
+      //--- tem exatamente essas tres, na ordem, entao indice e valor coincidem.
+      //--- Estilo vindo do perfil fora dessas tres (DASHDOT, por exemplo) cai no
+      //--- indice 0 pelo limite do combo, e ao escolher qualquer opcao ele passa
+      //--- a valer — nao ha como exibir o que a lista nao tem.
+      case FCV_FLD_VIS_MAFAST_STYLE: return (int)m_draft.visualMAFastStyle;
+      case FCV_FLD_VIS_MASLOW_STYLE: return (int)m_draft.visualMASlowStyle;
+      case FCV_FLD_VIS_TREND1_STYLE: return (int)m_draft.visualMATrendStyle;
+      case FCV_FLD_VIS_TREND2_STYLE: return (int)m_draft.visualMATrend2Style;
+      case FCV_FLD_VIS_BB_STYLE:     return (int)m_draft.visualBBStyle;
      }
    return 0;
   }
@@ -422,6 +476,12 @@ void FieldSetIndex(const int fid,const int idx)
       case FCV_FLD_DD_PEAK:    m_draft.drawdownPeakMode=(ENUM_DRAWDOWN_PEAK_MODE)idx;  break;
       case FCV_FLD_LOSS_STREAK_ACT: m_draft.lossStreakAction=(ENUM_STREAK_ACTION)idx;  break;
       case FCV_FLD_WIN_STREAK_ACT:  m_draft.winStreakAction=(ENUM_STREAK_ACTION)idx;   break;
+      //--- Layout
+      case FCV_FLD_VIS_MAFAST_STYLE: m_draft.visualMAFastStyle  =(ENUM_LINE_STYLE)idx; break;
+      case FCV_FLD_VIS_MASLOW_STYLE: m_draft.visualMASlowStyle  =(ENUM_LINE_STYLE)idx; break;
+      case FCV_FLD_VIS_TREND1_STYLE: m_draft.visualMATrendStyle =(ENUM_LINE_STYLE)idx; break;
+      case FCV_FLD_VIS_TREND2_STYLE: m_draft.visualMATrend2Style=(ENUM_LINE_STYLE)idx; break;
+      case FCV_FLD_VIS_BB_STYLE:     m_draft.visualBBStyle      =(ENUM_LINE_STYLE)idx; break;
       default: return;
      }
   }

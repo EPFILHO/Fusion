@@ -68,6 +68,14 @@ void RowColor (const string label,const bool enabled=true)
   { RowPush(FCV_ROW_COLOR,label,"","",0,enabled,true); }
 void RowColorStyle(const string label,const bool enabled=true)
   { RowPush(FCV_ROW_COLORSTYLE,label,"","",FCV_COMBO_LINESTYLE,enabled,true); }
+//--- Cor e estilo do mesmo indicador: dois campos de SEASettings numa linha so,
+//--- como o par hora/minuto. fid guarda a cor e fid2 o estilo.
+void RowColorStyleF(const string label,const int fidColor,const int fidStyle,
+                    const bool enabled=true)
+  {
+   RowPush(FCV_ROW_COLORSTYLE,label,"","",FCV_COMBO_LINESTYLE,enabled,true,fidColor);
+   if(m_rowCount>0) m_rows[m_rowCount-1].fid2=fidStyle;
+  }
 //--- Combo que nao obedece ao bloqueio do perfil: aparencia do painel nao e
 //--- configuracao operacional, entao continua ajustavel com o EA rodando.
 void RowComboFree(const string label,const int kind)
@@ -329,15 +337,26 @@ string ComboOptionHint(const int kind,const int idx)
 //| um combo saiu com 26 px de altura e o outro com 22, em telas      |
 //| vizinhas.                                                         |
 //+------------------------------------------------------------------+
-void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool en)
+void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool en,
+               const int fid=FCV_FLD_NONE)
   {
-   int idx=m_stColor[slot];
-   if(idx<0 || idx>=FCV_SWATCH_COUNT) idx=0;
+   //--- Ligada a um campo, a cor vem do rascunho; solta, do indice guardado no
+   //--- slot. Sao caminhos diferentes de proposito: o rascunho guarda a COR e
+   //--- pode trazer uma que nao esta na grade, e nesse caso a amostra mostra o
+   //--- que o perfil tem — nao a celula mais parecida.
+   uint colorVal;
+   if(fid!=FCV_FLD_NONE) colorVal=FieldGetColor(fid);
+   else
+     {
+      int idx=m_stColor[slot];
+      if(idx<0 || idx>=FCV_SWATCH_COUNT) idx=0;
+      colorVal=m_swatches[idx];
+     }
    bool open=(en && m_colorOpen>=0 && m_colorOpen==m_colorCount);
    uint border= !en ? m_t.disabled : (open ? m_t.acc : m_t.line);
    //--- Bloqueada, a amostra e misturada ao fundo: cor viva num controle
    //--- morto passa a impressao de que aceita clique.
-   uint fill  = !en ? Blend(m_swatches[idx],m_t.surface,0.35) : m_swatches[idx];
+   uint fill  = !en ? Blend(colorVal,m_t.surface,0.35) : colorVal;
 
    //--- A amostra e desenhada como um COMBO cuja area de valor e a cor: moldura
    //--- igual, altura igual e o mesmo chevron a direita.
@@ -362,6 +381,7 @@ void PutSwatch(const int cx,const int cy,const int w,const int slot,const bool e
    m_colorY[m_colorCount]=cy;
    m_colorW[m_colorCount]=w;
    m_colorSlot[m_colorCount]=slot;
+   m_colorFid[m_colorCount]=fid;
    m_colorCount++;
   }
 
@@ -562,8 +582,10 @@ void DrawRow(const int i,const int ry,const int rh)
          int slotStyle=NextSlot();
          int cy=ry+rh/2-FCV_EDIT_H/2;
          int styleX=rx-FCV_EDIT_W;
-         PutSwatch(styleX-8-FCV_SWATCH_W_SLIM,cy,FCV_SWATCH_W_SLIM,slotColor,en);
-         PutCombo (styleX,cy,FCV_EDIT_W,FCV_COMBO_LINESTYLE,slotStyle,en);
+         PutSwatch(styleX-8-FCV_SWATCH_W_SLIM,cy,FCV_SWATCH_W_SLIM,slotColor,en,
+                   m_rows[i].fid);
+         PutCombo (styleX,cy,FCV_EDIT_W,FCV_COMBO_LINESTYLE,slotStyle,en,
+                   m_rows[i].fid2);
          break;
         }
 

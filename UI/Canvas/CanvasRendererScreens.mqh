@@ -198,7 +198,21 @@ void DrawColorPopup(void)
    if(m_colorOpen<0 || m_colorOpen>=m_colorCount) return;
    int x,y,w,h;
    ColorPopupBox(m_colorOpen,x,y,w,h);
-   int sel=m_stColor[m_colorSlot[m_colorOpen]];
+   //--- Qual celula esta marcada. Ligada a um campo, a marca sai da COR atual:
+   //--- procura-se a celula que tem exatamente aquela cor, e nao havendo — cor
+   //--- vinda de perfil antigo ou da lista da 1.058 — nenhuma e marcada.
+   //--- Fingir uma aproximada faria a grade afirmar uma escolha que nao foi
+   //--- feita, e o proximo SALVAR gravaria essa mentira.
+   int fid=m_colorFid[m_colorOpen];
+   int sel=-1;
+   if(fid!=FCV_FLD_NONE)
+     {
+      uint cur=FieldGetColor(fid);
+      for(int k=0;k<FCV_SWATCH_COUNT;++k)
+         if(m_swatches[k]==cur) { sel=k; break; }
+     }
+   else sel=m_stColor[m_colorSlot[m_colorOpen]];
+
    PublishPopup(x,y,x+w,y+h);
    RoundFrame(x,y,x+w,y+h,FCV_RADIUS_CTRL,m_t.acc,m_t.surface,m_t.ground);
    for(int i=0;i<FCV_SWATCH_COUNT;++i)
@@ -1462,16 +1476,25 @@ void ScreenGestao(void)
 void ScreenVisual(void)
   {
    //--- Visual: cinco indicadores, cada um com cor E estilo de linha
+   //--- ⚠ Esta tela tem DUAS naturezas, e a divisao decide o comportamento:
+   //---   INDICADORES sao configuracao do PERFIL — o EA desenha as linhas com
+   //---     elas —, entao vao para o rascunho e passam por SALVAR.
+   //---   APARENCIA (paleta, tema, tamanho) e preferencia de quem opera, vale
+   //---     para todo grafico, vive em variavel global do terminal e e aplicada
+   //---     no ato. Nao entra no perfil e nao cria pendencia.
    RowsReset();
-   RowToggle("Indicadores no Grafico");
+   RowToggleF("Indicadores no Grafico",FCV_FLD_SHOW_INDICATORS);
+   RowNote   ("Desenha as medias e as bandas no grafico. Nao altera nenhuma decisao do EA.");
    Card("INDICADORES VISUAIS");
 
+   //--- Cor e estilo seguem editaveis com os indicadores desligados: configurar
+   //--- antes de ligar e uso legitimo, a mesma regra das Estrategias.
    RowsReset();
-   RowColorStyle("MA Rapida");
-   RowColorStyle("MA Lenta");
-   RowColorStyle("Trend M1");
-   RowColorStyle("Trend M2");
-   RowColorStyle("Bandas");
+   RowColorStyleF("MA Rapida",FCV_FLD_VIS_MAFAST_COLOR,FCV_FLD_VIS_MAFAST_STYLE);
+   RowColorStyleF("MA Lenta", FCV_FLD_VIS_MASLOW_COLOR,FCV_FLD_VIS_MASLOW_STYLE);
+   RowColorStyleF("Trend M1", FCV_FLD_VIS_TREND1_COLOR,FCV_FLD_VIS_TREND1_STYLE);
+   RowColorStyleF("Trend M2", FCV_FLD_VIS_TREND2_COLOR,FCV_FLD_VIS_TREND2_STYLE);
+   RowColorStyleF("Bandas",   FCV_FLD_VIS_BB_COLOR,    FCV_FLD_VIS_BB_STYLE);
    Card("CORES E ESTILOS");
 
    //--- Aparencia do painel: preferencia de exibicao, aplicada no ato da

@@ -61,9 +61,12 @@ private:
    int               m_sub[FCV_TAB_COUNT];    // nivel 2, guardado por aba
    int               m_railSel[2];            // nivel 3, guardado por Risco e Protecao
    bool              m_minimized;
-   //--- Pendencia de controles ainda NAO ligados a SEASettings (Perfis e
-   //--- Layout). A pendencia de configuracao nao mora aqui: e a diferenca entre
-   //--- rascunho e comprometido, calculada em HasPending().
+   //--- Pendencia de controles NAO ligados a SEASettings. Com a Etapa 2b
+   //--- fechada, so a tela de estresse ainda tem controles assim — os campos do
+   //--- formulario de perfil sao locais mas nao marcam pendencia, de proposito.
+   //--- Fica porque a 2c volta a precisar dele para estado que nao e do perfil.
+   //--- A pendencia de configuracao nao mora aqui: e a diferenca entre rascunho
+   //--- e comprometido, calculada em HasPending().
    bool              m_dirty;
    //--- Pendencia que a tela esta mostrando agora, para o pulso comparar.
    bool              m_lastPending;
@@ -107,7 +110,7 @@ private:
    int               m_comboSlot[FCV_CTRL_MAX], m_comboKind[FCV_CTRL_MAX], m_comboFid[FCV_CTRL_MAX];
    int               m_comboCount;
    int               m_colorX[FCV_CTRL_MAX], m_colorY[FCV_CTRL_MAX], m_colorW[FCV_CTRL_MAX];
-   int               m_colorSlot[FCV_CTRL_MAX];
+   int               m_colorSlot[FCV_CTRL_MAX], m_colorFid[FCV_CTRL_MAX];
    int               m_colorCount;
    int               m_comboOpen, m_colorOpen;   // indice no registro, -1 = fechado
    int               m_comboScroll;               // deslocamento da lista aberta
@@ -471,6 +474,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
       m_comboX[i]=0; m_comboY[i]=0; m_comboW[i]=0; m_comboSlot[i]=0; m_comboKind[i]=0;
       m_comboFid[i]=FCV_FLD_NONE;
       m_colorX[i]=0; m_colorY[i]=0; m_colorW[i]=64; m_colorSlot[i]=0;
+      m_colorFid[i]=FCV_FLD_NONE;
      }
 
    //--- Grade de cores, lida como tabela: cada COLUNA e uma cor, cada LINHA um

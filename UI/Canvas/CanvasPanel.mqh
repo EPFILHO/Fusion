@@ -104,10 +104,12 @@ public:
       if(m_created) m_renderer.ChartEvent(id,lparam,dparam,sparam);
      }
 
-   //--- Dados reais entrando. Ja leem daqui: cabecalho, Status, Resultados,
-   //--- Estrategias, Filtros e Gestao — as tres ultimas pelo rascunho de
-   //--- SEASettings, via identificador de campo por controle.
-   //--- Ainda com os valores fixos da Fase 1: Perfis e Layout.
+   //--- Dados reais entrando. TODAS as telas leem daqui: cabecalho, Status,
+   //--- Resultados, Estrategias, Filtros, Gestao, Perfis e Layout — as de
+   //--- configuracao pelo rascunho de SEASettings, via identificador de campo
+   //--- por controle; Perfis tambem pela lista lida do disco.
+   //--- Nao ha mais valor fixo da Fase 1 em tela nenhuma. O que falta e o
+   //--- caminho de VOLTA: nenhum controle emite comando ainda (Etapa 2c).
    void              Update(const SUIPanelSnapshot &snapshot)
      {
       m_snapshot=snapshot;

@@ -47,9 +47,20 @@ bool HandleColorClick(const int lx,const int ly)
          int idx=r*FCV_SWATCH_COLS+c;
          if(c>=0 && c<FCV_SWATCH_COLS && idx>=0 && idx<FCV_SWATCH_COUNT)
            {
-            //--- Reescolher a mesma cor nao e alteracao.
-            int cs=m_colorSlot[m_colorOpen];
-            if(m_stColor[cs]!=idx) { m_stColor[cs]=idx; m_dirty=true; }
+            int fid=m_colorFid[m_colorOpen];
+            if(fid!=FCV_FLD_NONE)
+              {
+               //--- Grava a COR no rascunho, nao a posicao clicada: a pendencia
+               //--- vem da diferenca contra o comprometido, e reescolher a mesma
+               //--- cor nao produz diferenca nenhuma — nao precisa de guarda.
+               FieldSetColor(fid,m_swatches[idx]);
+              }
+            else
+              {
+               //--- Reescolher a mesma cor nao e alteracao.
+               int cs=m_colorSlot[m_colorOpen];
+               if(m_stColor[cs]!=idx) { m_stColor[cs]=idx; m_dirty=true; }
+              }
            }
         }
       m_colorOpen=-1; Render(); return true;

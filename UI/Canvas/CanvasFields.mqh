@@ -95,6 +95,22 @@
 #define FCV_FLD_BF_SLOPE_BACK    108   // int
 #define FCV_FLD_BF_SLOPE_MINPTS  109   // int
 
+//--- Layout > Indicadores no grafico. Sao configuracao DO PERFIL (o EA desenha
+//--- as linhas com elas), ao contrario de paleta/tema/escala, que sao
+//--- preferencia de quem opera e vivem em variavel global do terminal.
+//--- Cada indicador tem cor e estilo; a linha da tela amarra os dois.
+#define FCV_FLD_SHOW_INDICATORS  220   // bool
+#define FCV_FLD_VIS_MAFAST_COLOR 221   // color
+#define FCV_FLD_VIS_MAFAST_STYLE 222   // combo LINESTYLE
+#define FCV_FLD_VIS_MASLOW_COLOR 223
+#define FCV_FLD_VIS_MASLOW_STYLE 224
+#define FCV_FLD_VIS_TREND1_COLOR 225
+#define FCV_FLD_VIS_TREND1_STYLE 226
+#define FCV_FLD_VIS_TREND2_COLOR 227
+#define FCV_FLD_VIS_TREND2_STYLE 228
+#define FCV_FLD_VIS_BB_COLOR     229
+#define FCV_FLD_VIS_BB_STYLE     230
+
 //--- Perfis
 //--- O Magic identifica as ordens deste perfil no grafico. Mora em Perfis, e
 //--- nao em Config, porque e identidade do perfil e a lista ja mostra o de
