@@ -248,8 +248,25 @@ uint RunStateColor(void)
 //--- lacuna registrada para a 2d: m_locked existia mas so respondia a tecla de
 //--- simulacao, nunca ao estado do EA — os campos seguiam editaveis operando.
 //--- A tecla B continua valendo como forcador manual, para exercitar o estado.
+//--- ⚠ A regra de acesso NAO e a mesma para todo campo, e tratar como se fosse
+//--- ja produziu os dois lados do erro:
+//---
+//---   - so `runtimeEditable` deixava os campos do perfil ATIVO editaveis com
+//---     ele preso por outro grafico, criando pendencia impossivel de gravar;
+//---   - so `activeProfileEditable` trancava os campos do formulario de CRIAR,
+//---     que a 1.058 permite justamente durante esse bloqueio — e o resultado
+//---     era um NOVO habilitado, formulario aberto, e nada digitavel nele.
+//---
+//--- O criterio e DE QUEM e o campo, e a tela ja carrega essa informacao: o
+//--- formulario de criar/duplicar tem identidade propria (FCV_SCREEN_PROFILE_EDIT),
+//--- decidida na Fase 1 por outro motivo — separar os slots — e que serve aqui
+//--- exatamente porque significa "estes campos nao sao do perfil ativo".
 bool FieldsLocked(void)
-  { return (m_locked || !AccActiveProfileEditable()); }
+  {
+   if(m_locked) return true;
+   if(m_screen==FCV_SCREEN_PROFILE_EDIT) return !AccCanCreateProfile();
+   return !AccActiveProfileEditable();
+  }
 
 //+------------------------------------------------------------------+
 //| Identidade de perfil.                                             |
@@ -550,8 +567,19 @@ bool AccCanAdminProfile(void)
   { return (AccActiveProfileEditable() && !HasPending()); }
 
 //--- Criar e duplicar nao tocam no perfil ativo, mas ainda exigem EA parado.
+//---
+//--- Repare no que NAO esta aqui: a trava de perfil por outro grafico. E
+//--- deliberado na 1.058 e faz sentido — criar um perfil novo nao mexe no que
+//--- esta preso, e e um dos caminhos de saida do bloqueio.
+//---
+//--- E a pendencia so pesa para ENTRAR no formulario. Ja dentro dele, deixa de
+//--- contar: `profileEditMode || !hasPendingChanges` (UIPanelAccessState:76).
+//--- Sem essa metade, uma pendencia surgida com o formulario aberto trancaria
+//--- os proprios campos dele — o usuario ficaria num formulario que nao aceita
+//--- digitacao e cujo unico botao promete criar o que ele nao consegue
+//--- preencher.
 bool AccCanCreateProfile(void)
-  { return (AccRuntimeEditable() && !HasPending()); }
+  { return (AccRuntimeEditable() && (m_profEdit!=FCV_PROF_VIEW || !HasPending())); }
 
 string StartBtnText(void)
   {
