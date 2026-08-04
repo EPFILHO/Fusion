@@ -104,8 +104,9 @@
 //--- pelo total do painel: o que nao esta na tela nao publica caixa.
 #define FCV_CTRL_MAX     24
 //--- Botoes tambem publicam caixa de clique, em vez de o hit-testing repetir a
-//--- aritmetica do desenho. Com o modo novo/duplicar, Perfis tem seis.
-#define FCV_BTN_MAX      12
+//--- aritmetica do desenho. A tela mais cheia e Perfis com a exclusao armada:
+//--- oito na coluna de acoes mais os tres do cabecalho.
+#define FCV_BTN_MAX      16
 
 #define FCV_BTN_NONE      0
 #define FCV_BTN_LOAD      1
@@ -127,6 +128,11 @@
 //--- grafico criando perfil, ou arquivo copiado a mao —, entao sem este botao
 //--- so reanexar o EA mostraria o que apareceu.
 #define FCV_BTN_PROFREFRESH 12
+//--- Confirmacao da exclusao, no lugar do proprio EXCLUIR. Ver ArmDeleteConfirm
+//--- em CanvasRendererCommands.mqh: apagar perfil e irreversivel, e o segundo
+//--- clique cai onde o primeiro caiu — por isso a saida (VOLTAR) fica ao lado.
+#define FCV_BTN_DELOK    13
+#define FCV_BTN_DELNO    14
 
 //--- Modo de edicao da aba Perfis
 #define FCV_PROF_VIEW     0

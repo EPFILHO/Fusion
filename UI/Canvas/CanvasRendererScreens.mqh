@@ -61,23 +61,30 @@ void ResetControls(void)
    m_rowCount=0; m_slotSeq=0;
   }
 
-//--- Aviso da tela: medido antes do conteudo para que a area util ja nasca
-//--- com a altura certa. Medir depois faria o conteudo usar a altura do
-//--- quadro anterior.
-//--- Nao ha aviso de tela enquanto a validacao nao existir.
-//---
-//--- Ate a Etapa 2b esta funcao devolvia dois avisos FIXOS, herdados da Fase 1:
-//--- um no Status e outro em Noticias, ambos anunciando que a janela 1 tinha
-//--- horarios invertidos. Eram dados de demonstracao, e faziam sentido enquanto
-//--- a tela mostrava valores inventados. Com Noticias lendo o rascunho real,
-//--- passariam a ACUSAR UM ERRO QUE NAO EXISTE — e mandariam corrigir uma
-//--- janela que esta correta.
-//---
-//--- O aviso volta na Etapa 2d, alimentado pela validacao, que e quem sabe se
-//--- ha erro e onde. Ate la o silencio e a resposta honesta: a moldura de
-//--- medida e desenho continua pronta (MeasureAlert/DrawAlert), so nao ha o que
-//--- afirmar. Os bloqueios operacionais em curso ja se explicam dentro do
-//--- proprio cartao da secao suspensa, com o texto que o EA informou.
+//+------------------------------------------------------------------+
+//| Aviso da tela: medido antes do conteudo para que a area util ja   |
+//| nasca com a altura certa. Medir depois faria o conteudo usar a    |
+//| altura do quadro anterior.                                        |
+//|                                                                   |
+//| Duas fontes, nesta ordem:                                         |
+//|                                                                   |
+//|  1. A RESPOSTA ao ultimo clique (m_notice*). Vence porque foi     |
+//|     pedida: quem acabou de clicar em EXCLUIR precisa ler o que    |
+//|     aconteceu, nao um erro de faixa que ja estava ali antes. Ela  |
+//|     morre assim que o usuario volta a agir, entao nao encobre o   |
+//|     erro por muito tempo — e o erro segue visivel na cadeia de    |
+//|     vermelho das abas, que nao depende desta caixa.               |
+//|                                                                   |
+//|  2. O ERRO DA TELA ABERTA, e so dela. Mostrar aqui o primeiro     |
+//|     erro do painel inteiro faria a caixa falar de uma aba que o   |
+//|     usuario nao esta vendo; para essa navegacao existe a cadeia   |
+//|     de vermelho, que aponta ONDE ir.                              |
+//|                                                                   |
+//| Ate a Etapa 2b esta funcao era muda, e antes disso (Fase 1)       |
+//| devolvia dois avisos FIXOS sobre uma janela de noticia invertida  |
+//| — dado de demonstracao que, com a tela ja lendo valores reais,    |
+//| passou a acusar erro em horario correto.                          |
+//+------------------------------------------------------------------+
 bool ScreenAlert(string &title,string &body,int &sem)
   {
    //--- Preenchidos mesmo devolvendo false: quem chama declara as tres
@@ -85,7 +92,17 @@ bool ScreenAlert(string &title,string &body,int &sem)
    //--- correto e ainda assim renderia aviso de variavel nao inicializada — e o
    //--- portao exige zero avisos.
    title=""; body=""; sem=FCV_SEM_NEUTRAL;
-   return false;
+
+   if(StringLen(m_noticeBody)>0)
+     {
+      title=m_noticeTitle; body=m_noticeBody; sem=m_noticeSem;
+      return true;
+     }
+
+   string err=ScreenError(ScreenId());
+   if(StringLen(err)==0) return false;
+   title="CORRIJA ESTA TELA"; body=err; sem=FCV_SEM_BAD;
+   return true;
   }
 
 void MeasureAlert(void)
@@ -638,6 +655,8 @@ void ScreenProfiles(void)
    //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
    //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
    //--- no perfil que o EA usa como base de tudo.
+   //--- Usado tambem no cartao abaixo, que explica por escrito por que o
+   //--- default nao se apaga.
    bool isDefault=ProfileIsDefault(m_profSel);
    //--- ⚠ EXCLUIR e DUPLICAR seguem liberados em perfil conflitante, DE
    //--- PROPOSITO. Sao a saida do bloqueio: sem elas, um perfil com Magic
@@ -646,7 +665,9 @@ void ScreenProfiles(void)
    //--- exatamente como o problema apareceu. Com as duas, ha caminho pela
    //--- propria GUI: duplicar com outro Magic e apagar o antigo, ou apagar a
    //--- copia sobrando. E a regra de que todo bloqueio precisa de volta.
-   bool canDelete=(!editing && !isActive && !isDefault && !selLocked && AccCanAdminProfile());
+   //--- A regra inteira vive em AccCanDeleteSelected: o pulso precisa da MESMA
+   //--- resposta para desarmar a confirmacao quando a oferta desaparece.
+   bool canDelete=AccCanDeleteSelected();
    //--- NOVO nao depende da selecao: cria do zero. DUPLICAR depende, e olha so a
    //--- trava de RUNTIME — nao a de perfil ativo em outro grafico. A assimetria
    //--- e da 1.058 e faz sentido: duplicar nao toca no original.
@@ -658,7 +679,24 @@ void ScreenProfiles(void)
    PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
    PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
    PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup);
-   PutButton(ax,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
+   //--- Excluir e a unica acao irreversivel do painel, e nao tem desfazer: o
+   //--- arquivo sai do disco. Por isso ela pede confirmacao — e a confirmacao
+   //--- acontece AQUI, na propria coluna, e nao num popup: o popup teria de
+   //--- suprimir os campos nativos sob ele (regra do modelo hibrido) e taparia
+   //--- justamente a linha do perfil que esta prestes a sumir.
+   //---
+   //--- Armado, o vermelho vira CONFIRMAR e ganha um VOLTAR ao lado, na mesma
+   //--- altura em que estava o EXCLUIR: o segundo clique cai onde o primeiro
+   //--- caiu, entao a saida precisa estar em outro lugar da linha.
+   if(m_delConfirm && canDelete)
+     {
+      int hw=(aw-6)/2;
+      PutButton(ax,y+3*34,hw,30,"CONFIRMAR",true,m_t.bad,m_t.onAcc,FCV_BTN_DELOK,true);
+      PutButton(ax+hw+6,y+3*34,aw-hw-6,30,"VOLTAR",false,m_t.muted,m_t.onAcc,
+                FCV_BTN_DELNO,true);
+     }
+   else
+      PutButton(ax,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
    //--- "Atualizar lista" sempre habilitado, como na 1.058: reler o disco nao
    //--- altera nada e e a unica forma de ver arquivo criado por fora com o
    //--- painel aberto. Nao depende de perfil selecionado nem de EA parado.
@@ -711,14 +749,14 @@ void ScreenProfiles(void)
       //--- alteracoes do perfil ativo. Repetir a palavra faria o usuario
       //--- decidir qual dos dois e o certo em vez de simplesmente ler.
       int bw=(m_fx2-m_fx1-8)/2;
-      //--- So acende com os quatro criterios satisfeitos. Antes acendia sempre,
-      //--- e um botao que promete gravar sem ter o que gravar so descobre o
-      //--- problema depois do clique.
-      //--- Falta ainda o configInputsValid da 1.058 — a validade da configuracao
-      //--- INTEIRA, que e a Etapa 2d. Por ora vale true, o que AFROUXA.
+      //--- So acende com os quatro criterios satisfeitos E a configuracao
+      //--- INTEIRA valida (configInputsValid da 1.058, que a Etapa 2d trouxe).
+      //--- Antes acendia sempre, e um botao que promete gravar sem ter o que
+      //--- gravar so descobre o problema depois do clique — pior aqui, onde o
+      //--- clique cria um arquivo novo com a configuracao invalida dentro.
       PutButton(m_fx1,m_fy,bw,30,
                 m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
-                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady);
+                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ConfigInputsValid());
       PutButton(m_fx1+bw+8,m_fy,bw,30,"DESCARTAR",
                 false,m_t.warn,m_t.onAcc,FCV_BTN_CANCEL,true);
       m_fy+=30+FCV_CARD_GAP;

@@ -169,8 +169,12 @@ A Fase 2 avanca em quatro etapas:
 |---|---|---|
 | **2a** | Esqueleto: os 8 metodos, ciclo de vida delegando ao renderizador | feita |
 | **2b** | Telas lendo e escrevendo o rascunho de `SEASettings` | **feita** — as sete abas leem dados reais; nenhum valor fixo da Fase 1 sobrou |
-| **2c** | Comandos saindo do painel: `ConsumeCommand` | pendente |
-| **2d** | Validacao, `configInputsValid` e politica de conflito | pendente |
+| **2c** | Comandos saindo do painel: `ConsumeCommand` | **feita** |
+| **2d** | Validacao, `configInputsValid` e politica de conflito | **feita** — fechada junto com a 2c, como o plano exigia |
+
+Com a 2c e a 2d fechadas, **a Fase 2 esta completa**: `CFusionCanvasPanel` responde aos
+oito metodos da secao 5 com comportamento real. O proximo passo e a Fase 3 — o
+`#define` que escolhe qual classe o membro `m_panel` tem.
 
 **O que a 2b entregou, por natureza de dado.** Nem tudo virou campo de
 `SEASettings`, e a diferenca importa para quem for mexer:
@@ -185,34 +189,71 @@ A Fase 2 avanca em quatro etapas:
   do terminal, valem para todo grafico e sao aplicadas no ato: **nao** entram no
   perfil e **nao** criam pendencia.
 
-### Divida registrada para a 2c
+### Divida registrada para a 2c — quitada
 
-Tres coisas foram deixadas prontas para receber comando, e nenhuma pode ser
-esquecida quando ele existir:
+Tres coisas ficaram prontas para receber comando na 2b. Como cada uma foi paga:
 
-1. **Revalidar no instante da acao.** A tela decide o que oferecer com dados em
-   cache — as travas de concorrencia sao reconsultadas no maximo uma vez por
-   segundo, e a checagem de nome/Magic sai da lista de perfis lida na ultima
-   releitura. Entre o que a tela mostrou e o clique existe uma janela: CARREGAR,
-   DUPLICAR, EXCLUIR e a criacao precisam **reconferir** antes de executar.
-2. **Gravar perfil confere o disco de novo.** Outro grafico pode ter criado o
-   mesmo nome nesse intervalo.
-3. **`m_dirty`** sobrou sem uso em tela de producao (so a de estresse ainda tem
-   controle local). Ele fica porque a 2c volta a precisar de pendencia para
-   estado que nao pertence ao perfil — mas se a 2c nao usar, e para remover.
+1. **Revalidar no instante da acao — feito em `CFusionCanvasPanel`.** O
+   renderizador nao decide mais nada sozinho: ele publica uma **intencao**
+   (`CanvasIntents.mqh`) e o painel reconfere contra o disco e os registros do
+   terminal antes de traduzir para `SUICommand`. CARREGAR reconsulta as travas e
+   a compatibilidade de drawdown; EXCLUIR reconfere trava e perfil ativo;
+   DUPLICAR le o arquivo de origem na hora.
+2. **Gravar perfil confere o disco de novo — feito.** `NameFreeOnDisk` e
+   `MagicFreeOnDisk` perguntam ao disco, e nao a lista em memoria. E a unica
+   forma de ver o arquivo que outro grafico criou desde a ultima releitura —
+   inclusive um ilegivel, que nao aparece na lista e mesmo assim ocupa o nome.
+3. **`m_dirty` foi REMOVIDO.** A 2c nao precisou dele: todo controle de producao
+   esta ligado a um campo de `SEASettings`, e a pendencia sai da diferenca entre
+   rascunho e comprometido. Mantido, teria virado risco de verdade — com a 2c,
+   uma tecla de diagnostico da tela de estresse acenderia o SALVAR e faria o
+   painel emitir gravacao de um rascunho que ninguem alterou.
 
-⚠️ **2c e 2d precisam fechar juntas, e a ordem importa.** Ate a 2c existir, nao ha
-caminho do rascunho ate o EA: nada e gravado, e por isso a ausencia de validacao **nao
-e risco operacional** — e so uma tela que aceita numero ruim. No instante em que a 2c
-abrir esse caminho, a mesma ausencia passa a permitir **gravar configuracao invalida
-no perfil**, que e outra classe de problema. Fechar a 2c sozinha, ainda que compile e
-pareca funcionar, e o unico ponto deste plano em que uma etapa isolada piora o
-sistema em vez de melhorar.
+⚠️ **2c e 2d fecharam juntas, como o plano exigia.** Ate a 2c existir, nao havia
+caminho do rascunho ate o EA: nada era gravado, e por isso a ausencia de validacao
+**nao era risco operacional** — era so uma tela que aceitava numero ruim. No instante
+em que a 2c abriu esse caminho, a mesma ausencia passaria a permitir **gravar
+configuracao invalida no perfil**. Era o unico ponto deste plano em que uma etapa
+isolada pioraria o sistema; por isso `configInputsValid` entrou no mesmo passo, e e
+ele que governa o SALVAR, o CRIAR PERFIL e o INICIAR.
 
-### Pendencias registradas para a Etapa 2d (validacao / acesso / conflito)
+### O caminho de volta, como ficou
 
-Tres coisas foram deixadas de fora de proposito ate aqui. Nenhuma e esquecimento;
-todas pertencem a mesma camada e se resolvem juntas.
+```
+clique -> intencao (renderizador)  -> revalidacao (painel) -> SUICommand -> EA
+                                   \-> acao local (disco)  -> aviso na tela
+```
+
+O renderizador nao alcanca `Persistence` — decisao da Fase 1, e o que mantem o
+desenho sem tocar em disco. Ele sabe o que o usuario **pediu**; nao sabe se ainda
+cabe. Duas intencoes nunca chegam ao EA, porque sao operacoes de disco do proprio
+painel (como na 1.058): **EXCLUIR** e **DUPLICAR**.
+
+Toda resposta volta pela **caixa de aviso**, que ja crescia com o texto e estava
+muda desde a 2b. Ela mostra, nesta ordem: a resposta ao ultimo clique, e depois o
+erro **da tela aberta** — nunca o erro de outra aba, para o qual existe a cadeia de
+vermelho. O aviso nao expira por tempo: morre quando o usuario volta a agir
+(navegar ou mexer em qualquer campo). Um aviso que some sozinho e um aviso que
+pode nao ter sido lido; um que fica para sempre vira sujeira.
+
+**EXCLUIR pede confirmacao no proprio cartao.** O botao vermelho vira CONFIRMAR e
+ganha um VOLTAR ao lado, na mesma altura — o segundo clique cai onde o primeiro
+caiu, entao a saida precisa estar em outro lugar da linha. Nao e popup: popup
+teria de suprimir os campos nativos sob ele (regra do modelo hibrido) e taparia
+justamente a linha do perfil prestes a sumir. A confirmacao cai sozinha em toda
+mudanca de contexto — trocar a selecao, navegar, a lista mudar, ou a acao deixar
+de ser possivel. Armada sobre um indice, ela apagaria o perfil errado.
+
+**O EA nao responde "deu certo".** Ele chama `LoadSettings` quando deu, e apenas
+retorna quando nao deu. O painel lembra que pediu (`m_echoKind`) para distinguir a
+recarga que e resposta ao proprio SALVAR — que merece "perfil salvo" — da recarga
+vinda de outro motivo, que merece o aviso de que a digitacao se perdeu. Sem isso,
+uma gravacao bem-sucedida anunciava perda.
+
+### Pendencias da Etapa 2d (validacao / acesso / conflito) — todas fechadas
+
+Tres coisas foram deixadas de fora de proposito ate a 2b. Nenhuma era
+esquecimento; todas pertenciam a mesma camada e se resolveram juntas.
 
 > **Nota da 2b.** A camada de acesso deu **quatro** furos achados em revisao, todos
 > por um motivo so: **nao existe uma regra unica de "campo"**. Quem for mexer nela
@@ -235,28 +276,70 @@ todas pertencem a mesma camada e se resolvem juntas.
 **1. A camada de acesso — FEITA.** Os predicados da 1.058 (`UIPanelAccessState.mqh`)
 foram portados para `CanvasRendererChrome.mqh`: iniciar, pausar, salvar, cancelar,
 carregar, criar e excluir perfil, alem do bloqueio dos campos com o EA rodando ou
-com posicao aberta. Falta apenas `configInputsValid`, que depende do item 2 — ate
-la vale `true`, o que **afrouxa** a regra e nunca a aperta.
+com posicao aberta. **`configInputsValid` entrou na 2d** e governa INICIAR, SALVAR e
+CRIAR PERFIL — o `true` provisorio saiu.
 
-**2. Validacao e regras cruzadas.** Digitar letra num campo numerico vira zero sem
-reclamar. Faltam as faixas (`prioridade 0..1000`, `periodo 1..1000`) e as relacoes
-entre campos (`MA rapida < MA lenta`, `sobrevenda < media < sobrecompra`). As regras
-existem na 1.058; o que precisa ser reescrito e a camada de leitura, porque o modelo
-por slot nao tem os membros nomeados que os fragmentos originais esperam.
+Uma regra nova ganhou funcao propria pela licao da 2b: `AccCanDeleteSelected()`. Ela
+e consultada em **dois** lugares que precisam concordar — o desenho, que decide se
+oferece EXCLUIR, e o pulso, que desarma a confirmacao quando a oferta some. Escrita
+por extenso nos dois, divergiria; e foi exatamente uma copia divergente de predicado
+de acesso que abriu o quarto furo achado na revisao da 2b.
 
-**3. Politica de conflito durante a edicao.** Enquanto o usuario digita, o texto em
-andamento esta protegido — mas nao pela regra do `m_dirty`, e sim porque a
-sincronizacao diferencial compara o valor de origem com **o que nos escrevemos por
-ultimo no objeto**, nao com o que esta na caixa. Enquanto o valor de origem daquele
-campo nao muda, o `OBJ_EDIT` nao e reescrito e a digitacao sobrevive ao refresh
-periodico.
+**2. Validacao e regras cruzadas — FEITA** (`CanvasRendererValidate.mqh`). As regras
+sao as da 1.058, extraidas uma a uma dos `Validate()` dos paineis de estrategia e
+filtro, de `UIPanelRiskValidation` e de `UIPanelProtectionValidation` — nao
+rededuzidas. Uma faixa "obvia" que discordasse faria os dois paineis aceitarem
+perfis diferentes, e o arquivo gravado por um seria recusado pelo outro.
 
-O caso residual e quando o valor de origem **muda de verdade** no meio da digitacao:
-carga ou troca de perfil, restauracao, importacao. Ai o novo valor disputa com o
-texto ainda nao confirmado. Nao ha resposta obviamente certa — descartar o que o
-usuario digitava ou ignorar o que o EA mandou — e por isso e uma decisao de politica,
-nao um bug a corrigir sozinho. Fica com o item 1: "o campo aceita edicao agora?" e
-"quem ganha se o valor mudar por baixo?" sao a mesma pergunta vista de dois angulos.
+O que mudou foi so a camada de leitura, como a correcao da 2b antecipou. E uma
+diferenca de fundo, que e melhoria: la o texto cru do controle e reparseado a cada
+passada; aqui o parse acontece **uma vez**, no fim da edicao, e o que se guarda e o
+veredito (`m_fldBadText`, por campo). O efeito para o usuario e o mesmo: texto
+recusado mantem o ultimo valor bom e pinta o campo de vermelho.
+
+E foi esse portao que matou o "digitar letra num campo numerico vira zero sem
+reclamar". Ele fica **antes** de qualquer switch de proposito: um caso novo esquecido
+la embaixo deixaria aquele campo sem veredito, e ele voltaria a aceitar lixo em
+silencio. De quebra, a virgula passou a ser normalizada — `0,30` era convertido para
+zero pelo `StringToDouble`.
+
+A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
+faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a
+de Gestao marcava, e o vermelho parava no meio do caminho — a aba de cima acendia
+sem que nenhuma subaba dissesse onde.
+
+⚠️ `HasDuplicateMagic()` acende a aba Perfis mas **nao** entra em `configInputsValid`.
+Sao perguntas diferentes: ele responde "ha Magic repetido em algum lugar do disco", e
+dois perfis parados que colidem entre si nao atrapalham esta conta. Dentro do
+predicado, ele passaria a impedir INICIAR e SALVAR por causa de arquivos que este
+grafico nao usa. Quem cuida do caso que importa e `AccCanStart`, com
+`ActiveMagicConflicts()`.
+
+**Custo:** `ConfigInputsValid()` percorre as vinte e uma telas e e consultado tres
+vezes por quadro (INICIAR, SALVAR, CRIAR). O rascunho nao muda no meio de um desenho,
+entao a resposta e calculada **uma vez por quadro** — cache invalidado no inicio do
+`DrawFrame`, e nao a cada escrita no rascunho: toda alteracao ja pede redesenho, e
+depender de lembrar de invalidar em cada ponto de escrita seria criar a chance de
+esquecer um.
+
+**3. Politica de conflito durante a edicao — DECIDIDA: o EA vence, com aviso.**
+
+Enquanto o usuario digita, o texto em andamento continua protegido pela
+sincronizacao diferencial, que compara o valor de origem com **o que nos escrevemos
+por ultimo no objeto** — nao com o que esta na caixa. Isso nao mudou.
+
+O caso residual era o valor de origem **mudar de verdade** no meio da digitacao:
+carga de perfil, restauracao. A decisao: **o valor do EA vence e o texto digitado e
+descartado, com aviso na tela.** Carregar um perfil e um clique deliberado; manter
+na tela o que foi digitado antes dele contradiria a acao que o usuario acabou de
+pedir. E o aviso existe porque descartar em silencio faria o valor sumir sem
+explicacao — a licao nº 1 da secao 8, na pratica.
+
+O mecanismo ja existia na fronteira e estava sendo desperdicado: **`LoadSettings` e o
+caminho de recarga**, distinto do `Update`. Ate a 2b ele era um apelido de `Update`;
+agora e ele que solta o foco do campo, devolve o rascunho ao comprometido e escreve o
+aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
+edicao pendente.
 
 **Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
 convivem, comparaveis no mesmo grafico, com reversao imediata.

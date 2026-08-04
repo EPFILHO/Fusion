@@ -36,10 +36,16 @@
 //--- consulta-los sem ganhar dependencia de Persistence.
 #include "..\..\Core\InstanceRegistry.mqh"
 #include "..\..\Core\ActiveProfileRegistry.mqh"
+//--- Parse de texto digitado. Mesmas funcoes que a 1.058 usa para decidir o
+//--- que e um numero valido — extraidas de PanelUtils para ca justamente
+//--- porque aquele arquivo arrasta a biblioteca Controls.
+#include "..\..\Core\TextParse.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"
 #include "CanvasFields.mqh"
 #include "CanvasForm.mqh"
+//--- Etapa 2c: o vocabulario do caminho de volta.
+#include "CanvasIntents.mqh"
 
 class CFusionCanvasRenderer
   {
@@ -61,13 +67,15 @@ private:
    int               m_sub[FCV_TAB_COUNT];    // nivel 2, guardado por aba
    int               m_railSel[2];            // nivel 3, guardado por Risco e Protecao
    bool              m_minimized;
-   //--- Pendencia de controles NAO ligados a SEASettings. Com a Etapa 2b
-   //--- fechada, so a tela de estresse ainda tem controles assim — os campos do
-   //--- formulario de perfil sao locais mas nao marcam pendencia, de proposito.
-   //--- Fica porque a 2c volta a precisar dele para estado que nao e do perfil.
-   //--- A pendencia de configuracao nao mora aqui: e a diferenca entre rascunho
-   //--- e comprometido, calculada em HasPending().
-   bool              m_dirty;
+   //--- m_dirty foi REMOVIDO na Etapa 2c, cumprindo a divida nº 3 registrada no
+   //--- plano ("ele fica porque a 2c volta a precisar de pendencia para estado
+   //--- que nao pertence ao perfil — mas se a 2c nao usar, e para remover").
+   //--- Ela nao precisou: todo controle de producao esta ligado a um campo de
+   //--- SEASettings, e a pendencia sai da diferenca entre rascunho e
+   //--- comprometido (HasPending). Sobravam so os controles sinteticos da tela
+   //--- de estresse — e, mantido, ele passaria a ser um risco de verdade: com a
+   //--- 2c, uma tecla de diagnostico acenderia o SALVAR e faria o painel emitir
+   //--- gravacao de um rascunho que ninguem alterou.
    //--- Pendencia que a tela esta mostrando agora, para o pulso comparar.
    bool              m_lastPending;
 
@@ -239,6 +247,26 @@ private:
    SEASettings       m_draft;
    SEASettings       m_committed;
 
+   //--- Etapa 2d: texto que o parse recusou, por campo. O rascunho guarda
+   //--- numero, e numero nao sabe dizer que veio de "abc" — sem esta marca o
+   //--- valor era apagado em silencio. Ver CanvasRendererValidate.mqh.
+   bool              m_fldBadText[FCV_FLD_COUNT];
+
+   //--- Etapa 2c: o que o usuario PEDIU, esperando ser drenado por quem
+   //--- conduz o painel. Uma posicao so — um clique, uma intencao.
+   SCanvasIntent     m_intent;
+   bool              m_hasIntent;
+   //--- Resposta do painel ao ultimo clique. Vive na caixa de aviso e morre
+   //--- quando o usuario volta a agir; ver ClearNotice.
+   string            m_noticeTitle, m_noticeBody;
+   int               m_noticeSem;
+   //--- EXCLUIR armado: o botao vermelho ja foi clicado uma vez e aguarda
+   //--- confirmacao. Cai em qualquer mudanca de contexto.
+   bool              m_delConfirm;
+   //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
+   //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
+   bool              m_cfgValid, m_cfgValidKnown;
+
    //--- medicao
    bool              m_stress;                // tela sintetica de pior caso
    int               m_frameTexts, m_frameTextsVis, m_frameRects; // contadores da ultima passada
@@ -268,6 +296,11 @@ public:
       //--- outro grafico e exatamente o tipo de mudanca que ninguem vem contar,
       //--- e sem isto a tela so a mostraria no proximo clique.
       if(TouchProfileLocks()) m_viewDirty=true;
+      //--- A confirmacao da exclusao pode ter perdido o chao sem um clique: o
+      //--- EA iniciou, uma posicao abriu, outro grafico tomou o perfil. Deixa-la
+      //--- armada sobre uma acao que a tela ja nao oferece guardaria um aviso
+      //--- vermelho pedindo confirmacao de algo impossivel.
+      if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
       if(!m_viewDirty && HasPending()==m_lastPending) return;
       Render();
      }
@@ -283,7 +316,11 @@ public:
       //--- painel se recusaria a exibi-la — ficaria preso no valor velho.
       bool pending=HasPending();
       m_committed=snap.settings;
-      if(!pending) { m_draft=m_committed; SyncDerivedSettings(); }
+      //--- Rascunho semeado de novo: os vereditos de parse descrevem um texto
+      //--- que nao esta mais em campo nenhum. Mantidos, um campo continuaria
+      //--- vermelho exibindo um valor que o EA acabou de mandar e que esta
+      //--- correto.
+      if(!pending) { m_draft=m_committed; SyncDerivedSettings(); ClearFieldTextFlags(); }
      }
    //--- Lista de perfis vinda de quem enumera o disco. Recebe os nomes ja na
    //--- ordem em que devem aparecer; o renderizador nao ordena nem filtra.
@@ -329,6 +366,9 @@ public:
             if(m_profMagic[i]>0 && m_profMagic[i]==m_profMagic[j])
               { m_profDup[i]=true; m_profDup[j]=true; }
 
+      //--- A lista mudou sob os pes da confirmacao: ela mirava um indice, e o
+      //--- perfil naquele indice pode ser outro agora — ou nem existir mais.
+      m_delConfirm=false;
       m_profSel=-1;
       if(StringLen(keep)>0)
          for(int i=0;i<m_profCount;++i)
@@ -367,12 +407,18 @@ private:
 
 #include "CanvasRendererPrimitives.mqh"
 #include "CanvasRendererFields.mqh"
+//--- Validacao antes do Chrome e das telas: sao elas que consultam FieldValid,
+//--- ScreenError e ConfigInputsValid. A ordem entre fragmentos nao muda a
+//--- compilacao (sao membros da mesma classe), mas manter a dependencia
+//--- visivel na ordem de leitura evita procurar a regra no arquivo errado.
+#include "CanvasRendererValidate.mqh"
 #include "CanvasRendererChrome.mqh"
 #include "CanvasRendererForm.mqh"
 #include "CanvasRendererScreens.mqh"
 #include "CanvasRendererStress.mqh"
 #include "CanvasRendererEdits.mqh"
 #include "CanvasRendererPrefs.mqh"
+#include "CanvasRendererCommands.mqh"
 #include "CanvasRendererInput.mqh"
 #include "CanvasRendererPerf.mqh"
   };
@@ -389,11 +435,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    for(int i=0;i<FCV_TAB_COUNT;++i) m_sub[i]=0;
    m_sub[FCV_TAB_GESTAO]=1;          // abre em Gestao > Protecao ao alternar
    m_railSel[0]=0; m_railSel[1]=5;
-   //--- Painel recem-criado nao tem alteracao pendente. Nascia com m_dirty=true
-   //--- na Fase 1, so para os botoes aparecerem acesos na demonstracao — e isso
-   //--- passou a impedir que o primeiro snapshot semeasse o rascunho, deixando
-   //--- a tela presa nos valores padrao.
-   m_minimized=false; m_dirty=false; m_lastPending=false;
+   m_minimized=false; m_lastPending=false;
    m_railCount=0;
 
    m_mouseDown=false; m_dragging=false; m_scrollDrag=false; m_overPanel=false;
@@ -433,6 +475,17 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_comboBarDrag=false; m_editsPending=false;
 
    m_popupOn=false; m_popupX1=0; m_popupY1=0; m_popupX2=0; m_popupY2=0;
+
+   for(int i=0;i<FCV_FLD_COUNT;++i) m_fldBadText[i]=false;
+   m_hasIntent=false; m_intent.kind=FCV_INTENT_NONE;
+   m_intent.profile=""; m_intent.magic=0;
+   //--- Strings do aviso atribuidas EXPLICITAMENTE: em MQL5 uma string nunca
+   //--- atribuida vale NULL, que nao e igual a "". Deixadas de fora, o teste
+   //--- "ha aviso?" daria verdadeiro e o painel nasceria com uma caixa de
+   //--- aviso vazia comendo a area util.
+   m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
+   m_delConfirm=false;
+   m_cfgValid=true; m_cfgValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
    //--- com campos vazios no primeiro quadro — parece defeito, nao "sem dado".
@@ -619,6 +672,8 @@ void CFusionCanvasRenderer::DrawFrame(void)
   {
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    m_frameTexts=0; m_frameTextsVis=0; m_frameRects=0;
+   //--- Um quadro, uma resposta da validacao. Ver ConfigInputsValid.
+   InvalidateValidationCache();
 
    m_canvas.Erase(m_t.ground);
    m_popupOn=false;
@@ -650,9 +705,12 @@ void CFusionCanvasRenderer::DrawFrame(void)
      {
       string names[];
       int n=Level2Names(m_tab,names);
+      //--- Todas as faixas de nivel 2 marcam erro desde a Etapa 2d. Ate a 2b so
+      //--- a de Gestao marcava, porque era a unica cuja cadeia estava ligada —
+      //--- e uma subaba de Estrategias com campo invalido nao acendia, embora a
+      //--- aba de cima acendesse: o vermelho parava no meio do caminho.
       FolderStrip(F2Top(),FCV_F2_H,FCV_PAD,FCV_PANEL_W-FCV_PAD,
-                  names,n,Sub(),FCV_FS_SM,m_t.ground,m_cfgX,m_cfgW,
-                  (m_tab==FCV_TAB_GESTAO),1);
+                  names,n,Sub(),FCV_FS_SM,m_t.ground,m_cfgX,m_cfgW,true,1);
      }
 
    DrawScrollbar();

@@ -199,4 +199,20 @@
 #define FCV_FLD_WIN_STREAK_ACT   216   // combo STREAK
 #define FCV_FLD_WIN_STREAK_PAUSE 217   // int
 
+//--- Teto dos identificadores. Serve de tamanho para as tabelas indexadas por
+//--- campo — hoje so a do veredito de parse (CanvasRendererValidate). Vale mais
+//--- que o maior identificador em uso: acrescentar campo acima deste teto
+//--- deixaria o veredito dele fora da tabela, e o campo nunca acusaria erro.
+//--- Maior em uso hoje: FCV_FLD_VIS_BB_STYLE (230).
+#define FCV_FLD_COUNT            256
+
+//--- Como o texto de um campo e lido na entrada. Mora aqui, e nao junto da
+//--- validacao que o consome, por uma razao de preprocessador: FieldSetText
+//--- (CanvasRendererFields.mqh) usa estas macros e e incluido ANTES do
+//--- fragmento de validacao — macro, ao contrario de metodo de classe, so
+//--- existe depois de definida.
+#define FCV_FTYPE_NONE 0
+#define FCV_FTYPE_INT  1
+#define FCV_FTYPE_DEC  2
+
 #endif

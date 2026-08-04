@@ -9,6 +9,7 @@
 #include "../Core/Types.mqh"
 #include "../Core/SettingsNotices.mqh"
 #include "../Core/VolumeFormat.mqh"
+#include "../Core/TextParse.mqh"
 
 #define FUSION_CLR_BG            C'34,40,52'
 #define FUSION_CLR_PANEL         C'47,56,72'
@@ -442,74 +443,12 @@ string FusionConflictText(const ENUM_CONFLICT_RESOLUTION mode)
    return (mode == CONFLICT_PRIORITY) ? "PRIORIDADE" : "CANCELAR";
   }
 
-string FusionTrimCopy(const string text)
-  {
-   int start = 0;
-   int end = StringLen(text) - 1;
-
-   while(start <= end)
-     {
-      ushort ch = StringGetCharacter(text, start);
-      if(ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n')
-         break;
-      start++;
-     }
-
-   while(end >= start)
-     {
-      ushort ch = StringGetCharacter(text, end);
-      if(ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n')
-         break;
-      end--;
-     }
-
-   if(end < start)
-      return "";
-   return StringSubstr(text, start, end - start + 1);
-  }
-
-bool FusionIsBlank(const string text)
-  {
-   return FusionTrimCopy(text) == "";
-  }
-
-bool FusionIsIntegerText(const string text,const bool allowZero=true)
-  {
-   string trimmed = FusionTrimCopy(text);
-   if(trimmed == "")
-      return false;
-
-   int start = 0;
-   if(StringGetCharacter(trimmed, 0) == '+')
-      start = 1;
-   else if(StringGetCharacter(trimmed, 0) == '-')
-      return false;
-
-   if(start >= StringLen(trimmed))
-      return false;
-
-   for(int i = start; i < StringLen(trimmed); ++i)
-     {
-      ushort ch = StringGetCharacter(trimmed, i);
-      if(ch < '0' || ch > '9')
-         return false;
-     }
-
-   if(!allowZero && StringToInteger(trimmed) == 0)
-      return false;
-   return true;
-  }
-
-string FusionNormalizeDecimalText(const string text)
-  {
-   string normalized = FusionTrimCopy(text);
-   StringReplace(normalized, ",", ".");
-   return normalized;
-  }
-
 //--- FusionVolumeDigits, FusionIsVolumeAligned e FusionFormatVolume mudaram
-//--- para Core/VolumeFormat.mqh, incluido no topo: a GUI 2.0 precisa delas e
-//--- nao pode incluir este arquivo, que arrasta a biblioteca Controls.
+//--- para Core/VolumeFormat.mqh; FusionTrimCopy, FusionIsBlank,
+//--- FusionIsIntegerText, FusionNormalizeDecimalText e FusionIsDecimalText para
+//--- Core/TextParse.mqh. Ambos sao incluidos no topo, entao quem ja usava as
+//--- funcoes nao muda. O motivo e o mesmo nos dois casos: a GUI 2.0 precisa
+//--- delas e nao pode incluir este arquivo, que arrasta a biblioteca Controls.
 
 string FusionTopRuntimeNoticeText(const string notice)
   {
@@ -538,42 +477,6 @@ string FusionTopRuntimeNoticeText(const string notice)
       return "Win streak em pausa.";
 
    return "Streak em pausa.";
-  }
-
-bool FusionIsDecimalText(const string text,const bool allowZero=true)
-  {
-   string trimmed = FusionNormalizeDecimalText(text);
-   if(trimmed == "")
-      return false;
-
-   bool hasSeparator = false;
-   int start = 0;
-   if(StringGetCharacter(trimmed, 0) == '+')
-      start = 1;
-   else if(StringGetCharacter(trimmed, 0) == '-')
-      return false;
-
-   if(start >= StringLen(trimmed))
-      return false;
-
-   for(int i = start; i < StringLen(trimmed); ++i)
-     {
-      ushort ch = StringGetCharacter(trimmed, i);
-      if(ch == '.' || ch == ',')
-        {
-         if(hasSeparator)
-            return false;
-         hasSeparator = true;
-         continue;
-        }
-      if(ch < '0' || ch > '9')
-         return false;
-     }
-
-   double value = StringToDouble(trimmed);
-   if(!allowZero && value <= 0.0)
-      return false;
-   return true;
   }
 
 void FusionApplyActionButtonStyle(CButton &button,const color bg,const bool enabled=true)

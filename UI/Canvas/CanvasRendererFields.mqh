@@ -117,6 +117,7 @@ uint FieldGetColor(const int fid)
 
 void FieldSetColor(const int fid,const uint argb)
   {
+   ClearNotice();
    color c=ToChartColor(argb);
    switch(fid)
      {
@@ -130,6 +131,10 @@ void FieldSetColor(const int fid,const uint argb)
 
 void FieldToggleBool(const int fid)
   {
+   //--- Mexer num campo e voltar a agir: o aviso descrevia a acao ANTERIOR.
+   //--- Mantido, ele continuaria afirmando "perfil salvo" enquanto a tela ja
+   //--- tem alteracao nova por gravar.
+   ClearNotice();
    int w,f;
    if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_ON)
      {
@@ -309,10 +314,11 @@ bool WinStreakPauseEditable(void)
 //| INICIAR dependendo de nao haver pendencia, isso deixou de ser      |
 //| cosmetico: bloqueava a operacao sem causa visivel.                 |
 //|                                                                   |
-//| m_dirty sobrevive para os controles NAO ligados a SEASettings.     |
-//| Fechada a Etapa 2b, nenhuma tela de producao tem mais desses — so  |
-//| a tela de estresse. Ele permanece porque a 2c volta a precisar de  |
-//| pendencia para estado que nao pertence ao perfil.                  |
+//| Desde a Etapa 2c a diferenca e a UNICA fonte: o antigo m_dirty foi |
+//| removido. Ele existia para os controles nao ligados a SEASettings, |
+//| e depois da 2b so a tela de estresse tinha desses — mantido, uma   |
+//| tecla de diagnostico passaria a acender o SALVAR e a fazer o       |
+//| painel emitir gravacao de um rascunho intocado.                    |
 //+------------------------------------------------------------------+
 //--- O texto publicado pelo objeto ja diverge do que gravamos nele?
 //---
@@ -347,7 +353,9 @@ bool EditTextOutOfSync(void)
   {
    for(int k=0;k<m_liveEditCount;++k)
      {
-      if(m_liveEditFid[k]==FCV_FLD_NONE) continue;    // slot local: ver m_dirty
+      //--- Slot local (formulario de perfil, tela de estresse): nao descreve
+      //--- campo de SEASettings, entao nao ha pendencia de perfil a acusar.
+      if(m_liveEditFid[k]==FCV_FLD_NONE) continue;
       if(ObjectFind(m_chart,m_liveEditName[k])<0) continue;
       if(ObjectGetString(m_chart,m_liveEditName[k],OBJPROP_TEXT)!=m_liveEditText[k])
          return true;
@@ -356,7 +364,7 @@ bool EditTextOutOfSync(void)
   }
 
 bool HasPending(void)
-  { return (m_dirty || EditTextOutOfSync() || !FusionSettingsEqual(m_draft,m_committed)); }
+  { return (EditTextOutOfSync() || !FusionSettingsEqual(m_draft,m_committed)); }
 
 int FieldGetIndex(const int fid)
   {
@@ -420,6 +428,7 @@ int FieldGetIndex(const int fid)
 
 void FieldSetIndex(const int fid,const int idx)
   {
+   ClearNotice();
    int w,f;
    if(NewsFieldParts(fid,w,f) && f==FCV_FLD_NEWS_MODE)
      {
@@ -564,10 +573,14 @@ string FieldGetText(const int fid)
    return "";
   }
 
-//--- Texto digitado -> rascunho. Parse minimo por enquanto: as regras de
-//--- faixa e as cruzadas (sobrevenda < sobrecompra...) entram na Etapa 2d,
-//--- que e a camada de validacao. Ate la, valor nao-numerico vira zero — o
-//--- mesmo comportamento cru do StringToInteger, marcado aqui como divida.
+//--- Texto digitado -> rascunho.
+//---
+//--- O PARSE E RECUSAVEL desde a Etapa 2d: texto que nao e numero nao entra no
+//--- rascunho, o campo guarda o ultimo valor bom e fica marcado de vermelho
+//--- (FieldTextBad). Antes disso "abc" virava zero sem uma palavra — e zero e
+//--- valor legitimo em quase todo campo, entao o apagamento passava.
+//--- E a mesma regra da 1.058, que so escreve no rascunho quando o parse passa.
+//---
 //--- Hora/minuto digitados -> valor recortado a faixa. Copia do SanitizeTimeText
 //--- da 1.058 (UIPanelProtectionInputs): so os digitos contam e o excedente e
 //--- preso no maximo, entao "99" vira 23 numa hora e 59 num minuto.
@@ -593,84 +606,108 @@ int TimePartValue(const string text,const int maxValue)
 
 void FieldSetText(const int fid,const string text)
   {
+   //--- Portao unico de entrada de texto. Fica ANTES de qualquer switch de
+   //--- proposito: um caso novo esquecido aqui deixaria aquele campo sem
+   //--- veredito, e ele voltaria a aceitar lixo em silencio.
+   //--- A virgula e normalizada para ponto — "0,30" e a grafia que o proprio
+   //--- terminal exibe em boa parte das localizacoes, e recusa-la (ou pior,
+   //--- converte-la para zero pelo StringToDouble) seria recusar o teclado do
+   //--- usuario.
+   ClearNotice();
+   string parsed=text;
+   int kind=FieldTextKind(fid);
+   if(kind!=FCV_FTYPE_NONE)
+     {
+      bool ok;
+      if(kind==FCV_FTYPE_DEC)
+        {
+         parsed=FusionNormalizeDecimalText(text);
+         ok=FusionIsDecimalText(parsed,true);
+        }
+      else
+         ok=FusionIsIntegerText(text,true);
+      SetFieldTextBad(fid,!ok);
+      if(!ok) return;             // mantem o ultimo valor bom
+     }
+
    int w,f;
    if(NewsFieldParts(fid,w,f))
      {
       switch(f)
         {
          case FCV_FLD_NEWS_START_H:
-            m_draft.newsWindows[w].startHour  =TimePartValue(text,FCV_HOUR_MAX);   return;
+            m_draft.newsWindows[w].startHour  =TimePartValue(parsed,FCV_HOUR_MAX);   return;
          case FCV_FLD_NEWS_START_M:
-            m_draft.newsWindows[w].startMinute=TimePartValue(text,FCV_MINUTE_MAX); return;
+            m_draft.newsWindows[w].startMinute=TimePartValue(parsed,FCV_MINUTE_MAX); return;
          case FCV_FLD_NEWS_END_H:
-            m_draft.newsWindows[w].endHour    =TimePartValue(text,FCV_HOUR_MAX);   return;
+            m_draft.newsWindows[w].endHour    =TimePartValue(parsed,FCV_HOUR_MAX);   return;
          case FCV_FLD_NEWS_END_M:
-            m_draft.newsWindows[w].endMinute  =TimePartValue(text,FCV_MINUTE_MAX); return;
+            m_draft.newsWindows[w].endMinute  =TimePartValue(parsed,FCV_MINUTE_MAX); return;
         }
       return;
      }
 
    switch(fid)
      {
-      case FCV_FLD_MAGIC:          m_draft.magicNumber       =(int)StringToInteger(text); break;
-      case FCV_FLD_MA_PRIORITY:    m_draft.maCrossPriority   =(int)StringToInteger(text); break;
-      case FCV_FLD_MA_FAST_PERIOD: m_draft.maFastPeriod      =(int)StringToInteger(text); break;
-      case FCV_FLD_MA_SLOW_PERIOD: m_draft.maSlowPeriod      =(int)StringToInteger(text); break;
-      case FCV_FLD_MA_MIN_DIST:    m_draft.maMinDistancePoints=(int)StringToInteger(text); break;
-      case FCV_FLD_RSI_PRIORITY:   m_draft.rsiPriority       =(int)StringToInteger(text); break;
-      case FCV_FLD_RSI_PERIOD:     m_draft.rsiPeriod         =(int)StringToInteger(text); break;
-      case FCV_FLD_RSI_OVERSOLD:   m_draft.rsiOversold       =(int)StringToInteger(text); break;
-      case FCV_FLD_RSI_OVERBOUGHT: m_draft.rsiOverbought     =(int)StringToInteger(text); break;
-      case FCV_FLD_RSI_MIDDLE:     m_draft.rsiMiddle         =(int)StringToInteger(text); break;
-      case FCV_FLD_BB_PRIORITY:    m_draft.bbPriority        =(int)StringToInteger(text); break;
-      case FCV_FLD_BB_PERIOD:      m_draft.bbPeriod          =(int)StringToInteger(text); break;
-      case FCV_FLD_BB_DEVIATION:   m_draft.bbDeviation       =StringToDouble(text);       break;
-      case FCV_FLD_TR_MA1_PERIOD:  m_draft.trendMAPeriod     =(int)StringToInteger(text); break;
-      case FCV_FLD_TR_MA2_PERIOD:  m_draft.trendSellMAPeriod =(int)StringToInteger(text); break;
-      case FCV_FLD_RF_PERIOD:      m_draft.rsiFilterPeriod   =(int)StringToInteger(text); break;
+      case FCV_FLD_MAGIC:          m_draft.magicNumber       =(int)StringToInteger(parsed); break;
+      case FCV_FLD_MA_PRIORITY:    m_draft.maCrossPriority   =(int)StringToInteger(parsed); break;
+      case FCV_FLD_MA_FAST_PERIOD: m_draft.maFastPeriod      =(int)StringToInteger(parsed); break;
+      case FCV_FLD_MA_SLOW_PERIOD: m_draft.maSlowPeriod      =(int)StringToInteger(parsed); break;
+      case FCV_FLD_MA_MIN_DIST:    m_draft.maMinDistancePoints=(int)StringToInteger(parsed); break;
+      case FCV_FLD_RSI_PRIORITY:   m_draft.rsiPriority       =(int)StringToInteger(parsed); break;
+      case FCV_FLD_RSI_PERIOD:     m_draft.rsiPeriod         =(int)StringToInteger(parsed); break;
+      case FCV_FLD_RSI_OVERSOLD:   m_draft.rsiOversold       =(int)StringToInteger(parsed); break;
+      case FCV_FLD_RSI_OVERBOUGHT: m_draft.rsiOverbought     =(int)StringToInteger(parsed); break;
+      case FCV_FLD_RSI_MIDDLE:     m_draft.rsiMiddle         =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BB_PRIORITY:    m_draft.bbPriority        =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BB_PERIOD:      m_draft.bbPeriod          =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BB_DEVIATION:   m_draft.bbDeviation       =StringToDouble(parsed);       break;
+      case FCV_FLD_TR_MA1_PERIOD:  m_draft.trendMAPeriod     =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TR_MA2_PERIOD:  m_draft.trendSellMAPeriod =(int)StringToInteger(parsed); break;
+      case FCV_FLD_RF_PERIOD:      m_draft.rsiFilterPeriod   =(int)StringToInteger(parsed); break;
       //--- No modo Direcao os dois campos sao a MESMA linha: o segundo nao
       //--- aparece na tela, mas continua existindo no struct e sendo lido pelo
       //--- EA se o modo mudar depois. Mante-lo em sincronia evita que uma linha
       //--- fantasma, de outro modo, ressurja com valor de outra epoca.
       case FCV_FLD_RF_BUYMIN:
-         m_draft.rsiFilterBuyMin=(int)StringToInteger(text);
+         m_draft.rsiFilterBuyMin=(int)StringToInteger(parsed);
          if(m_draft.rsiFilterMode==RSI_FILTER_DIRECTION)
             m_draft.rsiFilterSellMax=m_draft.rsiFilterBuyMin;
          break;
-      case FCV_FLD_RF_SELLMAX:     m_draft.rsiFilterSellMax  =(int)StringToInteger(text); break;
-      case FCV_FLD_BF_PERIOD:      m_draft.bbFilterPeriod    =(int)StringToInteger(text); break;
-      case FCV_FLD_BF_DEV:         m_draft.bbFilterDeviation =StringToDouble(text);       break;
-      case FCV_FLD_BF_MINPTS:      m_draft.bbFilterMinWidthPoints =(int)StringToInteger(text); break;
-      case FCV_FLD_BF_MINPCT:      m_draft.bbFilterMinWidthPercent=StringToDouble(text);      break;
-      case FCV_FLD_BF_SLOPE_BACK:  m_draft.bbFilterSlopeLookback  =(int)StringToInteger(text); break;
-      case FCV_FLD_BF_SLOPE_MINPTS:m_draft.bbFilterMinSlopePoints =(int)StringToInteger(text); break;
+      case FCV_FLD_RF_SELLMAX:     m_draft.rsiFilterSellMax  =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BF_PERIOD:      m_draft.bbFilterPeriod    =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BF_DEV:         m_draft.bbFilterDeviation =StringToDouble(parsed);       break;
+      case FCV_FLD_BF_MINPTS:      m_draft.bbFilterMinWidthPoints =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BF_MINPCT:      m_draft.bbFilterMinWidthPercent=StringToDouble(parsed);      break;
+      case FCV_FLD_BF_SLOPE_BACK:  m_draft.bbFilterSlopeLookback  =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BF_SLOPE_MINPTS:m_draft.bbFilterMinSlopePoints =(int)StringToInteger(parsed); break;
       //--- Gestao > Risco
-      case FCV_FLD_FIXED_LOT:   m_draft.fixedLot              =StringToDouble(text);       break;
-      case FCV_FLD_SLIPPAGE:    m_draft.slippagePoints        =(int)StringToInteger(text); break;
-      case FCV_FLD_SL_POINTS:   m_draft.fixedSLPoints         =(int)StringToInteger(text); break;
-      case FCV_FLD_TP_POINTS:   m_draft.fixedTPPoints         =(int)StringToInteger(text); break;
-      case FCV_FLD_TP1_PCT:     m_draft.tp1.percent           =StringToDouble(text);       break;
-      case FCV_FLD_TP1_DIST:    m_draft.tp1.distancePoints    =(int)StringToInteger(text); break;
-      case FCV_FLD_TP2_PCT:     m_draft.tp2.percent           =StringToDouble(text);       break;
-      case FCV_FLD_TP2_DIST:    m_draft.tp2.distancePoints    =(int)StringToInteger(text); break;
-      case FCV_FLD_BE_TRIGGER:  m_draft.breakevenTriggerPoints=(int)StringToInteger(text); break;
-      case FCV_FLD_BE_OFFSET:   m_draft.breakevenOffsetPoints =(int)StringToInteger(text); break;
-      case FCV_FLD_TRAIL_START: m_draft.trailingStartPoints   =(int)StringToInteger(text); break;
-      case FCV_FLD_TRAIL_STEP:  m_draft.trailingStepPoints    =(int)StringToInteger(text); break;
+      case FCV_FLD_FIXED_LOT:   m_draft.fixedLot              =StringToDouble(parsed);       break;
+      case FCV_FLD_SLIPPAGE:    m_draft.slippagePoints        =(int)StringToInteger(parsed); break;
+      case FCV_FLD_SL_POINTS:   m_draft.fixedSLPoints         =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TP_POINTS:   m_draft.fixedTPPoints         =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TP1_PCT:     m_draft.tp1.percent           =StringToDouble(parsed);       break;
+      case FCV_FLD_TP1_DIST:    m_draft.tp1.distancePoints    =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TP2_PCT:     m_draft.tp2.percent           =StringToDouble(parsed);       break;
+      case FCV_FLD_TP2_DIST:    m_draft.tp2.distancePoints    =(int)StringToInteger(parsed); break;
+      case FCV_FLD_BE_TRIGGER:  m_draft.breakevenTriggerPoints=(int)StringToInteger(parsed); break;
+      case FCV_FLD_BE_OFFSET:   m_draft.breakevenOffsetPoints =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TRAIL_START: m_draft.trailingStartPoints   =(int)StringToInteger(parsed); break;
+      case FCV_FLD_TRAIL_STEP:  m_draft.trailingStepPoints    =(int)StringToInteger(parsed); break;
       //--- Gestao > Protecao
-      case FCV_FLD_SPREAD_MAX:  m_draft.maxSpreadPoints       =(int)StringToInteger(text); break;
-      case FCV_FLD_SESS_START_H: m_draft.sessionStartHour  =TimePartValue(text,FCV_HOUR_MAX);   break;
-      case FCV_FLD_SESS_START_M: m_draft.sessionStartMinute=TimePartValue(text,FCV_MINUTE_MAX); break;
-      case FCV_FLD_SESS_END_H:   m_draft.sessionEndHour    =TimePartValue(text,FCV_HOUR_MAX);   break;
-      case FCV_FLD_SESS_END_M:   m_draft.sessionEndMinute  =TimePartValue(text,FCV_MINUTE_MAX); break;
-      case FCV_FLD_DAY_TRADES:  m_draft.maxDailyTrades        =(int)StringToInteger(text); break;
-      case FCV_FLD_DAY_LOSS:    m_draft.maxDailyLoss          =StringToDouble(text);       break;
-      case FCV_FLD_DAY_GAIN:    m_draft.maxDailyGain          =StringToDouble(text);       break;
-      case FCV_FLD_DD_MAX:      m_draft.maxDrawdown           =StringToDouble(text);       break;
-      case FCV_FLD_LOSS_STREAK_MAX:   m_draft.maxLossStreak         =(int)StringToInteger(text); break;
-      case FCV_FLD_LOSS_STREAK_PAUSE: m_draft.lossStreakPauseMinutes=(int)StringToInteger(text); break;
-      case FCV_FLD_WIN_STREAK_MAX:    m_draft.maxWinStreak          =(int)StringToInteger(text); break;
-      case FCV_FLD_WIN_STREAK_PAUSE:  m_draft.winStreakPauseMinutes =(int)StringToInteger(text); break;
+      case FCV_FLD_SPREAD_MAX:  m_draft.maxSpreadPoints       =(int)StringToInteger(parsed); break;
+      case FCV_FLD_SESS_START_H: m_draft.sessionStartHour  =TimePartValue(parsed,FCV_HOUR_MAX);   break;
+      case FCV_FLD_SESS_START_M: m_draft.sessionStartMinute=TimePartValue(parsed,FCV_MINUTE_MAX); break;
+      case FCV_FLD_SESS_END_H:   m_draft.sessionEndHour    =TimePartValue(parsed,FCV_HOUR_MAX);   break;
+      case FCV_FLD_SESS_END_M:   m_draft.sessionEndMinute  =TimePartValue(parsed,FCV_MINUTE_MAX); break;
+      case FCV_FLD_DAY_TRADES:  m_draft.maxDailyTrades        =(int)StringToInteger(parsed); break;
+      case FCV_FLD_DAY_LOSS:    m_draft.maxDailyLoss          =StringToDouble(parsed);       break;
+      case FCV_FLD_DAY_GAIN:    m_draft.maxDailyGain          =StringToDouble(parsed);       break;
+      case FCV_FLD_DD_MAX:      m_draft.maxDrawdown           =StringToDouble(parsed);       break;
+      case FCV_FLD_LOSS_STREAK_MAX:   m_draft.maxLossStreak         =(int)StringToInteger(parsed); break;
+      case FCV_FLD_LOSS_STREAK_PAUSE: m_draft.lossStreakPauseMinutes=(int)StringToInteger(parsed); break;
+      case FCV_FLD_WIN_STREAK_MAX:    m_draft.maxWinStreak          =(int)StringToInteger(parsed); break;
+      case FCV_FLD_WIN_STREAK_PAUSE:  m_draft.winStreakPauseMinutes =(int)StringToInteger(parsed); break;
       default: return;
      }
   }

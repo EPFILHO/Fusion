@@ -35,7 +35,15 @@ void RowPush(const int kind,const string label,const string hint,
                      kind==FCV_ROW_COMBO  || kind==FCV_ROW_COLOR  ||
                      kind==FCV_ROW_COLORSTYLE || kind==FCV_ROW_TIME);
    m_rows[m_rowCount].enabled=enabled && (!interactive || !FieldsLocked());
-   m_rows[m_rowCount].valid  =valid;
+   //--- A validade sai da VALIDACAO, nao de cada tela. Etapa 2d.
+   //---
+   //--- Ela e conjugada com o que a tela pediu, e nao substituida: o formulario
+   //--- de perfil valida nome e Magic por conta propria (sao campos locais, sem
+   //--- fid) e passa o veredito por aqui. Trocar um pelo outro apagaria esse
+   //--- caso; deixar so o da tela devolveria o problema que a 2d veio resolver —
+   //--- cada tela precisaria lembrar de pedir a validacao, e a que esquecesse
+   //--- aceitaria valor invalido em silencio.
+   m_rows[m_rowCount].valid  =valid && FieldValid(fid);
    m_rowCount++;
   }
 
@@ -50,11 +58,19 @@ void RowToggleF(const string label,const int fid,const bool enabled=true)
 void RowComboF (const string label,const int kind,const int fid,const bool enabled=true)
   { RowPush(FCV_ROW_COMBO,label,"","",kind,enabled,true,fid); }
 //--- Horario: duas chaves numa linha so. fid recebe a hora e fid2 o minuto.
+//--- As duas caixas compartilham o veredito, como na 1.058: a regra que as
+//--- invalida e a ORDEM entre inicio e fim, e nao ha como dizer qual das quatro
+//--- caixas esta errada — pintar so uma mandaria corrigir a metade que talvez
+//--- esteja certa.
 void RowTimeF  (const string label,const string hint,const int fidHour,const int fidMinute,
                 const bool valid=true,const bool enabled=true)
   {
    RowPush(FCV_ROW_TIME,label,hint,"",0,enabled,valid,fidHour);
-   if(m_rowCount>0) m_rows[m_rowCount-1].fid2=fidMinute;
+   if(m_rowCount>0)
+     {
+      m_rows[m_rowCount-1].fid2  =fidMinute;
+      m_rows[m_rowCount-1].valid = m_rows[m_rowCount-1].valid && FieldValid(fidMinute);
+     }
   }
 
 void RowField (const string label,const string hint,const string def,

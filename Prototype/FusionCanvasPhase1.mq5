@@ -33,6 +33,10 @@ input bool inp_RememberAppearance = true; // Lembrar aparencia escolhida no pain
 input bool inp_MeasureOnStart     = true; // Medir custo de desenho ao iniciar
 
 CFusionCanvasRenderer g_panel;
+//--- Snapshot vivo do harness. Guardado porque a Etapa 2c tirou dos botoes o
+//--- poder de mexer no estado da tela: INICIAR agora EMITE uma intencao, e quem
+//--- decide se o EA passou a rodar e quem a consome. Aqui, este arquivo.
+SUIPanelSnapshot      g_snap;
 
 //+------------------------------------------------------------------+
 //| Snapshot sintetico com os campos que o EA preencheria.            |
@@ -88,6 +92,26 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    //--- memoria. Um valor absurdo vindo dai pareceria defeito do painel.
    SetDefaultSettings(s.settings);
    s.symbol            = _Symbol;
+   //--- Especificacao do ativo, lida do simbolo REAL do grafico.
+   //---
+   //--- Deixada em branco ate a Etapa 2c, ela nao fazia falta: nada a lia. A
+   //--- validacao da 2d le — o Lote Fixo e conferido contra minimo, maximo e
+   //--- passo, e o plano de volumes do TP Parcial e simulado com eles. Sem
+   //--- valores, a tela de TP Parcial acusa "especificacao indisponivel" para
+   //--- sempre, e o harness nasce invalido: INICIAR e SALVAR apagados, sem
+   //--- causa visivel. Ler do simbolo e melhor que inventar numeros — assim o
+   //--- harness exercita as MESMAS faixas que o EA vai enfrentar.
+   s.symbolSpec.symbol     = _Symbol;
+   s.symbolSpec.digits     = (int)SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
+   s.symbolSpec.point      = SymbolInfoDouble(_Symbol,SYMBOL_POINT);
+   s.symbolSpec.tickSize   = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
+   s.symbolSpec.tickValue  = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE);
+   s.symbolSpec.volumeMin  = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
+   s.symbolSpec.volumeMax  = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MAX);
+   s.symbolSpec.volumeStep = SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_STEP);
+   s.symbolSpec.stopsLevel = (int)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL);
+   s.symbolSpec.freezeLevel= (int)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_FREEZE_LEVEL);
+   s.symbolSpec.fillingMode= SymbolInfoInteger(_Symbol,SYMBOL_FILLING_MODE);
    //--- timeframe, activeStrategies e activeFilters sao DERIVADOS de settings e
    //--- por isso ficam no fim desta funcao, depois das chaves que os alimentam.
    //--- Escritos a mao aqui em cima, contradiziam os proprios settings do
@@ -219,8 +243,13 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    s.settings.rsiFilterPeriod     = 9;
    s.settings.rsiFilterTimeframe  = PERIOD_M12;
    s.settings.rsiFilterPrice      = PRICE_TYPICAL;
-   s.settings.rsiFilterBuyMin     = 45;
-   s.settings.rsiFilterSellMax    = 40;
+   //--- ⚠ Os dois niveis obedecem a ORDEM que o modo exige — Extremos pede
+   //--- compra < venda. Ate a Etapa 2c eles eram 45/40, que violam a regra;
+   //--- enquanto nada validava, a inversao era invisivel. Com a 2d ligada, o
+   //--- harness nasceria com erro permanente em Filtros > RSI e com INICIAR e
+   //--- SALVAR apagados — parecendo defeito do painel, e nao do dado falso.
+   s.settings.rsiFilterBuyMin     = 30;
+   s.settings.rsiFilterSellMax    = 70;
 
    s.settings.bbFilterEnabled     = false;
    s.settings.bbFilterMode        = BB_FILTER_WIDTH_RELATIVE;
@@ -238,7 +267,20 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    //--- As chaves do TP parcial ficam LIGADAS de proposito: so com TP1 ativo da
    //--- para ver que TP2 e o TP Final Livre deixam de estar apagados, que e a
    //--- dependencia mais facil de portar errado.
-   s.settings.fixedLot              = 0.30;
+   //--- Lote DERIVADO da especificacao, e nao um 0.30 escrito a mao. Dois
+   //--- motivos, os dois descobertos ao ligar a validacao:
+   //---   0.30 nao existe num ativo cujo passo e 1 (indices), e o campo nascia
+   //---   vermelho no harness;
+   //---   e o plano do TP Parcial precisa caber — 40% + 35% tem de dar dois
+   //---   lotes validos e ainda deixar o minimo aberto, o que exige uma entrada
+   //---   com varios minimos dentro.
+   double baseLot = s.symbolSpec.volumeMin * 10.0;
+   if(s.symbolSpec.volumeMax > 0.0 && baseLot > s.symbolSpec.volumeMax)
+      baseLot = s.symbolSpec.volumeMax;
+   if(s.symbolSpec.volumeStep > 0.0)
+      baseLot = MathRound(baseLot / s.symbolSpec.volumeStep) * s.symbolSpec.volumeStep;
+   if(baseLot <= 0.0) baseLot = 0.30;      // simbolo sem especificacao publicada
+   s.settings.fixedLot              = NormalizeDouble(baseLot,8);
    s.settings.slippagePoints        = 15;
    s.settings.fixedSLPoints         = 350;
    s.settings.fixedTPPoints         = 700;
@@ -356,9 +398,80 @@ void LoadRealProfiles(void)
   }
 
 //+------------------------------------------------------------------+
+//| Intencoes emitidas pelos botoes (Etapa 2c).                       |
+//|                                                                   |
+//| O harness NAO executa nenhuma: gravar ou apagar perfil sairia do  |
+//| que ele e — um exercitador de tela que nao opera e nao escreve.   |
+//| Ele responde por escrito, na mesma caixa de aviso que o painel de |
+//| verdade usa, e assim o caminho inteiro (clique -> intencao ->     |
+//| resposta -> aviso) fica testavel sem o EA.                        |
+//|                                                                   |
+//| Duas excecoes, ambas SO DE LEITURA: INICIAR alterna o estado do   |
+//| snapshot falso, para os estados operacionais continuarem          |
+//| exercitaveis; e DUPLICAR le o perfil do disco, que e o que semeia |
+//| o formulario e sem o que a tela de duplicacao nao existe.         |
+//+------------------------------------------------------------------+
+void DrainIntents(void)
+  {
+   SCanvasIntent intent;
+   while(g_panel.ConsumeIntent(intent))
+     {
+      switch(intent.kind)
+        {
+         case FCV_INTENT_TOGGLE_RUN:
+            g_snap.started=!g_snap.started;
+            g_panel.SetSnapshot(g_snap);
+            g_panel.SetNotice(g_snap.started ? "EA INICIADO (SIMULACAO)" : "EA PAUSADO (SIMULACAO)",
+                              "O harness nao opera: so alternou o estado do snapshot falso.",
+                              FCV_SEM_WARN);
+            break;
+
+         case FCV_INTENT_SAVE_ACTIVE:
+            g_panel.SetNotice("GRAVACAO NAO EXECUTADA",
+                              "O harness nao escreve em disco. No EA, isto gravaria o perfil "+
+                              intent.profile+".",FCV_SEM_WARN);
+            break;
+
+         case FCV_INTENT_CREATE_PROFILE:
+            g_panel.SetNotice("CRIACAO NAO EXECUTADA",
+                              "O harness nao escreve em disco. No EA, isto criaria o perfil "+
+                              intent.profile+" com Magic "+IntegerToString(intent.magic)+".",
+                              FCV_SEM_WARN);
+            break;
+
+         case FCV_INTENT_LOAD_PROFILE:
+            g_panel.SetNotice("CARGA NAO EXECUTADA",
+                              "O harness nao troca de perfil. No EA, isto carregaria "+
+                              intent.profile+".",FCV_SEM_WARN);
+            break;
+
+         case FCV_INTENT_DELETE_PROFILE:
+            g_panel.SetNotice("EXCLUSAO NAO EXECUTADA",
+                              "O harness nao apaga arquivo. No EA, isto excluiria o perfil "+
+                              intent.profile+".",FCV_SEM_WARN);
+            break;
+
+         case FCV_INTENT_DUPLICATE:
+           {
+            CSettingsStore store;
+            SEASettings source;
+            if(store.LoadProfile(intent.profile,source))
+               g_panel.BeginDuplicate(source,intent.profile+"_copy",intent.profile);
+            else
+               g_panel.SetNotice("NAO FOI POSSIVEL DUPLICAR",
+                                 "O arquivo de "+intent.profile+" nao pode ser lido.",
+                                 FCV_SEM_BAD);
+            break;
+           }
+        }
+     }
+  }
+
+//+------------------------------------------------------------------+
 int OnInit(void)
   {
-   g_panel.SetSnapshot(BuildFakeSnapshot());
+   g_snap=BuildFakeSnapshot();
+   g_panel.SetSnapshot(g_snap);
    if(!g_panel.Create(0,"FusP1_",inp_Theme,inp_Palette,inp_RememberAppearance,10,20))
      {
       Print("Fase 1: falha ao criar o canvas.");
@@ -388,6 +501,9 @@ void OnDeinit(const int reason)
 void OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
   {
    g_panel.ChartEvent(id,lparam,dparam,sparam);
+   //--- Mesmo ponto em que o EA drena: e no evento de grafico que o clique
+   //--- acontece, e responder no temporizador atrasaria o aviso ate 200 ms.
+   DrainIntents();
   }
 
 //+------------------------------------------------------------------+

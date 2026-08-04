@@ -4,23 +4,43 @@
 //| cabecalho, ficharios, trilho, rolagem e aviso.                    |
 //+------------------------------------------------------------------+
 
-//--- Nao ha erro conhecido enquanto a validacao nao existir (Etapa 2d).
-//---
-//--- Ate a Etapa 2b isto era `cfg==1 && idx==3`: um erro FIXO em
-//--- Protecao > Noticias, da epoca dos dados inventados, que servia para exibir
-//--- a cadeia de vermelho subindo do trilho ate a aba. Com a tela lendo o
-//--- rascunho real, ele passou a acusar erro em horarios corretos — e mandava
-//--- corrigir o que ja estava certo.
-//---
-//--- A cadeia em si (trilho -> subaba -> aba) continua montada e e o que a 2d
-//--- vai alimentar; so a resposta e que hoje e "nao sei de nenhum erro". Mesma
-//--- decisao do ScreenAlert, pelo mesmo motivo: melhor calado que errado.
-bool RailHasError(const int cfg,const int idx)
-  { return false; }
+//+------------------------------------------------------------------+
+//| A cadeia de erro — trilho -> subaba -> aba.                       |
+//|                                                                   |
+//| Montada desde a Fase 1 e alimentada com dado real desde a Etapa   |
+//| 2d: cada elo pergunta a validacao, e a validacao le o rascunho.   |
+//|                                                                   |
+//| Ate aqui ela respondia "nao sei de nenhum erro". Antes disso,     |
+//| durante a Fase 1, respondia um erro FIXO em Protecao > Noticias —  |
+//| util para exercitar o vermelho subindo, e que passou a acusar     |
+//| horarios corretos assim que a tela leu dados de verdade. As duas   |
+//| respostas eram provisorias; esta nao e.                            |
+//+------------------------------------------------------------------+
+//--- Itens do trilho de cada subaba de Gestao. Risco tem cinco, Protecao sete.
+int RailCountFor(const int cfg) { return (cfg==0) ? 5 : FCV_RAIL_MAX; }
 
-bool CfgHasError(const int cfg)
+bool RailHasError(const int cfg,const int idx)
   {
-   if(cfg==1) { for(int i=0;i<FCV_RAIL_MAX;++i) if(RailHasError(1,i)) return true; }
+   if(idx<0 || idx>=RailCountFor(cfg)) return false;
+   int base=(cfg==0) ? FCV_SCREEN_RISK0 : FCV_SCREEN_PROT0;
+   return (ScreenError(base+idx)!="");
+  }
+
+//--- ⚠ Recebe a ABA, e nao so o indice da subaba. A faixa de nivel 2 pertence
+//--- sempre a aba corrente, mas o mesmo indice significa coisas diferentes em
+//--- cada uma — cfg 1 e "Medias" nas Estrategias e "Protecao" na Gestao. Lendo
+//--- m_tab por dentro, esta funcao ficaria certa por acidente e quebraria no
+//--- dia em que alguem a chamasse de outro lugar.
+bool CfgHasError(const int tab,const int cfg)
+  {
+   if(cfg<0) return false;
+   if(tab==2) return (cfg<4 && ScreenError(FCV_SCREEN_STRAT0 +cfg)!="");
+   if(tab==3) return (cfg<4 && ScreenError(FCV_SCREEN_FILTER0+cfg)!="");
+   if(tab==FCV_TAB_GESTAO)
+     {
+      if(cfg>1) return false;
+      for(int i=0;i<RailCountFor(cfg);++i) if(RailHasError(cfg,i)) return true;
+     }
    return false;
   }
 
@@ -29,14 +49,12 @@ bool CfgHasError(const int cfg)
 //--- "Config", que nao dizia de que assunto era o problema.
 bool TabHasError(const int tab)
   {
-   //--- Magic repetido acende a aba Perfis. Ao contrario da cadeia de Gestao —
-   //--- que espera a validacao da 2d e por isso esta calada —, este sinal e
-   //--- VERDADEIRO e calculavel hoje: sai da lista que ja foi lida do disco.
-   //--- Nao e reintroduzir o erro fixo da Fase 1; e a mesma cadeia com um dado
-   //--- real do outro lado.
-   if(tab==FCV_TAB_PERFIS) return HasDuplicateMagic();
-   if(tab!=FCV_TAB_GESTAO) return false;
-   for(int c=0;c<Level2Count(FCV_TAB_GESTAO);++c) if(CfgHasError(c)) return true;
+   //--- Magic repetido acende a aba Perfis. Sai da lista ja lida do disco, e
+   //--- convive com o erro do proprio campo Magic do perfil ativo.
+   if(tab==FCV_TAB_PERFIS)
+      return (HasDuplicateMagic() || ScreenError(FCV_SCREEN_PROFILES)!="");
+   if(tab!=2 && tab!=3 && tab!=FCV_TAB_GESTAO) return false;
+   for(int c=0;c<Level2Count(tab);++c) if(CfgHasError(tab,c)) return true;
    return false;
   }
 
@@ -69,7 +87,7 @@ void FolderStrip(const int y,const int h,const int x0,const int xEnd,
                  const int pt10,const uint surfaceBelow,
                  int &outX[],int &outW[],const bool markErrors,const int cfgForErr)
   {
-   bool activeErr = markErrors && ((cfgForErr<0) ? TabHasError(active) : CfgHasError(active));
+   bool activeErr = markErrors && ((cfgForErr<0) ? TabHasError(active) : CfgHasError(m_tab,active));
    uint edge = activeErr ? m_t.bad : m_t.acc;
 
    //--- Linha do fichario, largura inteira, 1 px. Com 2 px ela competia com o
@@ -82,7 +100,7 @@ void FolderStrip(const int y,const int h,const int x0,const int xEnd,
       int w=TxtW(names[i],FCV_FONT_UI,pt10,FCV_FW_SEMI)+24;
       outX[i]=tx; outW[i]=w;
       bool on =(i==active);
-      bool err=markErrors && ((cfgForErr<0) ? TabHasError(i) : CfgHasError(i));
+      bool err=markErrors && ((cfgForErr<0) ? TabHasError(i) : CfgHasError(m_tab,i));
 
       if(on)
         {
@@ -653,9 +671,12 @@ bool AccActiveProfileEditable(void)
 //--- saber quais ordens sao suas. Bloqueio proprio da 2.0 — a 1.058 so recusa
 //--- CRIAR um perfil com Magic tomado, e nao ve o estado gerado por arquivo
 //--- copiado por fora.
+//--- E, desde a Etapa 2d, configuracao valida. Era o `true` provisorio anotado
+//--- aqui: ele AFROUXAVA a regra, deixando iniciar com campo invalido.
 bool AccCanStart(void)
   {
    return (AccRuntimeArmable() && !AccPeerLock() && !HasPending() &&
+           ConfigInputsValid() &&
            !m_snap.tradePermissionBlocked && !ActiveMagicConflicts());
   }
 
@@ -695,6 +716,28 @@ bool AccCanAdminProfile(void)
 //--- preencher.
 bool AccCanCreateProfile(void)
   { return (AccRuntimeEditable() && (m_profEdit!=FCV_PROF_VIEW || !HasPending())); }
+
+//--- EXCLUIR do perfil SELECIONADO, numa funcao so.
+//---
+//--- Uma funcao, e nao a expressao escrita na tela, porque ela e consultada em
+//--- dois lugares que precisam concordar: o desenho, que decide se oferece; e o
+//--- pulso, que DESARMA a confirmacao quando a oferta some. Divergindo, ficaria
+//--- uma confirmacao armada para uma acao que a tela ja nao oferece — e foi
+//--- exatamente uma copia divergente de predicado de acesso que abriu o quarto
+//--- furo encontrado na revisao da Etapa 2b.
+//---
+//--- Nem o ativo nem o DEFAULT se apagam, e perfil preso por outro grafico
+//--- tambem nao. EXCLUIR segue liberado em perfil com Magic repetido, de
+//--- proposito: e a saida daquele bloqueio.
+bool AccCanDeleteSelected(void)
+  {
+   if(m_profEdit!=FCV_PROF_VIEW) return false;
+   if(m_profSel<0 || m_profSel>=m_profCount) return false;
+   if(m_profSel==ActiveProfileIndex()) return false;
+   if(ProfileIsDefault(m_profSel)) return false;
+   if(m_selRuntimeLocked || m_selProfileLocked) return false;
+   return AccCanAdminProfile();
+  }
 
 string StartBtnText(void)
   {
@@ -769,7 +812,12 @@ void DrawHeader(void)
    PutButton(bx,by,bw2,bh,"SALVAR",  true, m_t.acc,  m_t.onAcc,
              //--- Perfil cujo arquivo sumiu pode ser regravado mesmo sem
              //--- pendencia: salvar recria o arquivo com a configuracao em uso.
-             FCV_BTN_SAVECFG,headerLive && AccActiveProfileEditable() &&
+             //--- ConfigInputsValid entra aqui pela mesma razao que no INICIAR,
+             //--- e este e o caso GRAVE: sem ele, a Etapa 2c teria aberto um
+             //--- caminho para gravar configuracao invalida NO PERFIL. E o
+             //--- ponto que o plano marca como o unico em que fechar a 2c
+             //--- sozinha pioraria o sistema.
+             FCV_BTN_SAVECFG,headerLive && AccActiveProfileEditable() && ConfigInputsValid() &&
                              (HasPending() || EditingNow() || m_snap.activeProfileFileMissing));
    bx+=bw2+8;
    PutButton(bx,by,bw2,bh,"CANCELAR",true, m_t.warn, m_t.onAcc,

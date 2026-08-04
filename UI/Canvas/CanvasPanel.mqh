@@ -7,11 +7,11 @@
 //| contato (secao 5 do plano); so precisa que esta classe responda   |
 //| aos 8 metodos com as mesmas assinaturas de CFusionPanel.          |
 //|                                                                   |
-//| ESQUELETO — cobre CreatePanel/StartDialog/Destroy/ChartEvent (o   |
-//| ciclo de vida, que o renderizador da Fase 1 ja resolve) e deixa   |
-//| Update/ConsumeCommand/LoadSettings/HasUnsavedDraftChanges          |
-//| marcados como pendentes: exigem o mapeamento snapshot->tela e o   |
-//| adaptador de validacao que ainda nao foi decidido.                |
+//| Etapa 2c: alem de exibir, o painel agora RESPONDE. Ele e o unico  |
+//| lado desta dupla que alcanca o disco e os registros do terminal,  |
+//| e por isso e ele quem reconfere cada intencao no instante da      |
+//| acao — o renderizador decide o que OFERECER, este decide o que    |
+//| ACONTECE.                                                         |
 //+------------------------------------------------------------------+
 #ifndef __FUSION_CANVAS_PANEL_MQH__
 #define __FUSION_CANVAS_PANEL_MQH__
@@ -22,6 +22,12 @@
 //--- proprio painel. O renderizador continua sem tocar em Persistence: ele
 //--- recebe a lista pronta, pelo mesmo caminho por onde recebe o snapshot.
 #include "../../Persistence/SettingsStore.mqh"
+//--- Registros de concorrencia. O renderizador tambem os consulta, para
+//--- desenhar; aqui eles sao consultados de novo, no instante do clique — e e
+//--- essa segunda consulta que vale, porque a primeira e de ate um segundo
+//--- atras (ver a divida registrada para a 2c no plano).
+#include "../../Core/InstanceRegistry.mqh"
+#include "../../Core/ActiveProfileRegistry.mqh"
 #include "CanvasRenderer.mqh"
 
 class CFusionCanvasPanel
@@ -36,6 +42,33 @@ private:
    //--- gravacao, exclusao). Reler a cada Update seria uma varredura de disco
    //--- ate 5x por segundo, com um parse de arquivo por perfil.
    string                m_lastActiveProfile;
+   //--- Grafico deste painel. Guardado, e nao lido por ChartID(): os registros
+   //--- de concorrencia comparam por identificador, e um EA anexado a um
+   //--- subgrafico responderia outro numero — o painel passaria a se ver como
+   //--- "outro grafico" e recusaria as proprias acoes.
+   long                  m_chartId;
+
+   //+---------------------------------------------------------------+
+   //| Gravacao esperando resposta.                                   |
+   //|                                                                |
+   //| O EA nao devolve "deu certo" — ele CHAMA LoadSettings quando   |
+   //| deu, e simplesmente volta quando nao deu. Sem lembrar que      |
+   //| pedimos, o painel nao teria como distinguir a recarga que e    |
+   //| resposta ao nosso SALVAR da recarga que veio de outro motivo:  |
+   //| a primeira merece "perfil salvo", a segunda o aviso de que o   |
+   //| que estava sendo digitado se perdeu. Anunciar perda depois de  |
+   //| uma gravacao bem-sucedida seria assustar sem causa.            |
+   //|                                                                |
+   //| A leitura e segura porque a sequencia e sincrona: o EA trata o |
+   //| comando e, no mesmo passo, chama LoadSettings (sucesso) ou     |
+   //| apenas retorna (recusa). Nenhum Update se intromete no meio —  |
+   //| conferido em EAApplicationCommands: o caminho de SAVE_PROFILE  |
+   //| so toca o painel em ReloadPanelSettingsIfVisible.              |
+   //+---------------------------------------------------------------+
+   int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar
+   string                m_echoProfile;
+
+   void              ClearEcho(void) { m_echoKind=0; m_echoProfile=""; }
 
    //--- Enumera os perfis e le o Magic de cada um. O Magic exige abrir o
    //--- arquivo: nao ha caminho barato para le-lo, e a propria 1.058 faz assim
@@ -66,8 +99,265 @@ private:
       m_renderer.SetProfiles(keep,magics,lots,n,names);
      }
 
+   //+---------------------------------------------------------------+
+   //| Revalidacao no instante da acao.                               |
+   //|                                                                |
+   //| ⚠ E a divida nº 1 registrada no plano para esta etapa, e ela   |
+   //| nao e teorica: a tela decide o que oferecer com dados em cache |
+   //| — as travas de concorrencia sao reconsultadas no maximo uma    |
+   //| vez por segundo, e a lista de perfis so na troca de perfil     |
+   //| ativo. Entre o que a tela mostrou e o clique existe uma janela  |
+   //| em que outro grafico pode ter iniciado, carregado o mesmo      |
+   //| perfil ou criado um arquivo com o nome que este vai gravar.    |
+   //|                                                                |
+   //| Nada aqui repete a regra de acesso do renderizador. O que se   |
+   //| reconfere e so o que MUDA POR FORA: disco e registros.         |
+   //+---------------------------------------------------------------+
+   bool              ProfileLockedByPeer(const string profileName,string &reason)
+     {
+      reason="";
+      if(profileName=="") return false;
+
+      SEASettings settings;
+      if(m_store.LoadProfile(profileName,settings))
+        {
+         CInstanceRegistry instances;
+         if(instances.HasActiveConflict(settings.magicNumber,m_chartId,reason))
+            return true;
+        }
+
+      CActiveProfileRegistry profiles;
+      reason="";
+      return profiles.HasActiveProfilePeer(profileName,m_chartId,reason);
+     }
+
+   //--- Nome livre em DISCO, agora. A tela ja conferiu contra a lista em
+   //--- memoria; esta e a conferencia que impede gravar por cima de um arquivo
+   //--- criado por outro grafico nesse intervalo — divida nº 2 do plano.
+   bool              NameFreeOnDisk(const string profileName)
+     { return !m_store.ProfileExists(profileName); }
+
+   bool              MagicFreeOnDisk(const int magic,const string exceptProfile,string &owner)
+     {
+      owner="";
+      if(magic<=0) return false;
+      return !m_store.FindProfileByMagicNumber(magic,exceptProfile,owner);
+     }
+
+   //--- "BTCUSD" -> "BTCUSD_copy", "..._copy_2"... Mesma regra da 1.058
+   //--- (SuggestedDuplicateName), inclusive o sufixo em ingles ja consagrado
+   //--- nos perfis existentes de quem atualiza.
+   string            SuggestedDuplicateName(const string sourceName)
+     {
+      string base=m_store.SanitizeProfileName(sourceName);
+      if(base=="") base="perfil";
+      string candidate=base+"_copy";
+      if(!m_store.ProfileExists(candidate)) return candidate;
+      for(int i=2;i<1000;++i)
+        {
+         candidate=base+"_copy_"+IntegerToString(i);
+         if(!m_store.ProfileExists(candidate)) return candidate;
+        }
+      return candidate;
+     }
+
+   //+---------------------------------------------------------------+
+   //| Uma intencao vira comando, virou acao local, ou e recusada.    |
+   //|                                                                |
+   //| Devolve true quando `command` foi preenchido e deve seguir     |
+   //| para o EA. Recusa e acao local devolvem false — e nos dois     |
+   //| casos o usuario fica sabendo por escrito: recusar em silencio  |
+   //| seria um botao que nao faz nada.                               |
+   //+---------------------------------------------------------------+
+   bool              TranslateIntent(const SCanvasIntent &intent,SUICommand &command)
+     {
+      command.type        = UI_COMMAND_NONE;
+      command.text        = "";
+      command.hasSettings = false;
+      command.reloadScope = RELOAD_HOT;
+
+      if(intent.kind==FCV_INTENT_TOGGLE_RUN)
+        {
+         command.type=UI_COMMAND_TOGGLE_RUNNING;
+         command.text=m_snapshot.activeProfileName;
+         return true;
+        }
+
+      if(intent.kind==FCV_INTENT_SAVE_ACTIVE)
+        {
+         string profileName=(intent.profile=="") ? m_snapshot.activeProfileName : intent.profile;
+         string reason="";
+         //--- O perfil ativo pode ter sido tomado por outro grafico desde o
+         //--- ultimo desenho. Gravar assim mesmo poria dois graficos escrevendo
+         //--- no mesmo arquivo.
+         if(ProfileLockedByPeer(profileName,reason))
+           {
+            m_renderer.SetNotice("NAO FOI POSSIVEL SALVAR",
+                                 "O perfil "+profileName+" esta em uso por outro grafico. "+
+                                 (reason!="" ? reason : "Carregue outro perfil para continuar."),
+                                 FCV_SEM_BAD);
+            return false;
+           }
+         command.type        = UI_COMMAND_SAVE_PROFILE;
+         command.text        = profileName;
+         command.hasSettings = true;
+         command.settings    = intent.settings;
+         command.reloadScope = RELOAD_COLD;
+         m_echoKind=1; m_echoProfile=profileName;
+         return true;
+        }
+
+      if(intent.kind==FCV_INTENT_CREATE_PROFILE)
+        {
+         string newName=intent.profile;
+         if(newName=="")
+           {
+            m_renderer.SetNotice("NOME OBRIGATORIO",
+                                 "Informe um nome para o perfil novo.",FCV_SEM_BAD);
+            return false;
+           }
+         //--- Reconferencia em disco, nao na lista em memoria: e o unico jeito
+         //--- de ver o arquivo que outro grafico criou desde a ultima leitura —
+         //--- inclusive um que nem abre, e que ainda assim ocupa o nome.
+         if(!NameFreeOnDisk(newName))
+           {
+            RefreshProfiles();
+            m_renderer.SetNotice("NOME JA EXISTE",
+                                 "Ja existe um perfil chamado "+newName+" em disco. "+
+                                 "Escolha outro nome.",FCV_SEM_BAD);
+            return false;
+           }
+         string owner="";
+         if(!MagicFreeOnDisk(intent.magic,newName,owner))
+           {
+            RefreshProfiles();
+            m_renderer.SetNotice("MAGIC JA USADO",
+                                 (intent.magic<=0)
+                                 ? "Informe um Magic inteiro positivo."
+                                 : "O Magic "+IntegerToString(intent.magic)+
+                                   " ja pertence ao perfil "+owner+". Escolha outro numero.",
+                                 FCV_SEM_BAD);
+            return false;
+           }
+         //--- O Magic do formulario vence o do rascunho: o rascunho descreve o
+         //--- perfil ATIVO (ou, numa duplicacao, o de origem), e o numero novo e
+         //--- justamente o que distingue o perfil que esta nascendo.
+         SEASettings settings=intent.settings;
+         settings.magicNumber=intent.magic;
+         command.type        = UI_COMMAND_SAVE_PROFILE;
+         command.text        = newName;
+         command.hasSettings = true;
+         command.settings    = settings;
+         command.reloadScope = RELOAD_COLD;
+         m_echoKind=2; m_echoProfile=newName;
+         return true;
+        }
+
+      if(intent.kind==FCV_INTENT_LOAD_PROFILE)
+        {
+         string profileName=intent.profile;
+         if(profileName=="") return false;
+
+         SEASettings target;
+         if(!m_store.LoadProfile(profileName,target))
+           {
+            RefreshProfiles();
+            m_renderer.SetNotice("PERFIL NAO CARREGADO",
+                                 "O arquivo de "+profileName+" nao pode ser lido. "+
+                                 "A configuracao atual foi preservada.",FCV_SEM_BAD);
+            return false;
+           }
+         //--- Mesma recusa da 1.058: com o DD do dia em curso, trocar para um
+         //--- perfil de parametros diferentes recomecaria a conta no meio.
+         if(m_snapshot.drawdownConfigLocked &&
+            !FusionDrawdownSettingsCompatible(m_snapshot.settings,target))
+           {
+            m_renderer.SetNotice("PERFIL NAO CARREGADO",
+                                 FusionDrawdownProfileBlockMessage(),FCV_SEM_WARN);
+            return false;
+           }
+         string reason="";
+         if(ProfileLockedByPeer(profileName,reason))
+           {
+            m_renderer.SetNotice("PERFIL EM USO",
+                                 "O perfil "+profileName+" esta em uso por outro grafico. "+
+                                 (reason!="" ? reason : "Escolha outro."),FCV_SEM_BAD);
+            return false;
+           }
+         command.type=UI_COMMAND_LOAD_PROFILE;
+         command.text=profileName;
+         return true;
+        }
+
+      //--- As duas que NAO chegam ao EA. Ambas sao operacoes de disco do
+      //--- proprio painel, como na 1.058.
+      if(intent.kind==FCV_INTENT_DELETE_PROFILE)
+        {
+         ExecuteDelete(intent.profile);
+         return false;
+        }
+
+      if(intent.kind==FCV_INTENT_DUPLICATE)
+        {
+         ExecuteDuplicate(intent.profile);
+         return false;
+        }
+
+      return false;
+     }
+
+   void              ExecuteDelete(const string profileName)
+     {
+      if(profileName=="") return;
+      //--- Apagar o perfil ATIVO deixaria o EA operando sobre um arquivo que
+      //--- nao existe mais. A tela ja nao oferece, mas o estado pode ter mudado
+      //--- desde o desenho — e este e o unico ponto que apaga de verdade.
+      if(FusionSanitizeProfileName(profileName)==
+         FusionSanitizeProfileName(m_snapshot.activeProfileName))
+        {
+         m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
+                              "O perfil "+profileName+" e o perfil ativo deste grafico. "+
+                              "Carregue outro antes de apaga-lo.",FCV_SEM_BAD);
+         return;
+        }
+      string reason="";
+      if(ProfileLockedByPeer(profileName,reason))
+        {
+         m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
+                              "O perfil "+profileName+" esta em uso por outro grafico. "+
+                              (reason!="" ? reason : "Tente novamente depois."),FCV_SEM_BAD);
+         RefreshProfiles();
+         return;
+        }
+      if(m_store.DeleteProfile(profileName))
+        {
+         RefreshProfiles();
+         m_renderer.SetNotice("PERFIL EXCLUIDO",
+                              "O perfil "+profileName+" foi apagado do disco.",FCV_SEM_GOOD);
+         return;
+        }
+      RefreshProfiles();
+      m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
+                           "Nao foi possivel apagar o arquivo de "+profileName+".",FCV_SEM_BAD);
+     }
+
+   void              ExecuteDuplicate(const string sourceName)
+     {
+      if(sourceName=="") return;
+      SEASettings source;
+      if(!m_store.LoadProfile(sourceName,source))
+        {
+         RefreshProfiles();
+         m_renderer.SetNotice("NAO FOI POSSIVEL DUPLICAR",
+                              "O arquivo de "+sourceName+" nao pode ser lido.",FCV_SEM_BAD);
+         return;
+        }
+      m_renderer.BeginDuplicate(source,SuggestedDuplicateName(sourceName),sourceName);
+     }
+
 public:
-                     CFusionCanvasPanel(void) { m_created=false; m_lastActiveProfile=""; }
+                     CFusionCanvasPanel(void)
+     { m_created=false; m_lastActiveProfile=""; m_chartId=0; m_echoKind=0; m_echoProfile=""; }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.
    bool              CreatePanel(const long chartId,const string name,const int subwin,
@@ -75,6 +365,7 @@ public:
                                  const SUIPanelSnapshot &snapshot)
      {
       m_snapshot=snapshot;
+      m_chartId=chartId;
       //--- Antes do Create: ele ja desenha o primeiro quadro, e desenhar com
       //--- dado neutro para so depois receber o real causaria um piscada.
       m_renderer.SetSnapshot(m_snapshot);
@@ -108,8 +399,6 @@ public:
    //--- Resultados, Estrategias, Filtros, Gestao, Perfis e Layout — as de
    //--- configuracao pelo rascunho de SEASettings, via identificador de campo
    //--- por controle; Perfis tambem pela lista lida do disco.
-   //--- Nao ha mais valor fixo da Fase 1 em tela nenhuma. O que falta e o
-   //--- caminho de VOLTA: nenhum controle emite comando ainda (Etapa 2c).
    void              Update(const SUIPanelSnapshot &snapshot)
      {
       m_snapshot=snapshot;
@@ -125,15 +414,41 @@ public:
       //--- precisa de um gatilho manual alem da troca de perfil ativo.
       else if(m_renderer.ConsumeProfileRefreshRequest())
          RefreshProfiles();
+      //--- Chegou Update com uma gravacao pendente de resposta: o EA recusou.
+      //--- Ele registra o motivo no log, mas o painel nao pode ficar calado —
+      //--- da tela, o clique em SALVAR simplesmente nao teria feito nada.
+      if(m_echoKind!=0)
+        {
+         m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
+                              "O EA nao gravou o perfil "+m_echoProfile+
+                              ". As alteracoes continuam pendentes; o motivo esta no log.",
+                              FCV_SEM_BAD);
+         ClearEcho();
+        }
       m_renderer.SetSnapshot(m_snapshot);
       m_renderer.Render();
      }
 
    void              LoadSettings(const SUIPanelSnapshot &snapshot)
      {
-      Update(snapshot);
+      m_snapshot=snapshot;
+      LoadSettings(snapshot.settings,snapshot.activeProfileName,snapshot.symbolSpec);
      }
 
+   //+---------------------------------------------------------------+
+   //| RECARGA — e nao mais um apelido de Update.                     |
+   //|                                                                |
+   //| O EA chama por aqui depois de aplicar um perfil (carga,        |
+   //| gravacao, restauracao). E o unico caminho em que o valor de    |
+   //| origem muda POR DECISAO DO USUARIO no meio de uma edicao — o   |
+   //| caso residual que o plano deixou como decisao de politica.     |
+   //|                                                                |
+   //| Politica adotada: o EA vence, com aviso. Carregar um perfil e  |
+   //| um clique deliberado; manter na tela o texto digitado antes    |
+   //| dele contradiria a acao que o usuario acabou de pedir. E o     |
+   //| aviso existe porque descartar em silencio faria o valor sumir  |
+   //| sem explicacao.                                                |
+   //+---------------------------------------------------------------+
    void              LoadSettings(const SEASettings &settings,const string profileName,
                                   const SSymbolSpec &spec)
      {
@@ -141,20 +456,59 @@ public:
       m_snapshot.activeProfileName=profileName;
       m_snapshot.symbolSpec=spec;
       m_snapshot.symbol=spec.symbol;
-      Update(m_snapshot);
+      if(!m_created) return;
+      //--- Ordem importa: o comprometido precisa ser o novo ANTES de o rascunho
+      //--- ser puxado para ele. Invertido, a recarga devolveria os campos ao
+      //--- perfil ANTERIOR e o novo so apareceria no quadro seguinte.
+      m_renderer.SetSnapshot(m_snapshot);
+      m_renderer.ReloadFromEA("Os campos passaram a mostrar o perfil "+profileName+
+                              ". O que estava sendo editado e nao foi salvo se perdeu.");
+      //--- Esta recarga e a RESPOSTA ao nosso pedido: o rascunho nao se perdeu,
+      //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
+      //--- houve, entao e substituido.
+      if(m_echoKind!=0)
+        {
+         m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
+                              (m_echoKind==2)
+                              ? "O perfil "+m_echoProfile+" foi criado e esta ativo neste grafico."
+                              : "As alteracoes foram gravadas em "+m_echoProfile+".",
+                              FCV_SEM_GOOD);
+         ClearEcho();
+        }
+      RefreshProfiles();
+      m_lastActiveProfile=profileName;
+      m_renderer.Render();
      }
 
-   //--- Comandos saindo. PENDENTE: nenhum controle do renderizador ainda
-   //--- enfileira comando — os toggles da Fase 1 so mudam estado de tela
-   //--- (m_stToggle), nao emitem SUICommand. Etapa 2c.
+   //+---------------------------------------------------------------+
+   //| Comandos saindo. Cada intencao publicada pelo renderizador e   |
+   //| reconferida aqui contra o disco e os registros do terminal —   |
+   //| e so entao vira comando do EA.                                 |
+   //|                                                                |
+   //| O EA chama em laco (`while(ConsumeCommand(c)) Handle(c)`), e   |
+   //| o laco termina quando nao ha mais intencao. Uma intencao que   |
+   //| se resolve aqui dentro (excluir, duplicar) ou que e recusada   |
+   //| nao interrompe a drenagem: seguimos para a proxima.            |
+   //+---------------------------------------------------------------+
    bool              ConsumeCommand(SUICommand &command)
      {
+      if(!m_created) return false;
+      SCanvasIntent intent;
+      while(m_renderer.ConsumeIntent(intent))
+        {
+         if(TranslateIntent(intent,command)) return true;
+         //--- Recusa ou acao local: a tela ja recebeu o aviso, mas ninguem
+         //--- pediu redesenho — o clique que gerou a intencao ja repintou com o
+         //--- estado de antes.
+         m_renderer.Render();
+        }
       return false;
      }
 
-   //--- PENDENTE: depende do par draft/committed que a Etapa 2d ainda vai
-   //--- decidir como mapear para o modelo de slots do renderizador.
-   bool              HasUnsavedDraftChanges(void) { return false; }
+   //--- Pendencia real, medida pela diferenca entre rascunho e comprometido.
+   //--- O EA a consulta para avisar antes de fechar o grafico.
+   bool              HasUnsavedDraftChanges(void)
+     { return m_created && m_renderer.HasPendingChanges(); }
   };
 
 #endif

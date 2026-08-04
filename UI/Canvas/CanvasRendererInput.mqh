@@ -26,7 +26,14 @@ void GoTo(const int tab,const int sub,const int rail)
    if(tab>=0)  m_tab=tab;
    if(sub>=0)  m_sub[m_tab]=sub;
    //--- sair da aba abandona a criacao em andamento; voltar mostra a lista
-   m_profEdit=FCV_PROF_VIEW;
+   //--- Sair do formulario devolve o rascunho ao comprometido pelo mesmo
+   //--- motivo do DESCARTAR: duplicar semeia o rascunho com OUTRO perfil, e
+   //--- trocar de aba nao pode deixar essa configuracao pendente sobre o ativo.
+   if(m_profEdit!=FCV_PROF_VIEW) { m_profEdit=FCV_PROF_VIEW; ReloadDraft(); }
+   //--- Navegar responde ao aviso anterior: ele descrevia o que acabou de
+   //--- acontecer, e a partir daqui o usuario esta em outro assunto.
+   ClearNotice();
+   m_delConfirm=false;
    if(rail>=0 && HasRail()) m_railSel[Sub()]=rail;
    m_scroll=0;
    m_comboOpen=-1;
@@ -66,9 +73,9 @@ bool HandleColorClick(const int lx,const int ly)
               }
             else
               {
-               //--- Reescolher a mesma cor nao e alteracao.
-               int cs=m_colorSlot[m_colorOpen];
-               if(m_stColor[cs]!=idx) { m_stColor[cs]=idx; m_dirty=true; }
+               //--- Amostra solta (hoje, so a tela de estresse): guarda a
+               //--- escolha e nao cria pendencia — ela nao descreve o perfil.
+               m_stColor[m_colorSlot[m_colorOpen]]=idx;
               }
            }
         }
@@ -174,13 +181,13 @@ bool HandleComboClick(const int lx,const int ly)
                FieldSetIndex(fid,idx);
             else
               {
-               int cs=m_comboSlot[m_comboOpen];
-               bool changed=(m_stCombo[cs]!=idx);
-               m_stCombo[cs]=idx;
+               //--- Solto: ou e preferencia de exibicao, aplicada no ato e
+               //--- gravada em variavel global do terminal, ou e controle
+               //--- sintetico da tela de estresse. Nenhum dos dois pertence ao
+               //--- perfil, entao nenhum cria pendencia.
+               m_stCombo[m_comboSlot[m_comboOpen]]=idx;
                if(kind==FCV_COMBO_PALETTE || kind==FCV_COMBO_THEMEMODE || kind==FCV_COMBO_SCALE)
                   ApplyComboSideEffect(kind,idx);
-               else if(changed)          // reescolher a mesma opcao nao e alteracao
-                  m_dirty=true;
               }
            }
         }
@@ -244,60 +251,8 @@ bool HandleComboWheel(const int lx,const int ly,const int step)
    return true;
   }
 
-//--- Botoes: a caixa vem do desenho, e so existe se o botao estava habilitado.
-//--- Na Fase 1 os comandos so movem estado de tela; na Fase 2 viram os
-//--- comandos que o EA ja sabe executar.
-bool HandleButtonClick(const int lx,const int ly)
-  {
-   for(int i=0;i<m_btnCount;++i)
-     {
-      if(lx<m_btnX[i] || lx>=m_btnX[i]+m_btnW[i]) continue;
-      if(ly<m_btnY[i] || ly>=m_btnY[i]+m_btnH[i]) continue;
-      //--- Botao acima da area util e chrome (cabecalho) e nao rola; dentro
-      //--- dela, so vale se ainda estiver visivel.
-      if(m_btnY[i]>=ContentTop() && !InContentView(m_btnY[i],m_btnH[i])) continue;
-      switch(m_btnId[i])
-        {
-         //--- Comecar uma criacao limpa o formulario. Sem isto, cancelar e
-         //--- recomecar traria de volta o que foi digitado antes.
-         case FCV_BTN_NEW:    m_profEdit=FCV_PROF_NEW; ClearProfileForm(); break;
-         case FCV_BTN_DUP:    m_profEdit=FCV_PROF_DUP; ClearProfileForm(); break;
-         case FCV_BTN_SAVE:
-         case FCV_BTN_CANCEL: m_profEdit=FCV_PROF_VIEW; break;
-         case FCV_BTN_LOAD:   m_profSel=m_profSel;      break; // fake: nada muda
-         case FCV_BTN_DEL:    Print("EXCLUIR (simulacao): pediria confirmacao."); break;
-         //--- Rolagem da lista: move a janela, nunca a selecao. Arrastar a
-         //--- selecao junto faria o usuario perder o perfil escolhido so por
-         //--- olhar o resto da lista.
-         case FCV_BTN_PROFUP: m_profOffset--; ClampProfileOffset(); break;
-         case FCV_BTN_PROFDN: m_profOffset++; ClampProfileOffset(); break;
-         //--- So registra o pedido; quem le o disco e o dono do painel.
-         case FCV_BTN_PROFREFRESH: m_profRefreshWanted=true; break;
-         //--- INICIAR nao mexe em pendencia: ligar o EA nao e alteracao de
-         //--- configuracao. Ele alterna o estado operacional, que e o que a
-         //--- capsula e o Status mostram.
-         case FCV_BTN_START:  m_snap.started=!m_snap.started; break;
-         //--- Gravar e descartar ambos encerram a pendencia. Quem a CRIA e a
-         //--- edicao de um campo ou controle, nao um botao do cabecalho.
-         //--- TODO Fase 2d: virar comando de verdade e a pendencia passar a
-         //--- vir de HasUnsavedDraftChanges, nao deste sinalizador local.
-         //--- CANCELAR restaura o COMPROMETIDO, nao o padrao de fabrica: a
-         //--- 1.058 chama RestoreCommittedDraftToControls e anuncia "Perfil
-         //--- salvo restaurado". Descartar edicao e voltar ao que esta salvo.
-         //--- Sem isto o botao so apagaria a pendencia e deixaria os valores
-         //--- editados na tela — diria que nao ha alteracao mostrando-a.
-         case FCV_BTN_CANCELCFG: m_draft=m_committed; m_dirty=false; break;
-         //--- Provisorio: aplica localmente para a tela ficar coerente. Na
-         //--- Etapa 2c isto vira um comando ao EA, e o comprometido volta a
-         //--- ser atualizado so pelo snapshot de resposta.
-         case FCV_BTN_SAVECFG:   m_committed=m_draft; m_dirty=false; break;
-        }
-      m_scroll=0;
-      Render();
-      return true;
-     }
-   return false;
-  }
+//--- HandleButtonClick mudou para CanvasRendererCommands.mqh na Etapa 2c: os
+//--- botoes deixaram de mover estado de tela e passaram a emitir intencoes.
 
 bool HandleToggleClick(const int lx,const int ly)
   {
@@ -306,12 +261,13 @@ bool HandleToggleClick(const int lx,const int ly)
          ly>=m_toggleY[t]-6 && ly<m_toggleY[t]+27 && InContentView(m_toggleY[t],21))
         {
          if(m_toggleFid[t]!=FCV_FLD_NONE)
-            FieldToggleBool(m_toggleFid[t]);   // ja marca a pendencia
+            FieldToggleBool(m_toggleFid[t]);   // a pendencia vem da diferenca
          else
            {
+            //--- Chave solta: hoje so a tela de estresse tem. Nao pertence ao
+            //--- perfil e por isso nao cria pendencia.
             int slot=m_toggleSlot[t];
             m_stToggle[slot]=!m_stToggle[slot];
-            m_dirty=true;
            }
          Render();
          return true;
@@ -471,7 +427,10 @@ void HandlePress(const int cx,const int cy)
             int i=m_profOffset+r;
             //--- Trocou a selecao: reconsulta os registros do terminal. E aqui
             //--- e no SetProfiles que isso acontece — nunca por quadro.
-            if(m_profSel!=i) { m_profSel=i; RefreshSelectedProfileLocks(); Render(); }
+            //--- E desarma a exclusao: armada, ela passaria a mirar o perfil
+            //--- recem-selecionado, e o clique seguinte apagaria o errado.
+            if(m_profSel!=i)
+              { m_profSel=i; CancelDeleteConfirm(); RefreshSelectedProfileLocks(); Render(); }
             return;
            }
      }
