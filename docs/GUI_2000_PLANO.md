@@ -618,8 +618,13 @@ Erros cometidos durante a 1.058 e o prototipo, todos encontrados pelo usuario
 testando:
 
 1. **Nao escrever mensagem que instrui acao que a interface impede.** Aconteceu
-   duas vezes: um bloqueio que desabilitava a aba que a propria mensagem mandava
-   abrir, e um aviso pedindo `SALVAR` que estava desabilitado.
+   tres vezes: um bloqueio que desabilitava a aba que a propria mensagem mandava
+   abrir, um aviso pedindo `SALVAR` que estava desabilitado, e — na 2d — a
+   validacao acusando "Magic ja usado" com o campo Magic **fora de alcance**,
+   porque o perfil ativo nao estava na lista e so o ativo SELECIONADO tinha o
+   campo ligado ao rascunho. Acontece de verdade: arquivo do perfil ativo apagado
+   por fora, ou entre os que nao abrem. Hoje, ativo fora da lista ganha cartao
+   proprio com o Magic editavel — a saida existe pela propria GUI.
 2. **Todo bloqueio precisa de saida pela propria GUI.**
 3. **Medir a mensagem contra o espaco disponivel** antes de escreve-la. A faixa de
    abas conferia isso desde a Fase 1; os **botoes nao**, e o primeiro rotulo a
@@ -631,6 +636,13 @@ testando:
 5. **Correlacao nao e causa.** Uma troca de perfil foi atribuida a uma troca de
    conta com base em coincidencia temporal; o teste do usuario desmentiu. A causa
    real era um carregamento manual que nao era registrado em log.
+6. **Dado inventado nao pode contradizer dado real.** O harness inventa tudo menos
+   a lista de perfis, que vem do disco. O perfil ativo dele era um `BTCUSD` fixo
+   com o Magic padrao `10001` — e maquinas com um `default` de Magic 10001 viam a
+   aba Perfis acender e o SALVAR apagar, **corretamente**: gravar aquele nome com
+   aquele numero colidiria mesmo. Apagar perfis duplicados nao resolvia, porque o
+   dono do numero era o `default`. Pareceu defeito do painel por duas rodadas.
+   Agora o perfil ativo do harness sai do primeiro perfil real do disco.
 
 ---
 

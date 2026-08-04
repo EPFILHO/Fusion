@@ -782,6 +782,37 @@ void ScreenProfiles(void)
       return;
      }
 
+   //+---------------------------------------------------------------+
+   //| Perfil ativo que NAO esta na lista.                            |
+   //|                                                                |
+   //| Acontece de verdade: o arquivo dele sumiu, ou e um dos que nao |
+   //| abriram. Ate aqui era um beco sem saida, e caro — o Magic do   |
+   //| perfil ativo mora no rascunho e so era editavel quando o ativo |
+   //| estava SELECIONADO na lista. Fora dela, nenhuma linha ficava   |
+   //| ligada a ele.                                                  |
+   //|                                                                |
+   //| O estrago aparecia junto com a validacao: se outro perfil ja   |
+   //| usa aquele Magic, a aba Perfis acende, `configInputsValid` cai |
+   //| e SALVAR e INICIAR apagam — e a unica correcao possivel, mudar |
+   //| o Magic, estava fora de alcance. A tela mandava corrigir o que |
+   //| ela propria nao deixava tocar, que e a licao 1 da secao 8 do   |
+   //| plano ao contrario.                                            |
+   //|                                                                |
+   //| Cartao proprio, e nao uma linha extra no de baixo: aquele fala |
+   //| do perfil SELECIONADO, e misturar os dois Magic no mesmo lugar |
+   //| e exatamente a confusao que este campo ja causou antes.        |
+   //+---------------------------------------------------------------+
+   if(activeIdx<0)
+     {
+      RowsReset();
+      RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
+                FCV_FLD_MAGIC);
+      RowNoteSem("O perfil "+m_snap.activeProfileName+" esta em uso neste grafico mas nao "+
+                 "aparece na lista: o arquivo dele sumiu ou nao pode ser lido. "+
+                 "SALVAR grava a configuracao em uso de volta nesse nome.",FCV_SEM_WARN);
+      Card("PERFIL ATIVO");
+     }
+
    //--- O Magic identifica o perfil, nao o sistema, e a lista acima ja mostra o
    //--- de cada um — por isso ele mora aqui e nao em Config.
    //---
@@ -805,7 +836,11 @@ void ScreenProfiles(void)
       RowField("Magic Number","Identifica as ordens deste perfil no grafico",
                (m_profSel>=0) ? IntegerToString(m_profMagic[m_profSel]) : "--",
                true,false);
-      RowNote ("Somente o perfil ativo tem o Magic editavel, e so com o EA parado. Use CARREGAR para ativar o selecionado.");
+      //--- Com o ativo fora da lista, o Magic dele ja esta no cartao acima; dizer
+      //--- "use CARREGAR para ativar o selecionado" aqui mandaria o usuario pelo
+      //--- caminho errado para consertar o que o cartao de cima resolve.
+      if(activeIdx>=0)
+         RowNote("Somente o perfil ativo tem o Magic editavel, e so com o EA parado. Use CARREGAR para ativar o selecionado.");
      }
    if(isDefault)
       RowNote("Perfil default: ele e a base do EA e nao pode ser excluido.");

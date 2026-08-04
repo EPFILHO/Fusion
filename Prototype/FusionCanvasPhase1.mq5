@@ -84,6 +84,43 @@ string FakeTimeframesSummary(const SEASettings &st)
    return (summary=="" ? "--" : summary);
   }
 
+//+------------------------------------------------------------------+
+//| Primeiro perfil legivel do disco.                                 |
+//|                                                                   |
+//| ⚠ O harness inventa TUDO menos a lista de perfis, que vem do disco|
+//| de verdade — e essa mistura tem uma regra: o que e inventado nao  |
+//| pode CONTRADIZER o que e real.                                    |
+//|                                                                   |
+//| Ela foi quebrada e custou uma rodada de teste. O perfil ativo era |
+//| um "BTCUSD" fixo, com o Magic padrao 10001, e o disco da maquina  |
+//| tinha um perfil `default` com esse mesmo 10001. Resultado: a      |
+//| validacao acusava — corretamente — que gravar BTCUSD com 10001    |
+//| colidiria com o default; a aba Perfis acendia, o SALVAR apagava,  |
+//| e apagar perfis duplicados nao resolvia nada, porque o dono do    |
+//| numero era o default. Parecia defeito do painel e era do dado.    |
+//|                                                                   |
+//| Usar o primeiro perfil REAL como ativo resolve na origem: nome e  |
+//| Magic passam a existir em disco, o campo Magic fica editavel      |
+//| (so o perfil ativo tem), e a deteccao de duplicado passa a ser    |
+//| exercitada com duplicado de verdade.                              |
+//+------------------------------------------------------------------+
+bool FirstRealProfile(string &name,int &magic)
+  {
+   name=""; magic=0;
+   CSettingsStore store;
+   string names[];
+   if(!store.ListProfiles(names)) return false;
+   for(int i=0;i<ArraySize(names);++i)
+     {
+      SEASettings s;
+      if(!store.LoadProfile(names[i],s)) continue;
+      name=names[i];
+      magic=s.magicNumber;
+      return true;
+     }
+   return false;
+  }
+
 SUIPanelSnapshot BuildFakeSnapshot(void)
   {
    SUIPanelSnapshot s;
@@ -119,12 +156,22 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    //--- estavam em M15/H1 e o RSI em M30, e a contagem dizia 1 estrategia com
    //--- duas ligadas. Quem testava concluia, com razao, que a tela e que estava
    //--- errada.
-   s.activeProfileName = "BTCUSD";
+   //--- Perfil ativo e Magic vindos do DISCO, e nao inventados: ver
+   //--- FirstRealProfile. Sem nenhum perfil legivel, o nome fixo volta — e ai
+   //--- nao ha lista com que contradizer.
+   string activeName=""; int activeMagic=0;
+   if(!FirstRealProfile(activeName,activeMagic))
+     { activeName="BTCUSD"; activeMagic=10001; }
+   s.activeProfileName = activeName;
+   //--- O Magic tambem entra em settings, que e de onde o RASCUNHO nasce. Era
+   //--- justamente essa metade que ficava com o 10001 do SetDefaultSettings e
+   //--- colidia com o perfil default do disco.
+   s.settings.magicNumber = activeMagic;
    s.activeProfileFileMissing = false;
    s.started           = false;
    s.hasPosition       = false;
    s.runtimeBlocked    = false;
-   s.magicNumber       = 10001;
+   s.magicNumber       = activeMagic;
    s.ownerStrategyName = "";
    //--- Motivos vazios atribuidos EXPLICITAMENTE. Em MQL5 uma string nunca
    //--- atribuida vale NULL, que nao e igual a "": deixados de fora, os testes
