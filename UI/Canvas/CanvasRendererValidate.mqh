@@ -264,6 +264,23 @@ bool VBeOrder(void)
 //+------------------------------------------------------------------+
 //| Protecao.                                                         |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| Horario: FAIXA e depois ORDEM.                                    |
+//|                                                                   |
+//| ⚠ A faixa parece redundante e nao e. O que se DIGITA nunca sai da |
+//| faixa — TimePartValue recorta na entrada, e "99" vira 23 numa hora |
+//| e 59 num minuto. Mas o rascunho tem uma segunda porta: o ARQUIVO   |
+//| DE PERFIL, e o desserializador nao recorta nada                    |
+//| (`ProfileSettingsSerializer`: `StringToInteger(value)` direto). Um |
+//| arquivo editado a mao, ou vindo de outra versao, entra com 25:00 e |
+//| a ordem sozinha aprovaria — SALVAR e INICIAR acesos sobre um       |
+//| horario que o EA nunca vai conseguir usar, e uma janela de noticia |
+//| que jamais dispararia. A 1.058 conferia as quatro faixas de        |
+//| proposito (`ProtectionTimeValue(texto, 23/59, ...)`).              |
+//+------------------------------------------------------------------+
+bool VTimeValid(const int h,const int m)
+  { return (VRange(h,0,FCV_HOUR_MAX) && VRange(m,0,FCV_MINUTE_MAX)); }
+
 //--- Overnight INVERTE a ordem exigida: a sessao que atravessa a meia-noite
 //--- comeca depois de terminar. Cobrar "fim > inicio" nos dois modos recusava
 //--- justamente a configuracao que o modo existe para permitir.
@@ -275,11 +292,27 @@ bool VTimeWindowOrder(const int sh,const int sm,const int eh,const int em,
    return overnight ? (a>b) : (b>a);
   }
 
+//--- A faixa vale SEMPRE, ligada ou desligada: um horario impossivel gravado no
+//--- perfil continua impossivel quando alguem ligar a secao. A ordem, essa, so
+//--- e cobrada com a secao ativa — configurar antes de ligar e uso legitimo.
+bool VSessionTimeValid(void)
+  {
+   return (VTimeValid(m_draft.sessionStartHour,m_draft.sessionStartMinute) &&
+           VTimeValid(m_draft.sessionEndHour,m_draft.sessionEndMinute));
+  }
+
 bool VSessionOrder(void)
   {
    return VTimeWindowOrder(m_draft.sessionStartHour,m_draft.sessionStartMinute,
                            m_draft.sessionEndHour,m_draft.sessionEndMinute,
                            m_draft.enableSessionFilter,m_draft.sessionOvernight);
+  }
+
+bool VNewsTimeValid(const int w)
+  {
+   if(w<0 || w>=FUSION_NEWS_WINDOW_COUNT) return true;
+   return (VTimeValid(m_draft.newsWindows[w].startHour,m_draft.newsWindows[w].startMinute) &&
+           VTimeValid(m_draft.newsWindows[w].endHour,m_draft.newsWindows[w].endMinute));
   }
 
 bool VNewsOrder(const int w)
@@ -288,6 +321,29 @@ bool VNewsOrder(const int w)
    return VTimeWindowOrder(m_draft.newsWindows[w].startHour,m_draft.newsWindows[w].startMinute,
                            m_draft.newsWindows[w].endHour,m_draft.newsWindows[w].endMinute,
                            m_draft.newsWindows[w].enabled,false);
+  }
+
+//+------------------------------------------------------------------+
+//| Modo de filtro vindo do arquivo.                                  |
+//|                                                                   |
+//| Mesma porta dos horarios: o combo nao consegue escolher um modo   |
+//| que nao existe, mas o perfil em disco pode trazer um. O combo     |
+//| ATE DISFARCA — ele limita o indice e mostra a opcao zero —,       |
+//| enquanto o rascunho segue com o enum invalido e seria gravado e   |
+//| operado assim. A 1.058 recusa (`ModeValid`), e essa e a checagem  |
+//| que faltou portar.                                                |
+//+------------------------------------------------------------------+
+bool VRsiFilterMode(void)
+  {
+   return (m_draft.rsiFilterMode==RSI_FILTER_DIRECTION ||
+           m_draft.rsiFilterMode==RSI_FILTER_NEUTRAL   ||
+           m_draft.rsiFilterMode==RSI_FILTER_EXTREMES);
+  }
+
+bool VBbFilterMode(void)
+  {
+   return (m_draft.bbFilterMode==BB_FILTER_WIDTH_ABSOLUTE ||
+           m_draft.bbFilterMode==BB_FILTER_WIDTH_RELATIVE);
   }
 
 bool VSpread(void)
@@ -428,7 +484,8 @@ bool FieldValid(const int fid)
    int w,f;
    if(NewsFieldParts(fid,w,f))
      {
-      if(f>=FCV_FLD_NEWS_START_H && f<=FCV_FLD_NEWS_END_M) return VNewsOrder(w);
+      if(f>=FCV_FLD_NEWS_START_H && f<=FCV_FLD_NEWS_END_M)
+         return (VNewsTimeValid(w) && VNewsOrder(w));
       return true;
      }
 
@@ -467,7 +524,9 @@ bool FieldValid(const int fid)
          return (!m_draft.trendMA2Enabled ||
                  (VPeriod(m_draft.trendSellMAPeriod) && FusionTrendMAOrderValid(m_draft)));
 
-      //--- Filtros > RSI
+      //--- Filtros > RSI. O modo tambem e campo: um enum que nao existe chegou
+      //--- pelo arquivo, e o combo o exibe como se fosse o primeiro da lista.
+      case FCV_FLD_RF_MODE:    return VRsiFilterMode();
       case FCV_FLD_RF_PERIOD:  return VPeriod(m_draft.rsiFilterPeriod);
       case FCV_FLD_RF_BUYMIN:  return (VLevel(m_draft.rsiFilterBuyMin) && VRsiFilterOrder());
       case FCV_FLD_RF_SELLMAX:
@@ -475,6 +534,7 @@ bool FieldValid(const int fid)
                  (VLevel(m_draft.rsiFilterSellMax) && VRsiFilterOrder()));
 
       //--- Filtros > Bollinger
+      case FCV_FLD_BF_MODE:   return VBbFilterMode();
       case FCV_FLD_BF_PERIOD: return VPeriod(m_draft.bbFilterPeriod);
       case FCV_FLD_BF_DEV:    return VDeviation(m_draft.bbFilterDeviation);
       case FCV_FLD_BF_MINPTS:
@@ -530,7 +590,7 @@ bool FieldValid(const int fid)
       case FCV_FLD_SESS_START_M:
       case FCV_FLD_SESS_END_H:
       case FCV_FLD_SESS_END_M:
-         return VSessionOrder();
+         return (VSessionTimeValid() && VSessionOrder());
       case FCV_FLD_DAY_TRADES: return (m_draft.maxDailyTrades>=0);
       case FCV_FLD_DAY_LOSS:   return (m_draft.maxDailyLoss>=0.0);
       case FCV_FLD_DAY_GAIN:   return (m_draft.maxDailyGain>=0.0 && VDayNeedsGain());
@@ -614,6 +674,8 @@ string ScreenErrorTrend(void)
 
 string ScreenErrorRSIFilter(void)
   {
+   if(!VRsiFilterMode())
+      return "RSI Filter: modo invalido.";
    if(!VPeriod(m_draft.rsiFilterPeriod))
       return "RSI Filter: periodo 1..1000.";
    if(!VLevel(m_draft.rsiFilterBuyMin) ||
@@ -627,6 +689,8 @@ string ScreenErrorRSIFilter(void)
 
 string ScreenErrorBBFilter(void)
   {
+   if(!VBbFilterMode())
+      return "BB Filter: modo invalido.";
    if(!VPeriod(m_draft.bbFilterPeriod))
       return "BB Filter: periodo deve ser 1 a 1000.";
    if(!VDeviation(m_draft.bbFilterDeviation))
@@ -717,6 +781,8 @@ string ScreenErrorProtSpread(void)
 
 string ScreenErrorProtSession(void)
   {
+   if(!VSessionTimeValid())
+      return "Horario da sessao invalido: hora 0..23, minuto 0..59.";
    if(!VSessionOrder())
       return m_draft.sessionOvernight ? "Sessao: ajuste Inicio/Fim para o modo Overnight."
                                       : "Sessao: Fim deve ser maior que Inicio.";
@@ -727,6 +793,9 @@ string ScreenErrorProtNews(void)
   {
    for(int w=0;w<FUSION_NEWS_WINDOW_COUNT;++w)
      {
+      if(!VNewsTimeValid(w))
+         return "Horario da News "+IntegerToString(w+1)+
+                " invalido: hora 0..23, minuto 0..59.";
       if(!VNewsOrder(w))
          return "News "+IntegerToString(w+1)+": Fim deve ser maior que Inicio.";
      }

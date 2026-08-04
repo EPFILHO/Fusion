@@ -267,6 +267,28 @@ recarga que e resposta ao proprio SALVAR — que merece "perfil salvo" — da re
 vinda de outro motivo, que merece o aviso de que a digitacao se perdeu. Sem isso,
 uma gravacao bem-sucedida anunciava perda.
 
+> ⚠️ **E chamar `LoadSettings` tambem nao significa que gravou.** O EA aplica e
+> grava em passos separados, e o retorno de `SaveProfile` so governa a troca do
+> nome ativo:
+>
+> ```
+> if(!ApplySettings(...)) return;
+> if(m_settingsStore.SaveProfile(...)) m_activeProfileName = profileName;
+> ReloadPanelSettingsIfVisible();   // <- roda de todo jeito
+> ```
+>
+> Disco cheio, arquivo somente-leitura, pasta sem permissao: a configuracao passa
+> a valer nesta sessao e o painel era avisado do mesmo jeito — e anunciava "PERFIL
+> SALVO". Na criacao chegava a dizer que o perfil novo estava ativo com o arquivo
+> inexistente e o ativo ainda sendo o anterior. E a pior mentira que este painel
+> pode contar: o usuario fecha o terminal confiando que gravou.
+>
+> Nao ha canal para o EA dizer "falhou" sem mexer no comando, que e producao
+> compartilhada com a 1.058. Entao o painel **confere o resultado no disco** em vez
+> de confiar no aviso (`AnnounceSaveOutcome`): relê o perfil e compara com o que o
+> EA aplicou. E a licao 4 da secao 8 aplicada a ele mesmo. Custa uma leitura por
+> clique em SALVAR — nunca por quadro.
+
 ### Pendencias da Etapa 2d (validacao / acesso / conflito) — todas fechadas
 
 Tres coisas foram deixadas de fora de proposito ate a 2b. Nenhuma era
@@ -334,6 +356,25 @@ zero pelo `StringToDouble`.
 > usuario precisa e saber POR QUE o valor voltou, e isso e recado — vai para a
 > caixa de aviso, com prazo.
 
+⚠️ **O rascunho tem DUAS portas, e a validacao precisa cobrir as duas.** A porta do
+teclado e estreita: o parse recusa o que nao e numero e `TimePartValue` recorta hora
+e minuto na entrada. A porta do **arquivo de perfil** nao filtra nada — o
+desserializador faz `StringToInteger(value)` direto. Confiar no que a digitacao nao
+deixa passar e o erro; um perfil editado a mao, ou vindo de outra versao, entra com
+o que quiser.
+
+Foi assim que dois furos passaram na primeira volta da 2d, os dois recusados pela
+1.058 e nao portados:
+
+- **horario fora da faixa.** So a ORDEM era conferida, entao `25:00–26:00` era
+  valido: SALVAR e INICIAR acesos, e uma janela de noticia que nunca dispararia.
+- **modo de filtro inexistente.** `rsiFilterMode` e `bbFilterMode` vinham do arquivo
+  sem conferencia. O combo ainda DISFARCA — ele limita o indice e mostra a primeira
+  opcao —, enquanto o rascunho segue com o enum invalido e seria gravado assim.
+
+Regra para quem for acrescentar campo: **se o valor pode vir do arquivo, a faixa
+tem de ser cobrada mesmo que a tela nao consiga produzi-la.**
+
 A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
 faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a
 de Gestao marcava, e o vermelho parava no meio do caminho — a aba de cima acendia
@@ -371,6 +412,30 @@ caminho de recarga**, distinto do `Update`. Ate a 2b ele era um apelido de `Upda
 agora e ele que solta o foco do campo, devolve o rascunho ao comprometido e escreve o
 aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
 edicao pendente.
+
+### Divida que a 2c/2d NAO fecha, e nao deveria
+
+**Unicidade de NOME de perfil entre graficos e uma corrida.** O painel confere que
+o nome esta livre, emite o comando, e a gravacao acontece depois — com
+`FILE_REWRITE`. Dois graficos podem passar pela conferencia ao mesmo tempo e um
+sobrescrever o arquivo do outro.
+
+O que ja esta coberto, e vale registrar para nao ser "consertado" duas vezes: **o
+MAGIC nao tem essa janela larga**. O EA reconfere a unicidade dele em
+`CanPersistProfile`, dentro do proprio `HandleUICommand`, a poucas instrucoes da
+escrita — mesma garantia que a 1.058 tem.
+
+O caso do nome exige trava + reconferencia + escrita como **uma secao critica**, e
+exige distinguir "criar" de "salvar existente" — hoje as duas coisas sao o mesmo
+`UI_COMMAND_SAVE_PROFILE`. Isso e `Persistence` e vocabulario de comando: **codigo
+de producao compartilhado com o painel 1.058**, que tem exatamente a mesma corrida.
+Consertar de dentro da migracao da GUI seria mexer no EA em servico para resolver
+um defeito que nao e da GUI — mesma decisao tomada para o "perfil fantasma" (nome
+de arquivo com espaco). **Item proprio, fora desta migracao.**
+
+Efeito colateral util da conferencia de gravacao: quem perde a corrida deixou de
+perder em silencio. O arquivo em disco passa a ser o do outro grafico, a
+comparacao falha, e o painel diz que nao gravou.
 
 **Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
 convivem, comparaveis no mesmo grafico, com reversao imediata.

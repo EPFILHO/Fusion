@@ -70,6 +70,59 @@ private:
 
    void              ClearEcho(void) { m_echoKind=0; m_echoProfile=""; }
 
+   //+---------------------------------------------------------------+
+   //| A gravacao aconteceu mesmo? Pergunta ao DISCO.                 |
+   //|                                                                |
+   //| ⚠ Chamar LoadSettings NAO significa que gravou. O EA aplica e  |
+   //| grava em passos separados, e o retorno de SaveProfile so       |
+   //| governa a troca do nome ativo:                                 |
+   //|                                                                |
+   //|   if(!ApplySettings(...)) return;                              |
+   //|   if(m_settingsStore.SaveProfile(...)) m_activeProfileName=...; |
+   //|   ReloadPanelSettingsIfVisible();   // <- roda de todo jeito    |
+   //|                                                                |
+   //| Ou seja: disco cheio, arquivo somente-leitura, pasta sem        |
+   //| permissao — a configuracao passa a valer NESTA SESSAO e o       |
+   //| painel era avisado do mesmo jeito. Anunciar "PERFIL SALVO" ali  |
+   //| e a pior mentira que este painel pode contar: o usuario fecha o |
+   //| terminal confiando que gravou.                                  |
+   //|                                                                |
+   //| Nao existe canal para o EA dizer "falhou" sem mexer no comando, |
+   //| que e codigo de producao compartilhado com o painel 1.058.      |
+   //| Entao conferimos o RESULTADO em vez de confiar no aviso — e a   |
+   //| licao 4 da secao 8 do plano ("conferir o binario deployado      |
+   //| antes de interpretar um teste") aplicada ao proprio painel.     |
+   //|                                                                |
+   //| Custa uma leitura de disco por clique em SALVAR. Nao e por      |
+   //| quadro: so acontece no eco de um comando que o usuario pediu.   |
+   //+---------------------------------------------------------------+
+   void              AnnounceSaveOutcome(const SEASettings &applied)
+     {
+      SEASettings onDisk;
+      //--- Compara contra o que o EA APLICOU, nao contra o rascunho que
+      //--- enviamos: o EA normaliza (ResolveOperationalTimeframes) antes de
+      //--- gravar, e o arquivo carrega a forma normalizada.
+      bool saved=(m_store.LoadProfile(m_echoProfile,onDisk) &&
+                  FusionSettingsEqual(onDisk,applied));
+      if(saved)
+        {
+         m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
+                              (m_echoKind==2)
+                              ? "O perfil "+m_echoProfile+" foi criado e esta ativo neste grafico."
+                              : "As alteracoes foram gravadas em "+m_echoProfile+".",
+                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
+         return;
+        }
+      //--- Sem prazo: e recusa, e recusa pede decisao. E o texto separa as duas
+      //--- metades do que aconteceu — a configuracao VALE agora, o arquivo NAO
+      //--- foi escrito —, porque dizer so "falhou" faria o usuario procurar na
+      //--- tela uma alteracao que nao se perdeu.
+      m_renderer.SetNotice("PERFIL NAO GRAVADO",
+                           "A configuracao esta valendo nesta sessao, mas o arquivo de "+
+                           m_echoProfile+" nao foi escrito. O motivo esta no log.",
+                           FCV_SEM_BAD);
+     }
+
    //--- Enumera os perfis e le o Magic de cada um. O Magic exige abrir o
    //--- arquivo: nao ha caminho barato para le-lo, e a propria 1.058 faz assim
    //--- em FusionFindProfileByMagicNumber. Por isso esta funcao roda em troca
@@ -214,7 +267,17 @@ private:
 
       if(intent.kind==FCV_INTENT_CREATE_PROFILE)
         {
-         string newName=intent.profile;
+         //--- SANEADO aqui, como a 1.058 faz (ProfileDraftName ja devolve o nome
+         //--- saneado antes de enfileirar o comando). O renderizador manda o
+         //--- texto cru porque ele nao conhece a regra de nome de arquivo — ela
+         //--- e do store, e o store e deste lado.
+         //---
+         //--- Sem isto o perfil nascia com DUAS identidades: o arquivo virava
+         //--- "Meu_Perfil.cfg" e aparecia assim na lista, enquanto o cabecalho e
+         //--- o aviso diziam "Meu Perfil". Tecnicamente funcionava — a
+         //--- comparacao de perfil ja e feita pela forma saneada —, mas a tela
+         //--- afirmava dois nomes para a mesma coisa.
+         string newName=m_store.SanitizeProfileName(intent.profile);
          if(newName=="")
            {
             m_renderer.SetNotice("NOME OBRIGATORIO",
@@ -477,14 +540,11 @@ public:
                               ". O que estava sendo editado e nao foi salvo se perdeu.");
       //--- Esta recarga e a RESPOSTA ao nosso pedido: o rascunho nao se perdeu,
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
-      //--- houve, entao e substituido.
+      //--- houve, entao e substituido — depois de CONFERIR que a gravacao
+      //--- realmente aconteceu.
       if(m_echoKind!=0)
         {
-         m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
-                              (m_echoKind==2)
-                              ? "O perfil "+m_echoProfile+" foi criado e esta ativo neste grafico."
-                              : "As alteracoes foram gravadas em "+m_echoProfile+".",
-                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
+         AnnounceSaveOutcome(settings);
          ClearEcho();
         }
       RefreshProfiles();
