@@ -288,6 +288,19 @@ uma gravacao bem-sucedida anunciava perda.
 > de confiar no aviso (`AnnounceSaveOutcome`): relê o perfil e compara com o que o
 > EA aplicou. E a licao 4 da secao 8 aplicada a ele mesmo. Custa uma leitura por
 > clique em SALVAR — nunca por quadro.
+>
+> **E avisar nao bastava: faltava a saida.** Quando a gravacao falha, o EA ja
+> aplicou — rascunho e comprometido ficam iguais, "alteracoes nao salvas" some e os
+> tres botoes do cabecalho apagam. O painel dizia "PERFIL NAO GRAVADO" e nao
+> oferecia nenhuma forma de tentar de novo, que e a licao 2 da secao 8 sendo
+> quebrada pelo proprio aviso.
+>
+> Por isso existe `m_notSaved`, e ele **nao e pendencia de rascunho**: nao ha o que
+> descartar (o CANCELAR continua apagado, corretamente) nem motivo para travar o
+> INICIAR (a configuracao esta valendo e e valida). O que ele faz e manter o SALVAR
+> aceso, marcar o cabecalho com "· nao gravado no disco" e entrar em
+> `HasUnsavedDraftChanges`, para o EA avisar ao fechar o grafico — porque ali as
+> duas coisas se somam: nos dois casos o usuario perde a alteracao ao reiniciar.
 
 ### Pendencias da Etapa 2d (validacao / acesso / conflito) — todas fechadas
 
@@ -375,6 +388,30 @@ Foi assim que dois furos passaram na primeira volta da 2d, os dois recusados pel
 Regra para quem for acrescentar campo: **se o valor pode vir do arquivo, a faixa
 tem de ser cobrada mesmo que a tela nao consiga produzi-la.**
 
+### Precisao: o rascunho e cortado na do arquivo, na entrada
+
+Os nove `double` de `SEASettings` sao gravados com casas FIXAS — duas, menos o lote
+com quatro. Um valor com mais casas nao sobrevive a ida e volta, e isso quebrava
+duas coisas ao mesmo tempo: a **tela mentia** (o campo e desenhado com duas casas,
+entao digitar `1,234` mostrava `1.23` enquanto o EA operava `1.234`) e a
+**conferencia de gravacao acusava falso** — com 1e-7 de tolerancia, uma gravacao
+correta virava "PERFIL NAO GRAVADO".
+
+A resposta e cortar na **entrada** (`Core/SettingsPrecision.mqh`), nao afrouxar a
+comparacao: o que nao cabe no arquivo nao deveria existir no rascunho, senao a tela
+e o disco discordam para sempre. E o que a 1.058 faz sem querer — a validacao dela
+relê o texto do controle a cada passada, e o texto ja esta com duas casas.
+
+O corte acontece nas tres portas: no que se digita, no que chega do EA
+(`SetSnapshot`) e no que se compara com o disco. O lote e a excecao deliberada —
+cortado na precisao do ARQUIVO (quatro casas) e nao na de exibicao, porque cortar
+na exibicao mascararia um lote desalinhado do passo do ativo: `0.125` com passo
+`0.01` viraria `0.13`, valido, e o usuario gravaria um lote que nunca pediu.
+
+⚠️ A tabela de casas **espelha `ProfileSettingsSerializer.mqh`**. Mudar a grafia de
+um campo la sem mudar aqui traz o falso "nao gravado" de volta, e isso nao aparece
+em compilacao nenhuma. Ha ponteiro nos dois arquivos.
+
 A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
 faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a
 de Gestao marcava, e o vermelho parava no meio do caminho — a aba de cima acendia
@@ -413,29 +450,32 @@ agora e ele que solta o foco do campo, devolve o rascunho ao comprometido e escr
 aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
 edicao pendente.
 
-### Divida que a 2c/2d NAO fecha, e nao deveria
+### Divida ACEITA, nao resolvida: corrida de unicidade entre graficos
 
-**Unicidade de NOME de perfil entre graficos e uma corrida.** O painel confere que
-o nome esta livre, emite o comando, e a gravacao acontece depois — com
-`FILE_REWRITE`. Dois graficos podem passar pela conferencia ao mesmo tempo e um
-sobrescrever o arquivo do outro.
+⚠️ **Nada nesta secao esta consertado.** Fica registrado para que ninguem leia a
+2c/2d como se ela garantisse unicidade — ela nao garante, e a 1.058 tambem nao.
 
-O que ja esta coberto, e vale registrar para nao ser "consertado" duas vezes: **o
-MAGIC nao tem essa janela larga**. O EA reconfere a unicidade dele em
-`CanPersistProfile`, dentro do proprio `HandleUICommand`, a poucas instrucoes da
-escrita — mesma garantia que a 1.058 tem.
+**Nome e Magic sao conferidos fora de secao critica.** O painel confere, emite o
+comando, e a gravacao acontece depois — com `FILE_REWRITE`. Dois graficos rodam
+concorrentemente e podem passar pela mesma conferencia.
 
-O caso do nome exige trava + reconferencia + escrita como **uma secao critica**, e
-exige distinguir "criar" de "salvar existente" — hoje as duas coisas sao o mesmo
+Isso vale **tambem para o Magic**, e a distincao e so de tamanho de janela: o EA
+reconfere a unicidade dele em `CanPersistProfile`, dentro do proprio
+`HandleUICommand`, a poucas instrucoes da escrita. Isso **estreita** a janela; nao
+a fecha. Descrever como "coberto" seria falso.
+
+A conferencia de gravacao (`AnnounceSaveOutcome`) **nao serve de rede** aqui: um
+grafico pode conferir o proprio arquivo, encontrar tudo certo, e ser sobrescrito um
+instante depois. Ela reduz o caso silencioso, nao o elimina.
+
+Fechar de verdade exige trava + reconferencia + escrita como **uma secao critica**,
+e exige distinguir "criar" de "salvar existente" — hoje as duas coisas sao o mesmo
 `UI_COMMAND_SAVE_PROFILE`. Isso e `Persistence` e vocabulario de comando: **codigo
 de producao compartilhado com o painel 1.058**, que tem exatamente a mesma corrida.
 Consertar de dentro da migracao da GUI seria mexer no EA em servico para resolver
-um defeito que nao e da GUI — mesma decisao tomada para o "perfil fantasma" (nome
-de arquivo com espaco). **Item proprio, fora desta migracao.**
-
-Efeito colateral util da conferencia de gravacao: quem perde a corrida deixou de
-perder em silencio. O arquivo em disco passa a ser o do outro grafico, a
-comparacao falha, e o painel diz que nao gravou.
+um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomada
+para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
+migracao.**
 
 **Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
 convivem, comparaveis no mesmo grafico, com reversao imediata.

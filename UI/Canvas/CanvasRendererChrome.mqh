@@ -796,10 +796,15 @@ void DrawHeader(void)
    Txt(FCV_PAD+lw+8,76,prof,m_t.accs,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
    int vw=TxtW(prof,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_SEMI);
    int tailX=FCV_PAD+lw+vw+16;
-   //--- Perfil sem arquivo e mais grave que pendencia de gravacao, entao vence
-   //--- a linha. Os dois avisos disputam o mesmo espaco.
+   //--- Tres estados disputam a mesma linha, do mais grave para o menos:
+   //--- arquivo ausente, arquivo desatualizado por falha de gravacao, e
+   //--- alteracao ainda nao gravada. Os dois primeiros sao vermelhos porque
+   //--- descrevem um perfil que nao existe em disco como o usuario acredita.
    if(m_snap.activeProfileFileMissing)
       Txt(tailX,76,"· arquivo do perfil nao encontrado",m_t.bad,
+          FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
+   else if(m_notSaved)
+      Txt(tailX,76,"· nao gravado no disco",m_t.bad,
           FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
    else if(HasPending())
       Txt(tailX,76,"· alteracoes nao salvas",m_t.faint,
@@ -831,8 +836,13 @@ void DrawHeader(void)
              //--- caminho para gravar configuracao invalida NO PERFIL. E o
              //--- ponto que o plano marca como o unico em que fechar a 2c
              //--- sozinha pioraria o sistema.
+             //--- `m_notSaved` acende o SALVAR sem pendencia pelo mesmo motivo
+             //--- que o arquivo ausente: a alteracao ja esta valendo, mas o
+             //--- disco nao a tem. Sem isto o painel anunciava "PERFIL NAO
+             //--- GRAVADO" com os tres botoes apagados — um beco.
              FCV_BTN_SAVECFG,headerLive && AccActiveProfileEditable() && ConfigInputsValid() &&
-                             (HasPending() || EditingNow() || m_snap.activeProfileFileMissing));
+                             (HasPending() || EditingNow() ||
+                              m_snap.activeProfileFileMissing || m_notSaved));
    bx+=bw2+8;
    PutButton(bx,by,bw2,bh,"CANCELAR",true, m_t.warn, m_t.onAcc,
              FCV_BTN_CANCELCFG,headerLive && AccRuntimeEditable() &&

@@ -51,6 +51,10 @@ bool FusionSaveSettingsBlock(const int handle,const SEASettings &settings)
      }
    ok = FusionSettingsWriteLine(handle, "enableDailyLimits", IntegerToString((int)settings.enableDailyLimits)) && ok;
    ok = FusionSettingsWriteLine(handle, "maxDailyTrades", IntegerToString(settings.maxDailyTrades)) && ok;
+   //--- ⚠ As casas fixas destes DoubleToString sao espelhadas em
+   //--- Core/SettingsPrecision.mqh, que corta o rascunho da GUI na mesma
+   //--- precisao. Mudar uma grafia aqui sem mudar la faz uma gravacao
+   //--- bem-sucedida ser anunciada como falha — e nao quebra a compilacao.
    ok = FusionSettingsWriteLine(handle, "maxDailyLoss", DoubleToString(settings.maxDailyLoss, 2)) && ok;
    ok = FusionSettingsWriteLine(handle, "maxDailyGain", DoubleToString(settings.maxDailyGain, 2)) && ok;
    ok = FusionSettingsWriteLine(handle, "profitTargetAction", IntegerToString((int)settings.profitTargetAction)) && ok;

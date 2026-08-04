@@ -278,10 +278,44 @@ bool ConsumeIntent(SCanvasIntent &out)
    return true;
   }
 
-//--- Ha alteracao por gravar? E a mesma pergunta que HasPending() responde
-//--- para o desenho; exposta porque o EA a consulta antes de fechar o grafico
-//--- (HasUnsavedDraftChanges, um dos oito metodos da fronteira).
-bool HasPendingChanges(void) { return HasPending(); }
+//+------------------------------------------------------------------+
+//| Ha alteracao por gravar?                                          |
+//|                                                                   |
+//| Duas coisas diferentes cabem nesta pergunta, e so quem pergunta   |
+//| de fora quer as duas somadas:                                     |
+//|                                                                   |
+//|  - HasPending(): o rascunho diverge do comprometido. E o que      |
+//|    governa a TELA — SALVAR aceso, INICIAR travado.                |
+//|  - m_notSaved: a configuracao ja foi aplicada mas o arquivo NAO   |
+//|    foi escrito. A tela nao tem pendencia nenhuma (rascunho e      |
+//|    comprometido sao iguais), e ainda assim ha algo por gravar.    |
+//|                                                                   |
+//| O EA pergunta antes de fechar o grafico, e ali o que importa e a  |
+//| soma: nos dois casos o usuario perde a alteracao ao reiniciar.    |
+//+------------------------------------------------------------------+
+bool HasPendingChanges(void) { return (HasPending() || m_notSaved); }
+
+//+------------------------------------------------------------------+
+//| A gravacao falhou e o arquivo ficou para tras.                    |
+//|                                                                   |
+//| Estado proprio, e nao pendencia de rascunho, porque nao E uma:    |
+//| o EA aplicou a configuracao, entao rascunho e comprometido sao    |
+//| iguais e nao ha o que "descartar". Tratar como pendencia acenderia|
+//| o CANCELAR, que nao teria o que desfazer, e travaria o INICIAR    |
+//| por uma configuracao que ja esta valendo e valida.                |
+//|                                                                   |
+//| O que ele PRECISA fazer e manter o SALVAR aceso. Sem isto o painel|
+//| dizia "PERFIL NAO GRAVADO" com os tres botoes apagados e nenhuma  |
+//| forma de tentar de novo — um beco, e a licao 2 da secao 8 do      |
+//| plano existe exatamente para isso: todo bloqueio precisa de saida |
+//| pela propria GUI.                                                 |
+//+------------------------------------------------------------------+
+void SetPersistenceFailed(const bool failed)
+  {
+   if(m_notSaved==failed) return;
+   m_notSaved=failed;
+   m_viewDirty=true;
+  }
 
 //--- Resposta a uma intencao, ou a qualquer outra coisa que o painel precise
 //--- dizer. Aparece na caixa de aviso. `ttlMs` = 0 e o padrao: sem prazo.

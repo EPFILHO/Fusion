@@ -635,6 +635,15 @@ void FieldSetText(const int fid,const string text)
       else
          ok=FusionIsIntegerText(text,true);
       if(!ok) { RejectTypedText(text,kind); return; }   // mantem o ultimo valor bom
+      //--- Decimal digitado e cortado na precisao do ARQUIVO, aqui e nao
+      //--- depois. O campo ja e desenhado com duas casas: guardar 1.234 faria a
+      //--- tela mostrar 1.23 enquanto o EA operaria 1.234 — a mesma classe de
+      //--- divergencia entre o que se ve e o que vale que o parse recusado
+      //--- criava. E, gravado, o valor voltaria diferente do disco.
+      if(kind==FCV_FTYPE_DEC)
+         parsed=DoubleToString(StringToDouble(parsed),
+                               (fid==FCV_FLD_FIXED_LOT) ? FUSION_STORAGE_DIGITS_LOT
+                                                        : FUSION_STORAGE_DIGITS);
      }
 
    int w,f;

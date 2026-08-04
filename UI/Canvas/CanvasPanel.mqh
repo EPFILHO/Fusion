@@ -102,8 +102,19 @@ private:
       //--- Compara contra o que o EA APLICOU, nao contra o rascunho que
       //--- enviamos: o EA normaliza (ResolveOperationalTimeframes) antes de
       //--- gravar, e o arquivo carrega a forma normalizada.
+      //---
+      //--- E corta a precisao dos dois lados na do ARQUIVO antes de comparar.
+      //--- O que o EA aplicou pode ter mais casas do que o disco guarda — ele
+      //--- nao passa pelo corte da GUI —, e sem isto uma gravacao correta seria
+      //--- anunciada como falha por uma casa decimal que o arquivo nunca teve.
+      SEASettings expected=applied;
+      FusionApplyStoragePrecision(expected);
       bool saved=(m_store.LoadProfile(m_echoProfile,onDisk) &&
-                  FusionSettingsEqual(onDisk,applied));
+                  FusionSettingsEqual(onDisk,expected));
+      //--- A marca fica ATE a proxima gravacao bem-sucedida: e ela que mantem o
+      //--- SALVAR aceso para o usuario tentar de novo, e que faz o EA avisar ao
+      //--- fechar o grafico que ha algo por gravar.
+      m_renderer.SetPersistenceFailed(!saved);
       if(saved)
         {
          m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
@@ -119,7 +130,7 @@ private:
       //--- tela uma alteracao que nao se perdeu.
       m_renderer.SetNotice("PERFIL NAO GRAVADO",
                            "A configuracao esta valendo nesta sessao, mas o arquivo de "+
-                           m_echoProfile+" nao foi escrito. O motivo esta no log.",
+                           m_echoProfile+" nao foi escrito. Clique SALVAR para tentar de novo.",
                            FCV_SEM_BAD);
      }
 
@@ -542,6 +553,9 @@ public:
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
       //--- houve, entao e substituido — depois de CONFERIR que a gravacao
       //--- realmente aconteceu.
+      //--- Trocou o perfil ativo: a falha de gravacao anterior descrevia OUTRO
+      //--- arquivo, e mante-la acesa acusaria este de nao estar gravado.
+      if(profileName!=m_lastActiveProfile) m_renderer.SetPersistenceFailed(false);
       if(m_echoKind!=0)
         {
          AnnounceSaveOutcome(settings);

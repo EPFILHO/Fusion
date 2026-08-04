@@ -28,6 +28,10 @@
 //--- Comparacao campo a campo: e ela que responde "ha alteracao pendente?".
 #include "..\..\Core\SettingsCompare.mqh"
 #include "..\..\Core\VolumeFormat.mqh"
+//--- Precisao com que o arquivo de perfil guarda os doubles. O rascunho e
+//--- cortado nela na entrada: o que nao cabe no arquivo nao pode existir aqui,
+//--- senao a tela e o disco discordam para sempre.
+#include "..\..\Core\SettingsPrecision.mqh"
 //--- Comparacao de nome de perfil. Fica em Core e nao arrasta Persistence: o
 //--- renderizador precisa saber QUAL perfil e o ativo, nao ler o disco.
 #include "..\..\Core\ProfileNameUtils.mqh"
@@ -263,6 +267,9 @@ private:
    //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
    //--- o desenho roda 5x por segundo. Ver PutButton.
    bool              m_btnFitLogged;
+   //--- A ultima gravacao falhou: a configuracao esta valendo, o arquivo nao.
+   //--- Nao e pendencia de rascunho — ver SetPersistenceFailed.
+   bool              m_notSaved;
    //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
    //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
    bool              m_cfgValid, m_cfgValidKnown;
@@ -320,6 +327,12 @@ public:
       //--- painel se recusaria a exibi-la — ficaria preso no valor velho.
       bool pending=HasPending();
       m_committed=snap.settings;
+      //--- Corta o comprometido na precisao do arquivo ANTES de qualquer
+      //--- comparacao. O que chega do EA pode ter mais casas do que o disco
+      //--- guarda — inputs, ou um perfil editado a mao. Sem isto, o rascunho
+      //--- (que ja e cortado na digitacao) divergiria do comprometido por uma
+      //--- casa decimal invisivel, e o painel acusaria pendencia eterna.
+      FusionApplyStoragePrecision(m_committed);
       if(!pending) { m_draft=m_committed; SyncDerivedSettings(); }
      }
    //--- Lista de perfis vinda de quem enumera o disco. Recebe os nomes ja na
@@ -484,7 +497,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- aviso vazia comendo a area util.
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
    m_noticeAt=0; m_noticeTtl=0;
-   m_delConfirm=false; m_btnFitLogged=false;
+   m_delConfirm=false; m_btnFitLogged=false; m_notSaved=false;
    m_cfgValid=true; m_cfgValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
