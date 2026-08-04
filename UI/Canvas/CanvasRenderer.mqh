@@ -730,6 +730,10 @@ void CFusionCanvasRenderer::Render(void)
    //--- caminho de producao ficaria com as travas congeladas. O limite de um
    //--- segundo esta dentro da funcao, entao chamar por quadro nao custa.
    TouchProfileLocks();
+   //--- Pelo mesmo motivo, o prazo do aviso e conferido AQUI e nao so no Pulse:
+   //--- quem chama o Pulse e o harness, por temporizador. No EA, um aviso com
+   //--- prazo nunca expiraria — ele seria repintado identico a cada Update.
+   if(NoticeExpired()) ClearNotice();
 
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    if(!EnsureSize(S(FCV_PANEL_W),S(h))) return;
