@@ -232,17 +232,34 @@ painel (como na 1.058): **EXCLUIR** e **DUPLICAR**.
 Toda resposta volta pela **caixa de aviso**, que ja crescia com o texto e estava
 muda desde a 2b. Ela mostra, nesta ordem: a resposta ao ultimo clique, e depois o
 erro **da tela aberta** — nunca o erro de outra aba, para o qual existe a cadeia de
-vermelho. O aviso nao expira por tempo: morre quando o usuario volta a agir
-(navegar ou mexer em qualquer campo). Um aviso que some sozinho e um aviso que
-pode nao ter sido lido; um que fica para sempre vira sujeira.
+vermelho.
 
-**EXCLUIR pede confirmacao no proprio cartao.** O botao vermelho vira CONFIRMAR e
-ganha um VOLTAR ao lado, na mesma altura — o segundo clique cai onde o primeiro
-caiu, entao a saida precisa estar em outro lugar da linha. Nao e popup: popup
-teria de suprimir os campos nativos sob ele (regra do modelo hibrido) e taparia
-justamente a linha do perfil prestes a sumir. A confirmacao cai sozinha em toda
-mudanca de contexto — trocar a selecao, navegar, a lista mudar, ou a acao deixar
-de ser possivel. Armada sobre um indice, ela apagaria o perfil errado.
+O aviso morre quando o usuario volta a agir (navegar ou mexer em qualquer campo).
+Alguns tambem tem **prazo**, e a distincao vale a regra:
+
+- aviso que descreve um **evento passado** — texto recusado, perfil salvo, perfil
+  excluido — expira em 5 s. Ficar na tela depois de deixar de ser novidade e
+  sujeira.
+- aviso que descreve um **estado em vigor** — exclusao armada — nao expira. Sumir
+  enquanto os botoes continuam la deixaria a pergunta sem enunciado.
+- **recusa nao expira**, mesmo sendo evento: ela pede uma decisao, e some quando o
+  usuario a toma.
+
+**EXCLUIR pede confirmacao no proprio cartao.** O botao vermelho vira **SIM**, com
+**NAO** ao lado, na mesma altura — o segundo clique cai onde o primeiro caiu, entao
+a saida precisa estar em outro lugar da linha. Nao e popup: popup teria de suprimir
+os campos nativos sob ele (regra do modelo hibrido) e taparia justamente a linha do
+perfil prestes a sumir. A pergunta inteira vive no aviso do rodape, e por isso o
+botao so carrega a resposta: `CONFIRMAR` nao cabia na coluna de 124 px.
+
+**Com a confirmacao armada, todo o resto da coluna e apagado.** Quatro botoes
+preenchidos em cores fortes disputavam atencao no unico momento em que existe uma
+pergunta so na tela. E a regra "um unico botao preenchido por vez" aplicada onde
+ela mais vale.
+
+A confirmacao cai sozinha em toda mudanca de contexto — trocar a selecao, navegar,
+a lista mudar, ou a acao deixar de ser possivel. Armada sobre um indice, ela
+apagaria o perfil errado.
 
 **O EA nao responde "deu certo".** Ele chama `LoadSettings` quando deu, e apenas
 retorna quando nao deu. O painel lembra que pediu (`m_echoKind`) para distinguir a
@@ -302,6 +319,20 @@ reclamar". Ele fica **antes** de qualquer switch de proposito: um caso novo esqu
 la embaixo deixaria aquele campo sem veredito, e ele voltaria a aceitar lixo em
 silencio. De quebra, a virgula passou a ser normalizada — `0,30` era convertido para
 zero pelo `StringToDouble`.
+
+> ⚠️ **Correcao, achada pelo usuario no primeiro teste: texto recusado NAO e erro de
+> validacao — e evento.** A primeira versao guardava o veredito do parse por campo e
+> o somava a validacao: campo vermelho, aviso e a cadeia acesa ate a aba. Mas quem
+> digita letra num campo numerico ve o valor bom **voltar sozinho** — o `BuildEdits`
+> reescreve o objeto no mesmo quadro, porque o rascunho nao mudou. Um instante
+> depois nao existe mais texto ruim em lugar nenhum, e mesmo assim a marca ficava
+> ligada: so entrar no campo e sair de novo a limpava. O painel apontava um erro
+> que ele proprio ja tinha desfeito.
+>
+> **A regra que fica: a validacao responde sobre o RASCUNHO, que e o unico estado
+> persistente.** Texto recusado nunca chega la, logo nao ha o que marcar. O que o
+> usuario precisa e saber POR QUE o valor voltou, e isso e recado — vai para a
+> caixa de aviso, com prazo.
 
 A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
 faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a
@@ -415,8 +446,16 @@ cada e rotulos abreviados; no trilho cabem por extenso.
 - **Um unico botao preenchido por vez.** O preenchido e o proximo passo: Salvar com
   pendencias, Iniciar sem elas. Tres botoes coloridos lado a lado nao instruem
   nada.
-- **Aviso cresce com o texto.** O painel da 1.058 tem tres `CLabel` fixos e corta em
-  174 caracteres. No canvas a caixa e dimensionada pelo texto medido.
+- **Aviso cresce com o texto, mas nao encolhe abaixo de duas linhas.** O painel da
+  1.058 tem tres `CLabel` fixos e corta em 174 caracteres; no canvas a caixa e
+  dimensionada pelo texto medido. O que incomodava era ela ENCOLHER: a area util
+  mudava de tamanho entre um aviso de uma linha e outro de duas, e o conteudo
+  pulava de lugar sem o usuario ter feito nada. Com o piso em duas linhas e o
+  texto centrado nelas, o caso comum tem altura constante — e as mensagens sao
+  escritas para caber nesse espaco, em vez de a caixa se render a elas. Quando um
+  motivo vem pronto do EA, ele **substitui** o texto do painel em vez de ser
+  prefixado por ele: dizer a mesma coisa duas vezes era o que empurrava o aviso
+  para a terceira linha.
 - **Numeros de coluna sao justificados a direita** contra o limite da linha ou do
   badge. Alinhados a esquerda depois de um nome, flutuam com o comprimento do nome
   e nao podem ser comparados.
@@ -477,7 +516,11 @@ testando:
    duas vezes: um bloqueio que desabilitava a aba que a propria mensagem mandava
    abrir, e um aviso pedindo `SALVAR` que estava desabilitado.
 2. **Todo bloqueio precisa de saida pela propria GUI.**
-3. **Medir a mensagem contra o espaco disponivel** antes de escreve-la.
+3. **Medir a mensagem contra o espaco disponivel** antes de escreve-la. A faixa de
+   abas conferia isso desde a Fase 1; os **botoes nao**, e o primeiro rotulo a
+   estourar a caixa ("CONFIRMAR", na coluna de 124 px de Perfis) so foi descoberto
+   por captura de tela. Hoje `PutButton` mede e avisa no log — uma vez por sessao,
+   porque o desenho roda 5x por segundo.
 4. **Conferir o binario deployado** antes de interpretar um teste. Um `.ex5`
    desatualizado ja invalidou uma rodada inteira.
 5. **Correlacao nao e causa.** Uma troca de perfil foi atribuida a uma troca de

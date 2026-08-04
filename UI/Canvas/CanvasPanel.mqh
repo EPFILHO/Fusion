@@ -192,9 +192,14 @@ private:
          //--- no mesmo arquivo.
          if(ProfileLockedByPeer(profileName,reason))
            {
+            //--- O motivo vindo do registro ja e uma frase completa ("Magic N ja
+            //--- esta em uso por outro Fusion ativo"). Prefixar com a minha
+            //--- versao dizia a mesma coisa duas vezes e empurrava o aviso para
+            //--- uma terceira linha — que e o que faz a caixa crescer e o
+            //--- conteudo pular de lugar.
             m_renderer.SetNotice("NAO FOI POSSIVEL SALVAR",
-                                 "O perfil "+profileName+" esta em uso por outro grafico. "+
-                                 (reason!="" ? reason : "Carregue outro perfil para continuar."),
+                                 (reason!="") ? reason
+                                 : "O perfil "+profileName+" esta em uso por outro grafico.",
                                  FCV_SEM_BAD);
             return false;
            }
@@ -280,8 +285,9 @@ private:
          if(ProfileLockedByPeer(profileName,reason))
            {
             m_renderer.SetNotice("PERFIL EM USO",
-                                 "O perfil "+profileName+" esta em uso por outro grafico. "+
-                                 (reason!="" ? reason : "Escolha outro."),FCV_SEM_BAD);
+                                 (reason!="") ? reason
+                                 : "O perfil "+profileName+" esta em uso por outro grafico.",
+                                 FCV_SEM_BAD);
             return false;
            }
          command.type=UI_COMMAND_LOAD_PROFILE;
@@ -324,16 +330,22 @@ private:
       if(ProfileLockedByPeer(profileName,reason))
         {
          m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
-                              "O perfil "+profileName+" esta em uso por outro grafico. "+
-                              (reason!="" ? reason : "Tente novamente depois."),FCV_SEM_BAD);
+                              (reason!="") ? reason
+                              : "O perfil "+profileName+" esta em uso por outro grafico.",
+                              FCV_SEM_BAD);
          RefreshProfiles();
          return;
         }
       if(m_store.DeleteProfile(profileName))
         {
          RefreshProfiles();
+         //--- Confirmacao expira; recusa nao. Quem le "deu certo" nao precisa
+         //--- fazer nada com a informacao, e o aviso vira sujeira depois de
+         //--- alguns segundos. Recusa pede uma decisao, e some so quando o
+         //--- usuario volta a agir — que e justamente quando ele decidiu.
          m_renderer.SetNotice("PERFIL EXCLUIDO",
-                              "O perfil "+profileName+" foi apagado do disco.",FCV_SEM_GOOD);
+                              "O perfil "+profileName+" foi apagado do disco.",
+                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          return;
         }
       RefreshProfiles();
@@ -472,7 +484,7 @@ public:
                               (m_echoKind==2)
                               ? "O perfil "+m_echoProfile+" foi criado e esta ativo neste grafico."
                               : "As alteracoes foram gravadas em "+m_echoProfile+".",
-                              FCV_SEM_GOOD);
+                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          ClearEcho();
         }
       RefreshProfiles();

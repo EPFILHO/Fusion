@@ -14,33 +14,24 @@
 //| rascunho, que e o modelo generico por slot. Era a divida que a    |
 //| correcao da Etapa 2b registrou no plano.                          |
 //|                                                                   |
-//| Uma diferenca de fundo, e ela e uma melhoria: la o texto cru do   |
-//| controle e reparseado a cada passada, e o valor so entra no       |
-//| rascunho quando o parse passa. Aqui o parse acontece UMA VEZ, no  |
-//| fim da edicao (FieldSetText), e o que se guarda e o veredito —    |
-//| m_fldBadText. O efeito para o usuario e o mesmo da 1.058: texto   |
-//| recusado mantem o ultimo valor bom e pinta o campo de vermelho.   |
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//| Texto recusado no parse.                                          |
+//| ⚠️ TEXTO RECUSADO NAO E ERRO DE VALIDACAO — e evento.             |
 //|                                                                   |
-//| Existe porque o rascunho guarda NUMERO, e o numero nao sabe dizer |
-//| que veio de um texto invalido: "abc" convertido e zero, e zero e  |
-//| valor legitimo em quase todo campo (SL 0 desliga o stop). Sem     |
-//| esta marca, digitar letra num campo numerico apagava o valor sem  |
-//| uma palavra — exatamente a divida registrada no plano.            |
+//| A primeira versao guardava o veredito do parse por campo          |
+//| (m_fldBadText) e o somava a validacao: campo vermelho, aviso e a  |
+//| cadeia inteira acesa ate a aba. Estava errado, e o usuario achou  |
+//| em minutos: quem digita letra num campo numerico ve o valor bom   |
+//| VOLTAR sozinho — o BuildEdits reescreve o objeto no mesmo quadro,  |
+//| porque o rascunho nao mudou. Ou seja, um quadro depois nao existe |
+//| mais texto ruim em lugar nenhum, e mesmo assim a marca ficava     |
+//| ligada para sempre: so entrar no campo e sair de novo a limpava.  |
+//| O painel apontava um erro que ele proprio ja tinha desfeito.      |
+//|                                                                   |
+//| A regra que fica: **o que a validacao responde e sobre o RASCUNHO,|
+//| que e o unico estado persistente.** Texto recusado nunca chega la |
+//| — logo nao ha o que marcar. O usuario precisa e saber POR QUE o   |
+//| valor voltou, e isso e um recado, nao um estado: vai para a caixa |
+//| de aviso com prazo, em FieldSetText.                              |
 //+------------------------------------------------------------------+
-bool FieldTextBad(const int fid)
-  { return (fid>=0 && fid<FCV_FLD_COUNT && m_fldBadText[fid]); }
-
-void SetFieldTextBad(const int fid,const bool bad)
-  { if(fid>=0 && fid<FCV_FLD_COUNT) m_fldBadText[fid]=bad; }
-
-//--- Rascunho trocado por inteiro (snapshot novo, CANCELAR, DUPLICAR): os
-//--- vereditos anteriores descrevem um texto que nao esta mais na tela.
-void ClearFieldTextFlags(void)
-  { for(int i=0;i<FCV_FLD_COUNT;++i) m_fldBadText[i]=false; }
 
 //--- Como o texto daquele campo deve ser lido. Decide o parse na entrada e,
 //--- por consequencia, o que e recusado. Os FCV_FTYPE_* vivem em
@@ -118,7 +109,6 @@ int FieldTextKind(const int fid)
 //| Faixas — os mesmos numeros da 1.058.                              |
 //+------------------------------------------------------------------+
 bool VRange(const int v,const int lo,const int hi) { return (v>=lo && v<=hi); }
-bool VRangeD(const double v,const double lo,const double hi) { return (v>=lo && v<=hi); }
 //--- Periodo de indicador: 1..1000 em todos os paineis.
 bool VPeriod(const int v)   { return VRange(v,1,1000); }
 //--- Prioridade de estrategia: 0..1000.
@@ -415,7 +405,6 @@ bool VMagicTakenByOther(const int magic,string &owner)
 
 bool VMagic(void)
   {
-   if(FieldTextBad(FCV_FLD_MAGIC)) return false;
    if(m_draft.magicNumber<=0) return false;
    string owner="";
    return !VMagicTakenByOther(m_draft.magicNumber,owner);
@@ -424,15 +413,17 @@ bool VMagic(void)
 //+------------------------------------------------------------------+
 //| Validade de UM campo — o que pinta a caixa de vermelho.           |
 //|                                                                   |
-//| Um campo e invalido quando o texto foi recusado no parse OU o     |
-//| valor viola a faixa OU uma regra cruzada de que ele participa.    |
+//| Um campo e invalido quando o VALOR NO RASCUNHO viola a faixa ou   |
+//| uma regra cruzada de que ele participa. Texto recusado nao entra  |
+//| aqui: ele nunca chega ao rascunho e o campo volta sozinho ao      |
+//| ultimo valor bom (ver a nota no topo deste arquivo).              |
+//|                                                                   |
 //| Regra cruzada pinta os DOIS lados: com so um pintado, o usuario   |
 //| corrige o campo aceso e a relacao continua quebrada.              |
 //+------------------------------------------------------------------+
 bool FieldValid(const int fid)
   {
    if(fid==FCV_FLD_NONE) return true;
-   if(FieldTextBad(fid)) return false;
 
    int w,f;
    if(NewsFieldParts(fid,w,f))
@@ -564,34 +555,33 @@ string ScreenErrorStrategyGeneral(void)
 
 string ScreenErrorMA(void)
   {
-   if(FieldTextBad(FCV_FLD_MA_PRIORITY) || !VPriority(m_draft.maCrossPriority))
+   if(!VPriority(m_draft.maCrossPriority))
       return "MA Prioridade: use valor de 0 a 1000.";
-   if(FieldTextBad(FCV_FLD_MA_FAST_PERIOD) || !VPeriod(m_draft.maFastPeriod))
+   if(!VPeriod(m_draft.maFastPeriod))
       return "MA Rapida: use periodo de 1 a 1000.";
-   if(FieldTextBad(FCV_FLD_MA_SLOW_PERIOD) || !VPeriod(m_draft.maSlowPeriod))
+   if(!VPeriod(m_draft.maSlowPeriod))
       return "MA Lenta: use periodo de 1 a 1000.";
    if(!VMaOrder())
       return "MA Rapida deve ser menor que MA Lenta.";
-   if(FieldTextBad(FCV_FLD_MA_MIN_DIST) || !VPoints(m_draft.maMinDistancePoints))
+   if(!VPoints(m_draft.maMinDistancePoints))
       return "MA Dist. Min: use 0 a 100000 pontos.";
    return "";
   }
 
 string ScreenErrorRSI(void)
   {
-   if(FieldTextBad(FCV_FLD_RSI_PRIORITY) || !VPriority(m_draft.rsiPriority))
+   if(!VPriority(m_draft.rsiPriority))
       return "RSI: prioridade deve ser 0 a 1000.";
-   if(FieldTextBad(FCV_FLD_RSI_PERIOD) || !VPeriod(m_draft.rsiPeriod))
+   if(!VPeriod(m_draft.rsiPeriod))
       return "RSI: periodo deve ser 1 a 1000.";
    if(RsiUsesZones())
      {
-      if(FieldTextBad(FCV_FLD_RSI_OVERSOLD) || FieldTextBad(FCV_FLD_RSI_OVERBOUGHT) ||
-         !VLevel(m_draft.rsiOversold) || !VLevel(m_draft.rsiOverbought))
+      if(!VLevel(m_draft.rsiOversold) || !VLevel(m_draft.rsiOverbought))
          return "RSI: niveis devem ser 0 a 100.";
       if(!VRsiZoneOrder())
          return "RSI: sobrevenda < sobrecompra.";
      }
-   if(RsiUsesMiddle() && (FieldTextBad(FCV_FLD_RSI_MIDDLE) || !VLevel(m_draft.rsiMiddle)))
+   if(RsiUsesMiddle() && !VLevel(m_draft.rsiMiddle))
       return "RSI: linha media deve ser 0 a 100.";
    if(!VRsiMiddleOrder())
       return "RSI: use sobrevenda < media < sobrecompra.";
@@ -602,22 +592,20 @@ string ScreenErrorRSI(void)
 
 string ScreenErrorBB(void)
   {
-   if(FieldTextBad(FCV_FLD_BB_PRIORITY) || !VPriority(m_draft.bbPriority))
+   if(!VPriority(m_draft.bbPriority))
       return "Bollinger: prioridade deve ser 0 a 1000.";
-   if(FieldTextBad(FCV_FLD_BB_PERIOD) || !VPeriod(m_draft.bbPeriod))
+   if(!VPeriod(m_draft.bbPeriod))
       return "Bollinger: periodo deve ser 1 a 1000.";
-   if(FieldTextBad(FCV_FLD_BB_DEVIATION) || !VDeviation(m_draft.bbDeviation))
+   if(!VDeviation(m_draft.bbDeviation))
       return "Bollinger: desvio deve ser maior que 0 e ate 10.";
    return "";
   }
 
 string ScreenErrorTrend(void)
   {
-   if(m_draft.trendMA1Enabled &&
-      (FieldTextBad(FCV_FLD_TR_MA1_PERIOD) || !VPeriod(m_draft.trendMAPeriod)))
+   if(m_draft.trendMA1Enabled && !VPeriod(m_draft.trendMAPeriod))
       return "Trend Filter: periodo da M1 deve ser 1 a 1000.";
-   if(m_draft.trendMA2Enabled &&
-      (FieldTextBad(FCV_FLD_TR_MA2_PERIOD) || !VPeriod(m_draft.trendSellMAPeriod)))
+   if(m_draft.trendMA2Enabled && !VPeriod(m_draft.trendSellMAPeriod))
       return "Trend Filter: periodo da M2 deve ser 1 a 1000.";
    if(!FusionTrendMAOrderValid(m_draft))
       return "Trend Filter: M1 deve ser mais longa que M2 (periodo x TF).";
@@ -626,11 +614,10 @@ string ScreenErrorTrend(void)
 
 string ScreenErrorRSIFilter(void)
   {
-   if(FieldTextBad(FCV_FLD_RF_PERIOD) || !VPeriod(m_draft.rsiFilterPeriod))
+   if(!VPeriod(m_draft.rsiFilterPeriod))
       return "RSI Filter: periodo 1..1000.";
-   if(FieldTextBad(FCV_FLD_RF_BUYMIN) || !VLevel(m_draft.rsiFilterBuyMin) ||
-      (RsiFilterUsesSecondLevel() &&
-       (FieldTextBad(FCV_FLD_RF_SELLMAX) || !VLevel(m_draft.rsiFilterSellMax))))
+   if(!VLevel(m_draft.rsiFilterBuyMin) ||
+      (RsiFilterUsesSecondLevel() && !VLevel(m_draft.rsiFilterSellMax)))
       return "RSI Filter: niveis 0..100.";
    if(!VRsiFilterOrder())
       return (m_draft.rsiFilterMode==RSI_FILTER_NEUTRAL) ? "RSI: venda < compra."
@@ -640,9 +627,9 @@ string ScreenErrorRSIFilter(void)
 
 string ScreenErrorBBFilter(void)
   {
-   if(FieldTextBad(FCV_FLD_BF_PERIOD) || !VPeriod(m_draft.bbFilterPeriod))
+   if(!VPeriod(m_draft.bbFilterPeriod))
       return "BB Filter: periodo deve ser 1 a 1000.";
-   if(FieldTextBad(FCV_FLD_BF_DEV) || !VDeviation(m_draft.bbFilterDeviation))
+   if(!VDeviation(m_draft.bbFilterDeviation))
       return "BB Filter: desvio deve ser maior que 0 e ate 10.";
    if(!FieldValid(FCV_FLD_BF_MINPTS))
       return "BB Filter: largura minima em pontos deve ser 1 a 100000.";
@@ -657,18 +644,18 @@ string ScreenErrorBBFilter(void)
 
 string ScreenErrorRiskLot(void)
   {
-   if(FieldTextBad(FCV_FLD_FIXED_LOT) || !VLot())
+   if(!VLot())
       return "Lote Fixo invalido para o ativo atual.";
-   if(FieldTextBad(FCV_FLD_SLIPPAGE) || !VPoints(m_draft.slippagePoints))
+   if(!VPoints(m_draft.slippagePoints))
       return "Slippage invalido. Use 0 a 100000 pontos.";
    return "";
   }
 
 string ScreenErrorRiskSLTP(void)
   {
-   if(FieldTextBad(FCV_FLD_SL_POINTS) || !VPoints(m_draft.fixedSLPoints))
+   if(!VPoints(m_draft.fixedSLPoints))
       return "SL Fixo invalido. Use 0 a 100000 pontos.";
-   if(FieldTextBad(FCV_FLD_TP_POINTS) || !VPoints(m_draft.fixedTPPoints))
+   if(!VPoints(m_draft.fixedTPPoints))
       return "TP Fixo invalido. Use 0 a 100000 pontos.";
    if(!VStopsLevel(m_draft.fixedSLPoints))
       return "SL Fixo abaixo do minimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
@@ -680,16 +667,13 @@ string ScreenErrorRiskSLTP(void)
 string ScreenErrorRiskPartial(void)
   {
    if(!m_draft.tp1.enabled) return "";
-   if(FieldTextBad(FCV_FLD_TP1_PCT) ||
-      !(m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0))
+   if(!(m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0))
       return "TP1 % deve ser maior que 0 e ate 100.";
-   if(Tp2Params() &&
-      (FieldTextBad(FCV_FLD_TP2_PCT) ||
-       !(m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0)))
+   if(Tp2Params() && !(m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0))
       return "TP2 % deve ser maior que 0 e ate 100.";
-   if(FieldTextBad(FCV_FLD_TP1_DIST) || m_draft.tp1.distancePoints<=0)
+   if(m_draft.tp1.distancePoints<=0)
       return "TP1 Dist deve ser maior que 0.";
-   if(Tp2Params() && (FieldTextBad(FCV_FLD_TP2_DIST) || m_draft.tp2.distancePoints<=0))
+   if(Tp2Params() && m_draft.tp2.distancePoints<=0)
       return "TP2 Dist deve ser maior que 0.";
    if(!VTpTotalPercent())
       return "Soma de TP1 % e TP2 % deve ser ate 100.";
@@ -704,9 +688,9 @@ string ScreenErrorRiskPartial(void)
 string ScreenErrorRiskBreakeven(void)
   {
    if(!m_draft.useBreakeven) return "";
-   if(FieldTextBad(FCV_FLD_BE_TRIGGER) || !VRange(m_draft.breakevenTriggerPoints,1,100000))
+   if(!VRange(m_draft.breakevenTriggerPoints,1,100000))
       return "BE Gatilho deve ser maior que 0 e ate 100000.";
-   if(FieldTextBad(FCV_FLD_BE_OFFSET) || !VPoints(m_draft.breakevenOffsetPoints))
+   if(!VPoints(m_draft.breakevenOffsetPoints))
       return "BE Offset deve ficar entre 0 e 100000.";
    if(!VBeOrder())
       return "BE Offset nao pode ser maior que o gatilho.";
@@ -716,16 +700,16 @@ string ScreenErrorRiskBreakeven(void)
 string ScreenErrorRiskTrailing(void)
   {
    if(!m_draft.useTrailing) return "";
-   if(FieldTextBad(FCV_FLD_TRAIL_START) || !VRange(m_draft.trailingStartPoints,1,100000))
+   if(!VRange(m_draft.trailingStartPoints,1,100000))
       return "Trailing Inicio deve ser maior que 0 e ate 100000.";
-   if(FieldTextBad(FCV_FLD_TRAIL_STEP) || !VRange(m_draft.trailingStepPoints,1,100000))
+   if(!VRange(m_draft.trailingStepPoints,1,100000))
       return "Trailing Passo deve ser maior que 0 e ate 100000.";
    return "";
   }
 
 string ScreenErrorProtSpread(void)
   {
-   if(FieldTextBad(FCV_FLD_SPREAD_MAX) || !VSpread())
+   if(!VSpread())
       return m_draft.enableSpreadProtection ? "Max Spread deve ser > 0 quando ativo."
                                             : "Max Spread deve ser zero ou inteiro positivo.";
    return "";
@@ -733,9 +717,6 @@ string ScreenErrorProtSpread(void)
 
 string ScreenErrorProtSession(void)
   {
-   if(FieldTextBad(FCV_FLD_SESS_START_H) || FieldTextBad(FCV_FLD_SESS_START_M) ||
-      FieldTextBad(FCV_FLD_SESS_END_H)   || FieldTextBad(FCV_FLD_SESS_END_M))
-      return "Horario da sessao invalido.";
    if(!VSessionOrder())
       return m_draft.sessionOvernight ? "Sessao: ajuste Inicio/Fim para o modo Overnight."
                                       : "Sessao: Fim deve ser maior que Inicio.";
@@ -746,14 +727,8 @@ string ScreenErrorProtNews(void)
   {
    for(int w=0;w<FUSION_NEWS_WINDOW_COUNT;++w)
      {
-      string label="News "+IntegerToString(w+1);
-      if(FieldTextBad(FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_H)) ||
-         FieldTextBad(FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_M)) ||
-         FieldTextBad(FCV_FLD_NEWS(w,FCV_FLD_NEWS_END_H))   ||
-         FieldTextBad(FCV_FLD_NEWS(w,FCV_FLD_NEWS_END_M)))
-         return "Horario da "+label+" invalido.";
       if(!VNewsOrder(w))
-         return label+": Fim deve ser maior que Inicio.";
+         return "News "+IntegerToString(w+1)+": Fim deve ser maior que Inicio.";
      }
    return "";
   }
@@ -765,11 +740,11 @@ string ScreenErrorProtDay(void)
    //--- campo errado.
    if(DailyConfigLocked() && VDayPending())
       return "DAY em bloqueio: edicao suspensa ate o novo dia.";
-   if(FieldTextBad(FCV_FLD_DAY_TRADES) || m_draft.maxDailyTrades<0)
+   if(m_draft.maxDailyTrades<0)
       return "Max Trades deve ser zero ou inteiro positivo.";
-   if(FieldTextBad(FCV_FLD_DAY_LOSS) || m_draft.maxDailyLoss<0.0)
+   if(m_draft.maxDailyLoss<0.0)
       return "Max Perda diario invalido.";
-   if(FieldTextBad(FCV_FLD_DAY_GAIN) || m_draft.maxDailyGain<0.0)
+   if(m_draft.maxDailyGain<0.0)
       return "Max Ganho diario invalido.";
    if(!VDayNeedsGain())
       return "DD ON exige Max Ganho > 0 no DAY.";
@@ -782,7 +757,7 @@ string ScreenErrorProtDrawdown(void)
   {
    if(DrawdownConfigLocked() && VDrawdownPending())
       return "DD ativo: edicao suspensa ate liberar.";
-   if(FieldTextBad(FCV_FLD_DD_MAX) || !VDrawdownValue())
+   if(!VDrawdownValue())
      {
       if(m_draft.enableDrawdown && m_draft.drawdownType==DD_TIPO_PERCENTUAL)
          return "Max DD percentual deve ser > 0 e <= 100.";
@@ -800,19 +775,19 @@ string ScreenErrorProtStreak(void)
   {
    if(StreakConfigLocked() && VStreakPending())
       return "Streak em bloqueio: edicao suspensa ate liberar.";
-   if(FieldTextBad(FCV_FLD_LOSS_STREAK_MAX) || m_draft.maxLossStreak<0)
+   if(m_draft.maxLossStreak<0)
       return "Max Loss deve ser zero ou inteiro positivo.";
    if(!VLossStreakLimit())
       return "Loss Streak ON requer Max Loss maior que 0.";
-   if(FieldTextBad(FCV_FLD_LOSS_STREAK_PAUSE) || m_draft.lossStreakPauseMinutes<0)
+   if(m_draft.lossStreakPauseMinutes<0)
       return "Pausa Loss deve ser zero ou inteiro positivo.";
    if(!VLossStreakPause())
       return "Pausa Loss deve ser maior que 0 quando acao for PAUSAR.";
-   if(FieldTextBad(FCV_FLD_WIN_STREAK_MAX) || m_draft.maxWinStreak<0)
+   if(m_draft.maxWinStreak<0)
       return "Max Win deve ser zero ou inteiro positivo.";
    if(!VWinStreakLimit())
       return "Win Streak ON requer Max Win maior que 0.";
-   if(FieldTextBad(FCV_FLD_WIN_STREAK_PAUSE) || m_draft.winStreakPauseMinutes<0)
+   if(m_draft.winStreakPauseMinutes<0)
       return "Pausa Win deve ser zero ou inteiro positivo.";
    if(!VWinStreakPause())
       return "Pausa Win deve ser maior que 0 quando acao for PAUSAR.";
@@ -829,7 +804,7 @@ string ScreenErrorProtStreak(void)
 //--- que importa e AccCanStart, com ActiveMagicConflicts().
 string ScreenErrorProfiles(void)
   {
-   if(FieldTextBad(FCV_FLD_MAGIC) || m_draft.magicNumber<=0)
+   if(m_draft.magicNumber<=0)
       return "Magic invalido. Informe um numero inteiro positivo.";
    //--- Dentro do formulario de criar/duplicar, o Magic do RASCUNHO nao e o que
    //--- vai ser gravado: quem manda e o do formulario, conferido por

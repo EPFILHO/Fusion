@@ -134,6 +134,20 @@
 #define FCV_BTN_DELOK    13
 #define FCV_BTN_DELNO    14
 
+//--- Prazo do aviso que descreve um EVENTO passado. Estado em vigor nao expira
+//--- — ver a nota em ClearNotice (CanvasRendererCommands.mqh).
+#define FCV_NOTICE_TTL_MS 5000
+
+//--- Altura MINIMA da caixa de aviso, em linhas de texto.
+//---
+//--- A caixa cresce com o conteudo desde a Fase 1, e isso continua valendo: e o
+//--- que evita o corte em 174 caracteres da 1.058. O que incomodava era ela
+//--- ENCOLHER — a area util mudava de tamanho entre um aviso de uma linha e
+//--- outro de duas, e o conteudo pulava de lugar sem o usuario ter feito nada.
+//--- Com o piso em duas linhas, o caso comum passa a ter altura constante e o
+//--- texto e centralizado na caixa; so um aviso realmente longo cresce.
+#define FCV_ALERT_MIN_LINES 2
+
 //--- Modo de edicao da aba Perfis
 #define FCV_PROF_VIEW     0
 #define FCV_PROF_NEW      1

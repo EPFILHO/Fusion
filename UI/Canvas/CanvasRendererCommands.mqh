@@ -47,17 +47,58 @@ string ProfileFormRawName(void)
 //+------------------------------------------------------------------+
 //| Aviso — a resposta do painel ao clique.                           |
 //|                                                                   |
-//| Nao expira por tempo. Um aviso que some sozinho e um aviso que o  |
-//| usuario pode nao ter lido; um que fica para sempre vira sujeira.  |
-//| A saida e ele morrer quando o usuario volta a agir: navegar ou    |
-//| mexer em qualquer campo o apaga. Assim ele dura exatamente        |
-//| enquanto e a resposta a ultima coisa feita.                       |
+//| Morre quando o usuario volta a agir: navegar ou mexer em qualquer |
+//| campo o apaga. Assim ele dura exatamente enquanto e a resposta a  |
+//| ultima coisa feita.                                               |
+//|                                                                   |
+//| Alguns tambem tem PRAZO, e a distincao importa:                   |
+//|                                                                   |
+//|  - aviso que descreve um EVENTO passado (texto recusado, perfil   |
+//|    salvo) expira sozinho — ficar na tela depois que deixou de ser |
+//|    novidade e sujeira;                                            |
+//|  - aviso que descreve um ESTADO em vigor (exclusao armada) NAO    |
+//|    expira. Sumir enquanto o CONFIRMAR continua na tela deixaria   |
+//|    um botao vermelho sem a frase que explica o que ele apaga.     |
+//|                                                                   |
+//| Por isso o prazo e por chamada, e o padrao e nao ter.             |
 //+------------------------------------------------------------------+
 void ClearNotice(void)
   {
    if(m_noticeBody=="" && m_noticeTitle=="") return;
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
+   m_noticeTtl=0;
    m_viewDirty=true;
+  }
+
+//--- Diferenca de tempos sem sinal: imune a volta do contador a zero, que
+//--- acontece a cada 49 dias de terminal ligado. Comparar `agora >= limite`
+//--- daria um aviso eterno exatamente quando isso ocorresse.
+bool NoticeExpired(void)
+  {
+   if(m_noticeTtl==0 || StringLen(m_noticeBody)==0) return false;
+   return ((GetTickCount()-m_noticeAt)>=m_noticeTtl);
+  }
+
+//+------------------------------------------------------------------+
+//| Texto digitado que o parse recusou.                               |
+//|                                                                   |
+//| O campo ja voltou ao valor bom sozinho — este e o recado que      |
+//| explica por que. Cita o que foi digitado porque e a unica coisa   |
+//| que o usuario reconhece: "nao e um numero" sem o texto ao lado    |
+//| deixa a duvida de QUAL campo reclamou.                            |
+//+------------------------------------------------------------------+
+void RejectTypedText(const string typed,const int kind)
+  {
+   //--- Texto longo cortado: a caixa cresce com o conteudo, e um campo colado
+   //--- de um documento inteiro empurraria a area util para fora da tela.
+   string shown=TrimEdges(typed);
+   if(StringLen(shown)>24) shown=StringSubstr(shown,0,24)+"...";
+   if(StringLen(shown)==0) shown="(vazio)";
+   SetNotice("VALOR NAO ACEITO",
+             "\""+shown+"\" nao e um numero"+
+             ((kind==FCV_FTYPE_DEC) ? " (use ponto ou virgula para decimais)" : "")+
+             ". O campo voltou ao valor anterior.",
+             FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
   }
 
 //+------------------------------------------------------------------+
@@ -76,10 +117,11 @@ void ClearNotice(void)
 void ArmDeleteConfirm(void)
   {
    m_delConfirm=true;
+   //--- Sem prazo: este aviso descreve um ESTADO em vigor. Sumindo sozinho,
+   //--- deixaria os dois botoes na tela sem a frase que diz o que eles fazem.
    SetNotice("CONFIRMAR EXCLUSAO",
-             "O perfil "+SelectedProfileName()+" sera apagado do disco. "+
-             "Nao ha como desfazer. Clique em CONFIRMAR para apagar, ou VOLTAR "+
-             "para desistir.",FCV_SEM_BAD);
+             "O perfil "+SelectedProfileName()+" sera apagado DEFINITIVAMENTE. "+
+             "Clique SIM para confirmar ou NAO para cancelar.",FCV_SEM_BAD);
   }
 
 void CancelDeleteConfirm(void)
@@ -108,7 +150,7 @@ void ReloadDraft(void)
    ReleaseEditFocus();
    m_draft=m_committed;
    SyncDerivedSettings();
-   ClearFieldTextFlags();
+   
    m_viewDirty=true;
   }
 
@@ -213,7 +255,7 @@ bool HandleButtonClick(const int lx,const int ly)
             ReloadDraft();
             SetNotice("ALTERACOES DESCARTADAS",
                       "Os campos voltaram ao que esta gravado no perfil "+
-                      m_snap.activeProfileName+".",FCV_SEM_GOOD);
+                      m_snap.activeProfileName+".",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
             break;
         }
       m_scroll=0;
@@ -242,12 +284,14 @@ bool ConsumeIntent(SCanvasIntent &out)
 bool HasPendingChanges(void) { return HasPending(); }
 
 //--- Resposta a uma intencao, ou a qualquer outra coisa que o painel precise
-//--- dizer. Aparece na caixa de aviso, que cresce com o texto.
-void SetNotice(const string title,const string body,const int sem)
+//--- dizer. Aparece na caixa de aviso. `ttlMs` = 0 e o padrao: sem prazo.
+void SetNotice(const string title,const string body,const int sem,const uint ttlMs=0)
   {
    m_noticeTitle=title;
    m_noticeBody =body;
    m_noticeSem  =sem;
+   m_noticeAt   =GetTickCount();
+   m_noticeTtl  =ttlMs;
    m_viewDirty  =true;
   }
 
@@ -273,10 +317,12 @@ void BeginDuplicate(const SEASettings &source,const string suggestedName,
    m_stEdit[ProfileFormSlot(FCV_PROF_SLOT_NAME)]=suggestedName;
    m_draft=source;
    SyncDerivedSettings();
-   ClearFieldTextFlags();
+   
+   //--- Com prazo: a mesma instrucao esta no cartao do formulario, que fica na
+   //--- tela o tempo todo. Aqui ela so anuncia o que acabou de acontecer.
    SetNotice("DUPLICANDO "+sourceName,
-             "A configuracao de "+sourceName+" foi copiada para os campos. "+
-             "Informe um Magic livre e clique CRIAR COPIA.",FCV_SEM_WARN);
+             "A configuracao foi copiada. Informe um Magic livre e clique CRIAR COPIA.",
+             FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
    m_scroll=0;
    Render();
   }
@@ -290,6 +336,6 @@ void ReloadFromEA(const string reason)
    m_delConfirm=false;
    ReloadDraft();
    if(lostTyping)
-      SetNotice("CAMPOS RECARREGADOS",reason,FCV_SEM_WARN);
+      SetNotice("CAMPOS RECARREGADOS",reason,FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
   }
 private:

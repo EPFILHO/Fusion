@@ -219,6 +219,20 @@ void PutButton(const int x,const int y,const int w,const int h,const string labe
                const bool filled,const uint fillClr,const uint onFill,
                const int id,const bool enabled)
   {
+   //--- Licao 3 da secao 8 do plano — "medir a mensagem contra o espaco
+   //--- disponivel antes de escreve-la" — aplicada aos botoes, que nao a
+   //--- cumpriam. "CONFIRMAR" vazou da coluna de 124 px de Perfis e so foi
+   //--- descoberto por captura de tela; a faixa de abas ja tinha essa conferencia
+   //--- desde a Fase 1, os botoes nao.
+   //---
+   //--- Loga UMA VEZ por sessao: o desenho roda ate 5x por segundo, e um aviso
+   //--- por quadro afogaria o log — que e onde o proximo caso precisa aparecer.
+   if(!m_btnFitLogged && TxtW(label,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD) > w-12)
+     {
+      m_btnFitLogged=true;
+      PrintFormat("ATENCAO: o rotulo \"%s\" nao cabe no botao (%d px de caixa). Encurte-o.",
+                  label,w);
+     }
    if(!enabled)
      {
       //--- Preenchimento IGUAL ao fundo: botao apagado e contorno, nao placa.
@@ -833,14 +847,20 @@ void AlertBottom(const int x1,const int x2,const int bottomY,const string title,
                  const string body,const uint accentClr,const uint bgClr,const uint textClr)
   {
    int textX=x1+24, maxW=(x2-14)-textX, lineH=15, titleH=16, gap=4, padV=14;
-   int lines=WrapText(textX,0,maxW,lineH,body,textClr,FCV_FS_SM,false);
-   int h=titleH+gap+lines*lineH+2*padV;
+   int realLines,boxLines;
+   AlertLines(body,realLines,boxLines);
+   int h=titleH+gap+boxLines*lineH+2*padV;
    int y=bottomY-h;
    //--- a altura ja foi publicada por MeasureAlert antes do conteudo
    RoundRect(x1,y,x2,y+h,8,bgClr,m_t.surface);
    Rect(x1+12,y+padV,x1+14,y+h-padV,accentClr);
-   Txt(textX,y+padV+titleH/2,title,accentClr,FCV_FONT_UI,FCV_FS_SM,FCV_FW_BOLD,TA_LEFT|TA_VCENTER);
-   WrapText(textX,y+padV+titleH+gap+lineH/2,maxW,lineH,body,textClr,FCV_FS_SM,true);
+   //--- Texto CENTRADO na caixa quando ela e maior que o conteudo. Encostado no
+   //--- topo, um aviso de uma linha deixaria um vao vazio embaixo — a caixa
+   //--- pareceria quebrada, e nao reservada.
+   int blockH=titleH+gap+realLines*lineH;
+   int top=y+(h-blockH)/2;
+   Txt(textX,top+titleH/2,title,accentClr,FCV_FONT_UI,FCV_FS_SM,FCV_FW_BOLD,TA_LEFT|TA_VCENTER);
+   WrapText(textX,top+titleH+gap+lineH/2,maxW,lineH,body,textClr,FCV_FS_SM,true);
   }
 
 //+------------------------------------------------------------------+

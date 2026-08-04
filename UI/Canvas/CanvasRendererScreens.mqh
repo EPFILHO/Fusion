@@ -105,15 +105,26 @@ bool ScreenAlert(string &title,string &body,int &sem)
    return true;
   }
 
+//--- Linhas que o corpo ocupa e linhas que a CAIXA reserva. As duas saem daqui
+//--- para que medida e desenho nao possam divergir: a altura e publicada antes
+//--- do conteudo (MeasureAlert) e usada depois (AlertBottom), e uma conta
+//--- repetida nos dois lugares divergiria no dia em que so uma fosse ajustada.
+void AlertLines(const string body,int &realLines,int &boxLines)
+  {
+   int textX=FCV_PAD+24, maxW=(FCV_PANEL_W-FCV_PAD-14)-textX;
+   realLines=WrapText(textX,0,maxW,15,body,m_t.fg,FCV_FS_SM,false);
+   if(realLines<1) realLines=1;
+   boxLines=(realLines<FCV_ALERT_MIN_LINES) ? FCV_ALERT_MIN_LINES : realLines;
+  }
+
 void MeasureAlert(void)
   {
    string title,body; int sem;
    m_alertH=0;
    if(m_minimized || !ScreenAlert(title,body,sem)) return;
-   int x1=FCV_PAD, x2=FCV_PANEL_W-FCV_PAD;
-   int textX=x1+24, maxW=(x2-14)-textX;
-   int lines=WrapText(textX,0,maxW,15,body,m_t.fg,FCV_FS_SM,false);
-   m_alertH=16+4+lines*15+2*14;
+   int realLines,boxLines;
+   AlertLines(body,realLines,boxLines);
+   m_alertH=16+4+boxLines*15+2*14;
   }
 
 void DrawAlert(void)
@@ -676,36 +687,44 @@ void ScreenProfiles(void)
    //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
    //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o
    //--- que a acao FAZ; estar habilitado diz se ela cabe agora.
-   PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad);
-   PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate);
-   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup);
+   //--- ⚠ Com a exclusao armada, TODO o resto da coluna e apagado.
+   //---
+   //--- Nao e so estetica, embora tenha comecado assim: quatro botoes
+   //--- preenchidos em cores fortes, um deles vermelho, disputavam a atencao
+   //--- justamente no momento em que so existe uma pergunta na tela. E a regra
+   //--- "um unico botao preenchido por vez" do plano, aplicada onde ela mais
+   //--- vale — o proximo passo aqui e responder SIM ou NAO, e mais nada.
+   bool armed=(m_delConfirm && canDelete);
+   PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad  && !armed);
+   PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate && !armed);
+   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup   && !armed);
    //--- Excluir e a unica acao irreversivel do painel, e nao tem desfazer: o
    //--- arquivo sai do disco. Por isso ela pede confirmacao — e a confirmacao
    //--- acontece AQUI, na propria coluna, e nao num popup: o popup teria de
    //--- suprimir os campos nativos sob ele (regra do modelo hibrido) e taparia
    //--- justamente a linha do perfil que esta prestes a sumir.
    //---
-   //--- Armado, o vermelho vira CONFIRMAR e ganha um VOLTAR ao lado, na mesma
-   //--- altura em que estava o EXCLUIR: o segundo clique cai onde o primeiro
-   //--- caiu, entao a saida precisa estar em outro lugar da linha.
-   if(m_delConfirm && canDelete)
+   //--- SIM e NAO, e nao CONFIRMAR e VOLTAR: a coluna tem 124 px e "CONFIRMAR"
+   //--- vazava da metade dela. A pergunta inteira esta no aviso do rodape, entao
+   //--- o botao so precisa carregar a resposta.
+   if(armed)
      {
       int hw=(aw-6)/2;
-      PutButton(ax,y+3*34,hw,30,"CONFIRMAR",true,m_t.bad,m_t.onAcc,FCV_BTN_DELOK,true);
-      PutButton(ax+hw+6,y+3*34,aw-hw-6,30,"VOLTAR",false,m_t.muted,m_t.onAcc,
+      PutButton(ax,y+3*34,hw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_DELOK,true);
+      PutButton(ax+hw+6,y+3*34,aw-hw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
                 FCV_BTN_DELNO,true);
      }
    else
       PutButton(ax,y+3*34,aw,30,"EXCLUIR", true,m_t.bad, m_t.onAcc, FCV_BTN_DEL, canDelete);
-   //--- "Atualizar lista" sempre habilitado, como na 1.058: reler o disco nao
-   //--- altera nada e e a unica forma de ver arquivo criado por fora com o
+   //--- "Atualizar lista" habilitado quase sempre, como na 1.058: reler o disco
+   //--- nao altera nada e e a unica forma de ver arquivo criado por fora com o
    //--- painel aberto. Nao depende de perfil selecionado nem de EA parado.
    //---
    //--- Afastado dos quatro acima e em caixa mista de proposito: os outros agem
    //--- SOBRE UM PERFIL e podem destruir; este so relê a pasta. Separar no
    //--- espaco e na grafia evita que ele seja lido como quinta acao de perfil.
    PutButton(ax,y+4*34+14,aw,30,"Atualizar lista",false,m_t.acc,m_t.onAcc,
-             FCV_BTN_PROFREFRESH,!editing);
+             FCV_BTN_PROFREFRESH,!editing && !armed);
 
    m_fy=y+FCV_PROF_ROWS*34+FCV_CARD_GAP;   // y ja inclui o respiro do topo
 

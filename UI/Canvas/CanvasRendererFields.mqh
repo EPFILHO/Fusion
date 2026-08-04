@@ -576,10 +576,18 @@ string FieldGetText(const int fid)
 //--- Texto digitado -> rascunho.
 //---
 //--- O PARSE E RECUSAVEL desde a Etapa 2d: texto que nao e numero nao entra no
-//--- rascunho, o campo guarda o ultimo valor bom e fica marcado de vermelho
-//--- (FieldTextBad). Antes disso "abc" virava zero sem uma palavra — e zero e
-//--- valor legitimo em quase todo campo, entao o apagamento passava.
-//--- E a mesma regra da 1.058, que so escreve no rascunho quando o parse passa.
+//--- rascunho, e o campo guarda o ultimo valor bom. Antes disso "abc" virava
+//--- zero sem uma palavra — e zero e valor legitimo em quase todo campo, entao
+//--- o apagamento passava. E a mesma regra da 1.058, que so escreve no rascunho
+//--- quando o parse passa.
+//---
+//--- ⚠ A recusa NAO marca erro de validacao, e a distincao custou uma rodada de
+//--- teste. O BuildEdits reescreve o objeto com o valor do rascunho no mesmo
+//--- quadro, entao um instante depois nao existe mais texto ruim em lugar
+//--- nenhum — deixar campo, subaba e aba vermelhos apontaria um erro que o
+//--- proprio painel ja desfez, e so entrar e sair do campo o limpava. O usuario
+//--- precisa e saber POR QUE o valor voltou: isso e recado, e vai para a caixa
+//--- de aviso com prazo.
 //---
 //--- Hora/minuto digitados -> valor recortado a faixa. Copia do SanitizeTimeText
 //--- da 1.058 (UIPanelProtectionInputs): so os digitos contam e o excedente e
@@ -626,8 +634,7 @@ void FieldSetText(const int fid,const string text)
         }
       else
          ok=FusionIsIntegerText(text,true);
-      SetFieldTextBad(fid,!ok);
-      if(!ok) return;             // mantem o ultimo valor bom
+      if(!ok) { RejectTypedText(text,kind); return; }   // mantem o ultimo valor bom
      }
 
    int w,f;

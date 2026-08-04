@@ -247,22 +247,22 @@ private:
    SEASettings       m_draft;
    SEASettings       m_committed;
 
-   //--- Etapa 2d: texto que o parse recusou, por campo. O rascunho guarda
-   //--- numero, e numero nao sabe dizer que veio de "abc" — sem esta marca o
-   //--- valor era apagado em silencio. Ver CanvasRendererValidate.mqh.
-   bool              m_fldBadText[FCV_FLD_COUNT];
-
    //--- Etapa 2c: o que o usuario PEDIU, esperando ser drenado por quem
    //--- conduz o painel. Uma posicao so — um clique, uma intencao.
    SCanvasIntent     m_intent;
    bool              m_hasIntent;
    //--- Resposta do painel ao ultimo clique. Vive na caixa de aviso e morre
-   //--- quando o usuario volta a agir; ver ClearNotice.
+   //--- quando o usuario volta a agir — ou no prazo, quando tem um; ver
+   //--- ClearNotice e NoticeExpired.
    string            m_noticeTitle, m_noticeBody;
    int               m_noticeSem;
+   uint              m_noticeAt, m_noticeTtl;
    //--- EXCLUIR armado: o botao vermelho ja foi clicado uma vez e aguarda
    //--- confirmacao. Cai em qualquer mudanca de contexto.
    bool              m_delConfirm;
+   //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
+   //--- o desenho roda 5x por segundo. Ver PutButton.
+   bool              m_btnFitLogged;
    //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
    //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
    bool              m_cfgValid, m_cfgValidKnown;
@@ -301,6 +301,10 @@ public:
       //--- armada sobre uma acao que a tela ja nao oferece guardaria um aviso
       //--- vermelho pedindo confirmacao de algo impossivel.
       if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
+      //--- Aviso com prazo vencido. E o unico caminho que o apaga sem o usuario
+      //--- ter feito nada, e por isso depende deste pulso: sem ele, o recado de
+      //--- "valor nao aceito" ficaria ate o proximo clique em qualquer coisa.
+      if(NoticeExpired()) ClearNotice();
       if(!m_viewDirty && HasPending()==m_lastPending) return;
       Render();
      }
@@ -316,11 +320,7 @@ public:
       //--- painel se recusaria a exibi-la — ficaria preso no valor velho.
       bool pending=HasPending();
       m_committed=snap.settings;
-      //--- Rascunho semeado de novo: os vereditos de parse descrevem um texto
-      //--- que nao esta mais em campo nenhum. Mantidos, um campo continuaria
-      //--- vermelho exibindo um valor que o EA acabou de mandar e que esta
-      //--- correto.
-      if(!pending) { m_draft=m_committed; SyncDerivedSettings(); ClearFieldTextFlags(); }
+      if(!pending) { m_draft=m_committed; SyncDerivedSettings(); }
      }
    //--- Lista de perfis vinda de quem enumera o disco. Recebe os nomes ja na
    //--- ordem em que devem aparecer; o renderizador nao ordena nem filtra.
@@ -476,7 +476,6 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
 
    m_popupOn=false; m_popupX1=0; m_popupY1=0; m_popupX2=0; m_popupY2=0;
 
-   for(int i=0;i<FCV_FLD_COUNT;++i) m_fldBadText[i]=false;
    m_hasIntent=false; m_intent.kind=FCV_INTENT_NONE;
    m_intent.profile=""; m_intent.magic=0;
    //--- Strings do aviso atribuidas EXPLICITAMENTE: em MQL5 uma string nunca
@@ -484,7 +483,8 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- "ha aviso?" daria verdadeiro e o painel nasceria com uma caixa de
    //--- aviso vazia comendo a area util.
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
-   m_delConfirm=false;
+   m_noticeAt=0; m_noticeTtl=0;
+   m_delConfirm=false; m_btnFitLogged=false;
    m_cfgValid=true; m_cfgValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
