@@ -119,6 +119,24 @@ bool FirstRealProfile(string &name,int &magic)
   {
    name=""; magic=0;
    CSettingsStore store;
+
+   //--- O `default` tem precedencia, e nao por comodidade: ele e a base do EA —
+   //--- o `defaultProfileName` de SEASettings, o perfil que nem se deixa
+   //--- excluir. "O primeiro da pasta" e uma ordem alfabetica sem significado
+   //--- nenhum, e escolher por ela fazia o perfil ativo do harness mudar
+   //--- sozinho conforme o que existisse em disco.
+   SEASettings def;
+   SEASettings padrao;
+   SetDefaultSettings(padrao);
+   if(store.LoadProfile(padrao.defaultProfileName,def))
+     {
+      name=padrao.defaultProfileName;
+      magic=def.magicNumber;
+      return true;
+     }
+
+   //--- Sem o default, o primeiro legivel — melhor que nenhum, e a tela avisa
+   //--- qual foi adotado no log.
    string names[];
    if(!store.ListProfiles(names)) return false;
    for(int i=0;i<ArraySize(names);++i)

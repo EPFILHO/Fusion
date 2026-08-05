@@ -289,6 +289,16 @@ uma gravacao bem-sucedida anunciava perda.
 > EA aplicou. E a licao 4 da secao 8 aplicada a ele mesmo. Custa uma leitura por
 > clique em SALVAR — nunca por quadro.
 >
+> ⚠️ **E a saida tem de apontar para o botao CERTO.** Numa CRIACAO que falha ao
+> gravar, o perfil ativo continua sendo o anterior. Fechando o formulario ali, o
+> nome do perfil novo se perdia — o painel so guardava "houve falha" — e o aviso
+> mandava clicar SALVAR, **que grava no perfil ATIVO**. Seguindo a instrucao da
+> tela, o usuario sobrescreveria o perfil anterior com a configuracao do perfil
+> que tentou criar. Hoje o formulario **fica aberto** nesse caso: o alvo continua
+> na tela, os botoes do cabecalho seguem apagados (`headerLive` exige modo de
+> navegacao) e a retentativa e o proprio CRIAR PERFIL. O estado guarda a
+> **operacao**, nao so o fato de ter falhado.
+>
 > **E avisar nao bastava: faltava a saida.** Quando a gravacao falha, o EA ja
 > aplicou — rascunho e comprometido ficam iguais, "alteracoes nao salvas" some e os
 > tres botoes do cabecalho apagam. O painel dizia "PERFIL NAO GRAVADO" e nao
@@ -411,6 +421,27 @@ na exibicao mascararia um lote desalinhado do passo do ativo: `0.125` com passo
 ⚠️ A tabela de casas **espelha `ProfileSettingsSerializer.mqh`**. Mudar a grafia de
 um campo la sem mudar aqui traz o falso "nao gravado" de volta, e isso nao aparece
 em compilacao nenhuma. Ha ponteiro nos dois arquivos.
+
+**O lote passou de quatro para OITO casas — no serializer, nao so na GUI.** Quatro
+era um limite antigo do arquivo, e `FusionVolumeDigits` deriva a precisao do
+`volumeStep` do ativo indo ate 8: num ativo de passo `0.00001`, digitar `0.00001`
+virava `0.0000` antes da validacao, e a conferencia de gravacao comparava zero com
+zero e aprovava. Um lote apagado em silencio, nos dois lados ao mesmo tempo. E
+**mudanca no formato do arquivo**, compativel nos dois sentidos: `StringToDouble`
+aceita qualquer numero de casas, entao perfis gravados com quatro seguem validos e
+a 1.058 le os novos sem alteracao.
+
+### Configuracao aplicada e nao gravada nao se perde calada
+
+Depois de uma falha de gravacao o rascunho e o comprometido ficam iguais, entao
+`HasPending()` e falso — e CARREGAR, que so consultava essa pergunta, trocava o
+perfil e levava junto a configuracao que o proprio painel dizia ter por gravar.
+
+**CARREGAR continua permitido**, e isso e escolha: bloquea-lo com o disco quebrado
+deixaria o usuario sem saida, e o principio de que carregar outro perfil E a saida
+ja vale aqui para o perfil preso por outro grafico. O que nao pode e a perda ser
+silenciosa — o painel guarda o NOME do perfil cujo arquivo ficou para tras e
+anuncia o que foi substituido. Mesma politica da recarga: o EA vence, com aviso.
 
 A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
 faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a

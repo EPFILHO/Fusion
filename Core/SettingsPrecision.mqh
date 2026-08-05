@@ -30,10 +30,15 @@
 
 #include "Types.mqh"
 
-//--- Casas com que o arquivo grava cada double. Duas para tudo, menos o lote:
-//--- ele precisa de quatro porque ha ativos com passo de 0.001.
+//--- Casas com que o arquivo grava cada double. Duas para tudo, menos o lote.
+//---
+//--- O lote usa OITO, que e o teto de FusionVolumeDigits — a funcao que deriva
+//--- a precisao do `volumeStep` do ativo. Eram quatro, e nao dava: num ativo de
+//--- passo 0.00001, digitar 0.00001 virava 0.0000 antes mesmo da validacao, e a
+//--- conferencia de gravacao comparava zero com zero e dizia que estava tudo
+//--- certo. Um lote apagado em silencio, nos dois lados ao mesmo tempo.
 #define FUSION_STORAGE_DIGITS       2
-#define FUSION_STORAGE_DIGITS_LOT   4
+#define FUSION_STORAGE_DIGITS_LOT   8
 
 void FusionApplyStoragePrecision(SEASettings &settings)
   {

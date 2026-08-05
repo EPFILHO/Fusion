@@ -503,6 +503,43 @@ void ScreenResults(void)
 //| rotulo e aparece CANCELAR — que e a saida exigida pela regra de   |
 //| que todo bloqueio precisa de caminho de volta pela propria GUI.   |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| Cartao do perfil ativo que NAO esta na lista.                     |
+//|                                                                   |
+//| Acontece de verdade: o arquivo dele sumiu, ou e um dos que nao    |
+//| abriram — e tambem quando nao ha perfil nenhum em disco. Era um   |
+//| beco sem saida, e caro: o Magic do perfil ativo mora no rascunho  |
+//| e so era editavel quando o ativo estava SELECIONADO na lista.     |
+//| Fora dela, nenhuma linha ficava ligada a ele.                     |
+//|                                                                   |
+//| O estrago aparecia junto com a validacao: se outro perfil ja usa  |
+//| aquele Magic, a aba Perfis acende, `configInputsValid` cai e      |
+//| SALVAR e INICIAR apagam — e a unica correcao possivel, mudar o    |
+//| Magic, estava fora de alcance. A tela mandava corrigir o que ela  |
+//| propria nao deixava tocar, que e a licao 1 da secao 8 ao          |
+//| contrario.                                                        |
+//|                                                                   |
+//| Cartao proprio, e nao uma linha extra no de baixo: aquele fala do |
+//| perfil SELECIONADO, e misturar os dois Magic no mesmo lugar e     |
+//| exatamente a confusao que este campo ja causou antes.             |
+//|                                                                   |
+//| Funcao, e nao trecho na tela, porque ha DOIS caminhos que chegam  |
+//| aqui — lista com perfis e lista vazia — e o segundo devolve antes |
+//| de alcancar o primeiro. Foi assim que o cartao nasceu funcionando |
+//| so na metade dos casos.                                           |
+//+------------------------------------------------------------------+
+void CardActiveOutOfList(const int activeIdx)
+  {
+   if(activeIdx>=0) return;
+   RowsReset();
+   RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
+             FCV_FLD_MAGIC);
+   RowNoteSem("O perfil "+m_snap.activeProfileName+" esta em uso neste grafico mas nao "+
+              "aparece na lista: o arquivo dele sumiu ou nao pode ser lido. "+
+              "SALVAR grava a configuracao em uso de volta nesse nome.",FCV_SEM_WARN);
+   Card("PERFIL ATIVO");
+  }
+
 void ScreenProfiles(void)
   {
    //--- A lista desce um respiro: encostada em ContentTop() a moldura perdia a
@@ -555,6 +592,11 @@ void ScreenProfiles(void)
       else
          RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
       Card("PERFIS");
+      //--- Com a lista vazia o ativo esta, por definicao, fora dela — e este e
+      //--- o caso em que o cartao mais importa: sem nenhum outro perfil para
+      //--- selecionar, ele e o UNICO lugar onde o Magic do perfil em uso pode
+      //--- ser corrigido. Vinha depois do return, entao nao aparecia.
+      CardActiveOutOfList(activeIdx);
       return;
      }
 
@@ -782,36 +824,7 @@ void ScreenProfiles(void)
       return;
      }
 
-   //+---------------------------------------------------------------+
-   //| Perfil ativo que NAO esta na lista.                            |
-   //|                                                                |
-   //| Acontece de verdade: o arquivo dele sumiu, ou e um dos que nao |
-   //| abriram. Ate aqui era um beco sem saida, e caro — o Magic do   |
-   //| perfil ativo mora no rascunho e so era editavel quando o ativo |
-   //| estava SELECIONADO na lista. Fora dela, nenhuma linha ficava   |
-   //| ligada a ele.                                                  |
-   //|                                                                |
-   //| O estrago aparecia junto com a validacao: se outro perfil ja   |
-   //| usa aquele Magic, a aba Perfis acende, `configInputsValid` cai |
-   //| e SALVAR e INICIAR apagam — e a unica correcao possivel, mudar |
-   //| o Magic, estava fora de alcance. A tela mandava corrigir o que |
-   //| ela propria nao deixava tocar, que e a licao 1 da secao 8 do   |
-   //| plano ao contrario.                                            |
-   //|                                                                |
-   //| Cartao proprio, e nao uma linha extra no de baixo: aquele fala |
-   //| do perfil SELECIONADO, e misturar os dois Magic no mesmo lugar |
-   //| e exatamente a confusao que este campo ja causou antes.        |
-   //+---------------------------------------------------------------+
-   if(activeIdx<0)
-     {
-      RowsReset();
-      RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
-                FCV_FLD_MAGIC);
-      RowNoteSem("O perfil "+m_snap.activeProfileName+" esta em uso neste grafico mas nao "+
-                 "aparece na lista: o arquivo dele sumiu ou nao pode ser lido. "+
-                 "SALVAR grava a configuracao em uso de volta nesse nome.",FCV_SEM_WARN);
-      Card("PERFIL ATIVO");
-     }
+   CardActiveOutOfList(activeIdx);
 
    //--- O Magic identifica o perfil, nao o sistema, e a lista acima ja mostra o
    //--- de cada um — por isso ele mora aqui e nao em Config.

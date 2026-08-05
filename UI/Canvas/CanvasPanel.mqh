@@ -67,6 +67,10 @@ private:
    //+---------------------------------------------------------------+
    int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar
    string                m_echoProfile;
+   //--- Perfil cujo arquivo ficou para tras numa gravacao que falhou. Guardado
+   //--- pelo NOME, e nao so como sinalizador, para o aviso poder dizer o que se
+   //--- perdeu quando o usuario troca de perfil por cima dele.
+   string                m_staleProfile;
 
    void              ClearEcho(void) { m_echoKind=0; m_echoProfile=""; }
 
@@ -96,7 +100,10 @@ private:
    //| Custa uma leitura de disco por clique em SALVAR. Nao e por      |
    //| quadro: so acontece no eco de um comando que o usuario pediu.   |
    //+---------------------------------------------------------------+
-   void              AnnounceSaveOutcome(const SEASettings &applied)
+   //--- A gravacao pedida chegou ao disco? Separada do anuncio porque a
+   //--- resposta e precisa ANTES de recarregar a tela: e ela que decide se o
+   //--- formulario de criacao fica aberto.
+   bool              SaveLandedOnDisk(const SEASettings &applied)
      {
       SEASettings onDisk;
       //--- Compara contra o que o EA APLICOU, nao contra o rascunho que
@@ -109,12 +116,23 @@ private:
       //--- anunciada como falha por uma casa decimal que o arquivo nunca teve.
       SEASettings expected=applied;
       FusionApplyStoragePrecision(expected);
-      bool saved=(m_store.LoadProfile(m_echoProfile,onDisk) &&
-                  FusionSettingsEqual(onDisk,expected));
+      return (m_store.LoadProfile(m_echoProfile,onDisk) &&
+              FusionSettingsEqual(onDisk,expected));
+     }
+
+   void              AnnounceSaveOutcome(const bool saved)
+     {
       //--- A marca fica ATE a proxima gravacao bem-sucedida: e ela que mantem o
       //--- SALVAR aceso para o usuario tentar de novo, e que faz o EA avisar ao
       //--- fechar o grafico que ha algo por gravar.
+      //---
+      //--- Vale para os dois casos, e no da criacao ela nao e sobre o perfil
+      //--- novo: a configuracao dele ja esta VALENDO nesta sessao, entao o
+      //--- arquivo do perfil ATIVO ficou para tras. Guardamos o nome para saber
+      //--- de qual arquivo estamos falando quando alguem trocar de perfil.
       m_renderer.SetPersistenceFailed(!saved);
+      m_staleProfile = saved ? "" : m_snapshot.activeProfileName;
+
       if(saved)
         {
          m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
@@ -128,6 +146,20 @@ private:
       //--- metades do que aconteceu — a configuracao VALE agora, o arquivo NAO
       //--- foi escrito —, porque dizer so "falhou" faria o usuario procurar na
       //--- tela uma alteracao que nao se perdeu.
+      //---
+      //--- ⚠ O botao citado MUDA com a operacao, e mandar o botao errado aqui
+      //--- era o defeito: numa criacao que falhou, "clique SALVAR" grava no
+      //--- perfil ATIVO — ou seja, sobrescreveria o perfil anterior com a
+      //--- configuracao do que se tentou criar.
+      if(m_echoKind==2)
+        {
+         m_renderer.SetNotice("PERFIL NAO CRIADO",
+                              "O arquivo de "+m_echoProfile+" nao foi escrito, e a "+
+                              "configuracao dele esta valendo nesta sessao. O formulario "+
+                              "continua aberto: clique CRIAR PERFIL para tentar de novo.",
+                              FCV_SEM_BAD);
+         return;
+        }
       m_renderer.SetNotice("PERFIL NAO GRAVADO",
                            "A configuracao esta valendo nesta sessao, mas o arquivo de "+
                            m_echoProfile+" nao foi escrito. Clique SALVAR para tentar de novo.",
@@ -443,7 +475,10 @@ private:
 
 public:
                      CFusionCanvasPanel(void)
-     { m_created=false; m_lastActiveProfile=""; m_chartId=0; m_echoKind=0; m_echoProfile=""; }
+     {
+      m_created=false; m_lastActiveProfile=""; m_chartId=0;
+      m_echoKind=0; m_echoProfile=""; m_staleProfile="";
+     }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.
    bool              CreatePanel(const long chartId,const string name,const int subwin,
@@ -547,18 +582,39 @@ public:
       //--- ser puxado para ele. Invertido, a recarga devolveria os campos ao
       //--- perfil ANTERIOR e o novo so apareceria no quadro seguinte.
       m_renderer.SetSnapshot(m_snapshot);
-      m_renderer.ReloadFromEA("Os campos passaram a mostrar o perfil "+profileName+
-                              ". O que estava sendo editado e nao foi salvo se perdeu.");
+      //--- A resposta vem ANTES da recarga: e ela que decide se o formulario de
+      //--- criacao continua aberto, e quem fecha o formulario e o ReloadFromEA.
+      bool saved=(m_echoKind==0) || SaveLandedOnDisk(settings);
       //--- Esta recarga e a RESPOSTA ao nosso pedido: o rascunho nao se perdeu,
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
-      //--- houve, entao e substituido — depois de CONFERIR que a gravacao
-      //--- realmente aconteceu.
-      //--- Trocou o perfil ativo: a falha de gravacao anterior descrevia OUTRO
-      //--- arquivo, e mante-la acesa acusaria este de nao estar gravado.
-      if(profileName!=m_lastActiveProfile) m_renderer.SetPersistenceFailed(false);
+      //--- houve, entao e substituido por AnnounceSaveOutcome.
+      m_renderer.ReloadFromEA("Os campos passaram a mostrar o perfil "+profileName+
+                              ". O que estava sendo editado e nao foi salvo se perdeu.",
+                              (m_echoKind==2 && !saved));
+      //+------------------------------------------------------------+
+      //| Trocou o perfil ativo com um arquivo para tras.             |
+      //|                                                             |
+      //| CARREGAR continua permitido nesse estado, e isto e escolha: |
+      //| bloquea-lo com o disco quebrado deixaria o usuario sem saida|
+      //| — e o principio de que carregar outro perfil E a saida ja   |
+      //| vale aqui para o perfil preso por outro grafico.            |
+      //|                                                             |
+      //| O que nao pode e a perda ser silenciosa. Mesma politica ja  |
+      //| adotada para a recarga: o EA vence, com aviso.              |
+      //+------------------------------------------------------------+
+      if(profileName!=m_lastActiveProfile)
+        {
+         if(m_staleProfile!="" && m_echoKind==0)
+            m_renderer.SetNotice("CONFIGURACAO NAO GRAVADA DESCARTADA",
+                                 "A configuracao que nao chegou ao arquivo de "+
+                                 m_staleProfile+" foi substituida pelo perfil "+
+                                 profileName+".",FCV_SEM_WARN);
+         m_renderer.SetPersistenceFailed(false);
+         m_staleProfile="";
+        }
       if(m_echoKind!=0)
         {
-         AnnounceSaveOutcome(settings);
+         AnnounceSaveOutcome(saved);
          ClearEcho();
         }
       RefreshProfiles();

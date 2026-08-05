@@ -361,15 +361,32 @@ void BeginDuplicate(const SEASettings &source,const string suggestedName,
    Render();
   }
 
-//--- Recarga vinda do EA (carga de perfil, restauracao). Ver ReloadDraft: o
-//--- valor do EA vence o texto em edicao, com aviso.
-void ReloadFromEA(const string reason)
+//+------------------------------------------------------------------+
+//| Recarga vinda do EA (carga de perfil, restauracao).               |
+//|                                                                   |
+//| Ver ReloadDraft: o valor do EA vence o texto em edicao, com aviso.|
+//|                                                                   |
+//| `keepForm` existe para UM caso, e ele era grave: a CRIACAO que    |
+//| falhou ao gravar. Fechando o formulario ali, o perfil novo perdia |
+//| o nome — o painel so guardava "houve falha" — e o aviso mandava   |
+//| clicar SALVAR, que grava no perfil ATIVO. Seguindo a instrucao da |
+//| tela, o usuario sobrescreveria o perfil anterior com a            |
+//| configuracao do perfil que tentou criar.                          |
+//|                                                                   |
+//| Com o formulario aberto, o alvo continua na tela, os botoes do    |
+//| cabecalho seguem apagados (headerLive exige modo de navegacao) e  |
+//| a retentativa e o proprio CRIAR PERFIL. O estado guarda a         |
+//| operacao, e nao so o fato de ter falhado.                         |
+//+------------------------------------------------------------------+
+void ReloadFromEA(const string reason,const bool keepForm=false)
   {
    bool lostTyping=(EditHasFocus() || HasPending());
-   m_profEdit=FCV_PROF_VIEW;
+   if(!keepForm) m_profEdit=FCV_PROF_VIEW;
    m_delConfirm=false;
    ReloadDraft();
-   if(lostTyping)
+   //--- Com o formulario mantido, nada se perdeu: o que o usuario digitou
+   //--- continua ali. Anunciar perda seria falso.
+   if(lostTyping && !keepForm)
       SetNotice("CAMPOS RECARREGADOS",reason,FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
   }
 private:
