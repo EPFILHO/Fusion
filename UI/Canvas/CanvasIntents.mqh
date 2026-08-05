@@ -34,8 +34,8 @@
 #define FCV_INTENT_LOAD_PROFILE    4
 #define FCV_INTENT_DELETE_PROFILE  5
 #define FCV_INTENT_DUPLICATE       6
-//--- Abandonar uma criacao que FALHOU AO GRAVAR, voltando o EA ao perfil ativo
-//--- tal como ele esta em disco.
+//--- Abandonar uma criacao que FALHOU AO GRAVAR, devolvendo ao EA a
+//--- configuracao que valia antes dela.
 //---
 //--- Existe porque, nesse estado, o EA ja APLICOU a configuracao do perfil que
 //--- nao chegou a ser criado: a sessao roda a configuracao de X sob o nome do
@@ -44,9 +44,11 @@
 //--- perfil ATIVO. `CRIAR X -> falha -> DESCARTAR -> SALVAR` sobrescrevia o
 //--- perfil anterior com a configuracao de X.
 //---
-//--- Abandonar so e seguro se DESFIZER. Nao ha canal de rollback no EA, mas ha
-//--- algo equivalente e que ele ja sabe fazer: recarregar o perfil ativo do
-//--- disco. Por isso esta intencao vira um UI_COMMAND_LOAD_PROFILE.
+//--- Abandonar so e seguro se DESFIZER. Vira um
+//--- UI_COMMAND_RESTORE_ACTIVE_PROFILE — verbo proprio, e nao um
+//--- LOAD_PROFILE do perfil ativo: o LOAD carrega as recusas que protegem
+//--- contra ADOTAR outro perfil, e uma delas negaria justamente o desfazer.
+//--- Ver a nota do comando em Core/Types.mqh.
 #define FCV_INTENT_RESTORE_ACTIVE  7
 
 //--- Severidade da resposta que volta para a tela. Mesmos tres niveis do

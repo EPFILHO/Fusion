@@ -67,14 +67,29 @@ private:
    //+---------------------------------------------------------------+
    int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar, 3 restaurar
    string                m_echoProfile;
-   //--- Configuracao que valia ANTES de uma criacao ser tentada.
-   //---
-   //--- Guardada porque a criacao APLICA antes de gravar: falhando o disco, a
-   //--- sessao fica rodando a configuracao de um perfil que nao existe, e o
-   //--- unico desfazer confiavel e este — o arquivo do perfil ativo pode ser
-   //--- exatamente o que sumiu, e ai nao ha de onde reler.
+   //+---------------------------------------------------------------+
+   //| Contexto anterior a uma TRANSACAO de criacao.                  |
+   //|                                                                |
+   //| Guardado porque a criacao APLICA antes de gravar: falhando o   |
+   //| disco, a sessao fica rodando a configuracao de um perfil que   |
+   //| nao existe, e o unico desfazer confiavel e este — o arquivo do |
+   //| perfil ativo pode ser exatamente o que sumiu.                  |
+   //|                                                                |
+   //| ⚠ Fotografado UMA VEZ por transacao, na primeira tentativa, e  |
+   //| liberado so no sucesso ou no abandono confirmado. Recapturar a |
+   //| cada tentativa era um defeito grave e silencioso: na segunda,  |
+   //| o snapshot ja carrega a configuracao da PRIMEIRA — o desfazer  |
+   //| "restaurava" exatamente o que deveria descartar, e ainda       |
+   //| anunciava que o perfil anterior tinha voltado.                 |
+   //|                                                                |
+   //| Guarda tambem a DIVIDA DE PERSISTENCIA que existia antes. Criar|
+   //| perfil e permitido com uma gravacao ja pendente, e o rollback  |
+   //| apagava essa divida junto: o arquivo do perfil ativo seguia    |
+   //| desatualizado e o painel parava de avisar.                     |
+   //+---------------------------------------------------------------+
    SEASettings           m_preCreateSettings;
    bool                  m_hasPreCreate;
+   string                m_preCreateStale;
    //--- Perfil cujo arquivo ficou para tras numa gravacao que falhou. Guardado
    //--- pelo NOME, e nao so como sinalizador, para o aviso poder dizer o que se
    //--- perdeu quando o usuario troca de perfil por cima dele.
@@ -135,9 +150,15 @@ private:
       //--- (configuracao aplicada sem perfil que a tenha) acabou.
       if(m_echoKind==3)
         {
-         m_renderer.SetPersistenceFailed(false);
          m_renderer.NoteFailedCreate(false);
-         m_staleProfile=""; m_hasPreCreate=false;
+         //--- A divida de persistencia que existia ANTES da criacao volta com o
+         //--- resto do contexto. Limpa-la aqui apagava um aviso legitimo: se o
+         //--- SALVAR do perfil ativo ja tinha falhado, o arquivo dele continua
+         //--- desatualizado depois do rollback — o rollback desfaz a criacao,
+         //--- nao a gravacao que falhou antes dela.
+         m_staleProfile=m_preCreateStale;
+         m_renderer.SetPersistenceFailed(m_staleProfile!="");
+         m_hasPreCreate=false; m_preCreateStale="";
          m_renderer.SetNotice("CRIACAO ABANDONADA",
                               "A configuracao anterior do perfil "+m_echoProfile+
                               " voltou a valer, e a do perfil que nao chegou a ser "+
@@ -156,8 +177,12 @@ private:
       m_renderer.SetPersistenceFailed(!saved);
       m_staleProfile = saved ? "" : m_snapshot.activeProfileName;
       //--- Criacao que falhou tem semantica propria de abandono: o DESCARTAR
-      //--- passa a pedir a recarga do perfil ativo em vez de so fechar a tela.
+      //--- passa a pedir a restauracao do estado anterior em vez de so fechar a
+      //--- tela. E o contexto so e liberado quando a transacao ACABA — criou, ou
+      //--- abandonou. Liberado antes, uma segunda tentativa fotografaria o
+      //--- estado que a primeira ja tinha alterado.
       m_renderer.NoteFailedCreate(!saved && m_echoKind==2);
+      if(saved && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
 
       if(saved)
         {
@@ -381,11 +406,16 @@ private:
          //--- justamente o que distingue o perfil que esta nascendo.
          SEASettings settings=intent.settings;
          settings.magicNumber=intent.magic;
-         //--- Fotografa o estado ANTES de o EA aplicar o perfil novo. E o unico
-         //--- momento em que ele ainda existe: do proximo snapshot em diante, o
-         //--- comprometido ja e a configuracao do perfil que se tentou criar.
-         m_preCreateSettings = m_snapshot.settings;
-         m_hasPreCreate      = true;
+         //--- Fotografa o estado ANTES de o EA aplicar o perfil novo, e SO na
+         //--- primeira tentativa: da segunda em diante o snapshot ja carrega a
+         //--- configuracao da tentativa anterior, e recapturar faria o desfazer
+         //--- restaurar exatamente o que ele deveria descartar.
+         if(!m_hasPreCreate)
+           {
+            m_preCreateSettings = m_snapshot.settings;
+            m_preCreateStale    = m_staleProfile;
+            m_hasPreCreate      = true;
+           }
 
          command.type        = UI_COMMAND_SAVE_PROFILE;
          command.text        = newName;
@@ -542,7 +572,7 @@ public:
      {
       m_created=false; m_lastActiveProfile=""; m_chartId=0;
       m_echoKind=0; m_echoProfile=""; m_staleProfile="";
-      m_hasPreCreate=false;
+      m_hasPreCreate=false; m_preCreateStale="";
       SetDefaultSettings(m_preCreateSettings);
      }
 
@@ -618,10 +648,31 @@ public:
         }
       else if(m_echoKind!=0)
         {
+         //+---------------------------------------------------------+
+         //| Recusa: o EA voltou sem recarregar o painel.             |
+         //|                                                          |
+         //| ⚠ "Recusou" NAO significa "nada aconteceu". `ApplySettings`|
+         //| atribui m_settings, recarrega execucao e protecoes, e so |
+         //| DEPOIS devolve o resultado do ReloadAll — um indicador   |
+         //| que nao recria seus handles a faz responder `false` com a|
+         //| sessao ja alterada. O chamador entende como "nao aplicado"|
+         //| e volta sem tocar no painel.                             |
+         //|                                                          |
+         //| Entao aqui tambem se PERGUNTA AO DISCO, em vez de deduzir|
+         //| do sinal — mesma escolha do AnnounceSaveOutcome, pelo    |
+         //| mesmo motivo. Assim o aviso e o estado ficam certos      |
+         //| independentemente de qual caminho o EA tomou.            |
+         //+---------------------------------------------------------+
+         bool landed=SaveLandedOnDisk(m_snapshot.settings);
+         m_renderer.SetPersistenceFailed(!landed);
+         m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
+         //--- Aqui o formulario NAO foi fechado (o ReloadFromEA nem rodou), entao
+         //--- a criacao continua na tela e o DESCARTAR precisa saber desfazer.
+         m_renderer.NoteFailedCreate(!landed && m_echoKind==2);
+         if(landed && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
          m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
-                              "O EA nao gravou o perfil "+m_echoProfile+
-                              ". As alteracoes continuam pendentes; o motivo esta no log.",
-                              FCV_SEM_BAD);
+                              "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
+                              ". O motivo esta no log.",FCV_SEM_BAD);
          ClearEcho();
         }
       m_renderer.SetSnapshot(m_snapshot);

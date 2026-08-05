@@ -840,7 +840,13 @@ void DrawHeader(void)
              //--- que o arquivo ausente: a alteracao ja esta valendo, mas o
              //--- disco nao a tem. Sem isto o painel anunciava "PERFIL NAO
              //--- GRAVADO" com os tres botoes apagados — um beco.
-             FCV_BTN_SAVECFG,headerLive && AccActiveProfileEditable() && ConfigInputsValid() &&
+             //--- E NUNCA com uma criacao falhada pendente: ali este botao
+             //--- gravaria no perfil ATIVO a configuracao do perfil que se
+             //--- tentou criar. O `headerLive` ja cobre isso enquanto o
+             //--- formulario esta aberto; esta segunda guarda existe porque a
+             //--- condicao que importa e o estado, nao a tela que o mostra.
+             FCV_BTN_SAVECFG,headerLive && !m_createFailed &&
+                             AccActiveProfileEditable() && ConfigInputsValid() &&
                              (HasPending() || EditingNow() ||
                               m_snap.activeProfileFileMissing || m_notSaved));
    bx+=bw2+8;

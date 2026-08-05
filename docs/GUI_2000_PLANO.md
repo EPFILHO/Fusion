@@ -327,6 +327,25 @@ uma gravacao bem-sucedida anunciava perda.
 > o estado ANTES de arriscar a criacao (`m_preCreateSettings`), que e o unico
 > instante em que ele ainda existe. Assim o desfazer independe do disco.
 >
+> ⚠️ **A fotografia e da TRANSACAO, nao da tentativa.** Recapturada a cada clique
+> em CRIAR, a segunda tentativa fotografava o que a primeira ja tinha aplicado: o
+> desfazer "restaurava" exatamente o que devia descartar, e anunciava que o perfil
+> anterior tinha voltado. Ela e tirada na primeira tentativa e liberada so quando a
+> transacao acaba — criou, ou abandonou.
+>
+> **E o contexto inclui a divida de persistencia anterior.** Criar perfil e
+> permitido com uma gravacao ja pendente; o rollback apagava essa divida junto, e o
+> arquivo do perfil ativo seguia desatualizado sem o painel avisar. Ele restaura o
+> que havia antes, porque desfaz a criacao — nao a gravacao que falhou antes dela.
+>
+> **Duas guardas para uma so regra.** Enquanto ha criacao falhada pendente, o
+> SALVAR do cabecalho nao pode existir: ele gravaria no perfil ATIVO a configuracao
+> do perfil que se tentou criar. Manter o formulario aberto ja fazia isso via
+> `headerLive` — mas trocar de aba fechava o formulario e reabria a porta. Hoje a
+> navegacao **nao fecha** o formulario nesse estado (voltar a Perfis reencontra o
+> desfazer), e o SALVAR e negado pelo proprio `m_createFailed`. A condicao que
+> importa e o estado, nao a tela que o mostra.
+>
 > ⚠️ **E a saida tem de apontar para o botao CERTO.** Numa CRIACAO que falha ao
 > gravar, o perfil ativo continua sendo o anterior. Fechando o formulario ali, o
 > nome do perfil novo se perdia — o painel so guardava "houve falha" — e o aviso
@@ -531,6 +550,30 @@ caminho de recarga**, distinto do `Update`. Ate a 2b ele era um apelido de `Upda
 agora e ele que solta o foco do campo, devolve o rascunho ao comprometido e escreve o
 aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
 edicao pendente.
+
+### Divida ACEITA, nao resolvida: `ApplySettings` nao e transacional
+
+⚠️ **`false` de `ApplySettings` nao significa "nada aconteceu".** Ela atribui
+`m_settings`, reconfigura o resolvedor, reinicia o logger, recarrega o servico de
+execucao e o gerente de protecao — e **so entao** devolve o resultado do
+`ReloadAll` dos sinais. Um indicador que nao consiga recriar seus handles a faz
+responder `false` com a sessao ja alterada.
+
+Todos os chamadores tratam esse `false` como "nao aplicado" e voltam sem tocar no
+painel (`if(!ApplySettings(...)) return;`). Salvar, criar e restaurar dependem
+dessa premissa — e sao exatamente os fluxos que a Fase 3 poe em producao.
+
+**O que foi feito:** o painel parou de deduzir do sinal. No caminho de recusa ele
+tambem **pergunta ao disco** (`SaveLandedOnDisk`), como ja fazia no caminho de
+sucesso, e ajusta `m_notSaved`, o perfil desatualizado e o estado de criacao
+falhada a partir do que o arquivo REALMENTE tem. O aviso e o estado ficam certos
+independentemente do caminho que o EA tomou.
+
+**O que NAO foi feito:** tornar `ApplySettings` transacional, ou fazer com que ela
+distinga "nao aplicado" de "aplicado parcialmente". Isso e cirurgia no caminho por
+onde passa toda ativacao de configuracao do EA — incluindo o boot e a 1.058 — para
+um modo de falha que a GUI ja consegue relatar corretamente. **Item proprio, fora
+desta migracao.**
 
 ### Divida ACEITA, nao resolvida: corrida de unicidade entre graficos
 
