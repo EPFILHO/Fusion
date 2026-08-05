@@ -31,6 +31,17 @@ input ENUM_FUSION_CANVAS_PALETTE inp_Palette = FUSION_PALETTE_PETROLEO;    // Pa
 input ENUM_FUSION_CANVAS_THEME   inp_Theme   = FUSION_CANVAS_THEME_AUTO;  // Tema do painel
 input bool inp_RememberAppearance = true; // Lembrar aparencia escolhida no painel
 input bool inp_MeasureOnStart     = true; // Medir custo de desenho ao iniciar
+//--- Perfil ATIVO simulado. Vazio = o primeiro legivel do disco.
+//---
+//--- Existe porque o harness nao tem a memoria que o EA tem: o EA guarda o
+//--- perfil ativo no estado do grafico e o restaura ao reabrir, enquanto aqui a
+//--- escolha e refeita a cada anexo. Com ela automatica, mover o arquivo do
+//--- perfil ativo para fora fazia o harness simplesmente ADOTAR OUTRO na
+//--- reabertura — parecia o EA trocando de perfil sozinho, e nao era.
+//---
+//--- Informando o nome, o perfil ativo fica fixo mesmo que o arquivo suma, que
+//--- e o unico jeito de exercitar por aqui o estado "perfil ativo sem arquivo".
+input string inp_ActiveProfile    = "";   // Perfil ativo simulado (vazio = 1o do disco)
 
 CFusionCanvasRenderer g_panel;
 //--- Snapshot vivo do harness. Guardado porque a Etapa 2c tirou dos botoes o
@@ -159,8 +170,20 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    //--- Perfil ativo e Magic vindos do DISCO, e nao inventados: ver
    //--- FirstRealProfile. Sem nenhum perfil legivel, o nome fixo volta — e ai
    //--- nao ha lista com que contradizer.
-   string activeName=""; int activeMagic=0;
-   if(!FirstRealProfile(activeName,activeMagic))
+   //---
+   //--- O input tem prioridade e pode nomear um perfil que NAO existe: e assim
+   //--- que se exercita aqui o estado "perfil ativo sem arquivo". Nesse caso o
+   //--- Magic fica o padrao, e a colisao que isso possa causar tem saida — o
+   //--- cartao PERFIL ATIVO aceita edicao justamente para isso.
+   string activeName=FusionTrimCopy(inp_ActiveProfile); int activeMagic=0;
+   if(StringLen(activeName)>0)
+     {
+      CSettingsStore store;
+      SEASettings chosen;
+      if(store.LoadProfile(activeName,chosen)) activeMagic=chosen.magicNumber;
+      else                                     activeMagic=s.settings.magicNumber;
+     }
+   else if(!FirstRealProfile(activeName,activeMagic))
      { activeName="BTCUSD"; activeMagic=10001; }
    s.activeProfileName = activeName;
    //--- O Magic tambem entra em settings, que e de onde o RASCUNHO nasce. Era
@@ -441,7 +464,26 @@ void LoadRealProfiles(void)
       keep[n]=names[i]; magics[n]=s.magicNumber; lots[n]=s.fixedLot; n++;
      }
    g_panel.SetProfiles(keep,magics,lots,n,names);
-   PrintFormat("Perfis lidos do disco: %d de %d arquivos.",n,total);
+
+   //--- O arquivo do perfil ATIVO ainda esta la?
+   //---
+   //--- No EA quem responde isso e o proprio EA, e a resposta vai no snapshot.
+   //--- O harness deixava `activeProfileFileMissing` fixo em false, e isso o fazia
+   //--- mentir assim que alguem movia o arquivo para exercitar o painel: a tela
+   //--- perdia o perfil da lista, mostrava o cartao de ativo-fora-da-lista e ao
+   //--- mesmo tempo afirmava, no cabecalho, que o arquivo estava no lugar.
+   //---
+   //--- E o campo NAO e cosmetico: e ele que acende o SALVAR sem pendencia, que e
+   //--- justamente a acao que recria o arquivo perdido.
+   SEASettings active;
+   g_snap.activeProfileFileMissing =
+      (StringLen(g_snap.activeProfileName)>0 &&
+       !store.LoadProfile(g_snap.activeProfileName,active));
+   g_panel.SetSnapshot(g_snap);
+
+   PrintFormat("Perfis lidos do disco: %d de %d arquivos. Ativo (simulado): %s%s",
+               n,total,g_snap.activeProfileName,
+               g_snap.activeProfileFileMissing ? " — ARQUIVO AUSENTE" : "");
   }
 
 //+------------------------------------------------------------------+
