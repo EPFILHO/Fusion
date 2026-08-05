@@ -787,8 +787,32 @@ void ScreenProfiles(void)
       //--- que descreve o perfil ATIVO, e nao o que esta sendo criado. Quem o
       //--- transporta para o perfil novo e o comando de gravar, na Etapa 2c.
       RowField("Magic","Precisa ser diferente de todos os outros","",!magicBad);
+      //+---------------------------------------------------------------+
+      //| Por que o botao esta apagado.                                  |
+      //|                                                                |
+      //| Sao DUAS causas independentes, e a segunda nao aparecia em     |
+      //| lugar nenhum desta tela: o formulario pode estar perfeito e a  |
+      //| CONFIGURACAO ser invalida. Criar grava o rascunho inteiro num  |
+      //| arquivo novo, entao `configInputsValid` pesa aqui tanto quanto |
+      //| no SALVAR.                                                     |
+      //|                                                                |
+      //| Acontece de verdade e sem nada de errado: duplicar um perfil   |
+      //| de outro ativo. Um lote de 0.40, legitimo no ouro, nao existe  |
+      //| num indice cujo minimo e 1 contrato — e criar o perfil aqui    |
+      //| tambem o ATIVA neste grafico.                                  |
+      //|                                                                |
+      //| Sem esta nota, a tela dizia "clique CRIAR COPIA" com o CRIAR   |
+      //| COPIA apagado: mensagem que instrui acao que a interface       |
+      //| impede, a licao 1 da secao 8 pela terceira vez. A aba ficava   |
+      //| vermelha, mas em Perfis nao ha por que olhar para Gestao.      |
+      //+---------------------------------------------------------------+
+      string cfgTab="";
+      string cfgError=ConfigInputsValid() ? "" : FirstConfigError(cfgTab);
       if(StringLen(formError)>0)
          RowNoteSem(formError,FCV_SEM_BAD);
+      else if(StringLen(cfgError)>0)
+         RowNoteSem("Nao da para criar com a configuracao invalida. Corrija em "+
+                    cfgTab+": "+cfgError,FCV_SEM_BAD);
       else
          RowNote (m_profEdit==FCV_PROF_DUP
                   ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+

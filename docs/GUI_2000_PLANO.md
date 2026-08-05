@@ -755,14 +755,25 @@ retangulo convencional.
 Erros cometidos durante a 1.058 e o prototipo, todos encontrados pelo usuario
 testando:
 
-1. **Nao escrever mensagem que instrui acao que a interface impede.** Aconteceu
-   tres vezes: um bloqueio que desabilitava a aba que a propria mensagem mandava
-   abrir, um aviso pedindo `SALVAR` que estava desabilitado, e — na 2d — a
-   validacao acusando "Magic ja usado" com o campo Magic **fora de alcance**,
-   porque o perfil ativo nao estava na lista e so o ativo SELECIONADO tinha o
-   campo ligado ao rascunho. Acontece de verdade: arquivo do perfil ativo apagado
-   por fora, ou entre os que nao abrem. Hoje, ativo fora da lista ganha cartao
-   proprio com o Magic editavel — a saida existe pela propria GUI.
+1. **Nao escrever mensagem que instrui acao que a interface impede.** Ja aconteceu
+   **quatro** vezes, e nenhuma delas era descuido de texto — em todas o texto
+   descrevia a intencao e o codigo tinha outra regra:
+   - um bloqueio que desabilitava a aba que a propria mensagem mandava abrir;
+   - um aviso pedindo `SALVAR` que estava desabilitado;
+   - a validacao acusando "Magic ja usado" com o campo Magic **fora de alcance**,
+     porque o perfil ativo nao estava na lista e so o ativo SELECIONADO tinha o
+     campo ligado ao rascunho (arquivo apagado por fora, ou entre os que nao
+     abrem). Hoje, ativo fora da lista ganha cartao proprio com o Magic editavel;
+   - o formulario de criar dizendo "clique CRIAR COPIA" com o CRIAR COPIA
+     apagado, porque `configInputsValid` — que pesa ali tanto quanto no SALVAR —
+     e reprovado por uma tela que o usuario nao esta vendo. Acontece sem nada de
+     errado: duplicar perfil de outro ativo. Um lote de `0.40`, legitimo no ouro,
+     nao existe num indice cujo minimo e 1 contrato, e criar o perfil aqui
+     tambem o ATIVA neste grafico. Hoje a nota do formulario diz o motivo e **em
+     que aba** corrigi-lo.
+
+   O padrao que emerge: **botao apagado precisa dizer por que**, e "a aba ficou
+   vermelha" nao conta quando o usuario esta em outra aba.
 2. **Todo bloqueio precisa de saida pela propria GUI.**
 3. **Medir a mensagem contra o espaco disponivel** antes de escreve-la. A faixa de
    abas conferia isso desde a Fase 1; os **botoes nao**, e o primeiro rotulo a

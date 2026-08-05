@@ -959,15 +959,32 @@ bool ConfigInputsValid(void)
 
 //--- Primeiro erro na ordem em que as abas aparecem: e a ordem em que o
 //--- usuario vai encontra-los ao procurar.
+//---
+//--- Devolve tambem ONDE ele esta, na mesma varredura. Duas funcoes separadas
+//--- para "qual erro" e "em que aba" repetiriam a ordem — e o dia em que uma
+//--- delas mudasse, a mensagem passaria a mandar o usuario para a aba errada.
+string FirstConfigError(string &tabName)
+  {
+   tabName="";
+   for(int i=0;i<4;++i)
+     { string e=ScreenError(FCV_SCREEN_STRAT0+i);
+       if(e!="") { tabName=m_tabNames[2]; return e; } }
+   for(int i=0;i<4;++i)
+     { string e=ScreenError(FCV_SCREEN_FILTER0+i);
+       if(e!="") { tabName=m_tabNames[3]; return e; } }
+   for(int i=0;i<5;++i)
+     { string e=ScreenError(FCV_SCREEN_RISK0+i);
+       if(e!="") { tabName=m_tabNames[FCV_TAB_GESTAO]; return e; } }
+   for(int i=0;i<FCV_RAIL_MAX;++i)
+     { string e=ScreenError(FCV_SCREEN_PROT0+i);
+       if(e!="") { tabName=m_tabNames[FCV_TAB_GESTAO]; return e; } }
+   string last=ScreenError(FCV_SCREEN_PROFILES);
+   if(last!="") tabName=m_tabNames[FCV_TAB_PERFIS];
+   return last;
+  }
+
 string FirstConfigError(void)
   {
-   for(int i=0;i<4;++i)
-     { string e=ScreenError(FCV_SCREEN_STRAT0+i);  if(e!="") return e; }
-   for(int i=0;i<4;++i)
-     { string e=ScreenError(FCV_SCREEN_FILTER0+i); if(e!="") return e; }
-   for(int i=0;i<5;++i)
-     { string e=ScreenError(FCV_SCREEN_RISK0+i);   if(e!="") return e; }
-   for(int i=0;i<FCV_RAIL_MAX;++i)
-     { string e=ScreenError(FCV_SCREEN_PROT0+i);   if(e!="") return e; }
-   return ScreenError(FCV_SCREEN_PROFILES);
+   string ignored="";
+   return FirstConfigError(ignored);
   }
