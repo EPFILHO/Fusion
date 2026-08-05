@@ -551,6 +551,47 @@ agora e ele que solta o foco do campo, devolve o rascunho ao comprometido e escr
 aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
 edicao pendente.
 
+### Divida ACEITA: criar perfil sempre ATIVA — e perfil nao tem ativo
+
+⚠️ Nada nesta secao esta consertado, e ela e a unica das dividas registradas que
+nasce de uma **decisao de produto**, nao de um defeito.
+
+**Criar perfil = gravar + aplicar + ativar.** O `UI_COMMAND_SAVE_PROFILE` chama
+`ApplySettings` antes do `SaveProfile` e depois troca o `m_activeProfileName`. Do
+ponto de vista do EA nao existe "guarde uma copia": existe "adote esta
+configuracao agora, sob este nome". A 1.058 faz igual — mesmo comando, mesma
+ativacao.
+
+**A consequencia aparece ao duplicar perfil de outro ativo.** Um lote de `0.40` e
+legitimo no ouro e nao existe num indice cujo minimo e 1 contrato, entao
+`configInputsValid` reprova e o CRIAR COPIA fica apagado. A recusa esta CERTA
+dado o que criar significa: seria ativar um lote que a corretora rejeita. Mas o
+usuario pediu uma copia, nao pediu para operar com ela — e a semantica de
+duplicacao e de **biblioteca**.
+
+Por tras ha uma tensao maior, anterior a esta migracao: **os perfis sao guardados
+sem ativo, e so fazem sentido com um.** A lista oferece todos os perfis, de
+qualquer grafico, com todas as acoes habilitadas. A trava do lote e so o primeiro
+lugar em que isso encosta na tela.
+
+**A forma da correcao**, para quando for a hora: um comando que grave SEM aplicar
+— aditivo, como o `RESTORE_ACTIVE_PROFILE` —, e a divisao de `ConfigInputsValid`
+em duas perguntas hoje misturadas: a **intrinseca** (faixas, regras cruzadas, vale
+em qualquer ativo) e a **do grafico** (lote contra `volumeMin`/`volumeStep`,
+distancias contra o `stopsLevel`, plano de TP parcial). So a segunda deveria pesar
+sobre um perfil que esta sendo escrito para a biblioteca. O trabalho real nao e o
+comando: e essa divisao.
+
+**Por que nao agora:** a Fase 3 existe para os dois paineis conviverem
+**comparaveis no mesmo grafico**. Mudar a semantica de criar so na 2.0 os torna
+incomparaveis exatamente no fluxo em teste — e a comparacao e o que da confianca
+para aposentar o painel antigo. Depois dela, a mudanca pode ser avaliada de uma
+vez para os dois, que e onde ela pertence.
+
+Enquanto isso, a tela **explica a cadeia** em vez de so acusar: a nota do
+formulario diz que criar tambem ativa neste grafico, por isso a configuracao
+precisa ser valida para o simbolo dele, e aponta a aba a corrigir.
+
 ### Divida ACEITA, nao resolvida: `ApplySettings` nao e transacional
 
 ⚠️ **`false` de `ApplySettings` nao significa "nada aconteceu".** Ela atribui

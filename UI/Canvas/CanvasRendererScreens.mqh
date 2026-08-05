@@ -810,8 +810,18 @@ void ScreenProfiles(void)
       string cfgError=ConfigInputsValid() ? "" : FirstConfigError(cfgTab);
       if(StringLen(formError)>0)
          RowNoteSem(formError,FCV_SEM_BAD);
+      //--- A nota comeca pela CAUSA, e nao pelo erro. O usuario duplicando um
+      //--- perfil de outro ativo nao tem por que supor que criar aqui tambem
+      //--- ATIVA aqui — e sem essa ligacao a recusa parece arbitraria: ele
+      //--- pediu uma copia, nao pediu para operar com ela.
+      //---
+      //--- "valida para <ativo>" cobre os dois tipos de erro sem precisar
+      //--- distingui-los: o que so vale neste simbolo (lote abaixo do minimo,
+      //--- distancia menor que o stops level) e o que seria invalido em
+      //--- qualquer um (MA rapida maior que a lenta).
       else if(StringLen(cfgError)>0)
-         RowNoteSem("Nao da para criar com a configuracao invalida. Corrija em "+
+         RowNoteSem("Criar tambem ATIVA o perfil neste grafico, entao a configuracao "+
+                    "precisa ser valida para o "+m_snap.symbol+". Corrija em "+
                     cfgTab+": "+cfgError,FCV_SEM_BAD);
       else
          RowNote (m_profEdit==FCV_PROF_DUP
