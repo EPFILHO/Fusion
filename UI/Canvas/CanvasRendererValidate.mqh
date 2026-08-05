@@ -213,7 +213,10 @@ bool VPartialVolumePlan(string &err)
    if(!m_draft.tp1.enabled) return true;
 
    SSymbolSpec spec=m_snap.symbolSpec;
-   if(spec.volumeMin<=0.0 || spec.volumeStep<=0.0 || spec.volumeMax<=0.0)
+   //--- Mesma pergunta que a tela Lote faz antes de sugerir "aumente o lote".
+   //--- Uma definicao so: escrita nos dois lugares, ela divergiria, e o sintoma
+   //--- seria uma tela sugerindo conserto para um plano que nem da para julgar.
+   if(!VVolumeSpecKnown())
      { err="Especificacao de lote do ativo indisponivel."; return false; }
 
    double entry=VNormalizeVolume(m_draft.fixedLot);
@@ -386,6 +389,63 @@ bool VDrawdownDependency(void)
    if(!m_draft.enableDrawdown) return true;
    return (m_draft.enableDailyLimits && m_draft.maxDailyGain>0.0 &&
            m_draft.profitTargetAction==PROFIT_ACTION_ATIVAR_DD);
+  }
+
+//+------------------------------------------------------------------+
+//| REGRAS QUE ATRAVESSAM TELAS                                       |
+//|                                                                   |
+//| A cadeia de erro do painel e VERTICAL — item do trilho sobe para  |
+//| a subaba e para a aba —, e ela pressupoe que todo erro tem UM     |
+//| dono. Algumas regras nao tem: ligam duas telas IRMAS, e podem ser |
+//| resolvidas em qualquer uma das duas.                              |
+//|                                                                   |
+//| Acusando so uma, o vermelho nao chega onde se corrige. O usuario  |
+//| ligou o TP Final Livre e o painel acendia apenas TP Parcial —     |
+//| enquanto o que faltava era ativar o Trailing, numa tela que       |
+//| continuava limpa. Pior: a mensagem dizia "exige TP1 e Trailing    |
+//| ativos" com o TP1 JA ativo, mandando corrigir o que estava certo. |
+//|                                                                   |
+//| A regra que fica, em duas metades:                                |
+//|                                                                   |
+//|  1. as DUAS telas envolvidas consultam o mesmo predicado, e por   |
+//|     isso as duas acendem. Nao precisou de mecanismo novo — o      |
+//|     RailHasError so pergunta ScreenError(tela), entao basta as    |
+//|     duas responderem. `VProfitAction` ja fazia isso e funcionava; |
+//|     as outras e que nao estavam consistentes.                     |
+//|  2. o TEXTO e de cada tela, nao da regra. Ele muda de direcao     |
+//|     conforme de onde se olha, e precisa NOMEAR A OUTRA — senao o  |
+//|     usuario chega na segunda tela, nao ve nada errado nos campos  |
+//|     dela e fica pior do que antes.                                |
+//|                                                                   |
+//| E a mensagem cita o que FALTA, nunca a lista inteira de           |
+//| requisitos: listar tres quando um esta faltando faz o usuario     |
+//| conferir dois que ja estao certos.                                |
+//+------------------------------------------------------------------+
+//--- A especificacao de volume do ativo esta disponivel? Sem ela nao da para
+//--- julgar o plano de volumes, e sugerir "aumente o lote" seria palpite.
+bool VVolumeSpecKnown(void)
+  {
+   return (m_snap.symbolSpec.volumeMin>0.0 && m_snap.symbolSpec.volumeStep>0.0 &&
+           m_snap.symbolSpec.volumeMax>0.0);
+  }
+
+//--- Qual das tres condicoes do DD esta faltando, em uma frase. A ordem e a
+//--- mesma de VDrawdownDependency, para o texto nunca acusar uma condicao que
+//--- o predicado nao esta reprovando.
+string DrawdownDependencyMissing(void)
+  {
+   if(!m_draft.enableDailyLimits)          return "os Limites Diarios estao desligados";
+   if(m_draft.maxDailyGain<=0.0)           return "o Max Ganho esta em zero";
+   if(m_draft.profitTargetAction!=PROFIT_ACTION_ATIVAR_DD)
+      return "a acao do Ganho nao e Ativar DD";
+   return "";
+  }
+
+//--- E o que falta do outro lado do mesmo par.
+string ProfitActionMissing(void)
+  {
+   if(!m_draft.enableDrawdown) return "o DD esta desligado";
+   return "o Max DD esta em zero";
   }
 
 bool VLossStreakLimit(void)
@@ -712,6 +772,20 @@ string ScreenErrorRiskLot(void)
       return "Lote Fixo invalido para o ativo atual.";
    if(!VPoints(m_draft.slippagePoints))
       return "Slippage invalido. Use 0 a 100000 pontos.";
+   //--- CRUZADA com TP Parcial: o plano de volumes depende do lote, e a saida
+   //--- pode estar aqui. Num ativo cujo minimo e 1 contrato, nenhuma divisao
+   //--- percentual fecha — e a tela do TP Parcial dizia isso sem nunca citar o
+   //--- lote, deixando o usuario mexendo nos percentuais para sempre.
+   //---
+   //--- So depois dos erros PROPRIOS desta tela: com o lote ja invalido, o
+   //--- plano falha por consequencia, e apontar o plano esconderia a causa.
+   if(VVolumeSpecKnown())
+     {
+      string volumeError="";
+      if(!VPartialVolumePlan(volumeError))
+         return "O TP Parcial nao cabe neste lote: "+volumeError+
+                " Aumente o Lote Fixo aqui ou ajuste os percentuais, na tela TP Parcial.";
+     }
    return "";
   }
 
@@ -741,11 +815,17 @@ string ScreenErrorRiskPartial(void)
       return "TP2 Dist deve ser maior que 0.";
    if(!VTpTotalPercent())
       return "Soma de TP1 % e TP2 % deve ser ate 100.";
+   //--- CRUZADA com Trailing. O texto cita so o que FALTA: o TP1 e condicao da
+   //--- regra, mas so se chega aqui com ele ligado, entao nomea-lo mandaria
+   //--- conferir o que ja esta certo.
    if(!VFreeTpBase())
-      return "TP Final Livre exige TP1 e Trailing ativos.";
+      return "TP Final Livre exige o Trailing ativo. Ative o Trailing, na tela "
+             "Trailing, ou desligue o TP Final Livre aqui.";
    string volumeError="";
    if(!VPartialVolumePlan(volumeError))
-      return volumeError;
+      return volumeError+(VVolumeSpecKnown()
+                          ? " Ajuste os percentuais aqui ou aumente o Lote Fixo, na tela Lote."
+                          : "");
    return "";
   }
 
@@ -763,6 +843,12 @@ string ScreenErrorRiskBreakeven(void)
 
 string ScreenErrorRiskTrailing(void)
   {
+   //--- CRUZADA com TP Parcial, e ANTES do retorno de "trailing desligado": e
+   //--- justamente com ele desligado que a regra dispara. Depois do retorno,
+   //--- esta tela ficaria eternamente limpa enquanto e nela que se corrige.
+   if(!VFreeTpBase())
+      return "O TP Final Livre, ligado em TP Parcial, exige o Trailing ativo. "
+             "Ative-o aqui ou desligue o TP Final Livre la.";
    if(!m_draft.useTrailing) return "";
    if(!VRange(m_draft.trailingStartPoints,1,100000))
       return "Trailing Inicio deve ser maior que 0 e ate 100000.";
@@ -815,10 +901,21 @@ string ScreenErrorProtDay(void)
       return "Max Perda diario invalido.";
    if(m_draft.maxDailyGain<0.0)
       return "Max Ganho diario invalido.";
+   //--- CRUZADAS com Drawdown, as tres. Antes elas so acusavam de um lado: com
+   //--- o DD ligado e os Limites Diarios desligados, so a tela do Drawdown
+   //--- acendia — e a correcao estava AQUI.
+   //---
+   //--- VDayNeedsGain vem primeiro por ser o caso mais estreito (esta contido em
+   //--- VDrawdownDependency) e por isso rende a frase mais precisa.
    if(!VDayNeedsGain())
-      return "DD ON exige Max Ganho > 0 no DAY.";
+      return "O DD depende do Max Ganho desta tela, que esta em zero. Informe um "
+             "valor aqui ou desligue o DD, na tela Drawdown.";
+   if(!VDrawdownDependency())
+      return "O DD esta ligado e depende desta tela: "+DrawdownDependencyMissing()+
+             ". Ajuste aqui ou desligue o DD, na tela Drawdown.";
    if(!VProfitAction())
-      return "ATIVAR DD requer DD ON com Max DD > 0.";
+      return "A acao do Ganho e Ativar DD, mas "+ProfitActionMissing()+
+             ". Configure o DD, na tela Drawdown, ou escolha Parar aqui.";
    return "";
   }
 
@@ -833,10 +930,15 @@ string ScreenErrorProtDrawdown(void)
       return m_draft.enableDrawdown ? "Max DD deve ser > 0 quando ativo."
                                     : "Max DD deve ser zero ou valor positivo.";
      }
+   //--- CRUZADAS com Limites Diarios. VDrawdownDependency contem o caso do
+   //--- VDayNeedsGain, entao a frase dele ja cobre o Max Ganho em zero por
+   //--- aqui — nao ha checagem separada a acrescentar.
    if(!VProfitAction())
-      return "ATIVAR DD requer DD ON com Max DD > 0.";
+      return "Limites Diarios pede Ativar DD, mas "+ProfitActionMissing()+
+             ". Ajuste aqui ou mude a acao do Ganho, na tela Limites Diarios.";
    if(!VDrawdownDependency())
-      return "DD requer DAY ON, Max Ganho > 0 e ATIVAR DD.";
+      return "O DD so entra em acao depois da meta do dia, e "+DrawdownDependencyMissing()+
+             ". Ajuste em Limites Diarios ou desligue o DD aqui.";
    return "";
   }
 

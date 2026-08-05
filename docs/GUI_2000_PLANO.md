@@ -727,6 +727,19 @@ cada e rotulos abreviados; no trilho cabem por extenso.
   tela justamente ao abrir a aba para resolve-lo.
 - **Erro sobe a cadeia inteira.** Um item invalido pinta todos os ancestrais ate a
   aba de topo. Quem esta em Status ve que ha problema em Config sem abrir Config.
+- **Regra que liga duas telas pinta AS DUAS.** A cadeia acima e vertical e
+  pressupoe que todo erro tem um dono; algumas regras nao tem — ligam telas irmas
+  e se resolvem em qualquer uma delas. Acusando so uma, o vermelho nao chega onde
+  se corrige: ligar o TP Final Livre acendia apenas TP Parcial enquanto o que
+  faltava era ativar o Trailing, numa tela que continuava limpa. As duas telas
+  consultam o mesmo predicado — nao precisou de mecanismo novo, o `RailHasError`
+  so pergunta `ScreenError(tela)` —, e **o texto e de cada tela**, nomeando a
+  outra. Sem isso o usuario chega na segunda, nao ve nada errado nos campos dela e
+  fica pior do que antes.
+- **A mensagem cita o que FALTA, nunca a lista de requisitos.** "TP Final Livre
+  exige TP1 e Trailing ativos" com o TP1 ja ativo manda conferir o que esta certo —
+  e e a mesma familia do botao apagado sem explicacao: a tela mandando corrigir o
+  que nao precisa de correcao.
 - **Um unico botao preenchido por vez.** O preenchido e o proximo passo: Salvar com
   pendencias, Iniciar sem elas. Tres botoes coloridos lado a lado nao instruem
   nada.
