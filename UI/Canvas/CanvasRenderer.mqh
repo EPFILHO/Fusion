@@ -270,6 +270,9 @@ private:
    //--- A ultima gravacao falhou: a configuracao esta valendo, o arquivo nao.
    //--- Nao e pendencia de rascunho — ver SetPersistenceFailed.
    bool              m_notSaved;
+   //--- E ela era uma CRIACAO. Muda o que o DESCARTAR significa: ver
+   //--- NoteFailedCreate e o caso FCV_BTN_CANCEL.
+   bool              m_createFailed;
    //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
    //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
    bool              m_cfgValid, m_cfgValidKnown;
@@ -497,7 +500,8 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- aviso vazia comendo a area util.
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
    m_noticeAt=0; m_noticeTtl=0;
-   m_delConfirm=false; m_btnFitLogged=false; m_notSaved=false;
+   m_delConfirm=false; m_btnFitLogged=false;
+   m_notSaved=false; m_createFailed=false;
    m_cfgValid=true; m_cfgValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria

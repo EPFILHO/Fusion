@@ -30,15 +30,36 @@
 
 #include "Types.mqh"
 
-//--- Casas com que o arquivo grava cada double. Duas para tudo, menos o lote.
-//---
-//--- O lote usa OITO, que e o teto de FusionVolumeDigits — a funcao que deriva
-//--- a precisao do `volumeStep` do ativo. Eram quatro, e nao dava: num ativo de
-//--- passo 0.00001, digitar 0.00001 virava 0.0000 antes mesmo da validacao, e a
-//--- conferencia de gravacao comparava zero com zero e dizia que estava tudo
-//--- certo. Um lote apagado em silencio, nos dois lados ao mesmo tempo.
+//+------------------------------------------------------------------+
+//| Casas com que o arquivo grava cada double: duas, e QUATRO no lote.|
+//|                                                                   |
+//| ⚠️ O quatro nao e um limite arbitrario a ser "modernizado" — e o   |
+//| ponto em que TRES pecas concordam, e ja tentei mexer nele uma vez.|
+//|                                                                   |
+//| O `8` de `FusionVolumeDigits` e teto de LACO, nao faixa suportada.|
+//| Levando a gravacao para oito casas, ela passou a ser mais fina que|
+//| tudo o que a le:                                                  |
+//|                                                                   |
+//|  - `FusionSettingsEqual` compara lote com tolerancia de 1e-7, e   |
+//|    trataria 0.00000001 e 0.00000002 como o MESMO lote — sem       |
+//|    pendencia, com SALVAR apagado, e uma gravacao que falhou       |
+//|    parecendo bem-sucedida;                                        |
+//|  - as checagens de minimo, maximo e do plano de TP parcial usam a |
+//|    mesma tolerancia absoluta, que para um lote de 1e-8 e MAIOR    |
+//|    que o proprio lote.                                            |
+//|                                                                   |
+//| Fechar isso de verdade exigiria derivar toda tolerancia de volume |
+//| do `volumeStep`, em codigo que a 1.058 tambem usa — e para                    |
+//| atender um caso que nao existe: nenhuma corretora do uso real     |
+//| opera abaixo de 0.01, e quatro casas ja dao cem vezes essa folga. |
+//| A GUI, alias, exibe o lote com duas casas na maioria dos ativos   |
+//| (`FusionFormatVolume` usa o passo, com minimo de duas).           |
+//|                                                                   |
+//| Entao a coerencia fica em quatro casas, e o teto de oito continua |
+//| sendo o que sempre foi: uma guarda do laco que calcula digitos.   |
+//+------------------------------------------------------------------+
 #define FUSION_STORAGE_DIGITS       2
-#define FUSION_STORAGE_DIGITS_LOT   8
+#define FUSION_STORAGE_DIGITS_LOT   4
 
 void FusionApplyStoragePrecision(SEASettings &settings)
   {

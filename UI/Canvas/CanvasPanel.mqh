@@ -122,6 +122,21 @@ private:
 
    void              AnnounceSaveOutcome(const bool saved)
      {
+      //--- Restauracao: nao ha gravacao a conferir. Ela CHEGOU, e o simples
+      //--- fato de o EA ter recarregado ja e a confirmacao — o estado perigoso
+      //--- (configuracao aplicada sem perfil que a tenha) acabou.
+      if(m_echoKind==3)
+        {
+         m_renderer.SetPersistenceFailed(false);
+         m_renderer.NoteFailedCreate(false);
+         m_staleProfile="";
+         m_renderer.SetNotice("CRIACAO ABANDONADA",
+                              "O perfil "+m_echoProfile+" foi recarregado do disco e a "+
+                              "configuracao que nao chegou a ser gravada foi descartada.",
+                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
+         return;
+        }
+
       //--- A marca fica ATE a proxima gravacao bem-sucedida: e ela que mantem o
       //--- SALVAR aceso para o usuario tentar de novo, e que faz o EA avisar ao
       //--- fechar o grafico que ha algo por gravar.
@@ -132,6 +147,9 @@ private:
       //--- de qual arquivo estamos falando quando alguem trocar de perfil.
       m_renderer.SetPersistenceFailed(!saved);
       m_staleProfile = saved ? "" : m_snapshot.activeProfileName;
+      //--- Criacao que falhou tem semantica propria de abandono: o DESCARTAR
+      //--- passa a pedir a recarga do perfil ativo em vez de so fechar a tela.
+      m_renderer.NoteFailedCreate(!saved && m_echoKind==2);
 
       if(saved)
         {
@@ -401,6 +419,30 @@ private:
          return true;
         }
 
+      //+------------------------------------------------------------+
+      //| Abandonar uma criacao que falhou ao gravar.                 |
+      //|                                                             |
+      //| Vira uma CARGA do perfil ativo: e o desfazer que existe. O  |
+      //| EA ja aplicou a configuracao do perfil que nao nasceu, e    |
+      //| recarregar o ativo do disco devolve a sessao ao que o       |
+      //| arquivo dele tem — que e exatamente o estado anterior.      |
+      //|                                                             |
+      //| Sem revalidacao de trava nem de drawdown, ao contrario do   |
+      //| CARREGAR comum: nao ha troca de perfil aqui, e sim o retorno|
+      //| ao que este grafico ja estava usando. Aplicar as recusas do |
+      //| CARREGAR poderia negar o desfazer e deixar o usuario preso  |
+      //| no estado que estamos tentando sair.                        |
+      //+------------------------------------------------------------+
+      if(intent.kind==FCV_INTENT_RESTORE_ACTIVE)
+        {
+         string profileName=(intent.profile=="") ? m_snapshot.activeProfileName : intent.profile;
+         if(profileName=="") return false;
+         command.type=UI_COMMAND_LOAD_PROFILE;
+         command.text=profileName;
+         m_echoKind=3; m_echoProfile=profileName;
+         return true;
+        }
+
       //--- As duas que NAO chegam ao EA. Ambas sao operacoes de disco do
       //--- proprio painel, como na 1.058.
       if(intent.kind==FCV_INTENT_DELETE_PROFILE)
@@ -538,7 +580,19 @@ public:
       //--- Chegou Update com uma gravacao pendente de resposta: o EA recusou.
       //--- Ele registra o motivo no log, mas o painel nao pode ficar calado —
       //--- da tela, o clique em SALVAR simplesmente nao teria feito nada.
-      if(m_echoKind!=0)
+      //--- Chegou Update com um pedido pendente de resposta: o EA recusou.
+      //--- A recusa da restauracao merece texto proprio — ali o formulario
+      //--- continua aberto de proposito, e dizer "as alteracoes continuam
+      //--- pendentes" descreveria outra coisa.
+      if(m_echoKind==3)
+        {
+         m_renderer.SetNotice("NAO FOI POSSIVEL ABANDONAR",
+                              "O EA nao recarregou o perfil "+m_echoProfile+
+                              ". O formulario continua aberto; o motivo esta no log.",
+                              FCV_SEM_BAD);
+         ClearEcho();
+        }
+      else if(m_echoKind!=0)
         {
          m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
                               "O EA nao gravou o perfil "+m_echoProfile+
@@ -584,7 +638,9 @@ public:
       m_renderer.SetSnapshot(m_snapshot);
       //--- A resposta vem ANTES da recarga: e ela que decide se o formulario de
       //--- criacao continua aberto, e quem fecha o formulario e o ReloadFromEA.
-      bool saved=(m_echoKind==0) || SaveLandedOnDisk(settings);
+      //--- O eco de restauracao (3) nao tem gravacao a conferir: ele so precisa
+      //--- ter CHEGADO. Trata-lo como sucesso aqui e o que fecha o formulario.
+      bool saved=(m_echoKind==0 || m_echoKind==3) || SaveLandedOnDisk(settings);
       //--- Esta recarga e a RESPOSTA ao nosso pedido: o rascunho nao se perdeu,
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
       //--- houve, entao e substituido por AnnounceSaveOutcome.

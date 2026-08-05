@@ -552,6 +552,16 @@ void DrainIntents(void)
                               intent.profile+".",FCV_SEM_WARN);
             break;
 
+         //--- Inalcancavel por aqui — quem arma o estado de criacao falhada e o
+         //--- painel, e o harness nao o usa. Tratada mesmo assim: intencao sem
+         //--- caso e intencao descartada em silencio, e o dia em que o harness
+         //--- ganhar esse caminho nao pode ser descoberto por um botao inerte.
+         case FCV_INTENT_RESTORE_ACTIVE:
+            g_panel.SetNotice("RESTAURACAO NAO EXECUTADA",
+                              "O harness nao recarrega perfil. No EA, isto devolveria "+
+                              intent.profile+" ao que esta em disco.",FCV_SEM_WARN);
+            break;
+
          case FCV_INTENT_DELETE_PROFILE:
             g_panel.SetNotice("EXCLUSAO NAO EXECUTADA",
                               "O harness nao apaga arquivo. No EA, isto excluiria o perfil "+

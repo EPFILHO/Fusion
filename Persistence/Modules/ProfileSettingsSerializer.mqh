@@ -70,12 +70,11 @@ bool FusionSaveSettingsBlock(const int handle,const SEASettings &settings)
    ok = FusionSettingsWriteLine(handle, "maxWinStreak", IntegerToString(settings.maxWinStreak)) && ok;
    ok = FusionSettingsWriteLine(handle, "winStreakAction", IntegerToString((int)settings.winStreakAction)) && ok;
    ok = FusionSettingsWriteLine(handle, "winStreakPauseMinutes", IntegerToString(settings.winStreakPauseMinutes)) && ok;
-   //--- OITO casas, e nao quatro. FusionVolumeDigits deriva a precisao do
-   //--- volumeStep do ativo e vai ate 8; gravando 4, um ativo com passo de
-   //--- 0.00001 tinha o lote ZERADO na gravacao — sem erro, sem aviso.
-   //--- Ler continua compativel nos dois sentidos: StringToDouble aceita
-   //--- qualquer numero de casas, entao perfis antigos com 4 seguem validos.
-   ok = FusionSettingsWriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 8)) && ok;
+   //--- QUATRO casas, e isso e deliberado — ver Core/SettingsPrecision.mqh.
+   //--- O 8 de FusionVolumeDigits e teto de laco, nao faixa suportada: o resto
+   //--- do sistema (esta gravacao, FusionSettingsEqual e as checagens de volume)
+   //--- so e coerente ate a quarta casa.
+   ok = FusionSettingsWriteLine(handle, "fixedLot", DoubleToString(settings.fixedLot, 4)) && ok;
    ok = FusionSettingsWriteLine(handle, "fixedSLPoints", IntegerToString(settings.fixedSLPoints)) && ok;
    ok = FusionSettingsWriteLine(handle, "fixedTPPoints", IntegerToString(settings.fixedTPPoints)) && ok;
    ok = FusionSettingsWriteLine(handle, "compensateSLSpread", IntegerToString((int)settings.compensateSLSpread)) && ok;

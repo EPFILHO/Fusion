@@ -206,7 +206,21 @@ bool HandleButtonClick(const int lx,const int ly)
          //--- duplicar semeia o rascunho com o perfil de origem, e sair sem
          //--- desfazer isso deixaria a configuracao de OUTRO perfil pendente
          //--- sobre o ativo.
+         //---
+         //--- ⚠ Depois de uma criacao que FALHOU AO GRAVAR, abandonar nao pode
+         //--- ser so fechar a tela: o EA ja aplicou a configuracao do perfil que
+         //--- nao nasceu, e ela continuaria valendo sob o nome do perfil
+         //--- anterior — com o SALVAR do cabecalho, que reaparece, apontando
+         //--- para ele. Ali o DESCARTAR pede ao EA que RECARREGUE o perfil
+         //--- ativo do disco, que e o desfazer que existe. O formulario so
+         //--- fecha quando a recarga volta; recusada, ele continua aberto e a
+         //--- saida perigosa segue fechada.
          case FCV_BTN_CANCEL:
+            if(m_createFailed)
+              {
+               QueueIntent(FCV_INTENT_RESTORE_ACTIVE,m_snap.activeProfileName);
+               break;
+              }
             m_profEdit=FCV_PROF_VIEW;
             ClearProfileForm();
             ReloadDraft();
@@ -314,6 +328,16 @@ void SetPersistenceFailed(const bool failed)
   {
    if(m_notSaved==failed) return;
    m_notSaved=failed;
+   m_viewDirty=true;
+  }
+
+//--- A ultima CRIACAO falhou ao gravar e o formulario ficou aberto para a
+//--- retentativa. Estado separado de m_notSaved porque muda o significado do
+//--- DESCARTAR: aqui abandonar exige desfazer, e nao so fechar a tela.
+void NoteFailedCreate(const bool failed)
+  {
+   if(m_createFailed==failed) return;
+   m_createFailed=failed;
    m_viewDirty=true;
   }
 

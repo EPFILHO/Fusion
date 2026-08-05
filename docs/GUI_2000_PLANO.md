@@ -289,6 +289,23 @@ uma gravacao bem-sucedida anunciava perda.
 > EA aplicou. E a licao 4 da secao 8 aplicada a ele mesmo. Custa uma leitura por
 > clique em SALVAR — nunca por quadro.
 >
+> ⚠️ **E ABANDONAR tem de desfazer, nao so fechar a tela.** Manter o formulario
+> aberto fechou o caminho principal, mas o DESCARTAR reabria: ele fechava o
+> formulario sem desfazer o que o EA ja aplicara, o SALVAR do cabecalho reaparecia
+> apontando para o perfil anterior, e `CRIAR X -> falha -> DESCARTAR -> SALVAR`
+> voltava a sobrescrever `default` com a configuracao de X.
+>
+> Nao ha canal de rollback no EA — mas ha algo equivalente, e que ele ja sabe
+> fazer: **recarregar o perfil ativo do disco**. Nesse estado o DESCARTAR emite
+> `FCV_INTENT_RESTORE_ACTIVE`, que vira um `UI_COMMAND_LOAD_PROFILE` do proprio
+> perfil ativo. O formulario so fecha quando a recarga volta; recusada, ele
+> continua aberto e a saida perigosa segue fechada.
+>
+> Essa carga NAO passa pelas recusas do CARREGAR comum (trava de outro grafico,
+> compatibilidade de drawdown): nao ha troca de perfil aqui, e sim o retorno ao que
+> este grafico ja usava. Aplica-las poderia negar o desfazer e prender o usuario no
+> estado do qual ele esta tentando sair.
+>
 > ⚠️ **E a saida tem de apontar para o botao CERTO.** Numa CRIACAO que falha ao
 > gravar, o perfil ativo continua sendo o anterior. Fechando o formulario ali, o
 > nome do perfil novo se perdia — o painel so guardava "houve falha" — e o aviso
@@ -422,14 +439,27 @@ na exibicao mascararia um lote desalinhado do passo do ativo: `0.125` com passo
 um campo la sem mudar aqui traz o falso "nao gravado" de volta, e isso nao aparece
 em compilacao nenhuma. Ha ponteiro nos dois arquivos.
 
-**O lote passou de quatro para OITO casas — no serializer, nao so na GUI.** Quatro
-era um limite antigo do arquivo, e `FusionVolumeDigits` deriva a precisao do
-`volumeStep` do ativo indo ate 8: num ativo de passo `0.00001`, digitar `0.00001`
-virava `0.0000` antes da validacao, e a conferencia de gravacao comparava zero com
-zero e aprovava. Um lote apagado em silencio, nos dois lados ao mesmo tempo. E
-**mudanca no formato do arquivo**, compativel nos dois sentidos: `StringToDouble`
-aceita qualquer numero de casas, entao perfis gravados com quatro seguem validos e
-a 1.058 le os novos sem alteracao.
+⚠️ **O lote fica em QUATRO casas, e isso e decisao — nao limite esquecido.** Chegou
+a ir para oito, porque `FusionVolumeDigits` conta digitos ate 8 e um ativo de passo
+`0.00001` teria o lote zerado na gravacao. **Foi revertido**: o `8` daquela funcao e
+teto de LACO, nao faixa suportada, e a gravacao mais fina passou a ser mais precisa
+que tudo o que a le —
+
+- `FusionSettingsEqual` compara lote com tolerancia de `1e-7`, e trataria
+  `0.00000001` e `0.00000002` como o mesmo lote: sem pendencia, com SALVAR apagado,
+  e uma gravacao que falhou parecendo bem-sucedida;
+- as checagens de minimo, maximo e do plano de TP parcial usam a mesma tolerancia
+  absoluta, que para um lote de `1e-8` e **maior que o proprio lote**.
+
+Fechar de verdade exigiria derivar toda tolerancia de volume do `volumeStep`, em
+codigo que a 1.058 tambem usa — e para atender um caso que nao existe no uso real:
+nenhuma corretora opera abaixo de `0.01`, e quatro casas ja dao cem vezes essa
+folga. A propria GUI exibe o lote com duas casas na maioria dos ativos
+(`FusionFormatVolume` usa o passo, com minimo de duas).
+
+**A licao e sobre o numero, nao sobre o lote:** quatro casas nao e um limite
+arbitrario a ser "modernizado" — e o ponto em que gravacao, comparacao e validacao
+de volume concordam. Mexer numa das tres sozinha desalinha as outras duas.
 
 ### Configuracao aplicada e nao gravada nao se perde calada
 
