@@ -663,17 +663,55 @@ public:
          //| mesmo motivo. Assim o aviso e o estado ficam certos      |
          //| independentemente de qual caminho o EA tomou.            |
          //+---------------------------------------------------------+
-         bool landed=SaveLandedOnDisk(m_snapshot.settings);
-         m_renderer.SetPersistenceFailed(!landed);
-         m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
-         //--- Aqui o formulario NAO foi fechado (o ReloadFromEA nem rodou), entao
-         //--- a criacao continua na tela e o DESCARTAR precisa saber desfazer.
-         m_renderer.NoteFailedCreate(!landed && m_echoKind==2);
-         if(landed && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
-         m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
-                              "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
-                              ". O motivo esta no log.",FCV_SEM_BAD);
-         ClearEcho();
+         //+---------------------------------------------------------+
+         //| ⚠ Na CRIACAO, "arquivo ausente" nao distingue nada.      |
+         //|                                                          |
+         //| O arquivo do perfil novo nao existe tanto quando a       |
+         //| escrita falhou quanto quando o EA recusou o comando ANTES|
+         //| de aplicar — reconciliacao de fechamento pendente, ou o  |
+         //| nome/Magic tomado na corrida. Nos dois casos o disco diz |
+         //| a mesma coisa, e so um deles pede desfazer.              |
+         //|                                                          |
+         //| Tratar todos como falha de escrita prendia o usuario num |
+         //| rollback desnecessario — e, se a causa era a             |
+         //| reconciliacao, ela recusa TAMBEM o rollback: um beco     |
+         //| construido sobre um diagnostico errado.                  |
+         //|                                                          |
+         //| Quem distingue e a CONFIGURACAO: nao tendo o EA chegado a |
+         //| aplicar, o snapshot ainda e o de antes da tentativa. A    |
+         //| comparacao e confiavel porque toda criacao carrega um     |
+         //| Magic livre — logo diferente do que valia.                |
+         //+---------------------------------------------------------+
+         bool refusedBeforeApply=(m_echoKind==2 && m_hasPreCreate &&
+                                  FusionSettingsEqual(m_snapshot.settings,m_preCreateSettings));
+         if(refusedBeforeApply)
+           {
+            //--- Nada foi aplicado: o perfil ativo e o arquivo dele continuam
+            //--- como estavam. Nao se inventa divida de persistencia, e a que ja
+            //--- existisse fica intocada. A transacao acaba aqui — o formulario
+            //--- segue aberto como uma tentativa comum.
+            m_hasPreCreate=false; m_preCreateStale="";
+            m_renderer.NoteFailedCreate(false);
+            m_renderer.SetNotice("PERFIL NAO CRIADO",
+                                 "O EA recusou criar "+m_echoProfile+
+                                 " e nada foi alterado. Corrija a causa (o motivo esta "+
+                                 "no log) e clique CRIAR PERFIL de novo.",FCV_SEM_BAD);
+            ClearEcho();
+           }
+         else
+           {
+            bool landed=SaveLandedOnDisk(m_snapshot.settings);
+            m_renderer.SetPersistenceFailed(!landed);
+            m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
+            //--- Aqui o formulario NAO foi fechado (o ReloadFromEA nem rodou),
+            //--- entao a criacao continua na tela e o DESCARTAR precisa desfazer.
+            m_renderer.NoteFailedCreate(!landed && m_echoKind==2);
+            if(landed && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
+            m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
+                                 "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
+                                 ". O motivo esta no log.",FCV_SEM_BAD);
+            ClearEcho();
+           }
         }
       m_renderer.SetSnapshot(m_snapshot);
       m_renderer.Render();

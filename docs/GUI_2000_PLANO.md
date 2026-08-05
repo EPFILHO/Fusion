@@ -569,6 +569,19 @@ sucesso, e ajusta `m_notSaved`, o perfil desatualizado e o estado de criacao
 falhada a partir do que o arquivo REALMENTE tem. O aviso e o estado ficam certos
 independentemente do caminho que o EA tomou.
 
+⚠️ **Mas na CRIACAO o disco sozinho nao distingue nada.** O arquivo do perfil novo
+nao existe tanto quando a escrita falhou quanto quando o EA recusou o comando
+ANTES de aplicar — reconciliacao de fechamento pendente, ou nome/Magic tomado na
+corrida. Tratar os dois como falha de escrita prendia o usuario num rollback
+desnecessario; e, se a causa era a reconciliacao, ela recusa **tambem** o
+rollback — um beco construido sobre um diagnostico errado.
+
+Quem distingue e a **configuracao**: nao tendo o EA chegado a aplicar, o snapshot
+ainda e o de antes da tentativa (`m_preCreateSettings`). A comparacao e confiavel
+porque toda criacao carrega um Magic livre, logo diferente do que valia. Recusa
+antes de aplicar encerra a transacao sem inventar divida nenhuma e deixa o
+formulario aberto como uma tentativa comum.
+
 **O que NAO foi feito:** tornar `ApplySettings` transacional, ou fazer com que ela
 distinga "nao aplicado" de "aplicado parcialmente". Isso e cirurgia no caminho por
 onde passa toda ativacao de configuracao do EA — incluindo o boot e a 1.058 — para
