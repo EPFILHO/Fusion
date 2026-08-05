@@ -65,8 +65,16 @@ private:
    //| conferido em EAApplicationCommands: o caminho de SAVE_PROFILE  |
    //| so toca o painel em ReloadPanelSettingsIfVisible.              |
    //+---------------------------------------------------------------+
-   int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar
+   int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar, 3 restaurar
    string                m_echoProfile;
+   //--- Configuracao que valia ANTES de uma criacao ser tentada.
+   //---
+   //--- Guardada porque a criacao APLICA antes de gravar: falhando o disco, a
+   //--- sessao fica rodando a configuracao de um perfil que nao existe, e o
+   //--- unico desfazer confiavel e este — o arquivo do perfil ativo pode ser
+   //--- exatamente o que sumiu, e ai nao ha de onde reler.
+   SEASettings           m_preCreateSettings;
+   bool                  m_hasPreCreate;
    //--- Perfil cujo arquivo ficou para tras numa gravacao que falhou. Guardado
    //--- pelo NOME, e nao so como sinalizador, para o aviso poder dizer o que se
    //--- perdeu quando o usuario troca de perfil por cima dele.
@@ -129,11 +137,11 @@ private:
         {
          m_renderer.SetPersistenceFailed(false);
          m_renderer.NoteFailedCreate(false);
-         m_staleProfile="";
+         m_staleProfile=""; m_hasPreCreate=false;
          m_renderer.SetNotice("CRIACAO ABANDONADA",
-                              "O perfil "+m_echoProfile+" foi recarregado do disco e a "+
-                              "configuracao que nao chegou a ser gravada foi descartada.",
-                              FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
+                              "A configuracao anterior do perfil "+m_echoProfile+
+                              " voltou a valer, e a do perfil que nao chegou a ser "+
+                              "gravado foi descartada.",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          return;
         }
 
@@ -373,6 +381,12 @@ private:
          //--- justamente o que distingue o perfil que esta nascendo.
          SEASettings settings=intent.settings;
          settings.magicNumber=intent.magic;
+         //--- Fotografa o estado ANTES de o EA aplicar o perfil novo. E o unico
+         //--- momento em que ele ainda existe: do proximo snapshot em diante, o
+         //--- comprometido ja e a configuracao do perfil que se tentou criar.
+         m_preCreateSettings = m_snapshot.settings;
+         m_hasPreCreate      = true;
+
          command.type        = UI_COMMAND_SAVE_PROFILE;
          command.text        = newName;
          command.hasSettings = true;
@@ -422,23 +436,31 @@ private:
       //+------------------------------------------------------------+
       //| Abandonar uma criacao que falhou ao gravar.                 |
       //|                                                             |
-      //| Vira uma CARGA do perfil ativo: e o desfazer que existe. O  |
-      //| EA ja aplicou a configuracao do perfil que nao nasceu, e    |
-      //| recarregar o ativo do disco devolve a sessao ao que o       |
-      //| arquivo dele tem — que e exatamente o estado anterior.      |
+      //| ⚠ Comando PROPRIO, e nao um LOAD_PROFILE do perfil ativo.   |
+      //| Traduzido para LOAD, a distincao morria na fronteira: o EA  |
+      //| aplica ali as recusas que protegem contra ADOTAR outro      |
+      //| perfil — drawdown ativo, perfil ou Magic em uso por outro   |
+      //| grafico —, e uma delas nega justamente o desfazer.          |
       //|                                                             |
-      //| Sem revalidacao de trava nem de drawdown, ao contrario do   |
-      //| CARREGAR comum: nao ha troca de perfil aqui, e sim o retorno|
-      //| ao que este grafico ja estava usando. Aplicar as recusas do |
-      //| CARREGAR poderia negar o desfazer e deixar o usuario preso  |
-      //| no estado que estamos tentando sair.                        |
+      //| O caso e concreto: com o perfil ativo preso por outro       |
+      //| grafico, CRIAR PERFIL e uma saida deliberadamente permitida.|
+      //| Se a criacao aplicar e falhar ao gravar, o DESCARTAR pediria|
+      //| a volta — e a MESMA trava que motivou a criacao a recusaria,|
+      //| deixando o usuario preso na retentativa.                    |
+      //|                                                             |
+      //| E vai com as CONFIGURACOES, nao so com o nome: reler o      |
+      //| perfil ativo do disco falha justamente quando o arquivo dele|
+      //| e o que sumiu. Com o estado anterior em maos, o desfazer     |
+      //| independe do disco.                                          |
       //+------------------------------------------------------------+
       if(intent.kind==FCV_INTENT_RESTORE_ACTIVE)
         {
          string profileName=(intent.profile=="") ? m_snapshot.activeProfileName : intent.profile;
-         if(profileName=="") return false;
-         command.type=UI_COMMAND_LOAD_PROFILE;
-         command.text=profileName;
+         command.type        = UI_COMMAND_RESTORE_ACTIVE_PROFILE;
+         command.text        = profileName;
+         command.hasSettings = m_hasPreCreate;
+         if(m_hasPreCreate) command.settings=m_preCreateSettings;
+         command.reloadScope = RELOAD_COLD;
          m_echoKind=3; m_echoProfile=profileName;
          return true;
         }
@@ -520,6 +542,8 @@ public:
      {
       m_created=false; m_lastActiveProfile=""; m_chartId=0;
       m_echoKind=0; m_echoProfile=""; m_staleProfile="";
+      m_hasPreCreate=false;
+      SetDefaultSettings(m_preCreateSettings);
      }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.

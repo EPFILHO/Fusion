@@ -558,8 +558,8 @@ void DrainIntents(void)
          //--- ganhar esse caminho nao pode ser descoberto por um botao inerte.
          case FCV_INTENT_RESTORE_ACTIVE:
             g_panel.SetNotice("RESTAURACAO NAO EXECUTADA",
-                              "O harness nao recarrega perfil. No EA, isto devolveria "+
-                              intent.profile+" ao que esta em disco.",FCV_SEM_WARN);
+                              "O harness nao aplica configuracao. No EA, isto devolveria "+
+                              intent.profile+" ao estado anterior.",FCV_SEM_WARN);
             break;
 
          case FCV_INTENT_DELETE_PROFILE:

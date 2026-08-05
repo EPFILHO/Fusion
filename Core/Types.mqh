@@ -137,7 +137,26 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_TOGGLE_BB_FILTER,
    UI_COMMAND_TOGGLE_BB_SLOPE_DIRECTION,
    UI_COMMAND_SAVE_PROFILE,
-   UI_COMMAND_LOAD_PROFILE
+   UI_COMMAND_LOAD_PROFILE,
+   //--- Voltar a configuracao que o grafico JA usava, sem trocar de perfil.
+   //--- Acrescentado no FIM de proposito: o valor dos anteriores nao muda.
+   //---
+   //--- Nao e um LOAD_PROFILE com outro nome. O LOAD existe para ADOTAR um
+   //--- perfil, e por isso passa por recusas que protegem contra trocar
+   //--- identidade sob uma operacao em curso — drawdown ativo, perfil ou Magic
+   //--- em uso por outro grafico. Aqui nao ha adocao: e o retorno ao estado
+   //--- anterior deste mesmo grafico, e aplicar aquelas recusas negaria
+   //--- justamente o desfazer.
+   //---
+   //--- O caso que o exige: com o perfil ativo preso por outro grafico, CRIAR
+   //--- PERFIL e uma saida deliberadamente permitida. Se a criacao aplicar e
+   //--- falhar ao gravar, abandonar precisa desfazer — e a mesma trava que
+   //--- motivou a criacao recusaria a volta, prendendo o usuario na retentativa.
+   //---
+   //--- Carrega as configuracoes a restaurar (hasSettings). Sem elas, cai para
+   //--- o arquivo do perfil ativo — que pode nao existir, e por isso nao serve
+   //--- como unico caminho.
+   UI_COMMAND_RESTORE_ACTIVE_PROFILE
   };
 
 struct SPartialTPConfig

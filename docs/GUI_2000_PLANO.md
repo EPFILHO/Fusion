@@ -139,6 +139,13 @@ HasUnsavedDraftChanges                               (consulta)
 LoadSettings                                         (recarga)
 ```
 
+A fronteira em si nao mudou na Fase 2, mas o **vocabulario** que passa por ela
+ganhou um verbo: `UI_COMMAND_RESTORE_ACTIVE_PROFILE`. Foi a unica alteracao no EA
+exigida pela migracao ate aqui, e ela e aditiva — a 1.058 nunca emite esse valor.
+O motivo esta na Etapa 2c: sem um verbo proprio, "voltar ao que eu ja tinha" era
+indistinguivel de "adotar outro perfil", e herdava recusas que existem so para o
+segundo caso.
+
 E essa fronteira estreita que permite construir o painel novo ao lado e troca-lo
 sem alterar o EA.
 
@@ -301,10 +308,24 @@ uma gravacao bem-sucedida anunciava perda.
 > perfil ativo. O formulario so fecha quando a recarga volta; recusada, ele
 > continua aberto e a saida perigosa segue fechada.
 >
-> Essa carga NAO passa pelas recusas do CARREGAR comum (trava de outro grafico,
-> compatibilidade de drawdown): nao ha troca de perfil aqui, e sim o retorno ao que
-> este grafico ja usava. Aplica-las poderia negar o desfazer e prender o usuario no
-> estado do qual ele esta tentando sair.
+> ⚠️ **E a distincao tem de sobreviver a traducao.** A primeira versao virava um
+> `UI_COMMAND_LOAD_PROFILE` do proprio perfil ativo — o painel pulava as SUAS
+> conferencias, mas o EA aplica no LOAD as recusas que protegem contra ADOTAR
+> outro perfil (drawdown ativo, perfil ou Magic em uso por outro grafico), e uma
+> delas nega justamente o desfazer. O caso e concreto: com o perfil ativo preso
+> por outro grafico, CRIAR PERFIL e uma saida deliberadamente permitida; falhando
+> a gravacao, a MESMA trava que motivou a criacao recusaria a volta.
+>
+> Por isso existe `UI_COMMAND_RESTORE_ACTIVE_PROFILE`, acrescentado ao fim do
+> enum. Ele nao troca de perfil, nao grava e nao mexe em `m_activeProfileName` —
+> logo nao passa pelas recusas de CARGA. So a reconciliacao pendente continua
+> barrando, e por outro motivo: ali o EA aguarda o historico confirmar um
+> fechamento.
+>
+> **E o comando leva as CONFIGURACOES, nao so o nome.** Reler o perfil ativo do
+> disco falha exatamente quando o arquivo dele e o que sumiu — o painel fotografa
+> o estado ANTES de arriscar a criacao (`m_preCreateSettings`), que e o unico
+> instante em que ele ainda existe. Assim o desfazer independe do disco.
 >
 > ⚠️ **E a saida tem de apontar para o botao CERTO.** Numa CRIACAO que falha ao
 > gravar, o perfil ativo continua sendo o anterior. Fechando o formulario ali, o
