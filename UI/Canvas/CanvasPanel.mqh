@@ -645,9 +645,26 @@ public:
       //--- Antes do Create: ele ja desenha o primeiro quadro, e desenhar com
       //--- dado neutro para so depois receber o real causaria um piscada.
       m_renderer.SetSnapshot(m_snapshot);
-      //--- TODO Fase 3: paleta/tema/escala vem de input do EA, nao existe
-      //--- ainda um caminho para eles chegarem aqui. Petroleo/Automatico por
-      //--- ora, igual ao harness da Fase 1.
+      //+---------------------------------------------------------------+
+      //| Paleta, tema e escala: por que nao ha input do EA aqui.        |
+      //|                                                                |
+      //| A Fase 2 deixou isto marcado como pendencia da Fase 3, com a   |
+      //| leitura de que faltava um caminho do EA ate ca. Faltava — mas  |
+      //| conferido o mecanismo, ele nao e necessario: os tres sao       |
+      //| escolhidos na aba Layout e ficam em variavel global do         |
+      //| terminal (CanvasRendererPrefs.mqh), valendo para todo grafico  |
+      //| e sobrevivendo a fechar o MT5. O `true` abaixo e esse lembrar. |
+      //|                                                                |
+      //| Um input so governaria a PRIMEIRA abertura de todas: a partir  |
+      //| da segunda a preferencia salva vence, de proposito (ela e a    |
+      //| ultima escolha consciente do usuario). Input que deixa de      |
+      //| valer depois do primeiro uso engana mais do que ajuda —        |
+      //| mudariam o valor, nada aconteceria, e a explicacao estaria     |
+      //| escondida em outro arquivo.                                    |
+      //|                                                                |
+      //| Petroleo/Automatico sao, entao, o padrao de fabrica: valem uma |
+      //| vez, ate a primeira escolha na aba Layout.                     |
+      //+---------------------------------------------------------------+
       //--- O `name` do EA NAO vai como prefixo (ver FCV_OBJ_NAMESPACE). Ele
       //--- continua na fronteira porque o painel classico o usa como legenda
       //--- do CAppDialog; o canvas escreve o proprio titulo e nao precisa dele.

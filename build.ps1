@@ -157,12 +157,21 @@ Write-Host ("Versao:     {0}" -f $editorItem.VersionInfo.ProductVersion)
 Write-Host ("MQL5:       {0}" -f $mql5Root)
 Write-Host ''
 
+# Fusion.mq5 e FusionCanvas.mq5 sao o MESMO EA compilado duas vezes: o primeiro
+# com o painel antigo, o segundo com o painel em canvas (Fase 3). Os dois estao
+# no gate porque o #define que os separa troca uma classe inteira - um erro que
+# so aparece no lado do canvas nao apareceria compilando apenas o Fusion.mq5, e
+# e exatamente esse o lado em avaliacao.
+#
+# Ordem deliberada: o alvo de producao vem primeiro. Falhando o experimental, o
+# Fusion.ex5 ja esta gravado e valido.
 $targets = @(
     'VisualIndicators\FusionVisualMA.mq5',
     'VisualIndicators\FusionVisualBands.mq5',
     'VisualIndicators\FusionVisualRSI.mq5',
     'Prototype\FusionCanvasPhase1.mq5',
-    'Fusion.mq5'
+    'Fusion.mq5',
+    'FusionCanvas.mq5'
 )
 
 $results = foreach ($target in $targets) {

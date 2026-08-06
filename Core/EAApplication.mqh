@@ -22,7 +22,39 @@
 #include "../Normalization/SymbolNormalizer.mqh"
 #include "../Execution/ExecutionService.mqh"
 #include "../Persistence/SettingsStore.mqh"
-#include "../UI/UIPanel.mqh"
+//--- Geometria do painel (FUSION_PANEL_LEFT/TOP/WIDTH/HEIGHT). Fica FORA da
+//--- escolha abaixo porque a chamada de CreatePanel e uma so, valendo para os
+//--- dois paineis, e este arquivo nao inclui nada — sao defines, enums e
+//--- structs, sem dependencia da biblioteca Controls.
+#include "../UI/UIPanelTypes.mqh"
+//+------------------------------------------------------------------+
+//| FASE 3 — qual painel este binario constroi.                       |
+//|                                                                   |
+//| Definido FUSION_USE_CANVAS_PANEL (o que so o FusionCanvas.mq5     |
+//| faz), m_panel e a GUI 2.0 em canvas; sem ele, o painel antigo.    |
+//| O PADRAO E O ANTIGO de proposito: reverter e recompilar o alvo    |
+//| de sempre, e nenhum arquivo precisa ser editado para isso.        |
+//|                                                                   |
+//| A troca e em tempo de compilacao, e nao por input, porque m_panel |
+//| e um membro CONCRETO: escolher em execucao exigiria uma indirecao |
+//| que nao existe hoje e que teria de ser removida na Fase 4, quando |
+//| o painel antigo sair. O preco — nao alternar sem recompilar — e   |
+//| pago pelos dois alvos do build, que rodam lado a lado.            |
+//|                                                                   |
+//| As duas classes respondem aos MESMOS 8 metodos, com as mesmas     |
+//| assinaturas (secao 5 do plano). E so isso que o EA usa: se uma    |
+//| delas divergir da outra, este arquivo para de compilar — que e a  |
+//| garantia que uma interface implicita como esta pode dar.          |
+//+------------------------------------------------------------------+
+#ifdef FUSION_USE_CANVAS_PANEL
+   #include "../UI/Canvas/CanvasPanel.mqh"
+   #define FUSION_PANEL_CLASS CFusionCanvasPanel
+   #define FUSION_PANEL_BUILD_NAME "canvas (GUI 2.0, em avaliacao)"
+#else
+   #include "../UI/UIPanel.mqh"
+   #define FUSION_PANEL_CLASS CFusionPanel
+   #define FUSION_PANEL_BUILD_NAME "classico (Controls)"
+#endif
 #include "../UI/ChartIndicatorVisualizer.mqh"
 
 class CFusionApplication
@@ -49,7 +81,7 @@ private:
    CTradePermissionGuard   m_tradePermissionGuard;
    CPendingReverseExit     m_pendingReverseExit;
    CChartIndicatorVisualizer m_chartIndicators;
-   CFusionPanel            m_panel;
+   FUSION_PANEL_CLASS      m_panel;
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
    string                  m_activeProfileName;
@@ -392,6 +424,15 @@ private:
 
       if(ShouldShowPanel())
         {
+         // Qual painel este binario tem dentro. Info, e nao Debug, de proposito:
+         // a partir da Fase 3 existem DOIS .ex5 do mesmo EA, e a licao 4 da secao
+         // 8 do plano ("conferir o binario deployado antes de interpretar um
+         // teste") passou a valer em dobro - um .ex5 desatualizado ja invalidou
+         // uma rodada inteira, e agora ha tambem a chance de testar o outro sem
+         // perceber. Uma linha por inicializacao responde isso sem abrir o log de
+         // debug.
+         m_logger.Info("UI", "Painel: " + FUSION_PANEL_BUILD_NAME);
+
          int x1 = FUSION_PANEL_LEFT;
 
          if(!m_panel.CreatePanel(ChartID(),
