@@ -238,6 +238,10 @@ private:
    int               m_scale;
    //--- lembrar paleta, tema e tamanho entre sessoes
    bool              m_remember;
+   //--- Estado da acao do cabecalho, resolvido UMA vez por quadro no inicio do
+   //--- DrawFrame. Botao, faixa, distintivo, marcador da aba e card critico
+   //--- leem daqui — nenhum deles refaz a pergunta.
+   SHeaderAction     m_hdr;
 
    //--- Dados vindos do EA. Fonte unica de verdade das telas: nenhum valor
    //--- exibido deve estar escrito no desenho.
@@ -699,6 +703,12 @@ void CFusionCanvasRenderer::DrawFrame(void)
    m_popupOn=false;
 
    if(m_minimized) { DrawTitlebar(); return; }
+
+   //--- Antes de tudo que possa consultar: o card critico decide a altura do
+   //--- aviso, o marcador decide a faixa de abas, e o botao e a faixa saem
+   //--- daqui. Resolvido uma vez, todos respondem a mesma coisa neste quadro.
+   //--- Depende da validacao, entao vem DEPOIS do InvalidateValidationCache.
+   m_hdr=ResolveHeaderActionState();
 
    //--- O aviso e medido ANTES do conteudo: ele encurta a area util, e medir
    //--- depois faria o conteudo desta passada usar a altura da passada

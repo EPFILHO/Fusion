@@ -157,6 +157,23 @@ void FolderStrip(const int y,const int h,const int x0,const int xEnd,
       Txt(tx+w/2, y+h/2, names[i],
           err ? m_t.bad : (on ? m_t.fg : m_t.faint),
           FCV_FONT_UI, pt10, FCV_FW_SEMI, TA_CENTER|TA_VCENTER);
+      //+------------------------------------------------------------+
+      //| Marcador operacional do Status: ponto AMBAR, forma propria. |
+      //|                                                             |
+      //| ⚠ Deliberadamente diferente do vermelho de erro, que ali ao |
+      //| lado significa uma coisa precisa: "ha campo invalido para   |
+      //| corrigir NESTA tela". O que este marca nao se corrige em    |
+      //| tela nenhuma do painel — AutoTrading, conexao e permissao   |
+      //| da conta se resolvem fora dele. Pintar de vermelho mandaria |
+      //| o usuario a um lugar onde nao ha o que fazer, que e a licao |
+      //| 1 da secao 8 do plano; e faria o vermelho significar duas   |
+      //| coisas, deixando de ser acionavel de relance.                |
+      //|                                                             |
+      //| O que ele promete e so isto: "ha uma explicacao operacional |
+      //| aqui". So o nivel 1 o desenha — no nivel 2 nao ha Status.   |
+      //+------------------------------------------------------------+
+      if(cfgForErr<0 && i==FCV_TAB_STATUS && m_hdr.statusMark && !err)
+         Disc(tx+w-9, y+h/2-6, 3, m_t.warn);
       tx += w+3;
      }
   }
@@ -293,17 +310,14 @@ string ShortTF(const ENUM_TIMEFRAMES tf)
 //--- Estado operacional em tres nomes, os mesmos da 1.058 (Pages/StatusPage).
 //--- Bloqueado vence rodando: se o EA esta impedido de operar, dizer que ele
 //--- esta rodando seria a pior informacao possivel nesta linha.
+//--- Distintivo e botao leem do resolvedor, resolvido uma vez por quadro no
+//--- inicio do DrawFrame. Perguntar por conta aqui reabriria a divergencia que
+//--- SHeaderAction existe para fechar.
 string RunStateText(void)
-  {
-   if(m_snap.runtimeBlocked) return "BLOQUEADO";
-   return m_snap.started ? "RODANDO" : "PAUSADO";
-  }
+  { return m_hdr.badge; }
 
 uint RunStateColor(void)
-  {
-   if(m_snap.runtimeBlocked) return m_t.bad;
-   return m_snap.started ? m_t.good : m_t.warn;
-  }
+  { return SemColor(m_hdr.badgeSem); }
 
 //--- O botao diz o que o clique FAZ, nao o que o estado E — com uma excecao
 //--- deliberada, herdada da 1.058: com posicao aberta ele mostra "OPERANDO".
@@ -691,12 +705,6 @@ bool AccPeerLock(void)
 bool AccRuntimeEditable(void)
   { return (!m_snap.started && !m_snap.hasPosition && !m_snap.runtimeBlocked); }
 
-//--- Rearmar NAO depende de posicao aberta. A 1.058 e explicita: com a posicao
-//--- em curso o Fusion ja a gerencia, e o clique apenas autoriza novas entradas
-//--- quando ela fechar.
-bool AccRuntimeArmable(void)
-  { return (!m_snap.started && !m_snap.runtimeBlocked); }
-
 //--- EDITAR O PERFIL ATIVO exige, alem do EA parado, que o perfil nao esteja
 //--- preso por outro grafico. E o `activeProfileEditable` da 1.058
 //--- (UIPanelAccessState.mqh:75), e e ele — nao o `runtimeEditable` — que
@@ -711,27 +719,157 @@ bool AccRuntimeArmable(void)
 bool AccActiveProfileEditable(void)
   { return (AccRuntimeEditable() && !AccPeerLock()); }
 
-//--- Iniciar com alteracao pendente rodaria a configuracao COMPROMETIDA
-//--- enquanto a tela mostra outra. Por isso a pendencia bloqueia o INICIAR.
-//--- Magic do perfil ativo repetido em disco impede INICIAR. E o Magic que faz
-//--- o EA reconhecer as proprias ordens: comecar com ele ambiguo e comecar sem
-//--- saber quais ordens sao suas. Bloqueio proprio da 2.0 — a 1.058 so recusa
-//--- CRIAR um perfil com Magic tomado, e nao ve o estado gerado por arquivo
-//--- copiado por fora.
-//--- E, desde a Etapa 2d, configuracao valida. Era o `true` provisorio anotado
-//--- aqui: ele AFROUXAVA a regra, deixando iniciar com campo invalido.
-bool AccCanStart(void)
+//+------------------------------------------------------------------+
+//| A resposta unica do cabecalho. Ver SHeaderAction em CanvasLayout. |
+//|                                                                   |
+//| ⚠ AccCanStart() e AccCanPause() FORAM REMOVIDOS, e nao esquecidos:|
+//| a escada abaixo E o predicado. Mantidos ao lado dela, seriam duas |
+//| escritas da mesma regra — e quando divergissem, o painel apagaria |
+//| o botao por um motivo e exibiria outro, que e precisamente o      |
+//| defeito que esta funcao existe para tornar impossivel.            |
+//|                                                                   |
+//| A escada do INICIAR cobre termo a termo o que AccCanStart() dizia:|
+//| runtime, perfil preso, configuracao valida, pendencia, Magic em   |
+//| conflito e permissao de trading — mais o formulario de perfil     |
+//| aberto, que antes ficava fora, no ponto do desenho.               |
+//|                                                                   |
+//| ⚠ PAUSAR NAO herda os bloqueios do INICIAR, e isto e regra. O EA  |
+//| confirma: em EAApplicationCommands, o ramo de pausa so exige nao  |
+//| haver posicao gerenciada — permissao de trading, validade da      |
+//| configuracao e travas de perfil sao conferidas apenas no ramo de  |
+//| INICIAR. O caso que fecha o argumento e AutoTrading desligado com |
+//| o EA rodando: o motor mantem `m_started` de proposito, e tirar o  |
+//| PAUSAR ali seria prender o Fusion ligado por condicao externa.    |
+//|                                                                   |
+//| `runtimeBlocked` e a unica excecao: ali o EA recusa QUALQUER      |
+//| alternancia (`if(m_runtimeBlocked) return;`). Hoje o estado e     |
+//| inalcancavel — ApplyRuntimeBlock e o unico ponto que o liga e     |
+//| zera `m_started` no mesmo passo —, entao a guarda e defensiva: se |
+//| o motor mudar, o painel nao passa a oferecer um clique inerte.    |
+//|                                                                   |
+//| Por que cada bloqueio do INICIAR existe:                          |
+//|  - PENDENCIA: iniciar com alteracao nao gravada rodaria a         |
+//|    configuracao COMPROMETIDA enquanto a tela mostra outra;        |
+//|  - MAGIC repetido em disco: e o Magic que faz o EA reconhecer as  |
+//|    proprias ordens, e comecar com ele ambiguo e comecar sem saber |
+//|    quais ordens sao suas. Bloqueio proprio da 2.0 — a 1.058 so    |
+//|    recusa CRIAR perfil com Magic tomado, e nao ve o estado gerado |
+//|    por arquivo copiado por fora;                                  |
+//|  - CONFIG invalida: era o `true` provisorio da 2b, que AFROUXAVA  |
+//|    a regra e deixava iniciar com campo invalido.                  |
+//+------------------------------------------------------------------+
+SHeaderAction ResolveHeaderActionState(void)
   {
-   return (AccRuntimeArmable() && !AccPeerLock() && !HasPending() &&
-           ConfigInputsValid() &&
-           !m_snap.tradePermissionBlocked && !ActiveMagicConflicts());
-  }
+   SHeaderAction s;
+   s.action=FCV_HACT_NONE; s.label="INICIAR"; s.enabled=false;
+   s.block=FCV_HBLK_NONE;  s.band="";         s.bandSem=FCV_SEM_WARN;
+   //--- PAUSADO em ambar, como sempre foi: "parado e pronto" nao e defeito.
+   s.badge="PAUSADO";      s.badgeSem=FCV_SEM_WARN;
+   s.statusMark=false;     s.critical=false;
 
-//--- Pausar nao depende de pendencia: parar de operar nunca deve ficar refem
-//--- de um formulario pela metade. Com posicao aberta, porem, nao ha o que
-//--- pausar — o rotulo vira OPERANDO e o botao nao aceita clique.
-bool AccCanPause(void)
-  { return (m_snap.started && !m_snap.hasPosition); }
+   //--- Distintivo: ESTADO, nunca causa. Nomear a causa aqui seria mentir em
+   //--- quatro dos cinco motivos que o guard cobre — ele bloqueia por conexao
+   //--- perdida e por permissao da conta tambem, nao so por AutoTrading.
+   if(m_snap.runtimeBlocked)
+     { s.badge="BLOQUEADO"; s.badgeSem=FCV_SEM_BAD; }
+   //--- Vermelho como BLOQUEADO, e nao ambar como PAUSADO: os dois primeiros
+   //--- dizem "o EA nao pode operar" e o terceiro diz "esta parado e pronto".
+   //--- E a distincao que o usuario precisa de relance; qual das duas causas e
+   //--- ele le no texto do distintivo e na faixa.
+   else if(m_snap.tradePermissionBlocked)
+     { s.badge="IMPEDIDO";  s.badgeSem=FCV_SEM_BAD; }
+   else if(m_snap.started)
+     { s.badge="RODANDO";   s.badgeSem=FCV_SEM_GOOD; }
+
+   //--- O marcador da aba aponta para onde a EXPLICACAO esta, e so estes dois
+   //--- tem a explicacao no Status: os demais motivos moram na tela deles.
+   s.statusMark = (m_snap.runtimeBlocked || m_snap.tradePermissionBlocked);
+   //--- Trading indisponivel com posicao aberta: o gerenciamento parou no meio
+   //--- de uma operacao. E o unico estado que merece tomar espaco de conteudo
+   //--- em qualquer aba.
+   s.critical   = (m_snap.tradePermissionBlocked && m_snap.hasPosition);
+
+   bool formOpen = (m_profEdit!=FCV_PROF_VIEW);
+
+   //=== EA rodando COM posicao: nao ha acao ==========================
+   if(m_snap.started && m_snap.hasPosition)
+     {
+      s.label="OPERANDO"; s.action=FCV_HACT_NONE;
+      s.enabled=false;    s.block=FCV_HBLK_POSITION;
+      //--- Com o card critico no ar, a faixa cala: o card ja diz, e mais alto.
+      if(!s.critical)
+        {
+         s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
+         s.bandSem=FCV_SEM_NEUTRAL;
+        }
+      return s;
+     }
+
+   //=== EA rodando SEM posicao: PAUSAR ==============================
+   if(m_snap.started)
+     {
+      s.label="PAUSAR"; s.action=FCV_HACT_PAUSE;
+      if(m_snap.runtimeBlocked)
+        {
+         s.block=FCV_HBLK_RUNTIME; s.band=m_snap.runtimeBlockReason;
+         s.bandSem=FCV_SEM_BAD; return s;
+        }
+      if(formOpen)
+        {
+         s.block=FCV_HBLK_PROFFORM;
+         s.band="FORMULARIO DE PERFIL ABERTO — conclua ou descarte";
+         return s;
+        }
+      s.enabled=true;
+      //--- ⚠ Aqui o texto do motor NAO serve. FormatNotice ramifica por
+      //--- hasPosition, nao por started: sem posicao ele termina em "Habilite
+      //--- para iniciar", e o EA JA esta rodando. A frase completa continua no
+      //--- Status, onde o contexto cabe.
+      if(m_snap.tradePermissionBlocked)
+        {
+         s.band="TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL";
+         s.bandSem=FCV_SEM_WARN;
+        }
+      return s;
+     }
+
+   //=== EA parado: INICIAR ==========================================
+   s.label="INICIAR"; s.action=FCV_HACT_START;
+
+   if(m_snap.runtimeBlocked)
+     { s.block=FCV_HBLK_RUNTIME; s.band=m_snap.runtimeBlockReason; s.bandSem=FCV_SEM_BAD; return s; }
+   if(formOpen)
+     { s.block=FCV_HBLK_PROFFORM; s.band="FORMULARIO DE PERFIL ABERTO — conclua ou descarte"; return s; }
+   //--- Antes de CONFIG de proposito: preso, o perfil ativo fica so-leitura
+   //--- (AccActiveProfileEditable), entao mandar corrigir a configuracao
+   //--- apontaria para campos que nao aceitam digitacao. CARREGAR segue
+   //--- liberado nesse estado e e a saida — e por isso que ela e citada.
+   if(AccPeerLock())
+     {
+      s.block=FCV_HBLK_PEERLOCK;
+      s.band=HasText(m_snap.startBlockedReason) ? m_snap.startBlockedReason
+                                                : m_snap.activeProfileBlockedReason;
+      return s;
+     }
+   //--- Antes de PENDING, senao a faixa diria "salve" com o SALVAR apagado: ele
+   //--- tambem exige ConfigInputsValid(). CANCELAR nao exige, e continua sendo
+   //--- saida nos dois casos — daí "ou cancele" nos dois textos.
+   if(!ConfigInputsValid())
+     { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
+   if(HasPending())
+     { s.block=FCV_HBLK_PENDING; s.band="ALTERACOES PENDENTES — salve ou cancele"; return s; }
+   if(ActiveMagicConflicts())
+     { s.block=FCV_HBLK_MAGIC; s.band="MAGIC DO PERFIL EM CONFLITO — resolva em Perfis"; s.bandSem=FCV_SEM_BAD; return s; }
+   //--- Por ultimo: e o unico que nao se resolve dentro do painel. Aqui o texto
+   //--- do motor vale LITERAL — com o EA parado, "Habilite para iniciar" e
+   //--- exatamente o que o usuario precisa fazer. E ele distingue as cinco
+   //--- causas do guard sem o painel precisar saber qual e.
+   if(m_snap.tradePermissionBlocked)
+     { s.block=FCV_HBLK_PERMISSION; s.band=m_snap.tradePermissionReason; return s; }
+
+   s.enabled=true;
+   return s;
+  }
 
 //--- Carregar perfil com o EA RODANDO trocaria os parametros sob a operacao —
 //--- inaceitavel mesmo sem posicao aberta. Por isso exige EA parado.
@@ -786,21 +924,18 @@ bool AccCanDeleteSelected(void)
    return AccCanAdminProfile();
   }
 
+//--- ⚠ O rotulo nomeia a ACAO, sempre. Ele devolvia "BLOQUEADO" com o runtime
+//--- travado — um motivo no lugar da acao —, e ali o usuario perdia a
+//--- referencia de qual botao liga o EA justamente quando precisava dela.
+//--- Motivo agora vai para a faixa, que tem espaco para dizer o que fazer.
 string StartBtnText(void)
-  {
-   if(m_snap.runtimeBlocked) return "BLOQUEADO";
-   if(m_snap.started)        return m_snap.hasPosition ? "OPERANDO" : "PAUSAR";
-   return "INICIAR";
-  }
+  { return m_hdr.label; }
 
 //--- Ambar ao parar, verde ao iniciar: a cor acompanha o peso da acao.
 uint StartBtnColor(void) { return m_snap.started ? m_t.warn : m_t.good; }
 
 uint RunStateDim(void)
-  {
-   if(m_snap.runtimeBlocked) return m_t.bdim;
-   return m_snap.started ? m_t.gdim : m_t.wdim;
-  }
+  { return SemDim(m_hdr.badgeSem); }
 
 void DrawHeader(void)
   {
@@ -858,8 +993,11 @@ void DrawHeader(void)
    int bw2=(FCV_PANEL_W-2*FCV_PAD-16)/3, bx=FCV_PAD, by=94, bh=29;
    //--- Bloqueado pelo runtime, o botao nao aceita clique: o rotulo ja diz que
    //--- nao ha acao disponivel, e deixa-lo clicavel prometeria o contrario.
+   //--- Uma condicao so, vinda do resolvedor. O `headerLive && (...)` que estava
+   //--- aqui era a segunda metade de um predicado partido: com o formulario de
+   //--- perfil aberto o botao apagava sem que nada soubesse explicar por que.
    PutButton(bx,by,bw2,bh,StartBtnText(), true, StartBtnColor(), m_t.onGood,
-             FCV_BTN_START,headerLive && (m_snap.started ? AccCanPause() : AccCanStart()));
+             FCV_BTN_START,m_hdr.enabled);
    bx+=bw2+8;
    PutButton(bx,by,bw2,bh,"SALVAR",  true, m_t.acc,  m_t.onAcc,
              //--- Perfil cujo arquivo sumiu pode ser regravado mesmo sem
@@ -886,6 +1024,33 @@ void DrawHeader(void)
    PutButton(bx,by,bw2,bh,"CANCELAR",true, m_t.warn, m_t.onAcc,
              FCV_BTN_CANCELCFG,headerLive && AccRuntimeEditable() &&
                                (HasPending() || EditingNow()));
+
+   //+---------------------------------------------------------------+
+   //| Faixa de motivo: por que a acao do cabecalho nao esta          |
+   //| disponivel, visivel em QUALQUER aba.                            |
+   //|                                                                |
+   //| Era o buraco que o usuario encontrou: INICIAR apagado, nenhuma |
+   //| palavra na tela, e a explicacao existindo so dentro do Status. |
+   //| A 1.058 nunca teve esse buraco — ela mantem um rotulo unico e   |
+   //| compartilhado no cabecalho, alimentado por uma escada de        |
+   //| precedencia (ApplySharedParentStatus, UIPanelTabStatus.mqh). A  |
+   //| 2.0 perdeu isso na migracao; esta faixa e a paridade de volta.  |
+   //|                                                                |
+   //| Altura FIXA, reservada sempre: uma faixa que aparece e some     |
+   //| moveria ContentTop() e faria o conteudo saltar a cada campo que |
+   //| entra e sai de invalido — o mesmo mecanismo que produziu o bug  |
+   //| de rolagem da caixa de aviso. Perder 16 unidades estaveis e     |
+   //| melhor que um layout que pula.                                  |
+   //+---------------------------------------------------------------+
+   if(StringLen(m_hdr.band)>0)
+     {
+      uint bandClr=SemColor(m_hdr.bandSem);
+      //--- Marca de 2 px a esquerda, como no aviso do rodape: e o mesmo tipo de
+      //--- informacao, e repetir o sinal ensina a le-lo.
+      Rect(FCV_PAD,FCV_BAND_Y-6,FCV_PAD+1,FCV_BAND_Y+6,bandClr);
+      Txt(FCV_PAD+8,FCV_BAND_Y,m_hdr.band,bandClr,
+          FCV_FONT_UI,FCV_FS_CAP,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
+     }
   }
 
 //+------------------------------------------------------------------+

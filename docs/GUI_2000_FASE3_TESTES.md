@@ -373,6 +373,58 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       tambem bloqueia. Se forem dois perfis parados colidindo entre si, o
       INICIAR **continua liberado** — nao afetam esta conta.
 
+### I2. Cabecalho: por que a acao nao esta disponivel
+
+O painel deixava o INICIAR apagado sem uma palavra na tela — a explicacao existia
+so dentro do Status, e o usuario que esta em Perfis nao a alcanca. Agora **uma
+faixa sob os botoes** diz o motivo, em qualquer aba, e ela sai da **mesma
+funcao** que decide se o botao aceita clique (`ResolveHeaderActionState`).
+
+Regras que valem em todos os passos abaixo:
+
+- **o rotulo do botao nunca vira motivo.** Parado e `INICIAR` mesmo apagado;
+  rodando sem posicao e `PAUSAR`; com posicao e `OPERANDO`, apagado;
+- **a faixa nunca manda fazer o que a tela impede.** Se ela diz "salve ou
+  cancele", pelo menos um dos dois tem de estar aceso;
+- **o distintivo diz ESTADO, nunca causa:** `BLOQUEADO` / `IMPEDIDO` /
+  `RODANDO` / `PAUSADO`.
+
+| # | Estado a montar | Botao | Distintivo | Faixa |
+|---|---|---|---|---|
+| I2.1 | Parado, tudo certo | `INICIAR` aceso | `PAUSADO` | nenhuma |
+| I2.2 | AutoTrading desligado no MT5 | `INICIAR` apagado | `IMPEDIDO` | frase do EA, terminando em "Habilite para iniciar" |
+| I2.3 | AutoTrading desligado **e** campo invalido | `INICIAR` apagado | `IMPEDIDO` | `CONFIGURACAO INVALIDA` — a acionavel vem primeiro |
+| I2.4 | Formulario NOVO/DUPLICAR aberto | `INICIAR` apagado | inalterado | `FORMULARIO DE PERFIL ABERTO` |
+| I2.5 | Perfil preso por outro grafico | `INICIAR` apagado | `PAUSADO` | motivo do registro, citando CARREGAR |
+| I2.6 | Perfil preso **e** campo invalido | `INICIAR` apagado | `PAUSADO` | o do **perfil preso**, nunca "corrija" — os campos estao so-leitura |
+| I2.7 | Alteracao pendente, config valida | `INICIAR` apagado | `PAUSADO` | `ALTERACOES PENDENTES — salve ou cancele`, com SALVAR aceso |
+| I2.8 | Magic do perfil ativo repetido | `INICIAR` apagado | `PAUSADO` | `MAGIC DO PERFIL EM CONFLITO` |
+| I2.9 | Rodando, sem posicao | `PAUSAR` **aceso** | `RODANDO` | nenhuma |
+| I2.10 | ⚠ Rodando, sem posicao, AutoTrading desligado | `PAUSAR` **aceso** | `IMPEDIDO` | `TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL` |
+| I2.11 | Rodando com posicao | `OPERANDO` apagado | `RODANDO` | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
+| I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `OPERANDO` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
+
+⚠️ **I2.10 e o passo que nao pode falhar.** PAUSAR nao herda os bloqueios do
+INICIAR: com o AutoTrading desligado o EA continua rodando de proposito, e tirar
+o PAUSAR prenderia o Fusion ligado por uma condicao externa. Se o botao aparecer
+apagado ali, **pare e reporte**.
+
+⚠️ **I2.10 tambem e a razao de a faixa nao repetir o texto do EA.** A frase do
+motor termina em "Habilite para iniciar" — ela ramifica por posicao aberta, nao
+por estar rodando —, e exibi-la com o EA em operacao diria o contrario do que a
+tela mostra. O texto completo continua no Status, onde o contexto cabe.
+
+- [ ] **I2.13.** Marcador da aba **Status** nos casos I2.2, I2.10 e I2.12.
+      **Esperado:** ponto **ambar** a direita do rotulo — **nao** o vermelho de
+      validacao. O vermelho promete "ha campo a corrigir nesta tela", e
+      AutoTrading nao se corrige em tela nenhuma do painel.
+
+- [ ] **I2.14.** Geometria, com o cabecalho 16 unidades mais alto.
+      **Esperado:** conferir nas **tres escalas** (Menor/Padrao/Maior) **e num
+      grafico baixo**, onde o painel ja excede a altura disponivel. Percorrer
+      todas as abas olhando: campos nativos no lugar, barra de rolagem
+      aparecendo quando deve, e a faixa sem encostar nos botoes nem nas abas.
+
 ### J. Comparacao lado a lado
 
 - [ ] **J1.** `Fusion` num grafico e `FusionCanvas` em outro, **mesmo simbolo,

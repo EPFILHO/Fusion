@@ -93,6 +93,27 @@ bool ScreenAlert(string &title,string &body,int &sem)
    //--- portao exige zero avisos.
    title=""; body=""; sem=FCV_SEM_NEUTRAL;
 
+   //+---------------------------------------------------------------+
+   //| Antes de tudo, e em QUALQUER aba: trading indisponivel com     |
+   //| posicao aberta.                                                 |
+   //|                                                                |
+   //| E o unico estado que justifica tomar area util de todas as     |
+   //| telas. O motor parou de gerenciar uma operacao em curso — nao   |
+   //| ha aviso mais importante que este possa estar cobrindo, e o     |
+   //| proprio guard ja escreve o texto na forma grave quando ha       |
+   //| posicao ("Gerenciamento da posicao interrompido").              |
+   //|                                                                |
+   //| Vence ate o aviso de acao recente: uma resposta a clique pode   |
+   //| esperar; isto nao.                                              |
+   //+---------------------------------------------------------------+
+   if(m_hdr.critical)
+     {
+      title="TRADING INDISPONIVEL COM POSICAO ABERTA";
+      body=m_snap.tradePermissionReason;
+      sem=FCV_SEM_BAD;
+      return true;
+     }
+
    if(StringLen(m_noticeBody)>0)
      {
       title=m_noticeTitle; body=m_noticeBody; sem=m_noticeSem;

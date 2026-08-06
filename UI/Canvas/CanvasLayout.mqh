@@ -11,7 +11,22 @@
 #define FCV_PANEL_H_MIN    560
 #define FCV_PANEL_H_MAX    900
 #define FCV_TITLEBAR_H      32
-#define FCV_HEADER_BOTTOM  136
+//--- Cresceu 16 unidades na Fase 3 para abrigar a FAIXA DE MOTIVO sob os
+//--- botoes (que terminam em 123). Antes eram 136, e a folga de 13 unidades ali
+//--- nao dava para uma linha de texto sem encostar nos botoes acima e nas abas
+//--- abaixo ao mesmo tempo.
+//---
+//--- ⚠ A altura do painel NAO acompanha: DecidePanelHeight() ja deriva do
+//--- espaco do grafico e grampeia em [MIN,MAX], entao somar aqui so empurraria
+//--- o conteudo. A area util perde as 16 unidades e a rolagem absorve — que e
+//--- o comportamento desejado, e o motivo de o piso (FCV_PANEL_H_MIN, onde o
+//--- painel ja excede graficos baixos) ser o caso obrigatorio de teste.
+//---
+//--- Tudo abaixo deriva daqui em cadeia (FCV_F1_BOTTOM -> Surf1Top -> F2Top ->
+//--- ContentTop), entao esta e a unica constante a mexer.
+#define FCV_HEADER_BOTTOM  152
+//--- Centro do texto da faixa de motivo, entre os botoes e a faixa de abas.
+#define FCV_BAND_Y         136
 #define FCV_F1_H            30
 #define FCV_F1_BOTTOM      (FCV_HEADER_BOTTOM + FCV_F1_H)
 #define FCV_F2_H            26
@@ -139,6 +154,59 @@
 //--- — ver a nota em ClearNotice (CanvasRendererCommands.mqh).
 #define FCV_NOTICE_TTL_MS 5000
 
+//+------------------------------------------------------------------+
+//| Estado da acao do cabecalho — UMA resposta para todos que a usam. |
+//|                                                                   |
+//| Botao, faixa de motivo, distintivo, marcador da aba Status e card |
+//| critico leem daqui. A alternativa — cada um perguntar por conta —  |
+//| ja mostrou como falha neste projeto: predicado de acesso escrito   |
+//| por extenso em dois lugares diverge, e o usuario ve um motivo que  |
+//| nao e o que desabilitou o botao.                                   |
+//|                                                                   |
+//| ⚠ Absorve TAMBEM o `headerLive` (formulario de perfil aberto).    |
+//| Ele ficava fora, multiplicando o predicado no ponto do desenho:    |
+//| `headerLive && (started ? AccCanPause() : AccCanStart())`. Com o   |
+//| formulario aberto o botao apagava sem que nada soubesse explicar.  |
+//|                                                                   |
+//| NAO se confunde com StatusNotice(), e a separacao e deliberada:    |
+//| aquele responde "o que esta acontecendo" (inclui avisos que NAO    |
+//| desabilitam nada); este responde "por que este botao nao aceita    |
+//| clique". Fundi-los recria a divergencia que a estrutura evita.     |
+//+------------------------------------------------------------------+
+#define FCV_HACT_NONE   0
+#define FCV_HACT_START  1
+#define FCV_HACT_PAUSE  2
+
+//--- Motivo do bloqueio, em ordem de PRECEDENCIA da faixa. A ordem nao e de
+//--- gravidade: e "primeiro o que o usuario resolve aqui", com uma regra que
+//--- vem antes dela — bloqueio que torna um campo inalcancavel vence qualquer
+//--- instrucao para editar esse campo. Por isso PEERLOCK fica acima de CONFIG:
+//--- com o perfil preso os campos ficam so-leitura, e "corrija a configuracao"
+//--- apontaria para o que nao aceita digitacao.
+#define FCV_HBLK_NONE       0
+#define FCV_HBLK_RUNTIME    1   // bloqueio estrutural: o EA recusa alternar
+#define FCV_HBLK_PROFFORM   2   // formulario de criar/duplicar aberto
+#define FCV_HBLK_PEERLOCK   3   // perfil ou Magic preso por outro grafico
+#define FCV_HBLK_CONFIG     4   // configuracao invalida
+#define FCV_HBLK_PENDING    5   // alteracoes nao gravadas
+#define FCV_HBLK_MAGIC      6   // Magic do perfil ativo repetido em disco
+#define FCV_HBLK_PERMISSION 7   // AutoTrading/conexao/permissao de conta
+#define FCV_HBLK_POSITION   8   // posicao aberta: nao ha o que pausar
+
+struct SHeaderAction
+  {
+   int    action;      // FCV_HACT_*
+   string label;       // INICIAR / PAUSAR / OPERANDO — NUNCA o motivo
+   bool   enabled;
+   int    block;       // FCV_HBLK_*
+   string band;        // texto da faixa; "" = sem faixa
+   int    bandSem;     // FCV_SEM_*
+   string badge;       // BLOQUEADO / IMPEDIDO / RODANDO / PAUSADO
+   int    badgeSem;
+   bool   statusMark;  // marcador na aba Status (ambar, forma propria)
+   bool   critical;    // card global: trading indisponivel COM posicao aberta
+  };
+
 //--- Altura MINIMA da caixa de aviso, em linhas de texto.
 //---
 //--- A caixa cresce com o conteudo desde a Fase 1, e isso continua valendo: e o
@@ -192,6 +260,10 @@
 //--- nomeados aqui para que a ordem das linhas e quem escreve nelas nao se
 //--- desencontrem em silencio: mexeu na ordem da tela, mexa aqui.
 #define FCV_SCREEN_VISUAL          23
+//--- Status e a primeira aba. Nomeada porque a faixa de abas precisa aponta-la
+//--- para o marcador operacional, e indice cru ali nao quebraria o build se a
+//--- ordem mudasse — so passaria a marcar a aba errada.
+#define FCV_TAB_STATUS              0
 #define FCV_TAB_GESTAO              4
 #define FCV_TAB_PERFIS              5
 #define FCV_TAB_VISUAL              6

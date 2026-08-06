@@ -972,7 +972,8 @@ string ScreenErrorProtStreak(void)
 //--- dois perfis parados que colidem entre si nao atrapalham esta conta. Posto
 //--- aqui, ele entraria em ConfigInputsValid e passaria a impedir INICIAR e
 //--- SALVAR por causa de arquivos que este grafico nao usa. Quem cuida do caso
-//--- que importa e AccCanStart, com ActiveMagicConflicts().
+//--- que importa e a escada de ResolveHeaderActionState, com
+//--- ActiveMagicConflicts() — e la o motivo vira texto na faixa do cabecalho.
 string ScreenErrorProfiles(void)
   {
    if(m_draft.magicNumber<=0)
