@@ -677,7 +677,14 @@ void CFusionCanvasRenderer::Destroy(void)
    SetChartScroll(m_origScroll);
    DestroyEdits();
    m_canvas.Destroy();
-   ObjectsDeleteAll(m_chart,m_prefix);
+   //--- ⚠ Prefixo VAZIO casa com TUDO: esta linha apagaria os desenhos do
+   //--- usuario no grafico inteiro. Os dois chamadores passam literal — o
+   //--- painel manda FCV_OBJ_NAMESPACE e o harness "FusP1_" —, entao a guarda
+   //--- nunca dispara. Existe porque o custo de errar aqui e destruir trabalho
+   //--- de quem opera, e porque "apaga so o que e meu" e a promessa desta
+   //--- funcao: sem prefixo ela nao tem como cumpri-la.
+   if(StringLen(m_prefix)>0)
+      ObjectsDeleteAll(m_chart,m_prefix);
    ChartRedraw(m_chart);
   }
 

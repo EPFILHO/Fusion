@@ -30,6 +30,30 @@
 #include "../../Core/ActiveProfileRegistry.mqh"
 #include "CanvasRenderer.mqh"
 
+//+------------------------------------------------------------------+
+//| Namespace tecnico dos objetos deste painel.                       |
+//|                                                                   |
+//| ⚠ NAO derivado do nome do programa, e a diferenca e o ponto.      |
+//| O EA passa "EP Fusion" no CreatePanel, e usar isso como prefixo   |
+//| de objeto significava que a limpeza — que apaga POR PREFIXO —     |
+//| alcancava qualquer objeto do grafico comecando por "EP Fusion",   |
+//| inclusive um desenho do usuario. Improvavel, mas irreversivel.    |
+//|                                                                   |
+//| Um namespace tecnico proprio resolve os dois lados: nao e um nome |
+//| que alguem escolheria para uma anotacao no grafico, e o escopo do |
+//| ObjectsDeleteAll fica trivial de auditar — e literalmente isto.   |
+//|                                                                   |
+//| Nao colide com nada existente: o painel classico cria a casca do  |
+//| dialogo sob um prefixo NUMERICO do CAppDialog (m_instance_id, um  |
+//| rand de 5 digitos) e seus 274 controles sob nomes fixos iniciados |
+//| por "Fusion_"; a legenda dos indicadores vive em                  |
+//| "Fusion_indicator_legend_". Nenhum comeca por "Fusion2".          |
+//|                                                                   |
+//| O ponto final faz parte do namespace: sem ele, um prefixo futuro  |
+//| "Fusion2.Canvas2" seria varrido junto por engano.                 |
+//+------------------------------------------------------------------+
+#define FCV_OBJ_NAMESPACE "Fusion2.Canvas."
+
 class CFusionCanvasPanel
   {
 private:
@@ -583,13 +607,51 @@ public:
      {
       m_snapshot=snapshot;
       m_chartId=chartId;
+      //+---------------------------------------------------------------+
+      //| Sobras do PROPRIO canvas, antes de desenhar por cima.          |
+      //|                                                                |
+      //| O Destroy ja limpa na saida ordenada — inclusive ao remover o  |
+      //| EA do grafico, que e como a troca de painel acontece. Isto     |
+      //| cobre a saida que NAO roda Destroy: terminal encerrado de      |
+      //| forma anormal com o painel no ar.                              |
+      //|                                                                |
+      //| ⚠ Cobre so os objetos DESTE painel, e a promessa e essa. O     |
+      //| painel classico nao e alcancado daqui: a casca do dialogo dele |
+      //| vive sob um prefixo numerico do CAppDialog e seus controles    |
+      //| sob 274 nomes fixos. Varrer aquilo exigiria um inventario      |
+      //| completo — que e exatamente onde uma limpeza ampla volta a     |
+      //| apagar o que nao devia. Fora do escopo desta fase, e por       |
+      //| decisao registrada, nao por esquecimento.                      |
+      //+---------------------------------------------------------------+
+      ObjectsDeleteAll(chartId,FCV_OBJ_NAMESPACE);
+      //+---------------------------------------------------------------+
+      //| Compatibilidade: nomes que builds anteriores do canvas usaram. |
+      //|                                                                |
+      //| Ate a correcao do namespace, os objetos nasciam do `name` do   |
+      //| EA — "EP Fusioncanvas" e "EP Fusionedit_N". Uma sobra desse    |
+      //| tempo nao seria mais varrida pelo namespace novo, e ficaria    |
+      //| no grafico para sempre.                                        |
+      //|                                                                |
+      //| Estreito de proposito: o bitmap por nome EXATO e os campos por |
+      //| um prefixo que ninguem digita. Nada de "EP Fusion" solto, que  |
+      //| e justamente o alcance que estamos removendo.                  |
+      //|                                                                |
+      //| ⚠ Descartavel: o canvas nunca saiu da maquina de              |
+      //| desenvolvimento, entao isto so tem trabalho a fazer aqui. Sai  |
+      //| na Fase 4, junto com o resto da transicao.                     |
+      //+---------------------------------------------------------------+
+      ObjectDelete(chartId,"EP Fusioncanvas");
+      ObjectsDeleteAll(chartId,"EP Fusionedit_");
       //--- Antes do Create: ele ja desenha o primeiro quadro, e desenhar com
       //--- dado neutro para so depois receber o real causaria um piscada.
       m_renderer.SetSnapshot(m_snapshot);
       //--- TODO Fase 3: paleta/tema/escala vem de input do EA, nao existe
       //--- ainda um caminho para eles chegarem aqui. Petroleo/Automatico por
       //--- ora, igual ao harness da Fase 1.
-      m_created=m_renderer.Create(chartId,name,FUSION_CANVAS_THEME_AUTO,
+      //--- O `name` do EA NAO vai como prefixo (ver FCV_OBJ_NAMESPACE). Ele
+      //--- continua na fronteira porque o painel classico o usa como legenda
+      //--- do CAppDialog; o canvas escreve o proprio titulo e nao precisa dele.
+      m_created=m_renderer.Create(chartId,FCV_OBJ_NAMESPACE,FUSION_CANVAS_THEME_AUTO,
                                   FUSION_PALETTE_PETROLEO,true,x1,y1);
       if(m_created)
         {
