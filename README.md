@@ -74,14 +74,22 @@ O manual documenta somente o comportamento efetivamente presente na versao 1.057
 
 ## Compilacao
 
-O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia dos quatro EX5.
+O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia de cada EX5.
 
 Ordem usada pelo script:
 
 1. `VisualIndicators/FusionVisualMA.mq5`;
 2. `VisualIndicators/FusionVisualBands.mq5`;
 3. `VisualIndicators/FusionVisualRSI.mq5`;
-4. `Fusion.mq5`.
+4. `Prototype/FusionCanvasPhase1.mq5` — harness de desenvolvimento da GUI 2.0. Nao opera e nao e distribuido; esta no gate porque compila os modulos de `UI/Canvas/`;
+5. `Fusion.mq5` — o EA, com o painel classico. **E este o alvo de producao**;
+6. `FusionCanvas.mq5` — o **mesmo** EA com a GUI 2.0 em canvas, em avaliacao.
+
+Os dois ultimos compartilham todo o codigo: `FusionCanvas.mq5` apenas define `FUSION_USE_CANVAS_PANEL`, que em `Core/EAApplication.mqh` decide a classe do membro `m_panel`. Sem esse define — ou seja, no `Fusion.mq5` — vale o painel classico. Os handlers do terminal ficam em `Core/EAEntryPoints.mqh`, compartilhados pelos dois.
+
+Qual painel um `.ex5` tem dentro se le no log do terminal, na inicializacao: `Painel: classico (Controls)` ou `Painel: canvas (GUI 2.0, em avaliacao)`.
+
+O plano da migracao esta em [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md); o roteiro de aceite do painel novo, em [docs/GUI_2000_FASE3_TESTES.md](docs/GUI_2000_FASE3_TESTES.md).
 
 ### Projeto fora da pasta MQL5
 
@@ -146,6 +154,8 @@ Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o te
 ## Distribuicao
 
 Para o usuario final, distribua somente o `Fusion.ex5` produzido ao final do build. Os tres indicadores visuais ja ficam incorporados nele e nao precisam ser instalados separadamente. O arquivo deve ser copiado para `MQL5/Experts`; depois, atualize o Navegador ou reinicie o terminal.
+
+⚠️ **`FusionCanvas.ex5` nao vai para o usuario final.** E o mesmo EA com a GUI 2.0 em canvas, que ainda esta em avaliacao (Fase 3 da migracao da GUI). Ele existe para rodar ao lado do `Fusion.ex5` durante a transicao, em maquina de desenvolvimento. O `FusionCanvasPhase1.ex5`, harness de desenho, tambem nao — ele nem opera.
 
 Para desenvolvimento ou validacao de compilacao, distribua o repositorio completo e use `build.ps1`.
 

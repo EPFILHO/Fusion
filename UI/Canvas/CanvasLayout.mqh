@@ -130,7 +130,8 @@
 #define FCV_BTN_PROFREFRESH 12
 //--- Confirmacao da exclusao, no lugar do proprio EXCLUIR. Ver ArmDeleteConfirm
 //--- em CanvasRendererCommands.mqh: apagar perfil e irreversivel, e o segundo
-//--- clique cai onde o primeiro caiu — por isso a saida (VOLTAR) fica ao lado.
+//--- clique cai onde o primeiro caiu — por isso a saida (o NAO) fica AO LADO,
+//--- e nao sob o cursor. DELOK e o SIM; DELNO e o NAO.
 #define FCV_BTN_DELOK    13
 #define FCV_BTN_DELNO    14
 

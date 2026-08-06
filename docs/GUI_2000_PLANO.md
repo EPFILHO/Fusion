@@ -656,8 +656,9 @@ um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomad
 para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
 migracao.**
 
-**Fase 3 — Troca por interruptor.** Um input escolhe qual painel construir. Os dois
-convivem, comparaveis no mesmo grafico, com reversao imediata.
+**Fase 3 — Troca por interruptor. FEITA** (fiacao; o aceite em execucao e do
+usuario, ver `docs/GUI_2000_FASE3_TESTES.md`). Os dois paineis convivem,
+comparaveis lado a lado, com reversao imediata.
 
 > **Correcao (Fase 1).** A promessa original — "o EA nao muda uma linha" — estava
 > errada. `m_panel` e um `CFusionPanel` concreto em `Core/EAApplication.mqh`, e
@@ -668,6 +669,76 @@ convivem, comparaveis no mesmo grafico, com reversao imediata.
 > antigo. O preco e nao poder alternar sem recompilar — aceitavel, porque quem
 > compara os dois durante a transicao e quem desenvolve, e recompilar leva
 > segundos com o `build-linked.ps1`.
+
+**Como ficou.** `FUSION_USE_CANVAS_PANEL`, ausente por padrao, decide em
+`Core/EAApplication.mqh` a classe de `m_panel` e o `#include` correspondente.
+**O padrao e o painel ANTIGO**: reverter e compilar o alvo de sempre, sem editar
+arquivo nenhum.
+
+**Dois `.ex5`, e nao um.** Com um unico alvo, "comparaveis" viraria sequencial —
+editar, recompilar, recarregar —, e a comparacao e justamente o que da confianca
+para aposentar o painel antigo. `FusionCanvas.mq5` e um arquivo de 40 linhas sem
+logica propria: `#property`, `#resource`, o `#define` e o include. Os dois alvos
+rodam em graficos diferentes ao mesmo tempo, e trocar de volta e trocar o EA do
+grafico.
+
+Para que os dois `.mq5` nao carregassem duas copias dos handlers do terminal, o
+corpo saiu para **`Core/EAEntryPoints.mqh`**. Duplicar `OnInit`/`OnTick`/... teria
+um modo de falha silencioso: um handler acrescentado a um e esquecido no outro
+compila `0/0` e simplesmente nao roda.
+
+**O EA passou a dizer qual painel construiu** (`m_logger.Info("UI", "Painel: ...")`,
+uma linha por inicializacao). E a licao 4 da secao 8 — "conferir o binario
+deployado antes de interpretar um teste" — que com dois `.ex5` do mesmo EA passou
+a valer em dobro: alem do `.ex5` velho, agora existe a chance de testar o outro
+sem perceber.
+
+**Os objetos do canvas ganharam namespace tecnico proprio: `Fusion2.Canvas.`.**
+Antes eles nasciam do `name` que o EA passa — "EP Fusion" —, e a limpeza apaga
+**por prefixo**: `ObjectsDeleteAll(chart,"EP Fusion")` alcancava qualquer objeto
+do grafico comecando assim, **inclusive uma anotacao do usuario**. Improvavel, e
+irreversivel; foi tratado pelo impacto, nao pela frequencia. Com um namespace que
+ninguem digitaria, o escopo da exclusao passa a ser auditavel por leitura.
+
+> ⚠️ **A primeira versao desta limpeza prometia o que nao entregava.** O
+> comentario afirmava que ela varria as sobras dos **dois** paineis, por
+> compartilharem o nome de base. **E falso.** O painel classico nao usa o `name`
+> como prefixo de objeto: `CAppDialog::Create` gera `m_instance_id` —
+> `IntegerToString(rand(),5,'0')` — e cria a casca do dialogo sob esse prefixo
+> **numerico**. O `name` vira so o texto do `Caption`. E a prova esta no proprio
+> codigo da 1.058: `IsFusionDialogCaption` existe justamente para **descobrir**
+> esse prefixo lendo o texto da legenda — funcao que nao faria sentido se o
+> prefixo fosse conhecido.
+
+**Simetria de verdade seria cara, e por isso ficou fora.** Extrair a limpeza por
+`Caption` do painel classico varreria apenas a **casca** do dialogo: os controles
+dele sao criados com **274 nomes fixos** proprios (`Fusion_cfg_*`,
+`Fusion_Strategy_*`, `Fusion_tabs_sep`...), que nao estao sob o prefixo numerico.
+Prometer simetria exigiria inventariar todos — e um inventario incompleto vira
+uma limpeza ampla, que e exatamente o defeito que acabamos de remover. **Decisao:
+o canvas limpa o canvas.** A simetria so entra se resistencia a *crash seguido de
+troca imediata de painel* virar requisito explicito de aceite, com auditoria
+propria dos namespaces do classico.
+
+⚠️ **O que a limpeza cobre, dito sem promessa a mais:** a troca normal de painel
+nao depende dela — remover o EA do grafico roda `Destroy()`, que ja limpa. Ela
+cobre a saida que **nao** roda `Destroy()`: terminal encerrado de forma anormal
+com o painel no ar. E cobre **so os objetos do canvas**; sobras cruzadas depois de
+um crash nao estao garantidas em nenhuma das duas direcoes.
+
+Junto foi uma limpeza de compatibilidade estreita — o objeto de nome exato
+`EP Fusioncanvas` e o prefixo `EP Fusionedit_` —, para as sobras que builds
+anteriores do canvas deixaram na maquina de desenvolvimento. Sai na Fase 4.
+
+> **Pendencia da Fase 2 FECHADA sem codigo: paleta/tema/escala nao viram input.**
+> A 2c registrou que faltava um caminho do EA ate o `CreatePanel`. Faltava — mas
+> conferido o mecanismo, ele nao e necessario: os tres sao escolhidos na aba
+> Layout e ficam em variavel global do terminal (`CanvasRendererPrefs.mqh`),
+> valendo para todo grafico e sobrevivendo a fechar o MT5. Um input governaria
+> **so a primeira abertura de todas** — a partir da segunda a preferencia salva
+> vence, de proposito, por ser a ultima escolha consciente do usuario. Input que
+> deixa de valer depois do primeiro uso engana mais do que ajuda. Petroleo e
+> Automatico ficam sendo o padrao de fabrica.
 
 **Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
 
@@ -872,9 +943,34 @@ garante. Segunda condicao: a raiz precisa ser **a do proprio MetaEditor**, porqu
 contra a pasta de dados dele que os `#resource` iniciados por `\` resolvem;
 `build-paths.ps1` faz esse pareamento por `origin.txt`.
 
-O gate continua sendo **0 errors, 0 warnings** nos alvos — **cinco**
-desde a Fase 1: os tres indicadores, o `Fusion.mq5` e o harness
-`Prototype/FusionCanvasPhase1.mq5`, que compila os modulos de `UI/Canvas/` e
-por isso entra no gate. O harness sai quando a Fase 4 remover o painel antigo.
+O gate continua sendo **0 errors, 0 warnings** nos alvos — **seis** desde a
+Fase 3: os tres indicadores, o harness `Prototype/FusionCanvasPhase1.mq5` (que
+compila os modulos de `UI/Canvas/` e por isso entra no gate) e os **dois**
+executaveis do EA, `Fusion.mq5` e `FusionCanvas.mq5`.
 
-O deploy e manual: copiar o `.ex5` para `<terminal>\MQL5\Experts\`.
+Os dois alvos do EA estao no gate porque o `#define` que os separa troca uma
+**classe inteira**: um erro que so aparece do lado do canvas nao apareceria
+compilando apenas o `Fusion.mq5`, e e exatamente esse o lado em avaliacao. A
+ordem tambem e deliberada — o alvo de producao vem primeiro, entao uma falha do
+experimental deixa o `Fusion.ex5` ja gravado e valido.
+
+O harness e o `FusionCanvas.mq5` saem quando a Fase 4 remover o painel antigo:
+naquele ponto o `Fusion.mq5` volta a ser o unico EA, ja com o painel novo.
+
+⚠️ **Prova de que o interruptor faz o que diz.** Compilar `0/0` mostra que as
+duas classes tem a mesma fronteira, nao que a escolha teve efeito — e o `.ex5` e
+comprimido, entao procurar uma string dentro dele nao responde. O metodo que
+responde: **compilar o mesmo fonte com e sem o `#define`** e comparar os
+tamanhos. O alvo com o interruptor sai cerca de **230 KB menor** — a biblioteca
+`Controls` e as 14 mil linhas do painel antigo, que so entram num dos dois —, e o
+alvo **sem** ele sai do tamanho do `Fusion.ex5`.
+
+> Os valores absolutos **nao** ficam registrados aqui de proposito: eles variam
+> alguns milhares de bytes entre compilacoes do mesmo codigo, e um numero exato
+> num documento vira uma constante que alguem vai conferir e achar que quebrou. O
+> que e estavel e a **diferenca** e a **coincidencia com o `Fusion.ex5`**; e isso
+> que se repete para conferir.
+
+O deploy e manual: copiar o `.ex5` para `<terminal>\MQL5\Experts\`. **A partir da
+Fase 3 sao dois**, e qual esta rodando se le no log, na primeira linha que o
+painel escreve (`Painel: canvas...` ou `Painel: classico...`).

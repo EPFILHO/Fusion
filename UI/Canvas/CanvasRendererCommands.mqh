@@ -57,8 +57,9 @@ string ProfileFormRawName(void)
 //|    salvo) expira sozinho — ficar na tela depois que deixou de ser |
 //|    novidade e sujeira;                                            |
 //|  - aviso que descreve um ESTADO em vigor (exclusao armada) NAO    |
-//|    expira. Sumir enquanto o CONFIRMAR continua na tela deixaria   |
-//|    um botao vermelho sem a frase que explica o que ele apaga.     |
+//|    expira. Sumir enquanto o SIM continua na tela deixaria um      |
+//|    botao vermelho sem a frase que explica o que ele apaga — e a   |
+//|    pergunta inteira vive nesse aviso, nao no rotulo do botao.     |
 //|                                                                   |
 //| Por isso o prazo e por chamada, e o padrao e nao ter.             |
 //+------------------------------------------------------------------+
@@ -105,10 +106,14 @@ void RejectTypedText(const string typed,const int kind)
 //| Confirmacao da exclusao.                                          |
 //|                                                                   |
 //| Apagar perfil e irreversivel e nao tem desfazer. A confirmacao    |
-//| acontece no PROPRIO cartao — o botao vermelho vira CONFIRMAR e    |
-//| ganha um VOLTAR ao lado —, e nao num popup: o popup teria de      |
-//| suprimir os campos nativos sob ele (regra do modelo hibrido) e    |
-//| esconderia justamente a linha do perfil que esta prestes a sumir. |
+//| acontece no PROPRIO cartao — o botao vermelho vira SIM e ganha um |
+//| NAO ao lado —, e nao num popup: o popup teria de suprimir os      |
+//| campos nativos sob ele (regra do modelo hibrido) e esconderia     |
+//| justamente a linha do perfil que esta prestes a sumir.            |
+//|                                                                   |
+//| SIM/NAO, e nao CONFIRMAR/VOLTAR: a coluna tem 124 px e            |
+//| "CONFIRMAR" vazou dela. A pergunta inteira vive no aviso do       |
+//| rodape, entao o botao so precisa carregar a resposta.             |
 //|                                                                   |
 //| Ela cai sozinha em toda mudanca de contexto. Uma confirmacao      |
 //| armada que sobrevive a uma troca de selecao apontaria para outro  |
@@ -172,7 +177,7 @@ bool HandleButtonClick(const int lx,const int ly)
 
       //--- Qualquer outro botao desarma a confirmacao pendente. Sem isto ela
       //--- ficaria armada enquanto o usuario faz outra coisa, e o proximo
-      //--- clique no lugar do CONFIRMAR apagaria um perfil sem aviso.
+      //--- clique no lugar do SIM apagaria um perfil sem aviso.
       if(m_btnId[i]!=FCV_BTN_DELOK && m_delConfirm) CancelDeleteConfirm();
 
       switch(m_btnId[i])
@@ -231,7 +236,7 @@ bool HandleButtonClick(const int lx,const int ly)
             QueueIntent(FCV_INTENT_LOAD_PROFILE,SelectedProfileName());
             break;
 
-         //--- Primeiro clique arma; o segundo, no CONFIRMAR, executa.
+         //--- Primeiro clique arma; o segundo, no SIM, executa.
          case FCV_BTN_DEL:   ArmDeleteConfirm(); break;
          case FCV_BTN_DELNO: CancelDeleteConfirm(); break;
          case FCV_BTN_DELOK:
