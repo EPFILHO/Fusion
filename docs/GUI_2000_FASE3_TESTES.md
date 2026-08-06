@@ -400,7 +400,7 @@ Regras que valem em todos os passos abaixo:
 | I2.7 | Alteracao pendente, config valida | `INICIAR` apagado | `PAUSADO` | `ALTERACOES PENDENTES — salve ou cancele`, com SALVAR aceso |
 | I2.8 | Magic do perfil ativo repetido | `INICIAR` apagado | `PAUSADO` | `MAGIC DO PERFIL EM CONFLITO` |
 | I2.9 | Rodando, sem posicao | `PAUSAR` **aceso** | `RODANDO` | nenhuma |
-| I2.10 | ⚠ Rodando, sem posicao, AutoTrading desligado | `PAUSAR` **aceso** | `IMPEDIDO` | `TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL` |
+| I2.10 | ⚠ Rodando, sem posicao, AutoTrading desligado | `PAUSAR` **aceso** | `IMPEDIDO` | frase do EA, **dizendo o que fazer** ("Habilite...") |
 | I2.11 | Rodando com posicao | `OPERANDO` apagado | `RODANDO` | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
 | I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `OPERANDO` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
 | I2.15 | Parado, com posicao aberta e permissao perdida | `INICIAR` apagado | `IMPEDIDO` | nenhuma — card no ar, faixa cala **sempre** que ele aparece |
@@ -424,10 +424,12 @@ INICIAR: com o AutoTrading desligado o EA continua rodando de proposito, e tirar
 o PAUSAR prenderia o Fusion ligado por uma condicao externa. Se o botao aparecer
 apagado ali, **pare e reporte**.
 
-⚠️ **I2.10 tambem e a razao de a faixa nao repetir o texto do EA.** A frase do
-motor termina em "Habilite para iniciar" — ela ramifica por posicao aberta, nao
-por estar rodando —, e exibi-la com o EA em operacao diria o contrario do que a
-tela mostra. O texto completo continua no Status, onde o contexto cabe.
+⚠️ **A faixa sempre diz o que FAZER.** Uma versao anterior de I2.10 mostrava
+"TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL": era verdade e nao servia,
+porque nao dizia a acao. Hoje a faixa mostra a frase do motor tambem no estado
+rodando — ela nomeia a causa entre as cinco que o guard cobre **e** diz o que
+fazer. Ao conferir este passo, leia a faixa perguntando "sei o que fazer agora?";
+se a resposta for nao, e defeito mesmo que a frase esteja correta.
 
 - [ ] **I2.13.** Marcador da aba **Status** nos casos I2.2, I2.10 e I2.12.
       **Esperado:** ponto **ambar** a direita do rotulo — **nao** o vermelho de

@@ -105,7 +105,20 @@ private:
         {
          if(hasPosition)
             return reason + " Gerenciamento da posicao interrompido. Aguardando MT5/corretora liberar.";
-         return "Trading temporariamente indisponivel: " + reason + " Aguardando MT5/corretora liberar.";
+         //--- Sem o prefixo "Trading temporariamente indisponivel: ", que ficou
+         //--- redundante e custava caro. Redundante porque o painel ja anuncia
+         //--- o estado ao lado — distintivo IMPEDIDO e titulo TRADING
+         //--- INDISPONIVEL na aba Status. Caro porque esta e a unica das seis
+         //--- formas que estoura a faixa de uma linha do cabecalho da 2.0 (~556
+         //--- unidades): com o prefixo o texto era cortado com reticencias
+         //--- justamente antes de "Aguardando MT5/corretora liberar", que e o
+         //--- que diz o que esperar.
+         //---
+         //--- Seguro para os dois paineis: a classificacao (IsConnectionReason,
+         //--- IsAccountPermissionReason) compara o `reason`, nunca este texto
+         //--- formatado, e quem o consome so o exibe ou o compara consigo mesmo
+         //--- para detectar mudanca.
+         return reason + " Aguardando MT5/corretora liberar.";
         }
 
       if(hasPosition)

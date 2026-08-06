@@ -840,13 +840,26 @@ SHeaderAction ResolveHeaderActionLadder(void)
          return s;
         }
       s.enabled=true;
-      //--- ⚠ Aqui o texto do motor NAO serve. FormatNotice ramifica por
-      //--- hasPosition, nao por started: sem posicao ele termina em "Habilite
-      //--- para iniciar", e o EA JA esta rodando. A frase completa continua no
-      //--- Status, onde o contexto cabe.
+      //+---------------------------------------------------------------+
+      //| ⚠ Texto do MOTOR aqui tambem, e nao um neutro nosso.           |
+      //|                                                                |
+      //| A versao anterior dizia "TRADING INDISPONIVEL — PAUSAR         |
+      //| CONTINUA DISPONIVEL". Era verdade e nao servia: nao dizia o    |
+      //| que FAZER. O motivo de eu ter evitado o texto do motor era que |
+      //| ele termina em "Habilite para iniciar" com o EA ja rodando —   |
+      //| mas isso descreve exatamente a acao necessaria, e o distintivo |
+      //| ao lado ja diz IMPEDIDO: armado e impedido, habilite para      |
+      //| passar a operar. A leitura fecha.                              |
+      //|                                                                |
+      //| E a nota sobre o PAUSAR sobrava: o botao esta logo acima,      |
+      //| aceso, em ambar. Nesta linha a faixa nao responde "por que o   |
+      //| botao esta apagado" — ele nao esta —, responde "por que o      |
+      //| distintivo diz IMPEDIDO". So o texto do motor responde isso    |
+      //| nomeando a causa entre as cinco que o guard cobre.             |
+      //+---------------------------------------------------------------+
       if(m_snap.tradePermissionBlocked)
         {
-         s.band="TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL";
+         s.band=m_snap.tradePermissionReason;
          s.bandSem=FCV_SEM_WARN;
         }
       return s;
