@@ -10,6 +10,13 @@
 #define FCV_PANEL_W        590
 #define FCV_PANEL_H_MIN    560
 #define FCV_PANEL_H_MAX    900
+//--- Quanto do painel tem de sobrar dentro do grafico ao arrasta-lo para a
+//--- direita. Mede a faixa da ESQUERDA, que e a que fica visivel nesse sentido:
+//--- 160 unidades cobrem "EP Fusion 2.000" e area de arrasto de sobra. Os tres
+//--- botoes da barra ocupam as ultimas 90 unidades e nao entram na conta —
+//--- sobrando so eles, o painel apareceria e mesmo assim nao daria para
+//--- trazer de volta, porque clicar num botao nao arrasta.
+#define FCV_PANEL_MIN_VIS_W 160
 #define FCV_TITLEBAR_H      32
 //--- Cresceu 16 unidades na Fase 3 para abrigar a FAIXA DE MOTIVO sob os
 //--- botoes (que terminam em 123). Antes eram 136, e a folga de 13 unidades ali

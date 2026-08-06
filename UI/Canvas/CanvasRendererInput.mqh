@@ -454,11 +454,49 @@ void HandleScrollDrag(const int ly)
    if(ScrollBy(target-m_scroll)) Render();
   }
 
+//+------------------------------------------------------------------+
+//| A posicao do painel, limitada ao grafico.                         |
+//|                                                                   |
+//| ⚠ A regra existia pela METADE: o arrasto ja impedia sair por cima |
+//| e pela esquerda (`if(nx<0) nx=0`), e nao impedia nada a direita   |
+//| nem embaixo. Dava para arrastar o painel para fora da tela — e    |
+//| dali nao havia volta pela propria interface, porque a alca de     |
+//| arrasto e a barra de titulo, que sumia junto. A unica saida era   |
+//| remover e reanexar o EA, que devolve a posicao inicial; ninguem   |
+//| adivinha isso, e reinicializa o EA por um problema de janela.     |
+//|                                                                   |
+//| O que se garante e o MINIMO ALCANCAVEL, nao o painel inteiro      |
+//| dentro: parquear o painel meio para fora e uso legitimo — foi     |
+//| justamente o que o usuario estava fazendo para ver o grafico.     |
+//|                                                                   |
+//| Vertical: a barra de titulo inteira. Ela e a alca; garantir que   |
+//| ela cabe e garantir que da para trazer o painel de volta. Vale    |
+//| tambem minimizado, porque o minimo e a barra, nao a altura.       |
+//| Horizontal: FCV_PANEL_MIN_VIS_W da borda esquerda (ver a nota da  |
+//| constante — sobrar so os botoes nao serve).                       |
+//|                                                                   |
+//| O teto e aplicado ANTES do piso: num grafico menor que o minimo o |
+//| resultado tem de ser o canto superior esquerdo, nao um valor      |
+//| negativo vindo de `chartW - minimo`.                              |
+//+------------------------------------------------------------------+
+void ClampPanelXY(int &x,int &y)
+  {
+   int maxX=(int)ChartGetInteger(m_chart,CHART_WIDTH_IN_PIXELS) -S(FCV_PANEL_MIN_VIS_W);
+   int maxY=(int)ChartGetInteger(m_chart,CHART_HEIGHT_IN_PIXELS)-S(FCV_TITLEBAR_H);
+   if(x>maxX) x=maxX;
+   if(y>maxY) y=maxY;
+   if(x<0) x=0;
+   if(y<0) y=0;
+  }
+
 void HandleDrag(const int cx,const int cy)
   {
    int nx=cx-m_dragDX, ny=cy-m_dragDY;
-   if(nx<0) nx=0;
-   if(ny<0) ny=0;
+   //--- Recortado ANTES do MoveTo, e nao depois: mover para o lugar errado e
+   //--- corrigir em seguida reposicionaria o bitmap e todos os campos nativos
+   //--- duas vezes por evento de mouse, no caminho de maior frequencia do
+   //--- painel.
+   ClampPanelXY(nx,ny);
    if(nx==m_px && ny==m_py) return;
    //--- move sem repintar: o conteudo do quadro nao depende da posicao
    MoveTo(nx,ny);
@@ -470,6 +508,15 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
   {
    if(id==CHARTEVENT_CHART_CHANGE)
      {
+      //--- ⚠ A posicao e recortada AQUI tambem, e nao so no arrasto: o painel
+      //--- pode ficar fora sem ninguem ter arrastado nada — basta encolher a
+      //--- janela do MT5, ou o gráfico, com ele na parte de baixo ou da
+      //--- direita. Mesma licao do ClampScroll: recortar no evento que muda os
+      //--- LIMITES, e nao apenas no evento de entrada que muda o valor.
+      int nx=m_px, ny=m_py;
+      ClampPanelXY(nx,ny);
+      if(nx!=m_px || ny!=m_py) MoveTo(nx,ny);
+
       //--- so encolhe para nao ficar cortado; nunca cresce sozinho
       int fit=L((int)ChartGetInteger(m_chart,CHART_HEIGHT_IN_PIXELS)-m_py-16);
       if(fit<m_ph && fit>=FCV_PANEL_H_MIN) { m_ph=fit; Render(); }

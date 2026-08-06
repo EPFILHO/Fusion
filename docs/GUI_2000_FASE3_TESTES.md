@@ -165,6 +165,19 @@ ambiguo — o que ele significaria.
 - [ ] **A2.** Arrastar o painel pela barra de titulo.
       **Esperado:** o painel se move, o **grafico nao**. Se o grafico rolar
       junto, a supressao de `CHART_MOUSE_SCROLL` nao esta valendo.
+- [ ] **A2b.** ⚠️ **Tentar arrastar o painel para fora, nos quatro sentidos.**
+      **Esperado:** ele para. Para baixo, a barra de titulo inteira continua na
+      tela; para a direita, sobra a faixa da esquerda com "EP Fusion" — e ela e
+      area de arrasto, entao **sempre da para trazer o painel de volta**. Para
+      cima e para a esquerda ele ja parava na borda.
+- [ ] **A2c.** Com o painel encostado na borda de baixo ou da direita,
+      **diminuir a janela do MT5** (ou o gráfico).
+      **Esperado:** o painel e trazido de volta para dentro sozinho. E o caso
+      que o limite do arrasto nao cobre: aqui ninguem arrastou nada — o que
+      mudou foi o tamanho do grafico.
+      **Nota:** a posicao **nao** e guardada entre sessoes; reanexar o EA
+      sempre devolve o painel ao canto superior esquerdo. E a rede de seguranca,
+      mantida de proposito enquanto a Fase 3 nao fecha.
 - [ ] **A3.** Minimizar e restaurar.
       **Esperado:** os campos de digitacao **somem** ao minimizar. Um `OBJ_EDIT`
       apenas escondido continuaria aceitando clique.
