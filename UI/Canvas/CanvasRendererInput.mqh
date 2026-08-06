@@ -580,9 +580,11 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       bool over=InsidePanel(cx,cy);
       if(over!=m_overPanel) { SetChartScroll(over?false:m_origScroll); m_overPanel=over; }
 
-      //--- m_mouseDown e atualizado ANTES do despacho: o BuildEdits disparado
-      //--- de dentro do clique precisa saber que o botao esta apertado para
-      //--- nao criar campo nativo sob o cursor.
+      //--- m_mouseDown e a POSICAO sao atualizados ANTES do despacho: o
+      //--- BuildEdits disparado de dentro do clique precisa saber que o botao
+      //--- esta apertado E onde o cursor esta, para nao criar campo nativo
+      //--- debaixo dele. Guardados juntos porque a guarda usa os dois.
+      m_mouseX=cx; m_mouseY=cy;
       bool press=(down && !m_mouseDown && over);
       //--- Clique FORA do painel tambem encerra a edicao. Sem isto o foco ficava
       //--- preso: o painel nunca via esse clique, continuava se achando em

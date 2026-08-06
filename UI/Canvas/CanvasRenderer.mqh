@@ -94,6 +94,12 @@ private:
    //--- interacao
    bool              m_mouseDown, m_dragging, m_scrollDrag, m_overPanel;
    int               m_dragDX, m_dragDY, m_scrollDragY, m_scrollDragBase;
+   //--- Cursor em PIXELS DO GRAFICO, como o evento entrega. Guardado porque a
+   //--- criacao de campo nativo precisa saber se o objeto nasceria SOB ele —
+   //--- ver a guarda em BuildEdits. Em pixel e nao em unidade logica: e nessa
+   //--- moeda que o objeto e posicionado, e converter para comparar erraria por
+   //--- um ou dois pixels conforme a escala.
+   int               m_mouseX, m_mouseY;
    bool              m_origScroll;
    int               m_scroll, m_contentH, m_alertH;
 
@@ -456,6 +462,10 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
 
    m_mouseDown=false; m_dragging=false; m_scrollDrag=false; m_overPanel=false;
    m_dragDX=0; m_dragDY=0; m_scrollDragY=0; m_scrollDragBase=0;
+   //--- Fora de qualquer campo enquanto o mouse nao se move. Nao importa: sem
+   //--- movimento o botao tambem nao esta apertado, e a guarda so olha isto
+   //--- depois de conferir o botao.
+   m_mouseX=-1; m_mouseY=-1;
    m_origScroll=true;
    m_scroll=0; m_contentH=0; m_alertH=0;
 

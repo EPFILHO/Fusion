@@ -174,6 +174,25 @@ ambiguo — o que ele significaria.
       **Esperado:** o painel se reconstroi inteiro e o distintivo do cabecalho
       mostra o **TF do grafico** (nao o resumo operacional, que e a linha de
       largura inteira do cartao SESSAO).
+- [ ] **A7.** ⚠️ **Campos nativos durante a rolagem.** Numa aba com barra —
+      Estrategias > Medias serve —, **arrastar a barra** de cima a baixo.
+      **Esperado:** os campos de digitacao permanecem visiveis **durante** o
+      movimento, aparecendo e sumindo apenas nas bordas da area util (objeto
+      nativo nao se recorta: o que nao cabe inteiro e destruido, nao cortado).
+      Conferir tambem, na mesma sequencia:
+      1. rolar com a **roda**: comportamento identico;
+      2. abrir um **combo** e escolher um item cujo botao fique sobre um campo —
+         o campo atras **nao** pode roubar o foco ao reaparecer;
+      3. repetir nas **tres escalas**;
+      4. arrastar ate os limites **superior e inferior**;
+      5. **soltar o botao fora do painel** — os campos tem de estar todos la.
+      **Por que este passo existe:** a criacao de campo nativo era adiada
+      sempre que o botao do mouse estivesse apertado, para o terminal nao
+      entregar o foco a um objeto nascido sob o cursor. Arrastar a barra
+      tambem mantem o botao apertado, entao nada nascia enquanto o conteudo
+      rolava — e o que saia de vista continuava sendo destruido. A guarda hoje
+      exige que o cursor esteja **sobre o proprio campo**; o item 2 e o que
+      confere que o caso original continua protegido.
 - [ ] **A6.** Fechar e reabrir o terminal com o EA anexado.
       **Esperado:** volta com o mesmo perfil ativo e a mesma aparencia (paleta,
       tema e escala escolhidas na aba Layout sobrevivem — ficam em variavel

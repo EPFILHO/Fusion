@@ -14,6 +14,22 @@
 bool EditVisible(const int ly)
   { return (ly>=ContentTop() && ly+FCV_EDIT_H<=ContentBottom()); }
 
+//+------------------------------------------------------------------+
+//| O campo do registro `i` nasceria SOB o cursor?                    |
+//|                                                                   |
+//| Em PIXELS DO GRAFICO, e com a mesma aritmetica do MakeEdit —      |
+//| m_px+S(x), m_py+S(y), S(w), S(FCV_EDIT_H). Comparar em unidade    |
+//| logica erraria por um ou dois pixels conforme a escala, porque    |
+//| S(v)=floor(v*escala/100): e a mesma armadilha que ja custou       |
+//| quatro rodadas de caca-fantasma nas bordas.                       |
+//+------------------------------------------------------------------+
+bool CursorOverEdit(const int i)
+  {
+   int x1=m_px+S(m_editX[i]), y1=m_py+S(m_editY[i]);
+   int x2=x1+S(m_editW[i]),   y2=y1+S(FCV_EDIT_H);
+   return (m_mouseX>=x1 && m_mouseX<=x2 && m_mouseY>=y1 && m_mouseY<=y2);
+  }
+
 //--- Cores e travas de estado, aplicaveis tanto na criacao quanto na
 //--- atualizacao de um campo que ja existe.
 //--- Mesma tabela do FusionApplyEditStyle da 1.058: bloqueado vence invalido,
@@ -128,15 +144,33 @@ void BuildEdits(void)
       if(live<0)
         {
          if(m_liveEditCount>=FCV_CTRL_MAX) continue;
-         //--- NUNCA criar objeto nativo com o botao do mouse pressionado.
-         //--- O popup do combo apaga os campos que ficam atras dele (o objeto
-         //--- nativo pintaria por cima do desenho). Ao escolher um item, o
-         //--- popup fecha e este BuildEdits recriava o campo exatamente sob o
-         //--- cursor, com o botao ainda apertado — e o terminal entregava o
-         //--- foco ao objeto recem-nascido. Era assim que clicar em "MN1"
-         //--- acabava selecionando o campo "Desvio" que estava atras.
-         //--- Adiado para a soltura do botao, que dispara um novo Render.
-         if(m_mouseDown) { m_editsPending=true; continue; }
+         //+---------------------------------------------------------+
+         //| NUNCA criar objeto nativo SOB o cursor com o botao       |
+         //| pressionado.                                             |
+         //|                                                          |
+         //| O popup do combo apaga os campos que ficam atras dele (o |
+         //| objeto nativo pintaria por cima do desenho). Ao escolher  |
+         //| um item, o popup fecha e este BuildEdits recriava o campo |
+         //| exatamente sob o cursor, com o botao ainda apertado — e o |
+         //| terminal entregava o foco ao objeto recem-nascido. Era    |
+         //| assim que clicar em "MN1" acabava selecionando o campo    |
+         //| "Desvio" que estava atras. Adiado para a soltura, que     |
+         //| dispara um novo Render.                                   |
+         //|                                                          |
+         //| ⚠ A guarda testava so `m_mouseDown`, e era larga demais. |
+         //| ARRASTAR A BARRA DE ROLAGEM tambem mantem o botao         |
+         //| apertado, e ali o cursor esta na lateral direita, longe   |
+         //| da coluna dos campos: nenhum nascia enquanto o conteudo   |
+         //| rolava, enquanto os que saiam de vista continuavam sendo  |
+         //| destruidos (a etapa 1 nao tem esta guarda). A tela ia     |
+         //| esvaziando durante o arrasto e so se recompunha ao        |
+         //| soltar. Achado pelo usuario testando no MT5.              |
+         //|                                                          |
+         //| Estreitada, nao removida: o caso do combo continua        |
+         //| adiado, porque la o campo nasce justamente onde o dedo    |
+         //| esta. E o m_editsPending segue como rede.                 |
+         //+---------------------------------------------------------+
+         if(m_mouseDown && CursorOverEdit(i)) { m_editsPending=true; continue; }
          MakeEdit(id,m_editX[i],m_editY[i],m_editW[i],m_editVal[i],m_editEnabled[i],m_editValid[i]);
          m_liveEditName[m_liveEditCount]=nm;
          m_liveEditX[m_liveEditCount]=m_editX[i];
