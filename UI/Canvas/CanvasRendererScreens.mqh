@@ -318,8 +318,15 @@ bool StatusNotice(string &title,string &body,int &sem)
      }
    if(HasText(m_snap.activeProfileBlockedReason))
      { title="PERFIL BLOQUEADO"; body=m_snap.activeProfileBlockedReason; return true; }
+   //--- ⚠ Titulo NEUTRO. `tradePermissionBlocked` cobre cinco causas — conexao
+   //--- perdida, AutoTrading do terminal, permissao de trade do EA, conta sem
+   //--- negociacao e conta sem negociacao automatica —, e o titulo dizia
+   //--- "AUTOTRADING OFF" para todas. Ficou pior com o marcador ambar da aba,
+   //--- que manda o usuario para ca: ele pode chegar por conexao perdida e ler
+   //--- um titulo falso sobre um corpo que fala de conexao. A causa concreta ja
+   //--- vem no corpo, escrita pelo motor.
    if(m_snap.tradePermissionBlocked)
-     { title="AUTOTRADING OFF"; body=m_snap.tradePermissionReason; return true; }
+     { title="TRADING INDISPONIVEL"; body=m_snap.tradePermissionReason; return true; }
    if(m_snap.pendingReverseExit)
      {
       title="VIRADA DE MAO";

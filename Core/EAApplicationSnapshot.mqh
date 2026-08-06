@@ -7,6 +7,10 @@
       snapshot.settings         = m_settings;
       snapshot.started          = m_started;
       snapshot.hasPosition      = HasManagedOrPendingPosition();
+      //--- MESMO booleano que o guard de permissao recebe em EAApplicationEntryBlock
+      //--- (`Refresh(m_positionState.hasPosition)`). Sao conceitos diferentes de
+      //--- proposito: ver a nota dos dois campos em Core/Types.mqh.
+      snapshot.hasOpenPosition  = m_positionState.hasPosition;
       snapshot.activeProfileName= m_activeProfileName;
       snapshot.activeProfileFileMissing = m_activeProfileFileMissing;
       snapshot.symbol           = (m_chartContext.symbol == "" ? _Symbol : m_chartContext.symbol);

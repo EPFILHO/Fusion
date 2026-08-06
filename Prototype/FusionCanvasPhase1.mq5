@@ -217,6 +217,10 @@ SUIPanelSnapshot BuildFakeSnapshot(void)
    s.activeProfileFileMissing = false;
    s.started           = false;
    s.hasPosition       = false;
+   //--- Sem reconciliacao pendente no harness, entao os dois andam juntos aqui.
+   //--- No EA eles divergem, e e essa divergencia que o card critico precisa
+   //--- enxergar — ver a nota dos dois campos em Core/Types.mqh.
+   s.hasOpenPosition   = false;
    s.runtimeBlocked    = false;
    s.magicNumber       = activeMagic;
    s.ownerStrategyName = "";

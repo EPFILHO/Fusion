@@ -758,7 +758,22 @@ bool AccActiveProfileEditable(void)
 //|  - CONFIG invalida: era o `true` provisorio da 2b, que AFROUXAVA  |
 //|    a regra e deixava iniciar com campo invalido.                  |
 //+------------------------------------------------------------------+
+//--- Fachada: a escada decide, e esta camada aplica a UNICA regra que vale para
+//--- todos os desfechos dela. Sem ela a supressao teria de ser repetida em cada
+//--- `return` da escada, e bastaria um esquecido para o card e a faixa dizerem
+//--- a mesma coisa duas vezes.
 SHeaderAction ResolveHeaderActionState(void)
+  {
+   SHeaderAction s=ResolveHeaderActionLadder();
+   //--- Card critico no ar: a faixa cala, sempre. Ele ja diz, e mais alto e com
+   //--- o texto grave do motor. Antes a supressao existia so no ramo
+   //--- "rodando com posicao", entao o EA PARADO com posicao e permissao
+   //--- perdida mostrava os dois com a mesma causa.
+   if(s.critical) { s.band=""; s.bandSem=FCV_SEM_NEUTRAL; }
+   return s;
+  }
+
+SHeaderAction ResolveHeaderActionLadder(void)
   {
    SHeaderAction s;
    s.action=FCV_HACT_NONE; s.label="INICIAR"; s.enabled=false;
@@ -787,7 +802,14 @@ SHeaderAction ResolveHeaderActionState(void)
    //--- Trading indisponivel com posicao aberta: o gerenciamento parou no meio
    //--- de uma operacao. E o unico estado que merece tomar espaco de conteudo
    //--- em qualquer aba.
-   s.critical   = (m_snap.tradePermissionBlocked && m_snap.hasPosition);
+   //---
+   //--- ⚠ `hasOpenPosition`, e NAO `hasPosition`. O segundo inclui o fechamento
+   //--- aguardando o historico confirmar, e nesse estado a posicao ja pode ter
+   //--- fechado — o card anunciaria "COM POSICAO ABERTA" sobre um corpo na
+   //--- forma branda, porque o guard recebe justamente `hasOpenPosition` e
+   //--- escreve a versao grave so quando ele e verdadeiro. Os dois lados tem de
+   //--- olhar o mesmo booleano.
+   s.critical   = (m_snap.tradePermissionBlocked && m_snap.hasOpenPosition);
 
    bool formOpen = (m_profEdit!=FCV_PROF_VIEW);
 
@@ -796,12 +818,9 @@ SHeaderAction ResolveHeaderActionState(void)
      {
       s.label="OPERANDO"; s.action=FCV_HACT_NONE;
       s.enabled=false;    s.block=FCV_HBLK_POSITION;
-      //--- Com o card critico no ar, a faixa cala: o card ja diz, e mais alto.
-      if(!s.critical)
-        {
-         s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
-         s.bandSem=FCV_SEM_NEUTRAL;
-        }
+      //--- Se o card critico estiver no ar, a fachada apaga esta faixa.
+      s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
+      s.bandSem=FCV_SEM_NEUTRAL;
       return s;
      }
 
@@ -851,6 +870,13 @@ SHeaderAction ResolveHeaderActionState(void)
                                                 : m_snap.activeProfileBlockedReason;
       return s;
      }
+   //--- ⚠ ANTES de CONFIG, e nao depois. Magic repetido no perfil ativo JA
+   //--- reprova ConfigInputsValid() — ScreenErrorProfiles cobra unicidade em
+   //--- modo de visualizacao, via VMagicTakenByOther. Posto depois, este ramo
+   //--- era inalcancavel na pratica e a faixa dizia "CONFIGURACAO INVALIDA"
+   //--- para um problema que tem nome. **Causa especifica vence a generica.**
+   if(ActiveMagicConflicts())
+     { s.block=FCV_HBLK_MAGIC; s.band="MAGIC DO PERFIL EM CONFLITO — resolva em Perfis"; s.bandSem=FCV_SEM_BAD; return s; }
    //--- Antes de PENDING, senao a faixa diria "salve" com o SALVAR apagado: ele
    //--- tambem exige ConfigInputsValid(). CANCELAR nao exige, e continua sendo
    //--- saida nos dois casos — daí "ou cancele" nos dois textos.
@@ -858,8 +884,6 @@ SHeaderAction ResolveHeaderActionState(void)
      { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
    if(HasPending())
      { s.block=FCV_HBLK_PENDING; s.band="ALTERACOES PENDENTES — salve ou cancele"; return s; }
-   if(ActiveMagicConflicts())
-     { s.block=FCV_HBLK_MAGIC; s.band="MAGIC DO PERFIL EM CONFLITO — resolva em Perfis"; s.bandSem=FCV_SEM_BAD; return s; }
    //--- Por ultimo: e o unico que nao se resolve dentro do painel. Aqui o texto
    //--- do motor vale LITERAL — com o EA parado, "Habilite para iniciar" e
    //--- exatamente o que o usuario precisa fazer. E ele distingue as cinco
@@ -1048,7 +1072,17 @@ void DrawHeader(void)
       //--- Marca de 2 px a esquerda, como no aviso do rodape: e o mesmo tipo de
       //--- informacao, e repetir o sinal ensina a le-lo.
       Rect(FCV_PAD,FCV_BAND_Y-6,FCV_PAD+1,FCV_BAND_Y+6,bandClr);
-      Txt(FCV_PAD+8,FCV_BAND_Y,m_hdr.band,bandClr,
+      //--- ⚠ MEDIDO antes de escrever. Os textos que o painel compoe cabem, mas
+      //--- os que vem do motor nao: o bloqueio por troca de ativo do grafico
+      //--- passa de 130 caracteres para as ~556 unidades desta linha, e o
+      //--- CCanvas escreve alem da borda sem avisar. O que sumiria e o fim da
+      //--- frase — onde mora a instrucao. Encurtado, a parte acionavel (que nos
+      //--- textos do motor vem primeiro) sobrevive, e o texto integral continua
+      //--- na aba Status, para onde o marcador ambar aponta.
+      int bandX=FCV_PAD+8;
+      string band=FitText(m_hdr.band,(FCV_PANEL_W-FCV_PAD)-bandX,
+                          FCV_FONT_UI,FCV_FS_CAP,FCV_FW_SEMI);
+      Txt(bandX,FCV_BAND_Y,band,bandClr,
           FCV_FONT_UI,FCV_FS_CAP,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
      }
   }

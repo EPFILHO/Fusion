@@ -498,7 +498,23 @@ struct SUIPanelSnapshot
   {
    SEASettings settings;
    bool   started;
+   //--- "ha posicao gerenciada OU fechamento aguardando o historico confirmar"
+   //--- (HasManagedOrPendingPosition). E o conceito certo para bloquear edicao e
+   //--- para o rotulo OPERANDO: nos dois casos o EA nao esta livre.
    bool   hasPosition;
+   //--- Posicao REALMENTE aberta agora (m_positionState.hasPosition), sem a
+   //--- reconciliacao pendente.
+   //---
+   //--- ⚠ Existe porque e ESTE o booleano que o CTradePermissionGuard recebe
+   //--- (`Refresh(m_positionState.hasPosition)`), e e ele que decide a forma
+   //--- GRAVE da mensagem — "Gerenciamento da posicao interrompido" em vez de
+   //--- "Habilite para iniciar". Um consumidor que decida "isto e critico" pelo
+   //--- `hasPosition` acima anuncia posicao aberta durante uma reconciliacao em
+   //--- que ela ja fechou, e ainda por cima com o texto na forma branda, porque
+   //--- o guard recebeu false. Os dois conceitos precisam vir separados.
+   //---
+   //--- Aditivo: o painel 1.058 nao le este campo.
+   bool   hasOpenPosition;
    string activeProfileName;
    bool   activeProfileFileMissing;
    string symbol;

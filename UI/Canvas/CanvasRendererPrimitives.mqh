@@ -196,6 +196,42 @@ int TxtW(const string s,const string f,const int pt10,const int w)
    return L((int)m_canvas.TextWidth(s));
   }
 
+//+------------------------------------------------------------------+
+//| Texto que precisa caber numa linha de largura conhecida.          |
+//|                                                                   |
+//| Devolve o proprio texto quando cabe; senao, o maior prefixo que   |
+//| cabe COM as reticencias. Existe porque o CCanvas nao recorta nem  |
+//| avisa: o TextOut simplesmente escreve alem da borda, e o que      |
+//| passa do bitmap desaparece. Um texto cortado assim nao parece     |
+//| cortado — parece uma frase que termina de forma estranha, e o que |
+//| some e sempre o FIM, que e onde costuma estar a instrucao.        |
+//|                                                                   |
+//| ⚠ Encurtar e a ultima linha de defesa, nao a solucao: o texto     |
+//| integral tem de continuar alcancavel em algum lugar (para a faixa |
+//| do cabecalho, na aba Status). Cortar e melhor que transbordar,    |
+//| mas so porque o completo esta a um clique.                        |
+//|                                                                   |
+//| Busca binaria, e nao um caractere por vez: cada medida chama o    |
+//| TextWidth do canvas, e uma frase de 130 letras custaria 130       |
+//| medidas por quadro. Assim sao ~8, e so quando nao coube.          |
+//+------------------------------------------------------------------+
+string FitText(const string s,const int maxW,const string f,const int pt10,const int w)
+  {
+   if(maxW<=0) return "";
+   if(TxtW(s,f,pt10,w)<=maxW) return s;
+   int lo=0, hi=StringLen(s);
+   while(lo<hi)
+     {
+      int mid=(lo+hi+1)/2;
+      if(TxtW(StringSubstr(s,0,mid)+"...",f,pt10,w)<=maxW) lo=mid;
+      else                                                 hi=mid-1;
+     }
+   //--- Nem as reticencias couberam: melhor nada que um "..." solto, que nao
+   //--- informa e ainda ocupa o lugar de onde a informacao deveria estar.
+   if(lo<=0) return "";
+   return StringSubstr(s,0,lo)+"...";
+  }
+
 int WrapText(const int x,const int y,const int maxW,const int lineH,const string s,
              const uint c,const int pt10,const bool draw)
   {

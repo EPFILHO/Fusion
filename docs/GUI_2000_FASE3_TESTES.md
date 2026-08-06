@@ -403,6 +403,21 @@ Regras que valem em todos os passos abaixo:
 | I2.10 | ⚠ Rodando, sem posicao, AutoTrading desligado | `PAUSAR` **aceso** | `IMPEDIDO` | `TRADING INDISPONIVEL — PAUSAR CONTINUA DISPONIVEL` |
 | I2.11 | Rodando com posicao | `OPERANDO` apagado | `RODANDO` | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
 | I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `OPERANDO` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
+| I2.15 | Parado, com posicao aberta e permissao perdida | `INICIAR` apagado | `IMPEDIDO` | nenhuma — card no ar, faixa cala **sempre** que ele aparece |
+| I2.16 | Bloqueio de runtime (troque o ativo do grafico com o EA anexado) | `INICIAR` apagado | `BLOQUEADO` | texto do motor **abreviado com `...`** se nao couber; integral no Status |
+
+⚠️ **I2.8 mudou de ordem por um motivo que vale registrar.** O Magic repetido
+tambem reprova `ConfigInputsValid()` — `ScreenErrorProfiles` cobra unicidade em
+modo de visualizacao. Com a checagem generica antes, a faixa dizia
+`CONFIGURACAO INVALIDA` para um problema que tem nome, e o ramo especifico era
+inalcancavel. **Causa especifica vence a generica**, entao o Magic subiu para
+logo depois do perfil preso.
+
+⚠️ **I2.16 e o teste da abreviacao.** O bloqueio por troca de ativo passa de 130
+caracteres e a faixa tem ~556 unidades: sem medir, o `CCanvas` escreveria alem da
+borda e o fim da frase — onde mora a instrucao — sumiria sem deixar sinal.
+Conferir que o texto termina em `...` e que a parte acionavel ("Volte para
+&lt;ativo&gt;") aparece **antes** do corte.
 
 ⚠️ **I2.10 e o passo que nao pode falhar.** PAUSAR nao herda os bloqueios do
 INICIAR: com o AutoTrading desligado o EA continua rodando de proposito, e tirar

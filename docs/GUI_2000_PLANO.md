@@ -522,8 +522,10 @@ sem que nenhuma subaba dissesse onde.
 Sao perguntas diferentes: ele responde "ha Magic repetido em algum lugar do disco", e
 dois perfis parados que colidem entre si nao atrapalham esta conta. Dentro do
 predicado, ele passaria a impedir INICIAR e SALVAR por causa de arquivos que este
-grafico nao usa. Quem cuida do caso que importa e `AccCanStart`, com
-`ActiveMagicConflicts()`.
+grafico nao usa. Quem cuida do caso que importa e a escada de
+`ResolveHeaderActionState()` (Fase 3), com `ActiveMagicConflicts()` — e la o
+motivo vira texto na faixa do cabecalho. Antes disso a funcao chamava-se
+`AccCanStart()`; ela foi removida quando a escada virou a fonte unica.
 
 **Custo:** `ConfigInputsValid()` percorre as vinte e uma telas e e consultado tres
 vezes por quadro (INICIAR, SALVAR, CRIAR). O rascunho nao muda no meio de um desenho,
