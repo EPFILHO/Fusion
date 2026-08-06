@@ -78,6 +78,39 @@ bool ScrollBy(const int d)
   }
 
 //+------------------------------------------------------------------+
+//| Recorte do deslocamento contra o maximo de AGORA.                 |
+//|                                                                   |
+//| ⚠ O ScrollBy acima recorta, mas so roda quando ha EVENTO de       |
+//| rolagem — e o maximo muda sem evento nenhum. Basta a area util    |
+//| crescer ou o conteudo encolher:                                   |
+//|                                                                   |
+//|   - a caixa de aviso aparecendo ou sumindo (ContentBottom depende |
+//|     de m_alertH), que e o caso mais comum: qualquer campo que      |
+//|     entra e sai de invalido move a area util;                     |
+//|   - a lista de perfis encolhendo, relida pelo pulso sem clique;   |
+//|   - um cartao perdendo linhas porque uma chave desligou os        |
+//|     parametros dependentes.                                        |
+//|                                                                   |
+//| Sem este recorte o conteudo continua desenhado em                 |
+//| ContentTop()-m_scroll com um m_scroll que ja nao cabe: o topo     |
+//| some. E o estado nao tem saida pela propria tela — cabendo o      |
+//| conteudo, o ScrollBy volta `false` no `maxS<=0` sem tocar em      |
+//| nada, e a barra nem e desenhada. So trocar de aba (que zera)      |
+//| devolvia o painel ao lugar.                                        |
+//|                                                                   |
+//| Por isso o recorte e por QUADRO, e nao por evento. Devolve true   |
+//| quando mexeu, para quem chamar decidir se precisa repintar.       |
+//+------------------------------------------------------------------+
+bool ClampScroll(void)
+  {
+   int maxS=m_contentH-(ContentBottom()-ContentTop());
+   if(maxS<0) maxS=0;
+   if(m_scroll>=0 && m_scroll<=maxS) return false;
+   m_scroll=(m_scroll>maxS) ? maxS : 0;
+   return true;
+  }
+
+//+------------------------------------------------------------------+
 //| Fichario: a aba ativa perde a borda de baixo e recebe o fundo da  |
 //| superficie; a linha do estado atravessa toda a largura. Erro      |
 //| prevalece sobre selecao.                                          |
@@ -286,9 +319,10 @@ uint RunStateColor(void)
 //| iniciar com campo invalido), nunca a aperta.                      |
 //+------------------------------------------------------------------+
 //--- Campos de configuracao so aceitam edicao quando o EA permite. Era a
-//--- lacuna registrada para a 2d: m_locked existia mas so respondia a tecla de
-//--- simulacao, nunca ao estado do EA — os campos seguiam editaveis operando.
-//--- A tecla B continua valendo como forcador manual, para exercitar o estado.
+//--- lacuna registrada para a 2d: existia um sinalizador que so respondia a uma
+//--- tecla de simulacao, nunca ao estado do EA — os campos seguiam editaveis
+//--- operando. Hoje as duas linhas abaixo SAO a regra, e a simulacao saiu na
+//--- Fase 3 junto com a tecla (ver a nota das teclas em CanvasRendererInput).
 //--- ⚠ A regra de acesso NAO e a mesma para todo campo, e tratar como se fosse
 //--- ja produziu os dois lados do erro:
 //---
@@ -304,7 +338,6 @@ uint RunStateColor(void)
 //--- exatamente porque significa "estes campos nao sao do perfil ativo".
 bool FieldsLocked(void)
   {
-   if(m_locked) return true;
    if(m_screen==FCV_SCREEN_PROFILE_EDIT) return !AccCanCreateProfile();
    return !AccActiveProfileEditable();
   }

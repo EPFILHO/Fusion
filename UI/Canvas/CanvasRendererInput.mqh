@@ -535,21 +535,26 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
          return;
         }
 
-      //--- Teclas de diagnostico da Fase 1. Nao podem disparar com um campo em
-      //--- edicao: digitar "m" num campo nao pode rodar a suite de medicao.
-      if(!EditHasFocus())
+      //+---------------------------------------------------------------+
+      //| Medicao do custo de desenho. Unica tecla de diagnostico que    |
+      //| sobrou, e ela pode ficar: so LE, anuncia o que fez no log e    |
+      //| devolve a tela ao estado anterior ao terminar.                 |
+      //|                                                                |
+      //| ⚠ As outras duas SAIRAM na Fase 3, e o motivo foi ela: ate     |
+      //| entao o renderizador so era alcancado pelo harness, e a partir |
+      //| do FusionCanvas.ex5 ele responde num grafico com dinheiro.     |
+      //|   S — punha a tela sintetica de estresse SOBRE o painel real;  |
+      //|   B — fingia perfil bloqueado, e um toque acidental exibiria   |
+      //|       um bloqueio que nao existe, indistinguivel de defeito.   |
+      //| A tela de estresse continua existindo: e o pior caso que a     |
+      //| suite de medicao desenha, so nao ha mais como liga-la a mao.   |
+      //|                                                                |
+      //| Nao pode disparar com um campo em edicao: digitar "m" num      |
+      //| campo nao pode rodar a suite.                                  |
+      //+---------------------------------------------------------------+
+      if((int)lparam==FCV_VK_M && !EditHasFocus())
         {
-         if((int)lparam==FCV_VK_M) { RunPerfSuite(); return; }
-         if((int)lparam==FCV_VK_S) { ToggleStress(); return; }
-        }
-      if((int)lparam==FCV_VK_B && !EditHasFocus())
-        {
-         //--- simula o perfil bloqueado da 1.058 para exercitar o estado
-         m_locked=!m_locked;
-         m_comboOpen=-1; m_colorOpen=-1;
-         Render();
-         Print(m_locked ? "Perfil BLOQUEADO (simulacao): controles desabilitados."
-                        : "Perfil liberado.");
+         RunPerfSuite();
          return;
         }
       if(m_minimized || !m_overPanel) return;

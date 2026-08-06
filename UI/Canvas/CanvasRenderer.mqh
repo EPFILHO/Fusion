@@ -236,9 +236,6 @@ private:
    //--- Escala: 100 = unidades logicas de projeto. So as primitivas, a
    //--- conversao de clique e a criacao dos campos nativos a enxergam.
    int               m_scale;
-   //--- Acesso: espelha o CanEditActiveProfile() da 1.058. Com o perfil
-   //--- bloqueado, os controles ficam apagados e param de aceitar clique.
-   bool              m_locked;
    //--- lembrar paleta, tema e tamanho entre sessoes
    bool              m_remember;
 
@@ -410,7 +407,6 @@ public:
      }
 
    void              MoveTo(const int x,const int y);
-   void              ToggleStress(void);
    //--- ChartEvent e RunPerfSuite sao definidos nos fragmentos Input e Perf
 
 private:
@@ -519,7 +515,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_snap.conflictMode=CONFLICT_PRIORITY;
 
    m_fontName=""; m_fontPt10=0; m_fontWeight=0;
-   m_scale=FCV_SCALE_DEFAULT; m_locked=false; m_remember=true;
+   m_scale=FCV_SCALE_DEFAULT; m_remember=true;
    SetDefaultSettings(m_draft);
    SetDefaultSettings(m_committed);
    m_stress=false; m_frameTexts=0; m_frameTextsVis=0; m_frameRects=0;
@@ -708,6 +704,11 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //--- depois faria o conteudo desta passada usar a altura da passada
    //--- anterior — um quadro de atraso a cada troca de tela.
    MeasureAlert();
+   //--- E o deslocamento da rolagem depende da mesma altura, pela mesma razao.
+   //--- Com o m_alertH ja correto e o m_contentH da passada anterior, este
+   //--- recorte acerta exatamente o caso que motivou a funcao: o aviso some, a
+   //--- area util cresce, o conteudo NAO mudou. Ver ClampScroll no Chrome.
+   ClampScroll();
 
    //--- superficie do nivel 1: e nela que as abas do fichario se apoiam
    Rect(0,Surf1Top(),FCV_PANEL_W-1,h-1,m_t.surface);
@@ -765,6 +766,37 @@ void CFusionCanvasRenderer::Render(void)
    ObjectSetInteger(m_chart,m_canvasName,OBJPROP_YDISTANCE,m_py);
 
    DrawFrame();
+   //+---------------------------------------------------------------+
+   //| Segunda passada do recorte — ANTES de publicar o bitmap.       |
+   //|                                                                |
+   //| A primeira (dentro do DrawFrame) usa o m_contentH da passada   |
+   //| ANTERIOR, porque o desta so existe depois que o conteudo se    |
+   //| desenhou. Ela resolve o caso comum, em que a area util mudou e |
+   //| o conteudo nao: o aviso apareceu ou sumiu. Se o CONTEUDO       |
+   //| tambem encolheu neste quadro, e so aqui que se descobre — e o  |
+   //| quadro recem-desenhado ja esta deslocado.                      |
+   //|                                                                |
+   //| ⚠ A primeira versao disto marcava m_viewDirty e deixava para o |
+   //| pulso. Estava ERRADO, e a suposicao por tras era que "o pulso  |
+   //| repinta e ninguem ve". Ninguem ve no harness; no EA o quadro   |
+   //| torto fica na tela ate ~1 s. Dois motivos, e o segundo mata o  |
+   //| desenho inteiro: o Update() do painel chama Render() DIRETO,   |
+   //| sem passar pelo Pulse, entao m_viewDirty nem e consultado no   |
+   //| caminho de producao — quem repinta e o proximo Update, que vem |
+   //| do EventSetTimer(1).                                            |
+   //|                                                                |
+   //| Repintar aqui custa um DrawFrame extra (~2 ms) e SO no quadro  |
+   //| em que o limite mudou de verdade. Nao ha custo permanente, e   |
+   //| nao ha recursao: m_contentH e medido somando m_scroll de volta |
+   //| (ver DrawScreenContent), logo nao depende do deslocamento — a  |
+   //| segunda pintura publica o mesmo valor e um terceiro recorte    |
+   //| nao teria o que fazer.                                          |
+   //|                                                                |
+   //| Minimizado nao entra: o conteudo nao e desenhado, o m_contentH |
+   //| e de outra tela, e o recorte zeraria uma posicao ainda valida. |
+   //+---------------------------------------------------------------+
+   if(!m_minimized && ClampScroll())
+      DrawFrame();
 
    m_canvas.Update(false);
    BuildEdits();
@@ -798,15 +830,5 @@ void CFusionCanvasRenderer::MoveTo(const int x,const int y)
    ChartRedraw(m_chart);
   }
 
-//+------------------------------------------------------------------+
-void CFusionCanvasRenderer::ToggleStress(void)
-  {
-   m_stress=!m_stress;
-   if(m_stress) { m_tab=FCV_TAB_GESTAO; m_sub[FCV_TAB_GESTAO]=1; m_railSel[1]=4; }
-   m_scroll=0;
-   Render();
-   Print(m_stress ? "Tela de estresse LIGADA (pior caso sintetico)."
-                  : "Tela de estresse desligada.");
-  }
 
 #endif

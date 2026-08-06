@@ -12,7 +12,13 @@
 //|                                                                   |
 //| Teclas com o grafico em foco:                                     |
 //|   M — roda a medicao de custo de desenho (resultado no log)       |
-//|   S — liga/desliga a tela sintetica de pior caso                  |
+//|                                                                   |
+//| As teclas S (tela de estresse) e B (perfil bloqueado simulado)    |
+//| sairam na Fase 3. Elas viviam no renderizador, que a partir do    |
+//| FusionCanvas.ex5 roda num grafico com dinheiro — e um toque       |
+//| acidental exibiria estado falso indistinguivel de defeito. A tela |
+//| de estresse continua sendo desenhada pela suite de medicao; so    |
+//| nao ha mais como liga-la a mao.                                   |
 //+------------------------------------------------------------------+
 #include "..\Core\Version.mqh"
 
@@ -601,7 +607,7 @@ int OnInit(void)
    //--- reais, que e o que revela conflito de Magic e nome estranho em disco.
    //--- Inventar nomes aqui testaria o desenho e escondia justamente isso.
    LoadRealProfiles();
-   Print("Fase 1 da GUI 2.0 ativa (dados falsos). Teclas: M = medir custo, S = tela de estresse.");
+   Print("Fase 1 da GUI 2.0 ativa (dados falsos). Tecla M = medir custo de desenho.");
    if(inp_MeasureOnStart) g_panel.RunPerfSuite();
    EventSetMillisecondTimer(200);
    return INIT_SUCCEEDED;

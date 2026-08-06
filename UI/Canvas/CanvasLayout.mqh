@@ -173,9 +173,11 @@
 #define FCV_VK_HOME  36
 #define FCV_VK_UP    38
 #define FCV_VK_DOWN  40
+//--- Medicao do custo de desenho. As teclas S (tela de estresse) e B (perfil
+//--- bloqueado simulado) sairam na Fase 3: com o FusionCanvas.ex5 o
+//--- renderizador passou a rodar num grafico com dinheiro, e um toque
+//--- acidental exibiria estado falso indistinguivel de defeito.
 #define FCV_VK_M     77
-#define FCV_VK_S     83
-#define FCV_VK_B     66
 
 //--- Escala do painel, em porcento das unidades logicas. Nomeada por efeito
 //--- (Menor/Padrao/Maior) e nao por numero: o usuario escolhe o que enxerga
