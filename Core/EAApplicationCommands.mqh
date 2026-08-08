@@ -227,8 +227,10 @@
          loadedSettings.isTester = m_settings.isTester;
          //--- mesma razao do boot: diagnostico e de sessao, nao do perfil
          loadedSettings.debugLogs = inp_EnableDebugLogs;
-         //--- e a GUI e preferencia do grafico: trocar de perfil nao pode fazer
-         //--- o painel sumir sob os pes de quem clicou em CARREGAR
+         //--- idem para o painel: o campo do arquivo nao decide nada, e no
+         //--- grafico o painel aparece de qualquer forma (ShouldShowPanel). A
+         //--- linha mantem o estado coerente com o input, que e quem manda no
+         //--- tester.
          loadedSettings.panelEnabled = inp_ShowPanel;
          ResolveOperationalTimeframes(loadedSettings, OperationalFallbackTimeframe());
          if(ProfileLoadBlockedByActiveDrawdown(profileName, loadedSettings))

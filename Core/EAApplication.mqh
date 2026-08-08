@@ -235,10 +235,11 @@ private:
             //--- recarregado, entao sem esta linha o valor viria do estado
             //--- gravado — que ja nao guarda debugLogs — e cairia no default.
             restoredSettings.debugLogs = inp_EnableDebugLogs;
-            //--- Idem para o painel: com posicao aberta ou DD travado este
-            //--- caminho nao recarrega o perfil canonico, entao sem a linha o
-            //--- valor viria do estado gravado e o input ficaria sem efeito
-            //--- justamente na reabertura, que e quando ele mais importa.
+            //--- Idem para o painel. Com posicao aberta ou DD travado este
+            //--- caminho nao recarrega o perfil canonico, e sem a linha o valor
+            //--- viria do estado gravado. No grafico isso ja nao mudaria nada
+            //--- — o painel aparece de qualquer forma —, mas mantem o estado
+            //--- coerente com o input, que e quem decide no tester.
             restoredSettings.panelEnabled = inp_ShowPanel;
             ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
                                               ? (ENUM_TIMEFRAMES)restoredContext.periodValue

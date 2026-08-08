@@ -583,7 +583,7 @@ Esse conjunto é um default técnico, não uma recomendação de risco nem uma p
 | `inp_MagicNumber` | `10001` | Magic do perfil/EA. |
 | `inp_SlippagePoints` | `20` | Tolerância de execução em pontos. |
 | `inp_EnableDebugLogs` | `false` | Logs detalhados. |
-| `inp_ShowPanel` | `true` | Exibe a GUI. |
+| `inp_ShowPanel` | `true` | Exibe a GUI **no Strategy Tester visual**. No gráfico ela aparece sempre, independentemente deste input — para liberar espaço, minimize o painel pela barra de título. |
 | `inp_DefaultProfileName` | `default` | Perfil carregado ou criado na inicialização. |
 | `inp_ConflictMode` | `CONFLICT_PRIORITY` | Prioridade ou cancelamento. |
 | `inp_TradeDirection` | `DIRECTION_BOTH` | Ambas, somente BUY ou somente SELL. |
