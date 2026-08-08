@@ -497,7 +497,33 @@ void DrawRow(const int i,const int ry,const int rh)
 
    if(m_rows[i].kind==FCV_ROW_NOTE)
      {
-      uint noteClr=(m_rows[i].aux==FCV_SEM_NEUTRAL) ? m_t.faint : SemColor(m_rows[i].aux);
+      bool plain=(m_rows[i].aux==FCV_SEM_NEUTRAL);
+      uint noteClr=plain ? m_t.faint : SemColor(m_rows[i].aux);
+      //+---------------------------------------------------------+
+      //| Nota COM severidade ganha o filete a esquerda; nota      |
+      //| neutra, nao.                                             |
+      //|                                                          |
+      //| A caixa de aviso do rodape tem a barra colorida e a      |
+      //| faixa do cabecalho tem o filete de 2 px — as duas dizem  |
+      //| "isto e uma mensagem, e desta gravidade". Esta linha era |
+      //| a unica da familia sem marca nenhuma, e por isso lia-se  |
+      //| como legenda: o usuario apontou o erro do formulario de  |
+      //| perfil dizendo que parecia fora do padrao.               |
+      //|                                                          |
+      //| Marca, e nao mudanca de lugar: o texto fica ONDE ESTA,   |
+      //| colado nos campos que ele descreve. Mandar para a caixa  |
+      //| do rodape custaria a proximidade e, pior, faria o        |
+      //| formulario subir e descer a cada tecla que corrige ou    |
+      //| quebra o nome — a caixa encurta ContentBottom.           |
+      //|                                                          |
+      //| Neutra fica sem filete de proposito: dica nao e aviso, e |
+      //| marcar as duas igual devolveria o problema invertido.    |
+      //+---------------------------------------------------------+
+      if(!plain)
+        {
+         int dy=S(ry+9), dh=S(15)/2;
+         RectDev(S(m_fx1+4),dy-dh,S(m_fx1+4)+1,dy+dh,noteClr);
+        }
       WrapText(lx,ry+9,m_fx2-m_fx1-24,15,m_rows[i].hint,noteClr,FCV_FS_CAP,true);
       return;
      }
