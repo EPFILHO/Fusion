@@ -1023,21 +1023,26 @@ SHeaderAction ResolveHeaderActionLadder(void)
 //|                                                                   |
 //|  - reconciliacao + peer lock: CARREGAR acendia e o EA recusava    |
 //|    sem executar (`m_closeReconciliationPending`). Clique inerte.  |
-//|  - POSICAO ABERTA + peer lock: pior. O LOAD_PROFILE do EA nao tem |
-//|    guarda para posicao aberta — ele so recusa por reconciliacao,  |
-//|    drawdown ativo e travas de concorrencia. O clique CHEGAVA a    |
-//|    aplicar outro perfil, trocando lote e Magic sob uma operacao   |
-//|    em gerenciamento.                                              |
+//|  - POSICAO ABERTA + peer lock: pior. Na epoca o LOAD_PROFILE do   |
+//|    motor nao tinha guarda para posicao aberta — recusava so por   |
+//|    reconciliacao, drawdown e travas de concorrencia —, entao o    |
+//|    clique CHEGAVA a trocar a configuracao ativa (o Magic entre    |
+//|    ela) com uma operacao em gerenciamento.                        |
 //|                                                                   |
 //| A excecao continua existindo, e a razao dela tambem: com o perfil |
 //| preso por outro grafico, escolher outro perfil e a saida do       |
 //| bloqueio. Ela so deixa de valer quando ha trava local — e ai nao  |
 //| ha saida a oferecer, ha uma operacao a proteger.                  |
 //|                                                                   |
-//| ⚠ Divergencia deliberada da 1.058, e no sentido seguro: a 2.0     |
-//| recusa algo que a 1.058 permite. O conserto de verdade e no       |
-//| motor (LOAD_PROFILE deveria recusar com posicao gerenciada), e    |
-//| isso e producao compartilhada — registrado como divida no plano.  |
+//| ⚠ Hoje sao DUAS guardas, e esta e a de fora. O motor tambem       |
+//| recusa: o UI_COMMAND_LOAD_PROFILE ganhou, no mesmo aceite, a      |
+//| recusa por posicao em gerenciamento, com a leitura sincronizada   |
+//| antes de decidir. Esta camada existe para o botao nem acender —   |
+//| aquela, para que nenhum emissor do comando escape.                |
+//|                                                                   |
+//| A 1.058 nao foi alterada e ainda acende o botao nesse estado. Nao |
+//| e mais perigoso: o comando chega ao motor e volta recusado, com o |
+//| motivo no log. A incoerencia visual dela morre na Fase 4.         |
 //+------------------------------------------------------------------+
 bool AccCanLoadProfile(void)
   {
