@@ -440,6 +440,7 @@ Regras que valem em todos os passos abaixo:
 | I2.11 | Rodando com posicao | `PAUSAR` apagado | **`OPERANDO`** | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
 | I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `PAUSAR` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
 | I2.15 | Parado, com posicao aberta e permissao perdida | `INICIAR` apagado | `IMPEDIDO` | nenhuma — card no ar, faixa cala **sempre** que ele aparece |
+| I2.17 | ⚠ Parado, com posicao aberta, sem mais nada | `INICIAR` **aceso** | `PAUSADO` | `POSICAO EM GERENCIAMENTO — INICIAR libera novas entradas`, em ambar |
 | I2.16 | Bloqueio de runtime (troque o ativo do grafico com o EA anexado) | `INICIAR` apagado | `BLOQUEADO` | texto do motor **abreviado com `...`** se nao couber; integral no Status |
 
 ⚠️ **I2.8 mudou de ordem por um motivo que vale registrar.** O Magic repetido

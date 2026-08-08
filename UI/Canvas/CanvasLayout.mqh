@@ -208,7 +208,8 @@ struct SHeaderAction
    int    block;       // FCV_HBLK_*
    string band;        // texto da faixa; "" = sem faixa
    int    bandSem;     // FCV_SEM_*
-   string badge;       // BLOQUEADO / IMPEDIDO / RODANDO / PAUSADO
+   //--- Precedencia: BLOQUEADO > IMPEDIDO > OPERANDO > RODANDO > PAUSADO
+   string badge;
    int    badgeSem;
    bool   statusMark;  // marcador na aba Status (ambar, forma propria)
    bool   critical;    // card global: trading indisponivel COM posicao aberta

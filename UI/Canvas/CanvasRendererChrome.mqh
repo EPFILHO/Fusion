@@ -216,13 +216,20 @@ void DrawTitlebar(void)
       //--- colava na haste e a outra deixava uma fresta. As pontas em si sempre
       //--- estiveram certas — o Chevron ja e pixel-a-pixel; o que faltava era o
       //--- conjunto ser montado na mesma moeda.
-      //--- Haste de 7 px para cada lado, e nao 5: com as pontas ancoradas a 2 px
-      //--- do centro, uma haste curta quase desaparecia entre elas e o icone
-      //--- lia-se como duas setas soltas em vez de um eixo com dois sentidos.
+      //--- A haste maior e a do MEIO: as pontas se afastam do centro (2 -> 4) e
+      //--- a haste cresce junto, terminando EXATAMENTE nelas. Antes o trecho
+      //--- visivel entre as duas cabecas tinha 4 px e o icone lia-se como duas
+      //--- setas soltas em vez de um eixo com dois sentidos.
+      //---
+      //--- ⚠ A haste NAO passa das pontas. O Chevron tem a base em `dy` e a
+      //--- ponta 3 px adiante, entao o fim da haste e `base + 3` — sobrar um
+      //--- filete de 1 px alem da cabeca nao le como eixo, le como defeito de
+      //--- ponta, que foi o que motivou esta rodada inteira.
       int rx=FCV_PANEL_W-50, dcx=S(rx), dcy=S(16);
-      RectDev(dcx,dcy-7,dcx,dcy+7,m_t.muted);                 // haste
-      ChevronDev(dcx,dcy-2,false,m_t.muted);                  // ponta para cima
-      ChevronDev(dcx,dcy+2,true, m_t.muted);                  // ponta para baixo
+      int arm=4;                                              // pontas: +-4 do centro
+      RectDev(dcx,dcy-arm-3,dcx,dcy+arm+3,m_t.muted);         // haste, ponta a ponta
+      ChevronDev(dcx,dcy-arm,false,m_t.muted);                // ponta para cima
+      ChevronDev(dcx,dcy+arm,true, m_t.muted);                // ponta para baixo
      }
 
    //--- Minimizado, o botao RESTAURA — e a janelinha e o simbolo disso. Ela
@@ -317,9 +324,13 @@ string ShortTF(const ENUM_TIMEFRAMES tf)
    return (StringFind(s,"PERIOD_")==0) ? StringSubstr(s,7) : s;
   }
 
-//--- Estado operacional em tres nomes, os mesmos da 1.058 (Pages/StatusPage).
-//--- Bloqueado vence rodando: se o EA esta impedido de operar, dizer que ele
-//--- esta rodando seria a pior informacao possivel nesta linha.
+//--- Estado operacional em CINCO nomes, do mais grave ao mais brando:
+//--- BLOQUEADO > IMPEDIDO > OPERANDO > RODANDO > PAUSADO. A 1.058 tem tres
+//--- (Pages/StatusPage); IMPEDIDO e OPERANDO nasceram na Fase 3, o primeiro
+//--- para separar "o EA nao pode operar por condicao externa" de "o contexto o
+//--- travou", e o segundo porque era rotulo de botao e estado pertence aqui.
+//--- A ordem e a regra: se o EA esta impedido de operar, dizer que ele esta
+//--- rodando seria a pior informacao possivel nesta linha.
 //--- Distintivo e botao leem do resolvedor, resolvido uma vez por quadro no
 //--- inicio do DrawFrame. Perguntar por conta aqui reabriria a divergencia que
 //--- SHeaderAction existe para fechar.
@@ -929,6 +940,33 @@ SHeaderAction ResolveHeaderActionLadder(void)
      { s.block=FCV_HBLK_PERMISSION; s.band=m_snap.tradePermissionReason; return s; }
 
    s.enabled=true;
+   //+---------------------------------------------------------------+
+   //| INICIAR disponivel, mas ha posicao aberta em gerenciamento.     |
+   //|                                                                |
+   //| Nao e bloqueio — e por isso vem DEPOIS do `enabled=true`, e nao |
+   //| na escada. Aqui a faixa nao responde "por que o botao esta      |
+   //| apagado"; responde "por que o distintivo diz PAUSADO havendo    |
+   //| operacao em curso", como ja faz no caso do trading indisponivel |
+   //| com o EA rodando.                                               |
+   //|                                                                |
+   //| Existe porque o Status conta isso (selo ENTRADAS SUSPENSAS mais |
+   //| a nota), e de qualquer outra aba nao ha sinal nenhum — o usuario |
+   //| reabre o MT5 com posicao aberta e nao sabe que precisa clicar    |
+   //| INICIAR para voltar a aceitar entradas.                          |
+   //|                                                                |
+   //| Faixa e nao card de rodape, decidido com o usuario: o card       |
+   //| encurta a area util em TODAS as abas enquanto durar, e uma       |
+   //| posicao aberta dura horas. O card fica reservado ao caso critico |
+   //| (permissao perdida COM posicao), onde competir por espaco e      |
+   //| correto. Ambar e nao verde: verde diria "nao ha nada a decidir", |
+   //| e ha — as entradas estao suspensas. E o mesmo ambar do selo do   |
+   //| Status, de proposito.                                            |
+   //+---------------------------------------------------------------+
+   if(m_snap.hasPosition)
+     {
+      s.band="POSICAO EM GERENCIAMENTO — INICIAR libera novas entradas";
+      s.bandSem=FCV_SEM_WARN;
+     }
    return s;
   }
 

@@ -658,6 +658,38 @@ um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomad
 para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
 migracao.**
 
+### A 1.058 nao ficou literalmente congelada: dois textos do motor mudaram
+
+Decisao consciente, tomada com o usuario durante o aceite da Fase 3 e registrada
+aqui porque contraria a expectativa razoavel de que o painel antigo nao muda.
+**Sao apenas textos**, os dois em codigo compartilhado, e os dois aparecem
+tambem na 1.058:
+
+1. **`TradePermissionGuard::FormatNotice`** — saiu o prefixo "Trading
+   temporariamente indisponivel: " da forma sem posicao aberta. Era a unica das
+   seis formas que estourava a faixa de uma linha do cabecalho da 2.0, e o corte
+   com reticencias caia justamente antes de "Aguardando MT5/corretora liberar".
+   O prefixo tambem ficou redundante na 2.0: o distintivo ja diz IMPEDIDO e o
+   titulo do Status ja diz TRADING INDISPONIVEL.
+2. **`CInstanceRegistry::HasActiveConflict`** — "em uso por outro Fusion
+   **ativo**" virou "em outro Fusion **em execucao**". A palavra "ativo"
+   significava duas coisas na mesma tela: o selo ATIVO marca o perfil que ESTE
+   grafico usa, e o aviso falava de instancia rodando noutro grafico. Os dois
+   apareciam juntos e liam-se como contradicao. "Em execucao" tambem descreve
+   melhor o que `HasLivePeer` confere — registro com batida recente, dentro do
+   TTL.
+
+**O que foi conferido antes de mudar, nos dois casos:** nenhum codigo casa
+contra esses literais. A classificacao do guard (`IsConnectionReason`,
+`IsAccountPermissionReason`) compara o `reason`, nao o texto formatado; e
+`startBlockedReason` so e atribuido, testado por vazio (`AccPeerLock`) e
+comparado consigo mesmo para detectar mudanca.
+
+**A regra que continua valendo:** o que nao se toca na 1.058 e **comportamento**.
+Texto que a 2.0 precisa exibir corretamente pode ser ajustado, desde que
+nenhuma logica dependa da frase — e essa verificacao e obrigatoria, nao
+opcional, porque o guard ja classifica por comparacao de string internamente.
+
 ### Divida REGISTRADA no aceite da Fase 3: campo aceso com a chave desligada
 
 Levantada pelo usuario testando o `FusionCanvas.ex5`. **Nada foi alterado** — o
