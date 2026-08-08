@@ -522,6 +522,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_snap.ownerStrategyName="";
    m_snap.started=false;
    m_snap.hasPosition=false;
+   m_snap.hasOpenPosition=false;
    m_snap.runtimeBlocked=false;
    m_snap.magicNumber=0;
    m_snap.activeStrategies=0;

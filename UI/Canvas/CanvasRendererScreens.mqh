@@ -349,7 +349,21 @@ bool StatusNotice(string &title,string &body,int &sem)
            "valores do estado do grafico. Salve para recriar o arquivo.";
       return true;
      }
-   if(m_snap.hasPosition && !m_snap.started)
+   //--- ⚠ ANTES do "entradas suspensas", porque era ali que este estado se
+   //--- disfarcava: `hasPosition` soma a reconciliacao pendente, entao com o EA
+   //--- parado logo apos um fechamento a tela anunciava posicao aberta em
+   //--- gerenciamento — e nao havia posicao nenhuma.
+   //--- Sem condicao de `started`: a espera existe dos dois lados, e o Status
+   //--- descreve o que esta acontecendo, nao o que o botao faz.
+   if(m_snap.hasPosition && !m_snap.hasOpenPosition)
+     {
+      title="FECHAMENTO EM RECONCILIACAO";
+      body="Aguardando a confirmacao do historico. O estado sera atualizado automaticamente.";
+      return true;
+     }
+   //--- `hasOpenPosition`: aqui a frase afirma posicao ABERTA, e so este campo
+   //--- responde por isso.
+   if(m_snap.hasOpenPosition && !m_snap.started)
      {
       title="ENTRADAS SUSPENSAS";
       body="Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas futuras.";
@@ -403,8 +417,11 @@ void ScreenStatus(void)
    //--- roubando atencao dos numeros que so existem AQUI.
    Txt(x1+14,y+38,RunStateText(),RunStateColor(),FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
    Txt(x2-14,y+18,"POSICAO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
-   Txt(x2-14,y+38,m_snap.hasPosition ? "Aberta" : "Nenhuma",
-       m_snap.hasPosition ? m_t.fg : m_t.muted,
+   //--- "Aberta" e afirmacao sobre a posicao, entao le `hasOpenPosition`. Com
+   //--- `hasPosition` o cartao dizia Aberta durante a reconciliacao, quando ela
+   //--- ja tinha fechado — e a caixa de aviso logo abaixo dizia o contrario.
+   Txt(x2-14,y+38,m_snap.hasOpenPosition ? "Aberta" : "Nenhuma",
+       m_snap.hasOpenPosition ? m_t.fg : m_t.muted,
        FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
    y+=66;
 
