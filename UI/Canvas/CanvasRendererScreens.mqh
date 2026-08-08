@@ -122,7 +122,16 @@ bool ScreenAlert(string &title,string &body,int &sem)
 
    string err=ScreenError(ScreenId());
    if(StringLen(err)==0) return false;
-   title="CORRIJA ESTA TELA"; body=err; sem=FCV_SEM_BAD;
+   //--- ⚠ "CONFIGURACAO INVALIDA", e nao "CORRIJA ESTA TELA". O titulo antigo
+   //--- descrevia o LUGAR, nao o problema — e nem sempre e correcao: "Selecione
+   //--- ao menos uma estrategia" e uma escolha que falta, nao um valor errado.
+   //---
+   //--- E e a mesma palavra que a faixa do cabecalho usa, de proposito: la o
+   //--- resumo ("CONFIGURACAO INVALIDA — corrija ou cancele"), aqui o detalhe do
+   //--- que exatamente esta invalido. Um conceito, um nome, dois niveis de
+   //--- profundidade. Literalmente o mesmo predicado, tambem: tudo que chega
+   //--- aqui e o que faz ConfigInputsValid() reprovar.
+   title="CONFIGURACAO INVALIDA"; body=err; sem=FCV_SEM_BAD;
    return true;
   }
 

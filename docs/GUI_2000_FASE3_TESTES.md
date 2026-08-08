@@ -418,8 +418,10 @@ Regras que valem em todos os passos abaixo:
   rodando sem posicao e `PAUSAR`; com posicao e `OPERANDO`, apagado;
 - **a faixa nunca manda fazer o que a tela impede.** Se ela diz "salve ou
   cancele", pelo menos um dos dois tem de estar aceso;
-- **o distintivo diz ESTADO, nunca causa:** `BLOQUEADO` / `IMPEDIDO` /
-  `RODANDO` / `PAUSADO`.
+- **o distintivo diz ESTADO, nunca causa**, no estado mais especifico
+  verdadeiro: `BLOQUEADO` > `IMPEDIDO` > `OPERANDO` > `RODANDO` > `PAUSADO`.
+  O mesmo texto aparece no bloco **ESTADO** da aba Status — sai da mesma
+  funcao, entao os dois nunca discordam.
 
 | # | Estado a montar | Botao | Distintivo | Faixa |
 |---|---|---|---|---|
@@ -433,8 +435,8 @@ Regras que valem em todos os passos abaixo:
 | I2.8 | Magic do perfil ativo repetido | `INICIAR` apagado | `PAUSADO` | `MAGIC DO PERFIL EM CONFLITO` |
 | I2.9 | Rodando, sem posicao | `PAUSAR` **aceso** | `RODANDO` | nenhuma |
 | I2.10 | ⚠ Rodando, sem posicao, AutoTrading desligado | `PAUSAR` **aceso** | `IMPEDIDO` | frase do EA, **dizendo o que fazer** ("Habilite...") |
-| I2.11 | Rodando com posicao | `OPERANDO` apagado | `RODANDO` | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
-| I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `OPERANDO` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
+| I2.11 | Rodando com posicao | `PAUSAR` apagado | **`OPERANDO`** | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
+| I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `PAUSAR` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
 | I2.15 | Parado, com posicao aberta e permissao perdida | `INICIAR` apagado | `IMPEDIDO` | nenhuma — card no ar, faixa cala **sempre** que ele aparece |
 | I2.16 | Bloqueio de runtime (troque o ativo do grafico com o EA anexado) | `INICIAR` apagado | `BLOQUEADO` | texto do motor **abreviado com `...`** se nao couber; integral no Status |
 

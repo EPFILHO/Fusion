@@ -185,10 +185,12 @@ int ComboItems(const int kind,string &out[])
      { string a[3]={"Ambas","So Compra","So Venda"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    //--- Ordem do ENUM_NEWS_WINDOW_ACTION: BLOCK_ENTRIES=0, CLOSE_AND_BLOCK=1.
    //--- Abreviado porque a caixa do combo e estreita: "Fechar + Bloquear" por
-   //--- extenso vazava para fora dela. Quem explica a acao inteira e a dica
-   //--- logo abaixo — o rotulo so precisa distinguir as duas opcoes.
+   //--- extenso vazava para fora dela. O verbo fica INTEIRO — "Fechar" e a
+   //--- parte que descreve o que acontece com a posicao aberta, e abrevia-lo
+   //--- para "Fech." economizava tres letras num rotulo que precisa ser lido de
+   //--- relance. Quem explica a acao completa e a dica logo abaixo.
    if(kind==FCV_COMBO_NEWS)
-     { string a[2]={"Bloquear","Fech. + Bloq."}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+     { string a[2]={"Bloquear","Fechar + Bloq."}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_ENTRY)
      { string a[2]={"Proxima Vela","2a Vela"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_EXIT)

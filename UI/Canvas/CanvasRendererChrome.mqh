@@ -793,6 +793,15 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- ele le no texto do distintivo e na faixa.
    else if(m_snap.tradePermissionBlocked)
      { s.badge="IMPEDIDO";  s.badgeSem=FCV_SEM_BAD; }
+   //--- OPERANDO e o estado MAIS ESPECIFICO verdadeiro quando ha posicao, e por
+   //--- isso vem antes de RODANDO. Ele morava no ROTULO DO BOTAO, que era a
+   //--- ultima violacao do modelo — botao nomeia acao, distintivo nomeia estado.
+   //--- Trazido para ca, o distintivo ganha a informacao que faltava no topo e o
+   //--- botao volta a nomear a acao em 100% dos casos.
+   //--- Verde como RODANDO: os dois sao estados saudaveis; o que os distingue e
+   //--- a palavra, nao a cor.
+   else if(m_snap.started && m_snap.hasPosition)
+     { s.badge="OPERANDO";  s.badgeSem=FCV_SEM_GOOD; }
    else if(m_snap.started)
      { s.badge="RODANDO";   s.badgeSem=FCV_SEM_GOOD; }
 
@@ -816,8 +825,12 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //=== EA rodando COM posicao: nao ha acao ==========================
    if(m_snap.started && m_snap.hasPosition)
      {
-      s.label="OPERANDO"; s.action=FCV_HACT_NONE;
-      s.enabled=false;    s.block=FCV_HBLK_POSITION;
+      //--- PAUSAR apagado, e nao "OPERANDO". A acao que o botao representaria e
+      //--- pausar; o que impede e a posicao aberta, e quem diz isso e a faixa —
+      //--- exatamente o padrao que ja vale para o INICIAR bloqueado. O estado
+      //--- OPERANDO subiu para o distintivo, onde estado pertence.
+      s.label="PAUSAR";  s.action=FCV_HACT_PAUSE;
+      s.enabled=false;   s.block=FCV_HBLK_POSITION;
       //--- Se o card critico estiver no ar, a fachada apaga esta faixa.
       s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
       s.bandSem=FCV_SEM_NEUTRAL;
