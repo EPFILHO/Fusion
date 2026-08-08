@@ -822,7 +822,10 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- botao volta a nomear a acao em 100% dos casos.
    //--- Verde como RODANDO: os dois sao estados saudaveis; o que os distingue e
    //--- a palavra, nao a cor.
-   else if(m_snap.started && m_snap.hasPosition)
+   //--- `hasOpenPosition`, nao `hasPosition`: o segundo tambem e verdadeiro
+   //--- durante a reconciliacao de um fechamento, quando a posicao JA fechou.
+   //--- Dizer OPERANDO ali anunciaria uma operacao que nao existe mais.
+   else if(m_snap.started && m_snap.hasOpenPosition)
      { s.badge="OPERANDO";  s.badgeSem=FCV_SEM_GOOD; }
    else if(m_snap.started)
      { s.badge="RODANDO";   s.badgeSem=FCV_SEM_GOOD; }
@@ -843,9 +846,24 @@ SHeaderAction ResolveHeaderActionLadder(void)
    s.critical   = (m_snap.tradePermissionBlocked && m_snap.hasOpenPosition);
 
    bool formOpen = (m_profEdit!=FCV_PROF_VIEW);
+   //+---------------------------------------------------------------+
+   //| Fechamento aguardando o historico confirmar.                   |
+   //|                                                                |
+   //| `hasPosition` verdadeiro com `hasOpenPosition` falso e          |
+   //| exatamente isto: HasManagedOrPendingPosition() soma a           |
+   //| reconciliacao pendente, e nesse instante a posicao ja fechou.   |
+   //|                                                                |
+   //| ⚠ O EA recusa OS DOIS comandos enquanto durar — o ramo de       |
+   //| pausa por HasManagedOrPendingPosition(), o de inicio por        |
+   //| m_closeReconciliationPending. Sem este estado o painel          |
+   //| oferecia INICIAR aceso com clique inerte, e ainda anunciava     |
+   //| "posicao em gerenciamento" sem posicao nenhuma.                 |
+   //+---------------------------------------------------------------+
+   bool reconciling = (m_snap.hasPosition && !m_snap.hasOpenPosition);
+   string reconcileBand="FECHAMENTO EM RECONCILIACAO — aguarde a confirmacao do historico";
 
-   //=== EA rodando COM posicao: nao ha acao ==========================
-   if(m_snap.started && m_snap.hasPosition)
+   //=== EA rodando COM posicao aberta: nao ha acao ===================
+   if(m_snap.started && m_snap.hasOpenPosition)
      {
       //--- PAUSAR apagado, e nao "OPERANDO". A acao que o botao representaria e
       //--- pausar; o que impede e a posicao aberta, e quem diz isso e a faixa —
@@ -856,6 +874,15 @@ SHeaderAction ResolveHeaderActionLadder(void)
       //--- Se o card critico estiver no ar, a fachada apaga esta faixa.
       s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
       s.bandSem=FCV_SEM_NEUTRAL;
+      return s;
+     }
+
+   //=== EA rodando, fechamento em reconciliacao =====================
+   if(m_snap.started && reconciling)
+     {
+      s.label="PAUSAR"; s.action=FCV_HACT_PAUSE;
+      s.enabled=false;  s.block=FCV_HBLK_RECONCILE;
+      s.band=reconcileBand; s.bandSem=FCV_SEM_NEUTRAL;
       return s;
      }
 
@@ -938,6 +965,12 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- causas do guard sem o painel precisar saber qual e.
    if(m_snap.tradePermissionBlocked)
      { s.block=FCV_HBLK_PERMISSION; s.band=m_snap.tradePermissionReason; return s; }
+   //--- Por ultimo entre os bloqueios porque passa sozinho: nao ha o que o
+   //--- usuario faca alem de esperar, e enquanto espera vale mais ele ver o que
+   //--- ainda da para corrigir. Mas o botao TEM de apagar — o EA volta sem
+   //--- executar, e clique inerte e pior que botao apagado.
+   if(reconciling)
+     { s.block=FCV_HBLK_RECONCILE; s.band=reconcileBand; s.bandSem=FCV_SEM_NEUTRAL; return s; }
 
    s.enabled=true;
    //+---------------------------------------------------------------+
@@ -962,9 +995,11 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //| e ha — as entradas estao suspensas. E o mesmo ambar do selo do   |
    //| Status, de proposito.                                            |
    //+---------------------------------------------------------------+
-   if(m_snap.hasPosition)
+   //--- `hasOpenPosition`: durante a reconciliacao nao ha posicao a gerenciar,
+   //--- e aquele estado ja saiu acima com texto proprio.
+   if(m_snap.hasOpenPosition)
      {
-      s.band="POSICAO EM GERENCIAMENTO — INICIAR libera novas entradas";
+      s.band="POSICAO EM GERENCIAMENTO — clique INICIAR para liberar novas entradas futuras";
       s.bandSem=FCV_SEM_WARN;
      }
    return s;

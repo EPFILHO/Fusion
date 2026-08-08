@@ -95,8 +95,13 @@ void RejectTypedText(const string typed,const int kind)
    string shown=TrimEdges(typed);
    if(StringLen(shown)>24) shown=StringSubstr(shown,0,24)+"...";
    if(StringLen(shown)==0) shown="(vazio)";
+   //--- ⚠ "nao e um valor valido", e nao "nao e um numero". Digitar 0.3 num
+   //--- campo inteiro caia aqui, e a frase afirmava algo FALSO: 0.3 e um numero,
+   //--- so nao serve naquele campo. Dizer "invalido" cobre os dois casos — o
+   //--- que nao e numero e o que e numero do tipo errado — sem o painel ter de
+   //--- explicar qual dos dois foi.
    SetNotice("VALOR NAO ACEITO",
-             "\""+shown+"\" nao e um numero"+
+             "\""+shown+"\" nao e um valor valido"+
              ((kind==FCV_FTYPE_DEC) ? " (use ponto ou virgula para decimais)" : "")+
              ". O campo voltou ao valor anterior.",
              FCV_SEM_WARN,FCV_NOTICE_TTL_MS);

@@ -440,7 +440,16 @@ Regras que valem em todos os passos abaixo:
 | I2.11 | Rodando com posicao | `PAUSAR` apagado | **`OPERANDO`** | `POSICAO ABERTA — a saida e pela estrategia ou pela protecao` |
 | I2.12 | ⚠ Posicao aberta **e** conexao/permissao perdida | `PAUSAR` apagado | `IMPEDIDO` | nenhuma — quem fala e o **card vermelho**, em qualquer aba |
 | I2.15 | Parado, com posicao aberta e permissao perdida | `INICIAR` apagado | `IMPEDIDO` | nenhuma — card no ar, faixa cala **sempre** que ele aparece |
-| I2.17 | ⚠ Parado, com posicao aberta, sem mais nada | `INICIAR` **aceso** | `PAUSADO` | `POSICAO EM GERENCIAMENTO — INICIAR libera novas entradas`, em ambar |
+| I2.17 | ⚠ Parado, com posicao aberta, sem mais nada | `INICIAR` **aceso** | `PAUSADO` | `POSICAO EM GERENCIAMENTO — clique INICIAR...`, em ambar |
+| I2.18 | ⚠ Fechamento em reconciliacao, EA parado | `INICIAR` **apagado** | `PAUSADO` | `FECHAMENTO EM RECONCILIACAO — aguarde...` |
+| I2.19 | ⚠ Fechamento em reconciliacao, EA rodando | `PAUSAR` **apagado** | `RODANDO` | idem |
+
+⚠️ **I2.18 e I2.19 sao a janela entre fechar a posicao e o historico confirmar** —
+poucos segundos, e a unica forma de vê-la e olhar o painel logo apos um
+fechamento. Nesse instante `hasPosition` continua verdadeiro (ele soma a
+reconciliacao) mas a posicao **ja fechou**. O EA recusa INICIAR e PAUSAR ali, os
+dois ramos do `TOGGLE_RUNNING` voltam sem executar — entao botao aceso seria
+clique inerte, e o distintivo nao pode dizer `OPERANDO`.
 | I2.16 | Bloqueio de runtime (troque o ativo do grafico com o EA anexado) | `INICIAR` apagado | `BLOQUEADO` | texto do motor **abreviado com `...`** se nao couber; integral no Status |
 
 ⚠️ **I2.8 mudou de ordem por um motivo que vale registrar.** O Magic repetido

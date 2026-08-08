@@ -395,9 +395,13 @@ void ScreenStatus(void)
 
    RoundRect(x1,y,x2,y+56,FCV_RADIUS_CARD,m_t.surface,m_t.ground);
    Txt(x1+14,y+18,"ESTADO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
-   //--- O estado grande usa a cor do proprio estado: e a primeira coisa que se
-   //--- olha ao abrir o painel, e cor informa mais rapido que leitura.
-   Txt(x1+14,y+38,RunStateText(),RunStateColor(),FCV_FONT_UI,FCV_FS_HERO,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
+   //--- O estado usa a cor do proprio estado: cor informa mais rapido que
+   //--- leitura. Mas no MESMO degrau de POSICAO ao lado, e nao em FS_HERO.
+   //--- Ele era o maior texto do painel porque, na Fase 1, era o unico lugar
+   //--- que anunciava o estado. Desde a Fase 3 o distintivo do cabecalho diz a
+   //--- mesma palavra, em toda aba — e o tamanho grande virou um eco gritado,
+   //--- roubando atencao dos numeros que so existem AQUI.
+   Txt(x1+14,y+38,RunStateText(),RunStateColor(),FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
    Txt(x2-14,y+18,"POSICAO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
    Txt(x2-14,y+38,m_snap.hasPosition ? "Aberta" : "Nenhuma",
        m_snap.hasPosition ? m_t.fg : m_t.muted,

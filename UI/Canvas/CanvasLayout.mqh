@@ -199,6 +199,11 @@
 #define FCV_HBLK_MAGIC      6   // Magic do perfil ativo repetido em disco
 #define FCV_HBLK_PERMISSION 7   // AutoTrading/conexao/permissao de conta
 #define FCV_HBLK_POSITION   8   // posicao aberta: nao ha o que pausar
+//--- Fechamento aguardando o historico confirmar. Nao e posicao aberta, e o EA
+//--- recusa INICIAR e PAUSAR enquanto durar — os dois ramos de TOGGLE_RUNNING
+//--- voltam sem executar. Distinguido de POSITION porque a mensagem e outra e
+//--- porque a espera passa sozinha.
+#define FCV_HBLK_RECONCILE  9
 
 struct SHeaderAction
   {

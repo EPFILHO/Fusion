@@ -364,7 +364,7 @@ private:
          if(ProfileLockedByPeer(profileName,reason))
            {
             //--- O motivo vindo do registro ja e uma frase completa ("Magic N ja
-            //--- esta em uso por outro Fusion ativo"). Prefixar com a minha
+            //--- esta em uso por outro Fusion em execucao"). Prefixar com a minha
             //--- versao dizia a mesma coisa duas vezes e empurrava o aviso para
             //--- uma terceira linha — que e o que faz a caixa crescer e o
             //--- conteudo pular de lugar.

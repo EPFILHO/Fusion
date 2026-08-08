@@ -499,8 +499,11 @@ struct SUIPanelSnapshot
    SEASettings settings;
    bool   started;
    //--- "ha posicao gerenciada OU fechamento aguardando o historico confirmar"
-   //--- (HasManagedOrPendingPosition). E o conceito certo para bloquear edicao e
-   //--- para o rotulo OPERANDO: nos dois casos o EA nao esta livre.
+   //--- (HasManagedOrPendingPosition). E o conceito certo para BLOQUEAR EDICAO:
+   //--- nos dois casos o EA nao esta livre.
+   //--- ⚠ NAO serve para o distintivo OPERANDO nem para dizer "posicao aberta":
+   //--- durante a reconciliacao a posicao ja fechou, e anunciar operacao em
+   //--- curso ali seria falso. Para isso existe o campo abaixo.
    bool   hasPosition;
    //--- Posicao REALMENTE aberta agora (m_positionState.hasPosition), sem a
    //--- reconciliacao pendente.
