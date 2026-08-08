@@ -413,12 +413,24 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **painel 1.058** no mesmo estado — la o botao ainda acende, e o esperado e
       que o clique **nao faca nada** e o log registre "Perfil nao carregado
       enquanto existe posicao em gerenciamento".
-- [ ] **I7.** Com posicao aberta, provocar uma criacao de perfil que FALHE ao
-      gravar (secao 1.5) e clicar **DESCARTAR**.
-      **Esperado:** o desfazer **funciona**. Ele usa
-      `UI_COMMAND_RESTORE_ACTIVE_PROFILE`, que tem ramo proprio no EA e nao passa
-      pela guarda nova. Se ele parar de funcionar com posicao aberta, a guarda
-      vazou para o lugar errado.
+> **I7 — o isolamento do DESFAZER. NAO e passo manual, e conferencia por
+> leitura.** A guarda nova nao pode alcancar o
+> `UI_COMMAND_RESTORE_ACTIVE_PROFILE`: ele e a saida de uma criacao que falhou ao
+> gravar, e recusa-lo por posicao aberta transformaria protecao em armadilha.
+>
+> **Por que nao da para montar na mao:** entrar no formulario de criacao exige
+> `AccCanCreateProfile` -> `AccRuntimeEditable` -> `!hasPosition`. Ou seja, com
+> posicao aberta nao se comeca uma criacao. O estado so existiria falhando a
+> criacao SEM posicao, mantendo o formulario aberto e fazendo uma posicao com o
+> mesmo Magic aparecer por fora — o que exige um segundo grafico operando com o
+> Magic deste, coisa que o registro de instancias recusa.
+>
+> **O que se confere, entao, no codigo:** `UI_COMMAND_RESTORE_ACTIVE_PROFILE`
+> tem ramo PROPRIO em `EAApplicationCommands.mqh`, anterior ao do
+> `UI_COMMAND_LOAD_PROFILE`, e nao passa por nenhuma das duas guardas novas. Ele
+> so barra por reconciliacao pendente, que e outra coisa. Se algum dia a guarda
+> de posicao for movida para dentro de `ApplySettings`, ela passa a alcancar
+> este comando — e e exatamente isso que nao pode acontecer.
 - [ ] **I5.** Ainda em I4: se o repetido for o do perfil **ativo**, o INICIAR
       tambem bloqueia. Se forem dois perfis parados colidindo entre si, o
       INICIAR **continua liberado** — nao afetam esta conta.

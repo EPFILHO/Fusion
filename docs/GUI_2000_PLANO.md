@@ -662,10 +662,13 @@ migracao.**
 
 Achada no aceite da Fase 3, e e a unica desta serie com consequencia de dinheiro.
 
-`UI_COMMAND_LOAD_PROFILE` (`EAApplicationCommands.mqh`) recusa por reconciliacao
-pendente, arquivo ilegivel, drawdown ativo e as duas travas de concorrencia.
-**Nao ha guarda para posicao aberta.** Carregar um perfil aplica `ApplySettings`,
-que troca lote e Magic — sob uma operacao em gerenciamento.
+**Antes da correcao**, `UI_COMMAND_LOAD_PROFILE` (`EAApplicationCommands.mqh`)
+recusava por reconciliacao pendente, arquivo ilegivel, drawdown ativo e as duas
+travas de concorrencia — e **nao havia guarda para posicao aberta**. Carregar
+aplica `ApplySettings`, que troca a configuracao ativa inteira: nao mexe no
+volume da posicao ja aberta, mas troca o **Magic** — e e por ele que o EA
+reconhece as proprias ordens —, alem de protecoes, filtros e o lote das entradas
+futuras, com uma operacao em curso.
 
 Isso nunca aparecia porque o painel nao oferecia o botao... **exceto num caso.**
 A permissao de carga tem uma excecao deliberada: com o perfil preso por outro
@@ -705,6 +708,19 @@ com semantica propria — recusar por posicao aberta ali quebraria o desfazer de
 uma criacao que falhou ao gravar, que e justamente um mecanismo de seguranca.
 Conferido que `UI_COMMAND_RESTORE_ACTIVE_PROFILE` tem ramo proprio e que o boot
 usa `TryLoadProfileFromDisk`, ambos fora deste caminho.
+
+> ⚠️ **E a guarda le estado FRESCO, nao cache.** `m_positionState` so e
+> atualizado no `SyncPositionState()` do proximo `OnTick`/`OnTimer`: o
+> `OnTradeTransaction` apenas chama `MarkNeedsSync()`. Entre a posicao aparecer e
+> esse proximo passo havia uma janela em que a guarda leria `false` com posicao
+> viva — e numa fronteira que protege dinheiro nao se depende de o cache ja ter
+> sido atualizado. O comando sincroniza antes das duas guardas, e **antes da de
+> reconciliacao**, porque essa mesma sincronizacao pode descobrir que uma posicao
+> acabou de fechar e iniciar a reconciliacao naquele instante.
+>
+> So com o runtime livre, como os dois outros chamadores: bloqueado por troca de
+> ativo do grafico, sincronizar leria posicoes do simbolo **errado**. Custa uma
+> varredura por clique em CARREGAR — nao por quadro nem por tick.
 
 **A 1.058 nao foi alterada**, e nao precisa ser: com a guarda no motor, o botao
 que ela ainda acende indevidamente fica inerte e registra o motivo no log. A

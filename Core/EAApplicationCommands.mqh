@@ -145,6 +145,35 @@
 
       if(command.type == UI_COMMAND_LOAD_PROFILE)
         {
+         //+---------------------------------------------------------------+
+         //| Estado da posicao ATUALIZADO antes das duas guardas.            |
+         //|                                                                |
+         //| ⚠ `m_positionState` e cache, e pode estar atrasado: o          |
+         //| OnTradeTransaction so chama MarkNeedsSync(), e quem de fato    |
+         //| atualiza e o SyncPositionState() do proximo OnTick/OnTimer.    |
+         //| Entre a posicao aparecer e esse proximo passo existe uma       |
+         //| janela em que a guarda abaixo leria `false` com posicao viva.  |
+         //| Numa fronteira que protege dinheiro nao se depende de o cache  |
+         //| ja ter sido atualizado.                                        |
+         //|                                                                |
+         //| ANTES da guarda de reconciliacao, e nao entre as duas: este    |
+         //| mesmo passo pode DESCOBRIR que uma posicao acabou de fechar e  |
+         //| iniciar a reconciliacao agora — e ai e a primeira guarda que   |
+         //| tem de pegar.                                                  |
+         //|                                                                |
+         //| Custa uma varredura de posicoes por clique em CARREGAR. Nao e  |
+         //| por quadro nem por tick.                                       |
+         //|                                                                |
+         //| ⚠ So com o runtime livre, como os dois outros chamadores       |
+         //| (OnTick e OnTimer, ambos atras de `if(m_runtimeBlocked)`).     |
+         //| Bloqueado por troca de ativo do grafico, sincronizar leria as  |
+         //| posicoes do simbolo ERRADO e corromperia o estado — e carregar |
+         //| perfil e permitido nesse bloqueio justamente por ser a saida   |
+         //| dele.                                                          |
+         //+---------------------------------------------------------------+
+         if(!m_runtimeBlocked)
+            SyncPositionState();
+
          if(m_closeReconciliationPending)
            {
             m_logger.Warn("PROFILE", "Perfil nao carregado enquanto o fechamento aguarda confirmacao do historico.");
