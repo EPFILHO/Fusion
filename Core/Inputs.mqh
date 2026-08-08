@@ -70,7 +70,9 @@ input bool   inp_EnableDebugLogs           = false;     // Ativar logs detalhado
 input group " "
 //--- Painel, perfil e restauracao de estado do grafico
 input group "========== 002 - PAINEL E PERFIL =========="
-input bool   inp_ShowPanel                 = true;      // Mostrar GUI do Fusion no grafico
+//--- Rotulo diz onde vale, porque no grafico ele NAO vale: la o painel sempre
+//--- aparece, e quem quer espaco minimiza. Ver ShouldShowPanel.
+input bool   inp_ShowPanel                 = true;      // Mostrar GUI no Strategy Tester (no grafico ela sempre aparece)
 input string inp_DefaultProfileName        = "default"; // Perfil carregado/criado na inicializacao
 
 input group " "

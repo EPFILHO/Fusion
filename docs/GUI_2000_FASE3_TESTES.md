@@ -160,27 +160,29 @@ ambiguo — o que ele significaria.
 
 ### A. Ciclo de vida
 
-- [ ] **A1.** Anexar `FusionCanvas` a um grafico com `inp_ShowPanel = true`.
+- [x] **A1.** Anexar `FusionCanvas` a um grafico com `inp_ShowPanel = true`.
       **Esperado:** o painel aparece; a linha `Painel: canvas...` no log.
-- [ ] **A2.** Arrastar o painel pela barra de titulo.
+- [x] **A2.** Arrastar o painel pela barra de titulo.
       **Esperado:** o painel se move, o **grafico nao**. Se o grafico rolar
       junto, a supressao de `CHART_MOUSE_SCROLL` nao esta valendo.
-- [ ] **A1b.** ⚠️ **`inp_ShowPanel` manda, e o perfil nao vence mais.** Com um
-      nome de perfil **novo** (nao um ja gravado):
-      1. anexar com `inp_ShowPanel = false` — o painel **nao** aparece, e o
-         `default.cfg` daquele nome nasce com o campo desligado;
-      2. remover, anexar de novo no MESMO perfil com `inp_ShowPanel = true` — o
-         painel **tem de aparecer**;
-      3. o inverso, num perfil gravado com o painel ligado: com o input em
-         `false`, ele **tem de ficar oculto**.
-      **O passo 2 e o que importa.** Antes ele falhava, e o estado nao tinha
-      saida: para religar a GUI seria preciso a GUI. So editando o `.cfg` a mao.
-- [ ] **A2b.** ⚠️ **Tentar arrastar o painel para fora, nos quatro sentidos.**
+- [ ] **A1b.** ⚠️ **No grafico o painel aparece SEMPRE.**
+      Anexar com `inp_ShowPanel = false`, em qualquer perfil — inclusive num
+      gravado com o campo desligado.
+      **Esperado:** o painel aparece do mesmo jeito. O input nao esconde a GUI
+      no grafico; quem quer espaco usa o **minimizar** da barra de titulo.
+      **Por que:** a GUI e o unico lugar de onde se opera o EA — iniciar,
+      pausar, salvar, trocar de perfil. Esconde-la deixava um EA sem controle, e
+      sem caminho de volta pela propria interface.
+- [ ] **A1c.** **No Strategy Tester o input manda.** Rodar em modo visual com
+      `inp_ShowPanel = false`.
+      **Esperado:** o painel **nao** aparece. Com `true`, aparece. Fora do modo
+      visual nao aparece em nenhum caso — nao ha grafico onde desenhar.
+- [x] **A2b.** ⚠️ **Tentar arrastar o painel para fora, nos quatro sentidos.**
       **Esperado:** ele para. Para baixo, a barra de titulo inteira continua na
       tela; para a direita, sobra a faixa da esquerda com "EP Fusion" — e ela e
       area de arrasto, entao **sempre da para trazer o painel de volta**. Para
       cima e para a esquerda ele ja parava na borda.
-- [ ] **A2c.** Com o painel encostado na borda de baixo ou da direita,
+- [x] **A2c.** Com o painel encostado na borda de baixo ou da direita,
       **diminuir a janela do MT5** (ou o gráfico).
       **Esperado:** o painel e trazido de volta para dentro sozinho. E o caso
       que o limite do arrasto nao cobre: aqui ninguem arrastou nada — o que
@@ -188,10 +190,10 @@ ambiguo — o que ele significaria.
       **Nota:** a posicao **nao** e guardada entre sessoes; reanexar o EA
       sempre devolve o painel ao canto superior esquerdo. E a rede de seguranca,
       mantida de proposito enquanto a Fase 3 nao fecha.
-- [ ] **A3.** Minimizar e restaurar.
+- [x] **A3.** Minimizar e restaurar.
       **Esperado:** os campos de digitacao **somem** ao minimizar. Um `OBJ_EDIT`
       apenas escondido continuaria aceitando clique.
-- [ ] **A4.** Remover o EA do grafico.
+- [x] **A4.** Remover o EA do grafico.
       **Esperado:** nenhum objeto sobra — sem retangulo, sem campo de texto.
 - [ ] **A5.** Trocar o timeframe do grafico com o painel aberto.
       **Esperado:** o painel se reconstroi inteiro e o distintivo do cabecalho
