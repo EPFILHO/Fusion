@@ -151,6 +151,39 @@
             return;
            }
 
+         //+---------------------------------------------------------------+
+         //| Posicao em gerenciamento: a carga e recusada AQUI, no motor.    |
+         //|                                                                |
+         //| Carregar aplica ApplySettings, que troca a configuracao ativa  |
+         //| inteira. Nao mexe no volume da posicao ja aberta, mas troca o  |
+         //| MAGIC — e e por ele que o EA reconhece as proprias ordens —,   |
+         //| alem de protecoes, filtros e lote das proximas entradas. Fazer |
+         //| isso com uma operacao em curso rompe a fronteira que todo o    |
+         //| resto do EA respeita.                                          |
+         //|                                                                |
+         //| ⚠ Os dois paineis JA deveriam recusar, e nao recusavam num     |
+         //| caso: a permissao de carga abre uma excecao para o perfil      |
+         //| preso por outro grafico (escolher outro perfil e a saida do    |
+         //| bloqueio), e essa excecao era avaliada ANTES da trava local.   |
+         //| Com posicao aberta mais peer lock, o botao acendia nos dois    |
+         //| paineis e o comando chegava ate aqui.                          |
+         //|                                                                |
+         //| A GUI 2.0 fechou o furo do lado dela; esta guarda existe       |
+         //| porque a autoridade e o motor: ela protege tambem a 1.058 e    |
+         //| qualquer caminho futuro ate o mesmo comando.                   |
+         //|                                                                |
+         //| Estreita de proposito. NAO foi para dentro de ApplySettings,   |
+         //| que serve tambem a restauracao e ao boot — contextos com       |
+         //| semantica propria, onde recusar por posicao aberta quebraria o |
+         //| desfazer de uma criacao falhada. Aqui vale so para o comando   |
+         //| de CARREGAR vindo da interface.                                |
+         //+---------------------------------------------------------------+
+         if(m_positionState.hasPosition)
+           {
+            m_logger.Warn("PROFILE", "Perfil nao carregado enquanto existe posicao em gerenciamento.");
+            return;
+           }
+
          string profileName = (command.text == "") ? m_activeProfileName : command.text;
          if(profileName == "")
             profileName = m_settings.defaultProfileName;

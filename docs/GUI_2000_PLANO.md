@@ -658,7 +658,7 @@ um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomad
 para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
 migracao.**
 
-### Divida no MOTOR: `LOAD_PROFILE` nao recusa com posicao aberta
+### RESOLVIDA no motor: `LOAD_PROFILE` recusa com posicao aberta
 
 Achada no aceite da Fase 3, e e a unica desta serie com consequencia de dinheiro.
 
@@ -685,11 +685,30 @@ quando ha trava local, onde nao ha saida a oferecer e sim uma operacao a
 proteger. **Divergencia deliberada da 1.058, no sentido seguro:** a 2.0 recusa
 algo que a 1.058 permite.
 
-**O que fica de divida:** a guarda pertence ao motor. Enquanto ela nao existir, o
-painel 1.058 mantem o furo, e qualquer outro caminho ate o comando tambem. E
-`Core` compartilhado — mesma categoria do "perfil fantasma" e da corrida de
-unicidade: **item proprio, fora desta migracao**, mas este com prioridade maior
-que os outros dois, porque os outros dois nao mexem em posicao aberta.
+**E o motor ganhou a guarda, no mesmo aceite.** Foi a unica divida tratada fora
+da ordem que o plano previa, e por um criterio so: **contencao na interface nao e
+correcao.** O painel 2.0 fechou o furo do lado dele, mas a autoridade e o motor —
+sem a guarda, a 1.058 continuaria emitindo o comando na combinacao problematica,
+e qualquer caminho futuro ate `UI_COMMAND_LOAD_PROFILE` nasceria desprotegido.
+
+```
+if(m_positionState.hasPosition)
+  {
+   m_logger.Warn("PROFILE", "Perfil nao carregado enquanto existe posicao em gerenciamento.");
+   return;
+  }
+```
+
+**Estreita de proposito.** Ficou no ramo do comando, e **nao** dentro de
+`ApplySettings`: aquela funcao serve tambem a restauracao e ao boot, contextos
+com semantica propria — recusar por posicao aberta ali quebraria o desfazer de
+uma criacao que falhou ao gravar, que e justamente um mecanismo de seguranca.
+Conferido que `UI_COMMAND_RESTORE_ACTIVE_PROFILE` tem ramo proprio e que o boot
+usa `TryLoadProfileFromDisk`, ambos fora deste caminho.
+
+**A 1.058 nao foi alterada**, e nao precisa ser: com a guarda no motor, o botao
+que ela ainda acende indevidamente fica inerte e registra o motivo no log. A
+incoerencia visual dela sobrevive documentada ate a Fase 4 remove-la.
 
 ### A 1.058 nao ficou literalmente congelada: dois textos do motor mudaram
 

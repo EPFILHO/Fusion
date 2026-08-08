@@ -406,9 +406,19 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** **CARREGAR apagado**. A excecao que libera CARREGAR sob peer
       lock existe para dar saida ao bloqueio, mas com posicao aberta nao ha saida
       a oferecer — ha uma operacao a proteger. **Se ele acender, pare e
-      reporte:** o motor NAO recusa carga com posicao aberta, entao o clique
-      trocaria lote e Magic sob a operacao em curso. O painel 1.058 tem esse
-      furo; a 2.0 o fecha (divida registrada no plano).
+      reporte.**
+      **Duas guardas, e as duas devem valer.** O painel recusa (a trava local
+      vence a excecao do peer lock) e o motor tambem: o `LOAD_PROFILE` passou a
+      recusar com posicao em gerenciamento. Para conferir a segunda, use o
+      **painel 1.058** no mesmo estado — la o botao ainda acende, e o esperado e
+      que o clique **nao faca nada** e o log registre "Perfil nao carregado
+      enquanto existe posicao em gerenciamento".
+- [ ] **I7.** Com posicao aberta, provocar uma criacao de perfil que FALHE ao
+      gravar (secao 1.5) e clicar **DESCARTAR**.
+      **Esperado:** o desfazer **funciona**. Ele usa
+      `UI_COMMAND_RESTORE_ACTIVE_PROFILE`, que tem ramo proprio no EA e nao passa
+      pela guarda nova. Se ele parar de funcionar com posicao aberta, a guarda
+      vazou para o lugar errado.
 - [ ] **I5.** Ainda em I4: se o repetido for o do perfil **ativo**, o INICIAR
       tambem bloqueia. Se forem dois perfis parados colidindo entre si, o
       INICIAR **continua liberado** — nao afetam esta conta.
