@@ -487,7 +487,13 @@ void ScreenResults(void)
 
    RowsReset();
    RowStatic("Trades do Dia",trades);
-   RowStatic("Streak Loss/Win Atual","Loss "+ls+" | Win "+ws);
+   //--- "Sequencia", e nao "Streak" como na 1.058: e o unico ponto do painel
+   //--- que ainda usava a palavra em ingles. Gestao > Protecao ja chama os dois
+   //--- cartoes de SEQUENCIA DE LOSS e SEQUENCIA DE WIN, e o panorama de la diz
+   //--- "Sequencias" — o mesmo conceito com dois nomes na mesma interface.
+   //--- Loss/Win ficam, porque e assim que os cartoes se chamam e e assim que o
+   //--- proprio valor abaixo se le.
+   RowStatic("Sequencia Loss/Win Atual","Loss "+ls+" | Win "+ws);
    Card("CONTAGEM");
 
    //--- Sem base de drawdown os numeros nao significam nada ainda: a 1.058

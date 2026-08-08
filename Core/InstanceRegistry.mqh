@@ -76,7 +76,15 @@ public:
       if(!HasLivePeer(prefix, key, now, peerKey))
          return false;
 
-      reason = "Magic " + IntegerToString(magicNumber) + " ja esta em uso por outro Fusion ativo.";
+      //--- "em execucao", e nao "ativo". O painel marca com o selo ATIVO o
+      //--- perfil que ESTE grafico usa, e a mesma palavra aqui significava
+      //--- outra coisa — instancia rodando noutro grafico. As duas apareciam
+      //--- juntas na tela ("default [ATIVO]" na lista e "em uso por outro
+      //--- Fusion ativo" no aviso) e liam-se como contradicao, quando na
+      //--- verdade sao os dois fatos verdadeiros ao mesmo tempo.
+      //--- "Em execucao" tambem descreve melhor o que HasLivePeer confere: um
+      //--- registro com batida recente, dentro do TTL.
+      reason = "Magic " + IntegerToString(magicNumber) + " ja esta em uso por outro Fusion em execucao.";
       return true;
      }
 
