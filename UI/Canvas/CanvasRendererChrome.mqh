@@ -209,10 +209,17 @@ void DrawTitlebar(void)
    //--- visivel que nao faz nada e pior do que controle ausente.
    if(!m_minimized)
      {
-      int rx=FCV_PANEL_W-50;
-      Rect(rx,11,rx,21,m_t.muted);            // haste
-      Chevron(rx,14,false,m_t.muted);         // ponta para cima
-      Chevron(rx,18,true, m_t.muted);         // ponta para baixo
+      //--- ⚠ Haste e pontas ancoradas nos MESMOS pixels. Antes cada uma
+      //--- convertia sua propria posicao logica (11/21 para a haste, 14 e 18
+      //--- para as pontas), e os floors nao concordavam: a distancia entre
+      //--- ponta e haste ia de 3 para 4 px conforme a escala, entao uma ponta
+      //--- colava na haste e a outra deixava uma fresta. As pontas em si sempre
+      //--- estiveram certas — o Chevron ja e pixel-a-pixel; o que faltava era o
+      //--- conjunto ser montado na mesma moeda.
+      int rx=FCV_PANEL_W-50, dcx=S(rx), dcy=S(16);
+      RectDev(dcx,dcy-5,dcx,dcy+5,m_t.muted);                 // haste
+      ChevronDev(dcx,dcy-2,false,m_t.muted);                  // ponta para cima
+      ChevronDev(dcx,dcy+2,true, m_t.muted);                  // ponta para baixo
      }
 
    //--- Minimizado, o botao RESTAURA — e a janelinha e o simbolo disso. Ela

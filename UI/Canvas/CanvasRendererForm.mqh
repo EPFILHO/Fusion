@@ -561,8 +561,33 @@ void DrawRow(const int i,const int ry,const int rh)
          int fid=m_rows[i].fid;
          bool on=(fid!=FCV_FLD_NONE) ? FieldGetBool(fid) : m_stToggle[slot];
          int tx=rx-38, ty=ry+rh/2-10;
-         RoundRect(tx,ty,tx+38,ty+21,10,ToggleTrack(on,en),m_t.surface);
-         Disc(on?tx+28:tx+10,ty+10,8,!en ? m_t.fieldDim : m_t.ground);
+         //+---------------------------------------------------------+
+         //| Capsula e botao derivam dos MESMOS pixels.               |
+         //|                                                          |
+         //| ⚠ Antes eram tres conversoes independentes — altura,     |
+         //| raio e centro do botao, cada uma com seu floor. Uma      |
+         //| capsula so e capsula quando altura = 2 x raio, e essa    |
+         //| igualdade quebrava conforme a linha caia na tela: ora    |
+         //| sobrava um trecho reto no meio da curva, ora o raio nao  |
+         //| cabia. E o centro do botao (S(ty+10)) nao era o centro   |
+         //| do trilho ((S(ty)+S(ty+21))/2), entao ele saia ate 1 px  |
+         //| fora do eixo e a folga virava 2 px em cima e 3 embaixo.  |
+         //|                                                          |
+         //| Nada disso e visivel como erro — le-se como acabamento   |
+         //| ruim, e MUDA DE INTENSIDADE conforme a linha, que e a    |
+         //| assinatura desta familia de defeito (ver a nota do       |
+         //| RoundRectDev). Agora a altura em pixel manda: o raio e   |
+         //| metade dela e o centro sai dela, entao os tres concordam |
+         //| em qualquer escala e em qualquer posicao.                 |
+         //+---------------------------------------------------------+
+         int dy1=S(ty), dy2=S(ty+21), dx1=S(tx), dx2=S(tx+38);
+         int dr=(dy2-dy1)/2, dcy=dy1+dr;
+         RoundRectDev(dx1,dy1,dx2,dy2,dr,ToggleTrack(on,en),m_t.surface);
+         //--- Recuo do botao tambem em pixel, pelo mesmo motivo: 2 px de folga
+         //--- de cada lado, iguais, em vez de "8 unidades logicas" que viram 8
+         //--- ou 9 conforme o resto.
+         int knob=dr-2;
+         DiscDev(on ? dx2-dr-1 : dx1+dr+1,dcy,knob,!en ? m_t.fieldDim : m_t.ground);
          //--- Controle bloqueado nao publica caixa de clique. Nao basta parecer
          //--- desligado: ele nao pode responder.
          if(!en || m_toggleCount>=FCV_CTRL_MAX) break;

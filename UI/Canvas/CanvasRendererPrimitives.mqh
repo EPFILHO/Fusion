@@ -86,6 +86,32 @@ void Chevron(const int lx,const int ly,const bool down,const uint c)
 
 void ChevronDown(const int lx,const int ly,const uint c) { Chevron(lx,ly,true,c); }
 
+//--- Chevron ancorado em PIXEL. Existe para quem precisa posicionar a seta
+//--- relativa a outra coisa ja arredondada — a seta dupla da barra encosta numa
+//--- haste, e converter a posicao dela por conta propria fazia a folga entre
+//--- ponta e haste variar de 0 para 1 px conforme a escala: uma ponta colava e
+//--- a outra ficava solta.
+void ChevronDev(const int dx,const int dy,const bool down,const uint c)
+  {
+   int step=down?1:-1;
+   for(int k=0;k<4;++k)
+      m_canvas.FillRectangle(dx-3+k,dy+step*k,dx+3-k,dy+step*k,c);
+  }
+
+//--- Retangulo em PIXEL DE DISPOSITIVO. Mesma razao dos outros `Dev`: quando a
+//--- forma precisa casar com outra ja arredondada, converter cada ponta por
+//--- conta propria desalinha por um pixel.
+void RectDev(const int dx1,const int dy1,const int dx2,const int dy2,const uint c)
+  { m_canvas.FillRectangle(dx1,dy1,dx2,dy2,c); }
+
+//--- Disco em PIXEL DE DISPOSITIVO. O `Disc` logico converte centro e raio
+//--- separadamente, entao um circulo que precise ficar centrado dentro de outra
+//--- forma ja arredondada sai ate 1 px fora do lugar — e a folga vira 2 px de um
+//--- lado e 3 do outro. Quem precisa de concentricidade calcula centro e raio a
+//--- partir dos MESMOS pixels da forma que o contem, e chama esta versao.
+void DiscDev(const int dcx,const int dcy,const int dr,const uint c)
+  { m_canvas.FillCircle(dcx,dcy,dr,c); }
+
 //--- Disco dividido ao meio na vertical. Cada pixel real e pintado UMA vez;
 //--- a versao anterior percorria o circulo em unidade logica e pintava uns
 //--- pixels duas vezes e outros nenhuma, deixando a borda serrilhada irregular
