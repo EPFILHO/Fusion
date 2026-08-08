@@ -658,6 +658,74 @@ um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomad
 para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
 migracao.**
 
+### Divida REGISTRADA no aceite da Fase 3: campo aceso com a chave desligada
+
+Levantada pelo usuario testando o `FusionCanvas.ex5`. **Nada foi alterado** — o
+que segue e a analise pronta para quando for a hora.
+
+**O estado atual.** As regras de "parametro dependente" foram extraidas uma a uma
+da 1.058 (`CanvasRendererFields.mqh`, secao "Gestao: quem apaga com o que"), e o
+padrao **nao e uniforme**: em Risco e no filtro de Tendencia a chave APAGA os
+parametros; em Sessao, Noticias, Limites Diarios, Drawdown, filtros RSI/BB e
+Estrategias, nao apaga. O principio anotado na epoca era "parametro so apaga
+quando o EA o ignora por causa de OUTRA escolha, e nao quando o pai esta
+desligado — configurar antes de ligar e uso legitimo".
+
+**Por que o principio e mais fraco do que parecia.** Nada no painel vale enquanto
+o SALVAR nao acontece: o EA le o comprometido, nao o rascunho. Entao o risco nao
+e ativar algo sem querer — e mais discreto e pior. Com a chave OFF e o campo
+aceso, o usuario edita, **grava**, e fica com um numero em disco que o EA ignora,
+achando que configurou uma protecao que continua desligada. O painel deixou
+registrar uma intencao que nao vai valer.
+
+Contra isso, "pre-configurar sem ativar" custa dois cliques a mais no outro
+modelo (liga, edita, desliga) e e caso raro. **Decisao do usuario: uniformizar
+para "chave OFF apaga os parametros"**, ganhando o invariante forte — *aceso =
+participa do que o EA vai fazer*.
+
+> ⚠️ **A armadilha, e ela dobra o trabalho.** A validacao **quase nao olha as
+> chaves**: em todo o `CanvasRendererValidate.mqh` so ha dois pontos
+> condicionados (a inclinacao do BB e a janela de sessao). `ScreenErrorRSIFilter`,
+> por exemplo, cobra periodo e ordem dos niveis sem perguntar se o filtro esta
+> ligado.
+>
+> Apagar o campo sem condicionar a validacao produz **aba vermelha, faixa
+> mandando corrigir, e o campo a corrigir cinza** — a licao 1 da secao 8 pela
+> quinta vez, desta vez desenhada de proposito. **Cada campo apagado exige duas
+> linhas, nao uma**, e as duas tem de concordar para sempre. E o motivo de isto
+> ser "item a item" e nao uma regra geral.
+>
+> Agravante: perfis sao compartilhados com a 1.058. Um campo apagado na 2.0 com
+> validacao ainda disparando cria perfil que so se conserta no painel antigo.
+
+**Inventario** (secao / campos / estado da validacao hoje):
+
+| Secao | Campos | Validacao |
+|---|---|---|
+| Sessao | 2 horarios (4 campos) + Fechar no fim | **ja condicionada** |
+| Noticias | 3 janelas x (2 horarios + acao) | nao |
+| Limites Diarios | Max Trades, Max Perda, Max Ganho | nao |
+| Drawdown | Max DD, Tipo, Base | nao |
+| Filtro RSI | periodo, niveis, modo | nao |
+| Filtro BB | periodo, desvio, largura | parcial (so a inclinacao) |
+| Estrategias | parametros de MA, RSI, BB | nao |
+
+**Fora do escopo, e por motivos diferentes:** Risco e filtro de Tendencia ja
+apagam (e a 1.058 tambem — conferido em `TrendFilterPanel.mqh:173,181`); **Max
+Spread** ja apaga o limite com a chave OFF (`SpreadLimitEditable()`), servindo de
+precedente dentro da propria Protecao; e o **TP parcial** fica como esta, porque
+"TP2 exige TP1" e dependencia de verdade, nao pai desligado.
+
+**Decisao propria pendente:** a **Prioridade** da estrategia. Ela e do bloco da
+estrategia, mas o modo Cancelar usa a prioridade para eleger a dona da posicao —
+conferir esse caminho antes de decidir se apaga junto.
+
+**Por que nao agora:** muda comportamento em quase todas as telas de
+configuracao e diverge da 1.058 justamente onde os dois paineis estao sendo
+comparados. O aceite em curso deve comparar igual com igual, e uma mudanca que
+mexe em validacao de protecao merece a propria passada de teste — nao pegar
+carona no meio de outras dez.
+
 **Fase 3 — Troca por interruptor. FEITA** (fiacao; o aceite em execucao e do
 usuario, ver `docs/GUI_2000_FASE3_TESTES.md`). Os dois paineis convivem,
 comparaveis lado a lado, com reversao imediata.
