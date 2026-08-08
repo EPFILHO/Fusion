@@ -203,7 +203,7 @@
 struct SHeaderAction
   {
    int    action;      // FCV_HACT_*
-   string label;       // INICIAR / PAUSAR / OPERANDO — NUNCA o motivo
+   string label;       // INICIAR ou PAUSAR — a ACAO, nunca o motivo nem o estado
    bool   enabled;
    int    block;       // FCV_HBLK_*
    string band;        // texto da faixa; "" = sem faixa

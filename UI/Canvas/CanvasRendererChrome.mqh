@@ -216,8 +216,11 @@ void DrawTitlebar(void)
       //--- colava na haste e a outra deixava uma fresta. As pontas em si sempre
       //--- estiveram certas — o Chevron ja e pixel-a-pixel; o que faltava era o
       //--- conjunto ser montado na mesma moeda.
+      //--- Haste de 7 px para cada lado, e nao 5: com as pontas ancoradas a 2 px
+      //--- do centro, uma haste curta quase desaparecia entre elas e o icone
+      //--- lia-se como duas setas soltas em vez de um eixo com dois sentidos.
       int rx=FCV_PANEL_W-50, dcx=S(rx), dcy=S(16);
-      RectDev(dcx,dcy-5,dcx,dcy+5,m_t.muted);                 // haste
+      RectDev(dcx,dcy-7,dcx,dcy+7,m_t.muted);                 // haste
       ChevronDev(dcx,dcy-2,false,m_t.muted);                  // ponta para cima
       ChevronDev(dcx,dcy+2,true, m_t.muted);                  // ponta para baixo
      }
@@ -326,11 +329,12 @@ string RunStateText(void)
 uint RunStateColor(void)
   { return SemColor(m_hdr.badgeSem); }
 
-//--- O botao diz o que o clique FAZ, nao o que o estado E — com uma excecao
-//--- deliberada, herdada da 1.058: com posicao aberta ele mostra "OPERANDO".
-//--- Ali o estado importa mais que a acao, porque pausar com posicao aberta
-//--- nao fecha nada, so impede novas entradas; anunciar "PAUSAR" faria o
-//--- usuario achar que o clique encerra a operacao em curso.
+//--- O botao diz o que o clique FAZ, nao o que o estado E — sem excecao. Houve
+//--- uma, herdada da 1.058: com posicao aberta o rotulo virava "OPERANDO". O
+//--- receio era que "PAUSAR" fizesse o usuario achar que o clique encerra a
+//--- operacao em curso; mas ali o botao esta APAGADO, e quem explica que a saida
+//--- e pela estrategia ou pela protecao e a faixa. O estado subiu para o
+//--- distintivo, que e onde estado pertence.
 //+------------------------------------------------------------------+
 //| Camada de acesso — quem pode o que, e quando.                     |
 //| Portada de UI/UIPanelAccessState.mqh, mesmos predicados.          |

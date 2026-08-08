@@ -224,7 +224,8 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       de drawdown os campos ficam `--`, nao zerados.
 - [ ] **B3.** Clicar **INICIAR** e depois **PAUSAR**.
       **Esperado:** a capsula do cabecalho e o Status acompanham. Com posicao
-      aberta o botao mostra **OPERANDO**.
+      aberta o distintivo mostra **OPERANDO** e o botao fica em **PAUSAR
+      apagado** — quem explica por que e a faixa. (Detalhado em I2.11.)
 - [ ] **B4.** Editar um campo de Estrategias e observar o Status.
       **Esperado:** o Status **nao muda** — ele descreve o que o EA esta
       rodando, e a edicao so vale depois do SALVAR. **Isto e o correto**, e ja
@@ -415,7 +416,8 @@ funcao** que decide se o botao aceita clique (`ResolveHeaderActionState`).
 Regras que valem em todos os passos abaixo:
 
 - **o rotulo do botao nunca vira motivo.** Parado e `INICIAR` mesmo apagado;
-  rodando sem posicao e `PAUSAR`; com posicao e `OPERANDO`, apagado;
+  rodando e `PAUSAR` — com posicao aberta ele fica **apagado**, e quem diz
+  `OPERANDO` e o distintivo;
 - **a faixa nunca manda fazer o que a tela impede.** Se ela diz "salve ou
   cancele", pelo menos um dos dois tem de estar aceso;
 - **o distintivo diz ESTADO, nunca causa**, no estado mais especifico

@@ -123,6 +123,13 @@ void ApplyComboSideEffect(const int kind,const int value)
       int fit=DecidePanelHeight();
       if(fit<m_ph) m_ph=fit;
       m_scroll=0;
+      //--- ⚠ A escala tambem muda os LIMITES da posicao: eles saem de S(), e um
+      //--- painel encostado na borda passa a ultrapassa-la sem ter se movido.
+      //--- Terceiro ponto onde este recorte precisa acontecer, pela terceira vez
+      //--- pelo mesmo motivo — quem muda nao e a posicao, e o limite dela.
+      int cx=m_px, cy=m_py;
+      ClampPanelXY(cx,cy);
+      if(cx!=m_px || cy!=m_py) MoveTo(cx,cy);
       SaveAppearance();
       return;
      }
