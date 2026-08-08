@@ -165,6 +165,16 @@ ambiguo — o que ele significaria.
 - [ ] **A2.** Arrastar o painel pela barra de titulo.
       **Esperado:** o painel se move, o **grafico nao**. Se o grafico rolar
       junto, a supressao de `CHART_MOUSE_SCROLL` nao esta valendo.
+- [ ] **A1b.** ⚠️ **`inp_ShowPanel` manda, e o perfil nao vence mais.** Com um
+      nome de perfil **novo** (nao um ja gravado):
+      1. anexar com `inp_ShowPanel = false` — o painel **nao** aparece, e o
+         `default.cfg` daquele nome nasce com o campo desligado;
+      2. remover, anexar de novo no MESMO perfil com `inp_ShowPanel = true` — o
+         painel **tem de aparecer**;
+      3. o inverso, num perfil gravado com o painel ligado: com o input em
+         `false`, ele **tem de ficar oculto**.
+      **O passo 2 e o que importa.** Antes ele falhava, e o estado nao tinha
+      saida: para religar a GUI seria preciso a GUI. So editando o `.cfg` a mao.
 - [ ] **A2b.** ⚠️ **Tentar arrastar o painel para fora, nos quatro sentidos.**
       **Esperado:** ele para. Para baixo, a barra de titulo inteira continua na
       tela; para a direita, sobra a faixa da esquerda com "EP Fusion" — e ela e
