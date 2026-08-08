@@ -402,6 +402,13 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** a aba Perfis acende, as linhas envolvidas sao pintadas
       nomeando quem colide, e CARREGAR e bloqueado nos dois. **EXCLUIR e
       DUPLICAR seguem liberados** — sao a saida.
+- [ ] **I6.** ⚠️ **Posicao aberta com o perfil preso por outro grafico.**
+      **Esperado:** **CARREGAR apagado**. A excecao que libera CARREGAR sob peer
+      lock existe para dar saida ao bloqueio, mas com posicao aberta nao ha saida
+      a oferecer — ha uma operacao a proteger. **Se ele acender, pare e
+      reporte:** o motor NAO recusa carga com posicao aberta, entao o clique
+      trocaria lote e Magic sob a operacao em curso. O painel 1.058 tem esse
+      furo; a 2.0 o fecha (divida registrada no plano).
 - [ ] **I5.** Ainda em I4: se o repetido for o do perfil **ativo**, o INICIAR
       tambem bloqueia. Se forem dois perfis parados colidindo entre si, o
       INICIAR **continua liberado** — nao afetam esta conta.

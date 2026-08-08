@@ -932,6 +932,16 @@ SHeaderAction ResolveHeaderActionLadder(void)
 
    if(m_snap.runtimeBlocked)
      { s.block=FCV_HBLK_RUNTIME; s.band=m_snap.runtimeBlockReason; s.bandSem=FCV_SEM_BAD; return s; }
+   //--- ⚠ LOGO APOS o runtime, e nao no fim como esteve. A regra "primeiro o que
+   //--- o usuario resolve aqui" nao se aplica quando NADA e resolvivel: durante
+   //--- a reconciliacao os campos estao travados (AccRuntimeEditable inclui
+   //--- hasPosition), o SALVAR e recusado, o CANCELAR tambem e o CARREGAR
+   //--- idem. Todas as mensagens abaixo — "corrija ou cancele", "salve ou
+   //--- cancele", "carregue outro perfil" — instruiriam acoes indisponiveis,
+   //--- que e a licao 1 da secao 8. A unica informacao util ali e que a espera
+   //--- existe e passa sozinha.
+   if(reconciling)
+     { s.block=FCV_HBLK_RECONCILE; s.band=reconcileBand; s.bandSem=FCV_SEM_NEUTRAL; return s; }
    if(formOpen)
      { s.block=FCV_HBLK_PROFFORM; s.band="FORMULARIO DE PERFIL ABERTO — conclua ou descarte"; return s; }
    //--- Antes de CONFIG de proposito: preso, o perfil ativo fica so-leitura
@@ -965,13 +975,6 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- causas do guard sem o painel precisar saber qual e.
    if(m_snap.tradePermissionBlocked)
      { s.block=FCV_HBLK_PERMISSION; s.band=m_snap.tradePermissionReason; return s; }
-   //--- Por ultimo entre os bloqueios porque passa sozinho: nao ha o que o
-   //--- usuario faca alem de esperar, e enquanto espera vale mais ele ver o que
-   //--- ainda da para corrigir. Mas o botao TEM de apagar — o EA volta sem
-   //--- executar, e clique inerte e pior que botao apagado.
-   if(reconciling)
-     { s.block=FCV_HBLK_RECONCILE; s.band=reconcileBand; s.bandSem=FCV_SEM_NEUTRAL; return s; }
-
    s.enabled=true;
    //+---------------------------------------------------------------+
    //| INICIAR disponivel, mas ha posicao aberta em gerenciamento.     |
@@ -1010,11 +1013,37 @@ SHeaderAction ResolveHeaderActionLadder(void)
 //--- A excecao da 1.058 e deliberada: com o perfil preso por outro grafico,
 //--- carregar continua liberado, porque escolher outro perfil e justamente a
 //--- saida para desfazer esse bloqueio. Carregar nao libera a operacao.
+//+------------------------------------------------------------------+
+//| ⚠ A TRAVA LOCAL VENCE A EXCECAO DO PEER LOCK.                     |
+//|                                                                   |
+//| A composicao anterior — herdada fielmente da 1.058                |
+//| (UIPanelAccessState.mqh:97) — devolvia true no peer lock ANTES de |
+//| olhar `hasPosition`, e a excecao furava a trava local em dois     |
+//| estados:                                                          |
+//|                                                                   |
+//|  - reconciliacao + peer lock: CARREGAR acendia e o EA recusava    |
+//|    sem executar (`m_closeReconciliationPending`). Clique inerte.  |
+//|  - POSICAO ABERTA + peer lock: pior. O LOAD_PROFILE do EA nao tem |
+//|    guarda para posicao aberta — ele so recusa por reconciliacao,  |
+//|    drawdown ativo e travas de concorrencia. O clique CHEGAVA a    |
+//|    aplicar outro perfil, trocando lote e Magic sob uma operacao   |
+//|    em gerenciamento.                                              |
+//|                                                                   |
+//| A excecao continua existindo, e a razao dela tambem: com o perfil |
+//| preso por outro grafico, escolher outro perfil e a saida do       |
+//| bloqueio. Ela so deixa de valer quando ha trava local — e ai nao  |
+//| ha saida a oferecer, ha uma operacao a proteger.                  |
+//|                                                                   |
+//| ⚠ Divergencia deliberada da 1.058, e no sentido seguro: a 2.0     |
+//| recusa algo que a 1.058 permite. O conserto de verdade e no       |
+//| motor (LOAD_PROFILE deveria recusar com posicao gerenciada), e    |
+//| isso e producao compartilhada — registrado como divida no plano.  |
+//+------------------------------------------------------------------+
 bool AccCanLoadProfile(void)
   {
-   if(m_snap.started) return false;
+   if(m_snap.started || m_snap.hasPosition) return false;
    if(AccPeerLock())  return true;
-   return (!m_snap.hasPosition && !HasPending());
+   return !HasPending();
   }
 
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.

@@ -658,6 +658,39 @@ um defeito que nao e da GUI, e que ja existia antes dela — mesma decisao tomad
 para o "perfil fantasma" (nome de arquivo com espaco). **Item proprio, fora desta
 migracao.**
 
+### Divida no MOTOR: `LOAD_PROFILE` nao recusa com posicao aberta
+
+Achada no aceite da Fase 3, e e a unica desta serie com consequencia de dinheiro.
+
+`UI_COMMAND_LOAD_PROFILE` (`EAApplicationCommands.mqh`) recusa por reconciliacao
+pendente, arquivo ilegivel, drawdown ativo e as duas travas de concorrencia.
+**Nao ha guarda para posicao aberta.** Carregar um perfil aplica `ApplySettings`,
+que troca lote e Magic — sob uma operacao em gerenciamento.
+
+Isso nunca aparecia porque o painel nao oferecia o botao... **exceto num caso.**
+A permissao de carga tem uma excecao deliberada: com o perfil preso por outro
+grafico, CARREGAR continua liberado, porque escolher outro perfil e a saida do
+bloqueio. So que a excecao era avaliada ANTES da trava local:
+
+```
+if(hasPeerProfileLock) profileLoadAllowed = true;      // 1.058, UIPanelAccessState:97
+else if(!hasLocalPositionLock) ...
+```
+
+Com posicao aberta **e** peer lock, CARREGAR acendia e o clique chegava ao motor.
+
+**Corrigido na 2.0, no painel:** `AccCanLoadProfile` faz `started || hasPosition`
+vencer antes da excecao. A excecao continua existindo — ela so deixa de valer
+quando ha trava local, onde nao ha saida a oferecer e sim uma operacao a
+proteger. **Divergencia deliberada da 1.058, no sentido seguro:** a 2.0 recusa
+algo que a 1.058 permite.
+
+**O que fica de divida:** a guarda pertence ao motor. Enquanto ela nao existir, o
+painel 1.058 mantem o furo, e qualquer outro caminho ate o comando tambem. E
+`Core` compartilhado — mesma categoria do "perfil fantasma" e da corrida de
+unicidade: **item proprio, fora desta migracao**, mas este com prioridade maior
+que os outros dois, porque os outros dois nao mexem em posicao aberta.
+
 ### A 1.058 nao ficou literalmente congelada: dois textos do motor mudaram
 
 Decisao consciente, tomada com o usuario durante o aceite da Fase 3 e registrada
