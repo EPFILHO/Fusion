@@ -842,8 +842,12 @@ void ScreenProfiles(void)
       //--- Os quatro criterios da 1.058, conferidos contra a lista ja lida:
       //--- nome preenchido, nome livre, Magic valido e Magic livre.
       bool nameBad=false, magicBad=false;
-      string formError="";
-      bool formReady=ProfileFormReady(nameBad,magicBad,formError);
+      //--- O texto do erro nao e usado AQUI: quem o exibe e a caixa do rodape,
+      //--- por ScreenErrorProfileEdit. Desta chamada interessam so a marcacao
+      //--- dos campos e a prontidao do botao — e as tres respostas saem da MESMA
+      //--- funcao, que e o que impede as regras de nome e Magic divergirem.
+      string unusedHere="";
+      bool formReady=ProfileFormReady(nameBad,magicBad,unusedHere);
 
       RowsReset();
       RowField("Nome","Como o perfil aparece na lista","",!nameBad);
@@ -870,28 +874,29 @@ void ScreenProfiles(void)
       //| impede, a licao 1 da secao 8 pela terceira vez. A aba ficava   |
       //| vermelha, mas em Perfis nao ha por que olhar para Gestao.      |
       //+---------------------------------------------------------------+
-      string cfgTab="";
-      string cfgError=ConfigInputsValid() ? "" : FirstConfigError(cfgTab);
-      if(StringLen(formError)>0)
-         RowNoteSem(formError,FCV_SEM_BAD);
-      //--- A nota comeca pela CAUSA, e nao pelo erro. O usuario duplicando um
-      //--- perfil de outro ativo nao tem por que supor que criar aqui tambem
-      //--- ATIVA aqui — e sem essa ligacao a recusa parece arbitraria: ele
-      //--- pediu uma copia, nao pediu para operar com ela.
-      //---
-      //--- "valida para <ativo>" cobre os dois tipos de erro sem precisar
-      //--- distingui-los: o que so vale neste simbolo (lote abaixo do minimo,
-      //--- distancia menor que o stops level) e o que seria invalido em
-      //--- qualquer um (MA rapida maior que a lenta).
-      else if(StringLen(cfgError)>0)
-         RowNoteSem("Criar tambem ATIVA o perfil neste grafico, entao a configuracao "+
-                    "precisa ser valida para o "+m_snap.symbol+". Corrija em "+
-                    cfgTab+": "+cfgError,FCV_SEM_BAD);
-      else
-         RowNote (m_profEdit==FCV_PROF_DUP
-                  ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
-                    ". Ajuste o Magic e clique CRIAR COPIA."
-                  : "Informe um nome e um Magic livre, e clique CRIAR PERFIL.");
+      //+---------------------------------------------------------------+
+      //| ⚠ O CARTAO NAO EXIBE MAIS ERRO. Ele foi para a caixa do rodape, |
+      //| onde toda tela ja poe o seu — decisao do usuario, por           |
+      //| consistencia com o TP Parcial e as demais.                      |
+      //|                                                                |
+      //| O texto sai por ScreenErrorProfileEdit -> ScreenAlert ->        |
+      //| AlertBottom, com o titulo CONFIGURACAO INVALIDA. As duas causas |
+      //| (formulario e configuracao) viajam por la, na mesma ordem que   |
+      //| tinham aqui.                                                    |
+      //|                                                                |
+      //| ⚠ Custo aceito conscientemente: a caixa encurta ContentBottom,  |
+      //| entao o formulario sobe e desce enquanto se digita um nome que  |
+      //| entra e sai de valido. O recorte da rolagem por quadro          |
+      //| (ClampScroll) ja cobre o efeito colateral disso — foi corrigido |
+      //| antes, por causa deste mesmo mecanismo.                         |
+      //|                                                                |
+      //| Fica so a orientacao NEUTRA, que nao e erro e nao tem outro     |
+      //| lugar: ela descreve o que fazer no formulario.                  |
+      //+---------------------------------------------------------------+
+      RowNote (m_profEdit==FCV_PROF_DUP
+               ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
+                 ". Ajuste o Magic e clique CRIAR COPIA."
+               : "Informe um nome e um Magic livre, e clique CRIAR PERFIL.");
       //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
       //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
       //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que

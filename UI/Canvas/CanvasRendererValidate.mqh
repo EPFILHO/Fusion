@@ -992,6 +992,47 @@ string ScreenErrorProfiles(void)
   }
 
 //+------------------------------------------------------------------+
+//| Erro do FORMULARIO de criar/duplicar, para a caixa do rodape.      |
+//|                                                                   |
+//| Funcao SEPARADA de ScreenErrorProfiles, e a separacao e o ponto:   |
+//| `FirstConfigError` consulta a tela pelo id FCV_SCREEN_PROFILES     |
+//| para montar `ConfigInputsValid`, e ScreenErrorProfiles decide por  |
+//| `m_profEdit` — nao pelo argumento. Fundidas, o erro do formulario  |
+//| vazaria para o predicado global: um nome repetido passaria a       |
+//| reprovar a CONFIGURACAO, apagando INICIAR e SALVAR e fazendo a     |
+//| nota da cadeia dizer "Corrija em Perfis: Nome ja existe".          |
+//|                                                                   |
+//| Fonte unica preservada: quem responde e o mesmo ProfileFormReady   |
+//| que marca os campos de vermelho e habilita o CRIAR. As regras de   |
+//| nome e Magic nao sao reescritas aqui.                              |
+//|                                                                   |
+//| Duas causas, na mesma ordem que tinham no cartao:                  |
+//|  1. o formulario (nome/Magic);                                     |
+//|  2. a CONFIGURACAO, que pesa porque criar grava o rascunho inteiro |
+//|     num arquivo novo E ativa o perfil neste grafico. A frase       |
+//|     comeca pela CAUSA e aponta a aba: sem essa ligacao a recusa    |
+//|     parece arbitraria para quem pediu so uma copia.                |
+//+------------------------------------------------------------------+
+string ScreenErrorProfileEdit(void)
+  {
+   bool nameBad=false, magicBad=false;
+   string formError="";
+   ProfileFormReady(nameBad,magicBad,formError);
+   if(StringLen(formError)>0)
+      return formError;
+
+   if(ConfigInputsValid())
+      return "";
+   string cfgTab="";
+   string cfgError=FirstConfigError(cfgTab);
+   if(StringLen(cfgError)==0)
+      return "";
+   return "Criar tambem ATIVA o perfil neste grafico, entao a configuracao "
+          "precisa ser valida para o "+m_snap.symbol+". Corrija em "+
+          cfgTab+": "+cfgError;
+  }
+
+//+------------------------------------------------------------------+
 //| Erro por identidade de tela — a mesma que indexa os slots.        |
 //| Reusa-la evita uma segunda tabela de "quem e quem" que poderia    |
 //| divergir da primeira.                                             |
@@ -1024,8 +1065,11 @@ string ScreenError(const int screen)
       case FCV_SCREEN_PROT0+5: return ScreenErrorProtDrawdown();
       case FCV_SCREEN_PROT0+6: return ScreenErrorProtStreak();
 
-      case FCV_SCREEN_PROFILES:
-      case FCV_SCREEN_PROFILE_EDIT: return ScreenErrorProfiles();
+      //--- Telas distintas, funcoes distintas. Ver a nota de
+      //--- ScreenErrorProfileEdit: unificadas, o erro do formulario vazava para
+      //--- o ConfigInputsValid global.
+      case FCV_SCREEN_PROFILES:     return ScreenErrorProfiles();
+      case FCV_SCREEN_PROFILE_EDIT: return ScreenErrorProfileEdit();
      }
    return "";
   }
