@@ -129,8 +129,13 @@ bool ScreenAlert(string &title,string &body,int &sem)
    //--- E e a mesma palavra que a faixa do cabecalho usa, de proposito: la o
    //--- resumo ("CONFIGURACAO INVALIDA — corrija ou cancele"), aqui o detalhe do
    //--- que exatamente esta invalido. Um conceito, um nome, dois niveis de
-   //--- profundidade. Literalmente o mesmo predicado, tambem: tudo que chega
-   //--- aqui e o que faz ConfigInputsValid() reprovar.
+   //--- profundidade.
+   //---
+   //--- ⚠ Nas telas de CONFIGURACAO o detalhe corresponde ao predicado: o que
+   //--- chega aqui e o que faz ConfigInputsValid() reprovar. O formulario de
+   //--- perfil e a excecao — ScreenErrorProfileEdit usa a mesma caixa, mas a
+   //--- validacao dele fica LOCAL de proposito, para nao contaminar a
+   //--- configuracao do perfil ativo. Ver a nota daquela funcao.
    title="CONFIGURACAO INVALIDA"; body=err; sem=FCV_SEM_BAD;
    return true;
   }

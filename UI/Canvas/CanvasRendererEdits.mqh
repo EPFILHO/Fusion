@@ -38,7 +38,36 @@ bool CursorOverEdit(const int i)
 void StyleEdit(const string n,const bool enabled,const bool valid)
   {
    uint bg     = !enabled ? m_t.fieldDim : (valid ? m_t.inset : m_t.fieldErr);
-   uint border = !enabled ? m_t.disabled : (valid ? m_t.line  : m_t.bad);
+   //+---------------------------------------------------------------+
+   //| Borda do campo EDITAVEL reforcada, puxando `line` na direcao do |
+   //| `muted`.                                                        |
+   //|                                                                |
+   //| ⚠ Achado pelo usuario: nos temas CLAROS o campo habilitado nao  |
+   //| se distinguia do cartao. A conta explica — no Petroleo claro o  |
+   //| cartao e #FFFFFF e o `inset` do campo e #F3F7F9: 3% de          |
+   //| diferenca. E havia uma inversao perversa: o campo BLOQUEADO     |
+   //| (#E9EFF2) tinha MAIS contraste que o habilitado, entao o unico  |
+   //| campo bem marcado era o que nao aceita digitacao.               |
+   //|                                                                |
+   //| Nos temas escuros o poco existe (surface #122530 contra inset   |
+   //| #071219) — a ideia estava certa e so nao foi transposta para o  |
+   //| claro, onde afundar a partir do branco exige escurecer de       |
+   //| verdade.                                                        |
+   //|                                                                |
+   //| Aqui trata-se so da BORDA, que e cirurgico: o `inset` e usado   |
+   //| em mais quatro lugares (distintivo do TF, combo, amostra de cor |
+   //| e trilho da barra) e mexer nele pediria conferir os cinco.      |
+   //|                                                                |
+   //| Blend em vez de cor fixa porque a direcao serve aos dois temas: |
+   //| no claro `muted` e mais escuro que `line` e a borda ganha peso; |
+   //| no escuro e mais claro, e ela ganha o mesmo peso pelo outro     |
+   //| lado. Uma constante, oito paletas.                              |
+   //|                                                                |
+   //| So o campo EDITAVEL e VALIDO muda: invalido continua vermelho e |
+   //| bloqueado continua cinza — os dois ja eram legiveis.            |
+   //+---------------------------------------------------------------+
+   uint border = !enabled ? m_t.disabled
+                          : (valid ? Blend(m_t.muted,m_t.line,0.45) : m_t.bad);
    uint txt    = !enabled ? m_t.disabled : m_t.fg;
    ObjectSetInteger(m_chart,n,OBJPROP_BGCOLOR,ToChartColor(bg));
    ObjectSetInteger(m_chart,n,OBJPROP_BORDER_COLOR,ToChartColor(border));

@@ -102,6 +102,9 @@ private:
    int               m_mouseX, m_mouseY;
    bool              m_origScroll;
    int               m_scroll, m_contentH, m_alertH;
+   //--- Altura do aviso no quadro ANTERIOR. Serve para detectar a BORDA (a
+   //--- caixa acabou de aparecer), e nao o estado — ver a nota no DrawFrame.
+   int               m_lastAlertH;
 
    //--- Formulario em construcao e cursor de layout
    SCanvasFormRow    m_rows[FCV_ROWS_MAX];
@@ -467,7 +470,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- depois de conferir o botao.
    m_mouseX=-1; m_mouseY=-1;
    m_origScroll=true;
-   m_scroll=0; m_contentH=0; m_alertH=0;
+   m_scroll=0; m_contentH=0; m_alertH=0; m_lastAlertH=0;
 
    m_editCount=0; m_toggleCount=0; m_comboCount=0; m_colorCount=0;
    m_rowCount=0; m_slotSeq=0; m_screen=0;
@@ -725,6 +728,34 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //--- depois faria o conteudo desta passada usar a altura da passada
    //--- anterior — um quadro de atraso a cada troca de tela.
    MeasureAlert();
+   //+---------------------------------------------------------------+
+   //| A caixa ACABOU de aparecer no formulario de perfil: leva o     |
+   //| conteudo ao fim, onde estao CRIAR PERFIL e DESCARTAR.          |
+   //|                                                                |
+   //| Existe por um efeito colateral de ter mandado o erro do        |
+   //| formulario para o rodape: a caixa encurta a area util, e os    |
+   //| dois botoes — que vivem no fim do conteudo rolavel — podem cair |
+   //| abaixo da dobra. E a roda do mouse NAO rola com um campo em     |
+   //| foco (limitacao do terminal, `if(EditHasFocus()) return;`), que |
+   //| e exatamente o estado de quem acabou de digitar o nome invalido.|
+   //| Sem isto, o caminho natural de alcancar o botao fica fechado no |
+   //| unico momento em que ele some.                                  |
+   //|                                                                |
+   //| ⚠ Detecta a BORDA (`m_lastAlertH==0`), nao o estado: reagir ao  |
+   //| aviso estar presente prenderia o conteudo no fim, e o usuario   |
+   //| nao conseguiria mais rolar para cima enquanto o erro durasse.   |
+   //|                                                                |
+   //| ⚠ E SO no formulario de perfil. Nas telas de configuracao os    |
+   //| botoes ficam no cabecalho, nada se perde no fim, e saltar para  |
+   //| baixo com o usuario digitando seria pior que o problema.        |
+   //|                                                                |
+   //| Nao calcula o destino: joga o deslocamento para alem do fim e   |
+   //| deixa o ClampScroll logo abaixo cortar no maximo real. Uma so   |
+   //| aritmetica de limite, no lugar onde ela ja vive.                |
+   //+---------------------------------------------------------------+
+   if(m_alertH>0 && m_lastAlertH==0 && ScreenId()==FCV_SCREEN_PROFILE_EDIT)
+      m_scroll=m_contentH;
+   m_lastAlertH=m_alertH;
    //--- E o deslocamento da rolagem depende da mesma altura, pela mesma razao.
    //--- Com o m_alertH ja correto e o m_contentH da passada anterior, este
    //--- recorte acerta exatamente o caso que motivou a funcao: o aviso some, a
