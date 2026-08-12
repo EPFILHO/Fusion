@@ -583,7 +583,7 @@ void DrainIntents(void)
             CSettingsStore store;
             SEASettings source;
             if(store.LoadProfile(intent.profile,source))
-               g_panel.BeginDuplicate(source,intent.profile+"_copy",intent.profile);
+               g_panel.BeginDuplicate(source,intent.profile+"_copy");
             else
                g_panel.SetNotice("NAO FOI POSSIVEL DUPLICAR",
                                  "O arquivo de "+intent.profile+" nao pode ser lido.",

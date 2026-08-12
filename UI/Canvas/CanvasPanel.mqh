@@ -588,7 +588,7 @@ private:
                               "O arquivo de "+sourceName+" nao pode ser lido.",FCV_SEM_BAD);
          return;
         }
-      m_renderer.BeginDuplicate(source,SuggestedDuplicateName(sourceName),sourceName);
+      m_renderer.BeginDuplicate(source,SuggestedDuplicateName(sourceName));
      }
 
 public:

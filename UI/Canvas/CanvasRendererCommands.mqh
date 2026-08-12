@@ -376,8 +376,11 @@ void SetNotice(const string title,const string body,const int sem,const uint ttl
 //| formulario que ja se sabe invalido, e o botao apagado sem dizer   |
 //| por que. Vazio, o cartao pede o numero.                           |
 //+------------------------------------------------------------------+
-void BeginDuplicate(const SEASettings &source,const string suggestedName,
-                    const string sourceName)
+//--- `sourceName` era o terceiro parametro e saiu com o aviso de entrada, que
+//--- era seu unico leitor. Quem nomeia a origem no cartao e o perfil
+//--- selecionado (m_profSel), que e o mesmo — a selecao nao muda entre o clique
+//--- e esta chamada.
+void BeginDuplicate(const SEASettings &source,const string suggestedName)
   {
    ReleaseEditFocus();
    m_profEdit=FCV_PROF_DUP;
@@ -386,11 +389,31 @@ void BeginDuplicate(const SEASettings &source,const string suggestedName,
    m_draft=source;
    SyncDerivedSettings();
    
-   //--- Com prazo: a mesma instrucao esta no cartao do formulario, que fica na
-   //--- tela o tempo todo. Aqui ela so anuncia o que acabou de acontecer.
-   SetNotice("DUPLICANDO "+sourceName,
-             "A configuracao foi copiada. Informe um Magic livre e clique CRIAR COPIA.",
-             FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
+   //+---------------------------------------------------------------+
+   //| Entrar no formulario LIMPA a caixa, como o NOVO ja fazia.       |
+   //|                                                                |
+   //| Havia aqui um aviso de entrada — "DUPLICANDO X / A configuracao |
+   //| foi copiada. Informe um Magic livre e clique CRIAR COPIA" — com |
+   //| prazo de 5 s. Ele causava tres coisas de uma vez, e o proprio   |
+   //| comentario dele ja admitia a primeira:                          |
+   //|                                                                |
+   //|  - REDUNDANCIA: a mesma instrucao esta no cartao, que fica na   |
+   //|    tela o tempo todo, ao lado do nome ja preenchido e do titulo |
+   //|    DUPLICAR COMO. Nada se perde tirando-o.                      |
+   //|  - ATRASO: a caixa e uma so, e o aviso vence o erro da tela.    |
+   //|    Por 5 s o painel escondia o motivo real de o CRIAR COPIA     |
+   //|    estar apagado.                                               |
+   //|  - INSTRUCAO IMPEDIDA: ele mandava clicar num botao que podia   |
+   //|    estar desabilitado — duplicar perfil de outro ativo reprova  |
+   //|    a configuracao para o simbolo deste grafico. Licao 1 da      |
+   //|    secao 8, agravada por esconder a explicacao verdadeira.      |
+   //|                                                                |
+   //| E limpar (em vez de so nao escrever) importa: um aviso anterior |
+   //| ainda no prazo ocuparia a caixa pelo tempo restante, com os     |
+   //| mesmos dois ultimos efeitos — e impediria a rolagem automatica  |
+   //| de disparar, que reage a transicao "sem aviso -> com aviso".    |
+   //+---------------------------------------------------------------+
+   ClearNotice();
    m_scroll=0;
    Render();
   }

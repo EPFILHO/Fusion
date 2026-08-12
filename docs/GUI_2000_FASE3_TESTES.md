@@ -165,7 +165,7 @@ ambiguo — o que ele significaria.
 - [x] **A2.** Arrastar o painel pela barra de titulo.
       **Esperado:** o painel se move, o **grafico nao**. Se o grafico rolar
       junto, a supressao de `CHART_MOUSE_SCROLL` nao esta valendo.
-- [ ] **A1b.** ⚠️ **No grafico o painel aparece SEMPRE.**
+- [x] **A1b.** ⚠️ **No grafico o painel aparece SEMPRE.**
       Anexar com `inp_ShowPanel = false`, em qualquer perfil — inclusive num
       gravado com o campo desligado.
       **Esperado:** o painel aparece do mesmo jeito. O input nao esconde a GUI
@@ -173,7 +173,7 @@ ambiguo — o que ele significaria.
       **Por que:** a GUI e o unico lugar de onde se opera o EA — iniciar,
       pausar, salvar, trocar de perfil. Esconde-la deixava um EA sem controle, e
       sem caminho de volta pela propria interface.
-- [ ] **A1c.** **No Strategy Tester o input manda.** Rodar em modo visual com
+- [x] **A1c.** **No Strategy Tester o input manda.** Rodar em modo visual com
       `inp_ShowPanel = false`.
       **Esperado:** o painel **nao** aparece. Com `true`, aparece. Fora do modo
       visual nao aparece em nenhum caso — nao ha grafico onde desenhar.
@@ -195,11 +195,11 @@ ambiguo — o que ele significaria.
       apenas escondido continuaria aceitando clique.
 - [x] **A4.** Remover o EA do grafico.
       **Esperado:** nenhum objeto sobra — sem retangulo, sem campo de texto.
-- [ ] **A5.** Trocar o timeframe do grafico com o painel aberto.
+- [x] **A5.** Trocar o timeframe do grafico com o painel aberto.
       **Esperado:** o painel se reconstroi inteiro e o distintivo do cabecalho
       mostra o **TF do grafico** (nao o resumo operacional, que e a linha de
       largura inteira do cartao SESSAO).
-- [ ] **A7.** ⚠️ **Campos nativos durante a rolagem.** Numa aba com barra —
+- [x] **A7.** ⚠️ **Campos nativos durante a rolagem.** Numa aba com barra —
       Estrategias > Medias serve —, **arrastar a barra** de cima a baixo.
       **Esperado:** os campos de digitacao permanecem visiveis **durante** o
       movimento, aparecendo e sumindo apenas nas bordas da area util (objeto
@@ -218,7 +218,7 @@ ambiguo — o que ele significaria.
       rolava — e o que saia de vista continuava sendo destruido. A guarda hoje
       exige que o cursor esteja **sobre o proprio campo**; o item 2 e o que
       confere que o caso original continua protegido.
-- [ ] **A6.** Fechar e reabrir o terminal com o EA anexado.
+- [x] **A6.** Fechar e reabrir o terminal com o EA anexado.
       **Esperado:** volta com o mesmo perfil ativo e a mesma aparencia (paleta,
       tema e escala escolhidas na aba Layout sobrevivem — ficam em variavel
       global do terminal).
@@ -227,30 +227,30 @@ ambiguo — o que ele significaria.
 
 Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
-- [ ] **B1.** Comparar a aba **Status** com a do `Fusion.ex5` no mesmo perfil.
+- [x] **B1.** Comparar a aba **Status** com a do `Fusion.ex5` no mesmo perfil.
       **Esperado:** mesmo estado (RODANDO / PAUSADO / BLOQUEADO), mesmos avisos,
       mesmo resumo de TFs operacionais.
-- [ ] **B2.** Comparar a aba **Resultados**.
+- [x] **B2.** Comparar a aba **Resultados**.
       **Esperado:** os mesmos numeros, com **ponto decimal**; lucro colorido pelo
       sinal com zero neutro; streak desligada aparece **OFF**, nao zero; sem base
       de drawdown os campos ficam `--`, nao zerados.
-- [ ] **B3.** Clicar **INICIAR** e depois **PAUSAR**.
+- [x] **B3.** Clicar **INICIAR** e depois **PAUSAR**.
       **Esperado:** a capsula do cabecalho e o Status acompanham. Com posicao
       aberta o distintivo mostra **OPERANDO** e o botao fica em **PAUSAR
       apagado** — quem explica por que e a faixa. (Detalhado em I2.11.)
-- [ ] **B4.** Editar um campo de Estrategias e observar o Status.
+- [x] **B4.** Editar um campo de Estrategias e observar o Status.
       **Esperado:** o Status **nao muda** — ele descreve o que o EA esta
       rodando, e a edicao so vale depois do SALVAR. **Isto e o correto**, e ja
       foi reportado como defeito uma vez.
 
 ### C. Pendencia e validacao
 
-- [ ] **C1.** Alterar um campo qualquer.
+- [x] **C1.** Alterar um campo qualquer.
       **Esperado:** SALVAR e CANCELAR acendem. Sem alteracao nenhuma eles ficam
       apagados — nao ha o que gravar nem o que descartar.
-- [ ] **C2.** Clicar **CANCELAR**.
+- [x] **C2.** Clicar **CANCELAR**.
       **Esperado:** o campo volta ao valor comprometido e os dois botoes apagam.
-- [ ] **C3.** Digitar texto invalido num campo numerico (`abc`) e sair do campo.
+- [x] **C3.** Digitar texto invalido num campo numerico (`abc`) e sair do campo.
       **Esperado:** o valor **anterior volta sozinho** e aparece o aviso
       `VALOR NAO ACEITO`, citando o que foi digitado e **expirando em 5 s**. O
       campo **nao** fica vermelho e a validacao **nao** e afetada — a aba nao
@@ -263,19 +263,19 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       isso e recado, nao estado (`CanvasRendererValidate.mqh:17-33`).
       **O que continua valendo:** `abc` nao pode virar **zero** em silencio —
       zero e valor legitimo em quase todo campo.
-- [ ] **C4.** Digitar `0,30` num campo decimal.
+- [x] **C4.** Digitar `0,30` num campo decimal.
       **Esperado:** aceito como `0.30`. A virgula e normalizada na entrada.
-- [ ] **C5.** Deixar um campo reprovado na validacao e olhar o cabecalho.
+- [x] **C5.** Deixar um campo reprovado na validacao e olhar o cabecalho.
       **Esperado:** INICIAR, SALVAR e CRIAR PERFIL apagam, e **a tela diz por
       que e em que aba** — botao apagado sem explicacao e a licao 1 da secao 8.
 
 ### D. SALVAR — o caminho critico
 
-- [ ] **D1.** Alterar um campo e clicar **SALVAR**.
+- [x] **D1.** Alterar um campo e clicar **SALVAR**.
       **Esperado:** aviso `PERFIL SALVO` (some em 5 s). Conferir **no arquivo**
       `.cfg` que o valor mudou. O painel confere isso sozinho relendo o disco;
       este passo confere o conferidor.
-- [ ] **D2.** ⚠️ **Com a gravacao bloqueada (1.5, `.tmp` do perfil ativo preso)**:
+- [x] **D2.** ⚠️ **Com a gravacao bloqueada (1.5, `.tmp` do perfil ativo preso)**:
       alterar um campo e clicar **SALVAR**.
       **Esperado:** aviso `PERFIL NAO GRAVADO`, **sem prazo para sumir**, dizendo
       as duas metades — a configuracao **vale nesta sessao**, o arquivo **nao foi
@@ -283,23 +283,23 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Se aparecer `PERFIL SALVO`, pare o teste e reporte**: e o defeito que a
       conferencia em disco existe para impedir, e o pior que este painel pode
       fazer.
-- [ ] **D3.** Ainda bloqueado: navegar para outra aba e voltar.
+- [x] **D3.** Ainda bloqueado: navegar para outra aba e voltar.
       **Esperado:** a marca de gravacao pendente **permanece** — ela so cai na
       proxima gravacao bem-sucedida.
-- [ ] **D4.** Soltar o `.tmp` (o `$fs.Close()` da secao 1.5) e clicar **SALVAR**
+- [x] **D4.** Soltar o `.tmp` (o `$fs.Close()` da secao 1.5) e clicar **SALVAR**
       de novo.
       **Esperado:** `PERFIL SALVO`, a marca some, o arquivo tem o valor novo.
 
 ### E. CRIAR PERFIL — o caminho com rollback
 
-- [ ] **E1.** Aba Perfis > **NOVO**, nome e Magic livres, **CRIAR PERFIL**.
+- [x] **E1.** Aba Perfis > **NOVO**, nome e Magic livres, **CRIAR PERFIL**.
       **Esperado:** `PERFIL CRIADO`, o perfil aparece na lista **e fica ativo**
       neste grafico (criar sempre ativa — divida aceita, secao 6 do plano).
-- [ ] **E2.** **NOVO** com um nome que ja existe.
+- [x] **E2.** **NOVO** com um nome que ja existe.
       **Esperado:** `NOME JA EXISTE`. A conferencia e em **disco**: crie um
       `.cfg` a mao pela pasta com o formulario ja aberto e o nome ainda assim
       deve ser recusado.
-- [ ] **E3.** **NOVO** com o Magic de outro perfil.
+- [x] **E3.** **NOVO** com o Magic de outro perfil.
       **Esperado:** `MAGIC JA USADO`, **nomeando o perfil dono** do numero.
 > **O marcador dos passos E4–E7 e o MAGIC, e nao um campo qualquer.** Entrar em
 > NOVO exige **nao haver pendencia** (`profileCreateAllowed`), entao no instante
@@ -309,7 +309,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > Magic do perfil ativo (chame de `M_ANT`) e escolha um bem diferente para o
 > perfil novo (`M_NOVO`) antes de comecar.
 
-- [ ] **E4.** ⚠️ **Com a gravacao bloqueada (1.5)**: prenda o `.tmp` do nome que
+- [x] **E4.** ⚠️ **Com a gravacao bloqueada (1.5)**: prenda o `.tmp` do nome que
       vai digitar — se o perfil novo se chamara `X`, prenda `X.cfg.tmp` — e
       entao **NOVO**, nome `X`, Magic `M_NOVO`, **CRIAR PERFIL**.
       **Esperado:** `PERFIL NAO CRIADO`, **o formulario continua aberto**, e o
@@ -318,16 +318,16 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Estado real neste ponto, e e o que torna o resto perigoso:** o EA ja
       **aplicou** `M_NOVO`. A sessao roda o Magic do perfil que nao existe, sob o
       nome do perfil anterior.
-- [ ] **E5.** Sem sair do formulario, soltar o `.tmp` e clicar **CRIAR PERFIL**
+- [x] **E5.** Sem sair do formulario, soltar o `.tmp` e clicar **CRIAR PERFIL**
       de novo.
       **Esperado:** `PERFIL CRIADO`, com a configuracao **que estava no
       formulario** — nao a de antes da primeira tentativa.
-- [ ] **E6.** Repetir E4 (prender, tentar, falhar) e entao clicar **DESCARTAR**.
+- [x] **E6.** Repetir E4 (prender, tentar, falhar) e entao clicar **DESCARTAR**.
       **Esperado:** aviso `CRIACAO ABANDONADA` dizendo que a configuracao
       anterior voltou a valer, e o Magic exibido volta a `M_ANT`. O formulario
       **so fecha quando a volta chega**; se o EA recusar, ele continua aberto com
       `NAO FOI POSSIVEL ABANDONAR`.
-- [ ] **E7.** ⚠️ **A regressao que este mecanismo existe para impedir.**
+- [x] **E7.** ⚠️ **A regressao que este mecanismo existe para impedir.**
       Solte o `.tmp`, se ainda nao soltou, e siga na ordem:
       1. **Confira que o SALVAR esta APAGADO.** Isso e parte da assercao, nao um
          obstaculo: apos o abandono o rascunho voltou ao comprometido, a divida
@@ -350,24 +350,40 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 ### F. EXCLUIR — nao passa pelo EA
 
-- [ ] **F1.** Selecionar um perfil qualquer (nao o ativo) e clicar **EXCLUIR**.
+- [x] **F1.** Selecionar um perfil qualquer (nao o ativo) e clicar **EXCLUIR**.
       **Esperado:** o botao vermelho vira **SIM**, com **NAO** ao lado na mesma
       altura, e **todo o resto da coluna apaga**. A pergunta inteira aparece no
       aviso do rodape.
-- [ ] **F2.** Clicar **NAO**.
+- [x] **F2.** Clicar **NAO**.
       **Esperado:** volta ao normal, nada e apagado.
-- [ ] **F3.** Armar de novo e, sem confirmar, **trocar de aba** (ou trocar a
+- [x] **F3.** Armar de novo e, sem confirmar, **trocar de aba** (ou trocar a
       selecao).
       **Esperado:** a confirmacao **desarma sozinha**. Armada sobre um indice,
       ela apagaria o perfil errado.
-- [ ] **F4.** Armar e clicar **SIM**.
+- [x] **F4.** Armar e clicar **SIM**.
       **Esperado:** `PERFIL EXCLUIDO`, o arquivo some do disco e da lista.
-- [ ] **F5.** Selecionar o perfil **ativo**.
+- [x] **F5.** Selecionar o perfil **ativo**.
       **Esperado:** EXCLUIR apagado, **com o motivo escrito**.
-- [ ] **F6.** Selecionar o perfil `default`.
+- [x] **F6.** Selecionar o perfil `default`.
       **Esperado:** EXCLUIR apagado — o `default` nao se exclui, como na 1.058.
 
 ### G. DUPLICAR — tambem nao passa pelo EA
+
+> ⚠️ **PRE-CONDICAO: duplique um perfil COMPATIVEL com o simbolo do grafico.**
+> Num grafico WINQ26, duplique o `WIN` — nao o `US500`.
+>
+> Nao e limitacao do teste, e a **divida registrada** ("criar perfil sempre
+> ATIVA", secao 6 do plano) aparecendo na pratica. Criar tambem ATIVA o perfil
+> neste grafico, entao `configInputsValid` pesa aqui tanto quanto no SALVAR — e
+> um perfil de outro ativo reprova por motivo legitimo (um lote de 1.00 do US500
+> nao cabe no WIN). O CRIAR COPIA fica apagado e a caixa do rodape explica,
+> corretamente, que a configuracao precisa valer para o simbolo do grafico.
+>
+> Com um perfil compativel o fluxo exercitado e o mesmo — nome sugerido, Magic
+> livre, CRIAR COPIA, aparece na lista —, que e o que o bloco G existe para
+> verificar. **A pre-condicao cai quando a divida for paga**, dividindo o
+> `ConfigInputsValid` em intrinseca e do-grafico: so a segunda deveria pesar
+> sobre um perfil escrito para a biblioteca.
 
 - [ ] **G1.** Selecionar um perfil e clicar **DUPLICAR**.
       **Esperado:** o formulario abre com o nome sugerido `<nome>_copy` (ou
