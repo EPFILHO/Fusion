@@ -102,9 +102,15 @@ private:
    int               m_mouseX, m_mouseY;
    bool              m_origScroll;
    int               m_scroll, m_contentH, m_alertH;
-   //--- Altura do aviso no quadro ANTERIOR. Serve para detectar a BORDA (a
-   //--- caixa acabou de aparecer), e nao o estado — ver a nota no DrawFrame.
-   int               m_lastAlertH;
+   //--- Altura do aviso e tela do quadro ANTERIOR. Servem para detectar as duas
+   //--- BORDAS que levam o conteudo ao fim (a caixa acabou de aparecer; o
+   //--- formulario acabou de abrir), e nao o estado — ver a nota no DrawFrame.
+   //--- ⚠ m_lastScreen existe embora m_screen tambem guarde a tela anterior no
+   //--- ponto em que a borda e testada: la o valor esta atrasado por ACIDENTE de
+   //--- ordem (DrawScreenContent so o atualiza depois), e ler um atraso acidental
+   //--- amarra a deteccao a uma ordem que ninguem sabe que precisa preservar.
+   //--- Este e atualizado duas linhas abaixo de onde e lido.
+   int               m_lastAlertH, m_lastScreen;
 
    //--- Formulario em construcao e cursor de layout
    SCanvasFormRow    m_rows[FCV_ROWS_MAX];
@@ -471,6 +477,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_mouseX=-1; m_mouseY=-1;
    m_origScroll=true;
    m_scroll=0; m_contentH=0; m_alertH=0; m_lastAlertH=0;
+   m_lastScreen=FCV_SCREEN_STATUS;
 
    m_editCount=0; m_toggleCount=0; m_comboCount=0; m_colorCount=0;
    m_rowCount=0; m_slotSeq=0; m_screen=0;
@@ -741,9 +748,20 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| Sem isto, o caminho natural de alcancar o botao fica fechado no |
    //| unico momento em que ele some.                                  |
    //|                                                                |
-   //| ⚠ Detecta a BORDA (`m_lastAlertH==0`), nao o estado: reagir ao  |
-   //| aviso estar presente prenderia o conteudo no fim, e o usuario   |
-   //| nao conseguiria mais rolar para cima enquanto o erro durasse.   |
+   //| ⚠ Detecta a BORDA, nao o estado: reagir ao aviso estar presente |
+   //| prenderia o conteudo no fim, e o usuario nao conseguiria mais   |
+   //| rolar para cima enquanto o erro durasse.                        |
+   //|                                                                |
+   //| Sao DUAS bordas, e a altura sozinha nao ve a segunda. A caixa e |
+   //| uma so e tres fontes a alimentam (card critico, aviso, erro da  |
+   //| tela — ver ScreenAlert), entao ela pode TROCAR de conteudo sem  |
+   //| nunca passar por zero. E o que acontece ao entrar no NOVO ou no |
+   //| DUPLICAR com um aviso na tela: ClearNotice apaga o aviso e, no  |
+   //| MESMO quadro, o erro do formulario ocupa a caixa. Nao existe    |
+   //| quadro intermediario com altura zero, e so a altura nao rolava. |
+   //|                                                                |
+   //| Por isso a entrada no formulario tambem e borda: se a caixa ja  |
+   //| esta la quando ele abre, o conteudo vai ao fim do mesmo jeito.  |
    //|                                                                |
    //| ⚠ E SO no formulario de perfil. Nas telas de configuracao os    |
    //| botoes ficam no cabecalho, nada se perde no fim, e saltar para  |
@@ -753,9 +771,14 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| deixa o ClampScroll logo abaixo cortar no maximo real. Uma so   |
    //| aritmetica de limite, no lugar onde ela ja vive.                |
    //+---------------------------------------------------------------+
-   if(m_alertH>0 && m_lastAlertH==0 && ScreenId()==FCV_SCREEN_PROFILE_EDIT)
+   int screen=ScreenId();
+   bool alertAppeared =(m_alertH>0 && m_lastAlertH==0);
+   bool formOpened    =(m_lastScreen!=FCV_SCREEN_PROFILE_EDIT);
+   if(m_alertH>0 && screen==FCV_SCREEN_PROFILE_EDIT &&
+      (alertAppeared || formOpened))
       m_scroll=m_contentH;
    m_lastAlertH=m_alertH;
+   m_lastScreen=screen;
    //--- E o deslocamento da rolagem depende da mesma altura, pela mesma razao.
    //--- Com o m_alertH ja correto e o m_contentH da passada anterior, este
    //--- recorte acerta exatamente o caso que motivou a funcao: o aviso some, a

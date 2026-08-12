@@ -397,6 +397,22 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       lista.
       **Esperado:** o texto digitado **nao reaparece** dentro do campo Magic da
       lista. (Foi um bug real de slot compartilhado entre modos da mesma tela.)
+- [ ] **G4.** Agora o contrario do G1: duplicar um perfil **INCOMPATIVEL** com o
+      simbolo do grafico (no WINQ26, duplicar o `US500`).
+      **Esperado:** o formulario abre, **CRIAR COPIA apagado**, e a caixa do
+      rodape diz o motivo verdadeiro — a configuracao nao vale para o simbolo
+      deste grafico. **CRIAR COPIA e DESCARTAR visiveis sem rolar a mao**: o
+      conteudo tem de chegar ao fim sozinho.
+      Nao e um caminho de erro a evitar, e o lado visivel da divida do G — o
+      teste existe para provar que ela **se explica** em vez de apenas apagar o
+      botao (licao 1). E o unico caso em que o formulario abre ja com a caixa
+      ocupada, entao e ele que exerce a segunda borda da rolagem automatica.
+- [ ] **G5.** Provocar um aviso na tela de Perfis (por exemplo EXCLUIR um perfil)
+      e, **enquanto ele ainda esta visivel**, entrar em NOVO ou DUPLICAR com uma
+      configuracao invalida.
+      **Esperado:** o aviso anterior some, o erro do formulario ocupa a caixa, e o
+      conteudo rola ate os botoes. (Sem o tratamento das duas bordas a caixa
+      trocava de conteudo sem passar por zero e a rolagem nao disparava.)
 
 ### H. CARREGAR — a politica de conflito
 
