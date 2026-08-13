@@ -111,6 +111,10 @@ private:
    //--- amarra a deteccao a uma ordem que ninguem sabe que precisa preservar.
    //--- Este e atualizado duas linhas abaixo de onde e lido.
    int               m_lastAlertH, m_lastScreen;
+   //--- Pedido de "leve ao fim", feito no meio de um quadro e atendido no fim
+   //--- dele: a altura do conteudo com que a conta e feita so existe depois que
+   //--- o conteudo se desenhou. Ver a nota no Render.
+   bool              m_scrollEnd;
 
    //--- Formulario em construcao e cursor de layout
    SCanvasFormRow    m_rows[FCV_ROWS_MAX];
@@ -477,7 +481,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_mouseX=-1; m_mouseY=-1;
    m_origScroll=true;
    m_scroll=0; m_contentH=0; m_alertH=0; m_lastAlertH=0;
-   m_lastScreen=FCV_SCREEN_STATUS;
+   m_lastScreen=FCV_SCREEN_STATUS; m_scrollEnd=false;
 
    m_editCount=0; m_toggleCount=0; m_comboCount=0; m_colorCount=0;
    m_rowCount=0; m_slotSeq=0; m_screen=0;
@@ -774,16 +778,17 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| botoes ficam no cabecalho, nada se perde no fim, e saltar para  |
    //| baixo com o usuario digitando seria pior que o problema.        |
    //|                                                                |
-   //| Nao calcula o destino: joga o deslocamento para alem do fim e   |
-   //| deixa o ClampScroll logo abaixo cortar no maximo real. Uma so   |
-   //| aritmetica de limite, no lugar onde ela ja vive.                |
+   //| Nao calcula o destino nem o aplica aqui: so PEDE. O destino     |
+   //| depende da altura do conteudo, que neste ponto ainda e a do     |
+   //| quadro anterior — e entrar no formulario e justamente quando    |
+   //| ela e de OUTRA tela. Ver a nota do atendimento, no Render.      |
    //+---------------------------------------------------------------+
    int screen=ScreenId();
    bool alertGrew  =(m_alertH>m_lastAlertH);
    bool formOpened =(m_lastScreen!=FCV_SCREEN_PROFILE_EDIT);
    if(m_alertH>0 && screen==FCV_SCREEN_PROFILE_EDIT &&
       (alertGrew || formOpened))
-      m_scroll=m_contentH;
+      m_scrollEnd=true;
    m_lastAlertH=m_alertH;
    m_lastScreen=screen;
    //--- E o deslocamento da rolagem depende da mesma altura, pela mesma razao.
@@ -848,6 +853,31 @@ void CFusionCanvasRenderer::Render(void)
    ObjectSetInteger(m_chart,m_canvasName,OBJPROP_YDISTANCE,m_py);
 
    DrawFrame();
+   //+---------------------------------------------------------------+
+   //| "Leve ao fim", pedido la dentro e atendido AQUI.               |
+   //|                                                                |
+   //| Aqui, e nao no ponto do pedido, porque a conta e `m_contentH` — |
+   //| e la ele ainda e o do quadro ANTERIOR. Nao e detalhe: entrar no |
+   //| formulario e exatamente quando a altura anterior e de OUTRA     |
+   //| tela, a lista de perfis, que e MAIS CURTA que o formulario (a   |
+   //| lista inteira mais o cartao mais os dois botoes). O salto era   |
+   //| recortado pelo maximo da tela velha e parava antes; depois, com |
+   //| o maximo ja maior, o recorte abaixo nao tinha o que corrigir e  |
+   //| nem repintava. Sobrava rolar a roda do mouse — que e o gesto    |
+   //| que este mecanismo existe para dispensar, e que no formulario   |
+   //| nem funciona com um campo em foco.                              |
+   //|                                                                |
+   //| Continua sem calcular o destino: joga o deslocamento para alem  |
+   //| do fim e deixa o recorte logo abaixo cortar no maximo real, que |
+   //| agora e o do quadro recem-desenhado. Uma so aritmetica de       |
+   //| limite, no lugar onde ela ja vive — e ela devolve true, entao a |
+   //| repintura que publica o quadro certo ja esta contratada.        |
+   //+---------------------------------------------------------------+
+   if(m_scrollEnd)
+     {
+      m_scrollEnd=false;
+      m_scroll=m_contentH;
+     }
    //+---------------------------------------------------------------+
    //| Segunda passada do recorte — ANTES de publicar o bitmap.       |
    //|                                                                |
