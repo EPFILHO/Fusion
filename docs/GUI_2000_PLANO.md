@@ -513,6 +513,12 @@ ja vale aqui para o perfil preso por outro grafico. O que nao pode e a perda ser
 silenciosa — o painel guarda o NOME do perfil cujo arquivo ficou para tras e
 anuncia o que foi substituido. Mesma politica da recarga: o EA vence, com aviso.
 
+⚠️ **Esta decisao vale para a gravacao FALHADA (`m_notSaved`) e NAO para o arquivo
+AUSENTE (`activeProfileFileMissing`), que ganhou trava propria no aceite da Fase 3
+— ver abaixo.** A distincao e o que separa a protecao do beco: `m_notSaved` so
+existe depois de um SALVAR tentado e recusado, entao ele **e a prova de que o
+SALVAR nao resolve**. O arquivo ausente nao diz nada sobre a gravacao funcionar.
+
 A cadeia de erro (trilho -> subaba -> aba) so agora tem dado real do outro lado, e as
 faixas de nivel 2 de **Estrategias e Filtros** passaram a marcar erro: ate a 2b so a
 de Gestao marcava, e o vermelho parava no meio do caminho — a aba de cima acendia
@@ -909,6 +915,70 @@ anteriores do canvas deixaram na maquina de desenvolvimento. Sai na Fase 4.
 > vence, de proposito, por ser a ultima escolha consciente do usuario. Input que
 > deixa de valer depois do primeiro uso engana mais do que ajuda. Petroleo e
 > Automatico ficam sendo o padrao de fabrica.
+
+### CORRIGIDO no aceite da Fase 3: perfil ativo sem arquivo nao segurava nada
+
+Achado pelo usuario executando o bloco H, e o unico defeito da Fase 3 com **perda
+de dados de verdade** — nao um susto, uma configuracao que sumiu.
+
+Movido o `.cfg` do perfil ATIVO para fora da pasta, a configuracao em uso passa a
+existir so na memoria. `activeProfileFileMissing` era lido em tres lugares — o
+subtitulo do cabecalho, o cartao que explica, e o SALVAR — e **em nenhum
+predicado de acesso**. Ou seja: o estado acendia a saida e nao segurava nenhuma
+das portas que levam para longe dela. As quatro levam:
+
+- **CARREGAR** troca o perfil ativo e a configuracao some;
+- **NOVO** e **DUPLICAR** criam, e criar tambem ATIVA (a divida da secao 6),
+  entao abandonam o perfil sem arquivo do mesmo jeito — a configuracao sobrevive
+  sob outro nome, a identidade nao. Foi por aqui que o usuario perdeu o perfil:
+  clicou NOVO e o `WIN` deixou de existir;
+- **DUPLICAR** ainda acendia sobre um perfil cujo arquivo o painel **ja sabia**
+  ilegivel, falhando depois do clique com uma caixa vermelha — licao 1.
+
+**Corrigido:** `AccSaveFirstLock()` apaga as quatro ate o perfil ser gravado, e
+`FCV_HBLK_NOFILE` poe o motivo na faixa. EXCLUIR entra por decisao do usuario
+(*"não deixe o EXCLUIR vivo não"*): ele nao abandona nada, mas primeiro gravar e
+depois apagar com o perfil fora de risco e a ordem certa, e quatro botoes
+apagados leem melhor que tres e um aceso.
+
+⚠️ **A trava so vale enquanto o SALVAR e uma saida plausivel**, e isso e metade da
+correcao. Ela exige as mesmas condicoes que acendem o SALVAR, e **exclui
+`m_notSaved`** — que e a prova de que gravar nao resolve. Sem essa exclusao a
+protecao viraria o beco que a decisao da 2c ja tinha evitado (secao "Configuracao
+aplicada e nao gravada nao se perde calada"), e teria quebrado o D2 do roteiro.
+De brinde, a saida sai de graca: preso na trava, o usuario clica SALVAR; falhando,
+`m_notSaved` liga e a trava levanta sozinha.
+
+**A licao de processo:** eu ia trancar pelos dois estados por serem "o mesmo
+estado com duas portas". Nao sao — um descreve o disco, o outro descreve uma
+TENTATIVA. Foi reler a decisao ja registrada aqui, e nao raciocinar de novo, que
+pegou isso.
+
+### CORRIGIDO junto: duas instrucoes para botoes apagados
+
+Do mesmo teste, e a mesma licao 1 em dois lugares que ninguem tinha olhado:
+
+- o cartao PERFIL SELECIONADO dizia *"Use CARREGAR para ativar o selecionado"*
+  com o CARREGAR apagado — e o usuario chega ali **justamente** porque quer mexer
+  no Magic de outro perfil. Agora `LoadBlockedWhy()` responde por que, lendo a
+  MESMA composicao que apaga o botao, na mesma ordem: nota com ordem propria
+  manda consertar o que nao e o impedimento;
+- a lista vazia dizia *"Use NOVO para criar o primeiro"*, e com a trava nova o
+  NOVO fica apagado. E o caso quase certo: pasta vazia com perfil ativo significa,
+  por definicao, que o arquivo dele nao esta la.
+
+### Divergencia DELIBERADA do motor, registrada: CARREGAR com pendencia
+
+O passo H1 do roteiro mandava carregar outro perfil com alteracoes pendentes e
+esperar que "o EA vence, com aviso". **O painel nao deixa chegar la**:
+`AccCanLoadProfile` termina em `!HasPending()`. O passo descrevia o MOTOR, onde a
+politica e verdadeira, e nunca tinha sido executado.
+
+A politica do motor continua existindo e **e alcancavel sob peer lock** — ali
+`AccCanLoadProfile` devolve `true` antes de olhar a pendencia, porque carregar
+outro perfil e a saida daquele bloqueio. Fora dele o painel e mais rigido que o
+EA de proposito: descartar digitacao por um clique noutro perfil e o tipo de
+perda silenciosa que a 2.0 veio apertar. Roteiro corrigido (H1 e H1b).
 
 **Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
 

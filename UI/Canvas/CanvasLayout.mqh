@@ -204,6 +204,14 @@
 //--- voltam sem executar. Distinguido de POSITION porque a mensagem e outra e
 //--- porque a espera passa sozinha.
 #define FCV_HBLK_RECONCILE  9
+//--- O arquivo do perfil ativo sumiu do disco: a configuracao em uso so existe
+//--- na memoria. Depois de CONFIG e antes de PENDING, pela mesma regra que rege
+//--- a escada inteira — a faixa manda GRAVAR, e o SALVAR precisa estar aceso
+//--- para que essa instrucao seja executavel. Ele exige ConfigInputsValid, entao
+//--- a configuracao invalida vem primeiro; e vence PENDING porque arquivo
+//--- inexistente e pior que arquivo desatualizado, e o mesmo SALVAR resolve os
+//--- dois. Nao cobre a gravacao FALHADA (m_notSaved) — ver AccSaveFirstLock.
+#define FCV_HBLK_NOFILE    10
 
 struct SHeaderAction
   {

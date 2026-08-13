@@ -645,8 +645,12 @@ void ScreenProfiles(void)
       //--- desenhar qualquer botao — recomendava uma acao que nao estava na
       //--- tela — e engolia junto o aviso de arquivos ilegiveis, justamente o
       //--- caso em que a lista fica vazia sem a pasta estar vazia.
+      //--- A mesma trava da lista cheia. Aqui ela e quase certa de acontecer: a
+      //--- pasta vazia com um perfil ativo significa, por definicao, que o
+      //--- arquivo dele nao esta la.
+      bool saveFirstEmpty=AccSaveFirstLock();
       PutButton(ax,y,aw,30,"NOVO",true,m_t.good,m_t.onGood,
-                FCV_BTN_NEW,AccCanCreateProfile());
+                FCV_BTN_NEW,!saveFirstEmpty && AccCanCreateProfile());
       PutButton(ax,y+34+14,aw,30,"Atualizar lista",false,m_t.acc,m_t.onAcc,
                 FCV_BTN_PROFREFRESH,true);
       m_fy=y+FCV_PROF_ROWS*34+FCV_CARD_GAP;
@@ -658,6 +662,13 @@ void ScreenProfiles(void)
                     " arquivo(s) de perfil em disco nao puderam ser lidos.",FCV_SEM_BAD);
          RowNote("A pasta nao esta vazia: os arquivos existem, mas nenhum abriu.");
         }
+      //--- ⚠ "Use NOVO" so enquanto o NOVO existir. Com a trava no ar ele esta
+      //--- apagado, e o texto mandaria usar o botao que a propria tela impede —
+      //--- licao 1. O que fazer primeiro e gravar, e quem diz como e o cartao
+      //--- do perfil ativo, logo abaixo.
+      else if(saveFirstEmpty)
+         RowNoteSem("Nenhum perfil em disco, e o perfil em uso e um deles: grave-o "+
+                    "primeiro (SALVAR), e o NOVO volta a ficar disponivel.",FCV_SEM_BAD);
       else
          RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
       Card("PERFIS");
@@ -772,7 +783,12 @@ void ScreenProfiles(void)
    //--- Magic, ou ja usando este perfil. Sao conflito AO VIVO, diferente do
    //--- Magic repetido em disco — e a 1.058 usa as duas em BuildProfileActionState.
    bool selLocked=(m_selRuntimeLocked || m_selProfileLocked);
-   bool canLoad  =(!editing && !isActive && !selDup && !selLocked && AccCanLoadProfile());
+   //--- Perfil ativo so na memoria: as quatro acoes ficam trancadas ate gravar.
+   //--- Ver AccSaveFirstLock, que carrega o porque de cada uma e a metade que
+   //--- impede o beco. A faixa do cabecalho (FCV_HBLK_NOFILE) explica.
+   bool saveFirst=AccSaveFirstLock();
+   bool canLoad  =(!editing && !isActive && !selDup && !selLocked && !saveFirst &&
+                   AccCanLoadProfile());
    //--- Nem o ativo nem o DEFAULT se apagam. A regra do default vinha faltando:
    //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
    //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
@@ -793,7 +809,11 @@ void ScreenProfiles(void)
    //--- NOVO nao depende da selecao: cria do zero. DUPLICAR depende, e olha so a
    //--- trava de RUNTIME — nao a de perfil ativo em outro grafico. A assimetria
    //--- e da 1.058 e faz sentido: duplicar nao toca no original.
-   bool canCreate=(!editing && AccCanCreateProfile());
+   //--- ⚠ `saveFirst` entra AQUI e nao dentro de AccCanCreateProfile: aquela
+   //--- funcao tambem governa se os CAMPOS do formulario aceitam digitacao
+   //--- (FieldsLocked), e trancar por la reproduziria o defeito ja documentado
+   //--- nela — formulario aberto e nada digitavel dentro.
+   bool canCreate=(!editing && !saveFirst && AccCanCreateProfile());
    bool canDup   =(canCreate && !m_selRuntimeLocked);
    //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
    //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o
@@ -960,8 +980,19 @@ void ScreenProfiles(void)
       //--- Com o ativo fora da lista, o Magic dele ja esta no cartao acima; dizer
       //--- "use CARREGAR para ativar o selecionado" aqui mandaria o usuario pelo
       //--- caminho errado para consertar o que o cartao de cima resolve.
+      //--- ⚠ "Use CARREGAR" so enquanto o CARREGAR estiver aceso. A frase e fixa
+      //--- mandava usar um botao que a tela costuma manter apagado — pendencia,
+      //--- Magic repetido, perfil preso —, que e a licao 1 no lugar onde ela
+      //--- mais engana: o usuario vem ate aqui JUSTAMENTE por causa do Magic.
+      //--- Quem responde por que e LoadBlockedWhy, que le a mesma composicao do
+      //--- botao.
       if(activeIdx>=0)
-         RowNote("Somente o perfil ativo tem o Magic editavel, e so com o EA parado. Use CARREGAR para ativar o selecionado.");
+        {
+         string why=LoadBlockedWhy();
+         RowNote("Somente o perfil ativo tem o Magic editavel, e so com o EA parado."+
+                 (canLoad ? " Use CARREGAR para ativar o selecionado."
+                          : (StringLen(why)>0 ? " "+why : "")));
+        }
      }
    if(isDefault)
       RowNote("Perfil default: ele e a base do EA e nao pode ser excluido.");

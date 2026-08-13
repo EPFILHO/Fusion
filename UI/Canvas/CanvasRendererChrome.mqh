@@ -967,6 +967,33 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- saida nos dois casos — daí "ou cancele" nos dois textos.
    if(!ConfigInputsValid())
      { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
+   //+---------------------------------------------------------------+
+   //| Perfil ativo sem arquivo — DEPOIS de CONFIG e ANTES de PENDING.|
+   //|                                                                |
+   //| Depois de CONFIG pela regra que rege a escada inteira: a faixa |
+   //| manda GRAVAR, e o SALVAR exige ConfigInputsValid. Com a         |
+   //| configuracao invalida a instrucao seria inexecutavel — a licao  |
+   //| 1, a mesma razao pela qual PEERLOCK ja fica acima de CONFIG.    |
+   //|                                                                |
+   //| Antes de PENDING porque as duas se resolvem com o MESMO botao e |
+   //| esta e a mais grave: "salve ou cancele" sugere que CANCELAR e   |
+   //| saida, e aqui ele nao e — nao ha arquivo para onde voltar.      |
+   //| Dizer o menos grave dos dois esconderia justamente o que custa. |
+   //|                                                                |
+   //| E e a faixa que sustenta a trava das quatro acoes de perfil     |
+   //| (AccSaveFirstLock). Sem ela seriam quatro botoes apagados sem   |
+   //| explicacao — trocariamos um problema por outro.                 |
+   //+---------------------------------------------------------------+
+   if(AccSaveFirstLock())
+     {
+      s.block=FCV_HBLK_NOFILE;
+      //--- Mesma condicao da trava, e nao uma parecida: a faixa existe para
+      //--- explicar aqueles quatro botoes apagados, entao aparecer sem eles (ou
+      //--- eles sem ela) seria pior que qualquer dos dois sozinho.
+      s.band="PERFIL EM USO SEM ARQUIVO — grave para recuperar antes de trocar de perfil";
+      s.bandSem=FCV_SEM_BAD;
+      return s;
+     }
    if(HasPending())
      { s.block=FCV_HBLK_PENDING; s.band="ALTERACOES PENDENTES — salve ou cancele"; return s; }
    //--- Por ultimo: e o unico que nao se resolve dentro do painel. Aqui o texto
@@ -1051,6 +1078,94 @@ bool AccCanLoadProfile(void)
    return !HasPending();
   }
 
+//+------------------------------------------------------------------+
+//| POR QUE o CARREGAR do selecionado esta apagado — ou "" se ele nao |
+//| esta.                                                             |
+//|                                                                   |
+//| A ordem espelha a composicao de `canLoad` em ScreenProfiles, e    |
+//| nao uma sequencia propria: uma nota que explica um botao tem de   |
+//| acusar a MESMA condicao que o apagou. Com ordem propria ela       |
+//| mandaria consertar o que nao e o impedimento — e o usuario        |
+//| consertaria, sem o botao acender.                                 |
+//|                                                                   |
+//| Dois membros daquela composicao nao aparecem aqui porque a nota   |
+//| so e desenhada fora deles: formulario aberto e selecionado ja     |
+//| ativo.                                                            |
+//+------------------------------------------------------------------+
+string LoadBlockedWhy(void)
+  {
+   if(m_profSel>=0 && m_profDup[m_profSel])
+      return "Ele tem Magic repetido em disco e por isso nao carrega: DUPLICAR com outro Magic, ou EXCLUIR.";
+   if(m_selRuntimeLocked || m_selProfileLocked)
+      return "Ele esta em uso por outro Fusion em execucao.";
+   if(AccSaveFirstLock())
+      return "Antes, grave o perfil em uso: a configuracao dele nao esta no disco.";
+   if(m_snap.started)
+      return "Carregar exige o EA parado.";
+   if(m_snap.hasPosition)
+      return m_snap.hasOpenPosition
+             ? "Ha posicao em gerenciamento: carregar trocaria os parametros sob a operacao."
+             : "O fechamento aguarda a confirmacao do historico.";
+   //--- A excecao do peer lock vem depois do que trava de verdade e ANTES da
+   //--- pendencia, igual em AccCanLoadProfile: com o perfil preso por outro
+   //--- grafico, carregar outro E a saida, e ali a pendencia deixa de pesar.
+   if(AccPeerLock()) return "";
+   if(HasPending())
+      return "Salve ou cancele as alteracoes pendentes primeiro.";
+   return "";
+  }
+
+//+------------------------------------------------------------------+
+//| PERFIL ATIVO SEM ARQUIVO: as acoes de perfil ficam trancadas ate  |
+//| gravar.                                                           |
+//|                                                                   |
+//| O estado ja acendia o SALVAR, e so isso. Nao segurava nenhuma das |
+//| portas que levam para longe dele, e as quatro levam:              |
+//|                                                                   |
+//|  - CARREGAR troca o perfil ativo: a configuracao em uso some;     |
+//|  - NOVO e DUPLICAR criam, e criar tambem ATIVA (divida registrada |
+//|    da secao 6), entao abandonam o perfil sem arquivo do mesmo     |
+//|    jeito — a configuracao sobrevive sob outro nome, a identidade  |
+//|    nao;                                                           |
+//|  - EXCLUIR apaga OUTRO perfil e nao abandonaria nada, mas fica    |
+//|    junto por decisao do usuario: primeiro grave, depois apague    |
+//|    com o perfil ja fora de risco. Quatro botoes apagados de uma   |
+//|    vez tambem leem melhor que tres e um aceso.                     |
+//|                                                                   |
+//| ⚠ O RESTO DA FUNCAO E O QUE IMPEDE UM BECO, e nao detalhe: a      |
+//| trava so vale quando o SALVAR REALMENTE resolve. E a licao 2 —    |
+//| todo bloqueio precisa de saida pela propria GUI.                  |
+//|                                                                   |
+//| ⚠⚠ `m_notSaved` FICA DE FORA, e essa exclusao e a mais            |
+//| importante daqui. Ele nao e "outra porta para o mesmo estado": e  |
+//| a PROVA DE QUE O SALVAR NAO RESOLVE — so existe depois de uma     |
+//| gravacao tentada e falhada (SetPersistenceFailed). Trancar por    |
+//| ele deixaria o usuario com quatro botoes apagados e um SALVAR que |
+//| falha de novo a cada clique, que e exatamente o beco que a decisao|
+//| registrada no plano evita ("CARREGAR continua permitido... com o  |
+//| disco quebrado deixaria o usuario sem saida"). Ali vale a politica|
+//| de la: carregar segue liberado e a perda e ANUNCIADA, com o nome  |
+//| do perfil que ficou para tras.                                    |
+//|                                                                   |
+//| E isso da a saida de graca, sem mecanismo nenhum: preso na trava, |
+//| o usuario clica SALVAR; se falhar, `m_notSaved` liga e a trava    |
+//| levanta sozinha. A tentativa frustrada E a chave.                  |
+//|                                                                   |
+//| As demais condicoes sao as mesmas que acendem o SALVAR (ver o     |
+//| botao em DrawHeader). Sem elas o caso mortal seria o perfil preso |
+//| por OUTRO grafico: ali o SALVAR nem acende, e CARREGAR e a unica  |
+//| saida — trancar as quatro deixaria o usuario sem nenhuma.         |
+//+------------------------------------------------------------------+
+bool AccSaveFirstLock(void)
+  {
+   if(!m_snap.activeProfileFileMissing) return false;
+   if(m_notSaved) return false;
+   //--- `m_createFailed` entra porque o SALVAR tambem o consulta: com uma
+   //--- criacao falhada pendente ele fica apagado de proposito, e a saida dali e
+   //--- o DESCARTAR do formulario.
+   return (!m_createFailed && AccActiveProfileEditable() && ConfigInputsValid());
+  }
+
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.
 bool AccCanAdminProfile(void)
   { return (AccActiveProfileEditable() && !HasPending()); }
@@ -1085,6 +1200,11 @@ bool AccCanCreateProfile(void)
 bool AccCanDeleteSelected(void)
   {
    if(m_profEdit!=FCV_PROF_VIEW) return false;
+   //--- AQUI DENTRO, e nao ao lado do PutButton como as outras tres: esta funcao
+   //--- e a fonte unica que o desenho e o pulso consultam, e a divergencia entre
+   //--- os dois e exatamente o furo que ela existe para nao ter. Posta fora, uma
+   //--- exclusao armada sobreviveria ao botao que a ofereceu.
+   if(AccSaveFirstLock()) return false;
    if(m_profSel<0 || m_profSel>=m_profCount) return false;
    if(m_profSel==ActiveProfileIndex()) return false;
    if(ProfileIsDefault(m_profSel)) return false;

@@ -385,19 +385,19 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > `ConfigInputsValid` em intrinseca e do-grafico: so a segunda deveria pesar
 > sobre um perfil escrito para a biblioteca.
 
-- [ ] **G1.** Selecionar um perfil e clicar **DUPLICAR**.
+- [x] **G1.** Selecionar um perfil e clicar **DUPLICAR**.
       **Esperado:** o formulario abre com o nome sugerido `<nome>_copy` (ou
       `_copy_2`...) e os valores **lidos do arquivo de origem**, nao do perfil
       ativo.
-- [ ] **G2.** Clicar **CRIAR COPIA**.
+- [x] **G2.** Clicar **CRIAR COPIA**.
       **Esperado:** `PERFIL CRIADO`. O Magic da copia precisa ser trocado antes —
       dentro do formulario o Magic do rascunho **nao** e cobrado por unicidade
       (ele veio da origem, por definicao), mas a gravacao o cobra.
-- [ ] **G3.** Entrar em NOVO, digitar um nome, sair sem criar, e voltar para a
+- [x] **G3.** Entrar em NOVO, digitar um nome, sair sem criar, e voltar para a
       lista.
       **Esperado:** o texto digitado **nao reaparece** dentro do campo Magic da
       lista. (Foi um bug real de slot compartilhado entre modos da mesma tela.)
-- [ ] **G4.** Agora o contrario do G1: duplicar um perfil **INCOMPATIVEL** com o
+- [x] **G4.** Agora o contrario do G1: duplicar um perfil **INCOMPATIVEL** com o
       simbolo do grafico (no WINQ26, duplicar o `US500`).
       **Esperado:** o formulario abre, **CRIAR COPIA apagado**, e a caixa do
       rodape diz o motivo verdadeiro — a configuracao nao vale para o simbolo
@@ -407,13 +407,13 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       teste existe para provar que ela **se explica** em vez de apenas apagar o
       botao (licao 1). E o unico caso em que o formulario abre ja com a caixa
       ocupada, entao e ele que exerce a segunda borda da rolagem automatica.
-- [ ] **G5.** Provocar um aviso na tela de Perfis (por exemplo EXCLUIR um perfil)
+- [x] **G5.** Provocar um aviso na tela de Perfis (por exemplo EXCLUIR um perfil)
       e, **enquanto ele ainda esta visivel**, entrar em NOVO ou DUPLICAR com uma
       configuracao invalida.
       **Esperado:** o aviso anterior some, o erro do formulario ocupa a caixa, e o
       conteudo rola ate os botoes. (Sem o tratamento das duas bordas a caixa
       trocava de conteudo sem passar por zero e a rolagem nao disparava.)
-- [ ] **G6.** No formulario com configuracao invalida, digitar um nome **ja
+- [x] **G6.** No formulario com configuracao invalida, digitar um nome **ja
       existente** e depois corrigi-lo.
       **Esperado:** a caixa troca do erro de nome (curto) para o da configuracao
       (mais longo, que nomeia a aba e o campo) e **o conteudo rola de novo**. A
@@ -422,10 +422,22 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 ### H. CARREGAR — a politica de conflito
 
-- [ ] **H1.** Com alteracoes pendentes, clicar **CARREGAR** em outro perfil.
-      **Esperado:** o perfil novo entra e **o painel avisa que a digitacao foi
-      descartada**. Na recarga deliberada o EA vence, com aviso — decisao
-      registrada.
+- [ ] **H1.** Com alteracoes pendentes (de configuracao **ou** do Magic),
+      selecionar outro perfil.
+      **Esperado:** **CARREGAR fica apagado**, e o cartao PERFIL SELECIONADO diz
+      por que ("Salve ou cancele as alteracoes pendentes primeiro").
+      ⚠️ **Este passo estava escrito ao contrario ate 2026-08-13**, mandando
+      clicar num CARREGAR que o painel nunca acende. Ele descrevia o MOTOR, nao
+      o painel: `AccCanLoadProfile` termina em `!HasPending()`, e o painel e
+      deliberadamente mais rigido que o EA aqui. Ver a nota no plano.
+- [ ] **H1b.** A politica do motor — "na recarga deliberada o EA vence, com
+      aviso" — existe e e alcancavel, mas **so sob peer lock**: ali
+      `AccCanLoadProfile` devolve `true` antes de olhar a pendencia, porque
+      carregar outro perfil e a saida daquele bloqueio. Com o perfil ativo preso
+      por outro grafico e alteracoes pendentes, clicar **CARREGAR** em outro
+      perfil.
+      **Esperado:** o perfil novo entra e o painel avisa que a digitacao foi
+      descartada. (Precisa de dois graficos — pode ser feito junto do bloco I.)
 - [ ] **H2.** Carregar um perfil e conferir o cabecalho.
       **Esperado:** nome do perfil novo, SALVAR e CANCELAR apagados (nao ha
       pendencia recem-carregada).
@@ -435,6 +447,59 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       parametros de DD diferentes.
       **Esperado:** recusa com a mensagem de drawdown. Trocar ali recomecaria a
       conta no meio.
+
+### H5. Perfil ativo SEM ARQUIVO — a trava do "grave primeiro"
+
+> Encontrado testando o H, em 2026-08-13, e o achado foi **perda de dados
+> real**: a configuracao em uso passou a existir so na memoria e o painel
+> continuou oferecendo as quatro acoes que a abandonam. O estado acendia o
+> SALVAR e nao segurava nenhuma porta.
+>
+> **Preparo:** com o EA parado, mova o `.cfg` do perfil ATIVO para fora da pasta
+> (ou renomeie). Em ate ~1 s o cabecalho passa a dizer
+> `· arquivo do perfil nao encontrado`. **Devolva o arquivo ao fim do bloco.**
+
+- [ ] **H5.1.** Conferir a faixa do cabecalho.
+      **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave para recuperar antes de
+      trocar de perfil`, em vermelho. Ela vence "alteracoes pendentes" e perde
+      para configuracao invalida — o SALVAR e a saida, e ele exige configuracao
+      valida.
+- [ ] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
+      **Esperado:** **CARREGAR, NOVO, DUPLICAR e EXCLUIR apagados**; so
+      `Atualizar lista` responde. O cartao do perfil ativo explica que SALVAR
+      grava a configuracao em uso de volta nesse nome.
+- [ ] **H5.3.** Clicar **SALVAR** no cabecalho.
+      **Esperado:** `PERFIL SALVO`, o arquivo reaparece na pasta, a faixa some e
+      **os quatro botoes voltam**. E a saida pela propria GUI (licao 2).
+- [ ] **H5.4.** ⚠️ **A metade que impede o beco.** Repetir o preparo e, com o
+      arquivo fora, deixar a configuracao **invalida** (um Lote Fixo impossivel,
+      por exemplo).
+      **Esperado:** a faixa volta a dizer `CONFIGURACAO INVALIDA` — nao a do
+      arquivo — porque o SALVAR esta apagado e mandar gravar seria instruir o
+      impossivel. Corrigido o lote, a faixa troca para a do arquivo.
+- [ ] **H5.5.** O mesmo com o perfil ativo **preso por outro grafico** (exige
+      dois graficos; ver bloco I).
+      **Esperado:** as acoes **nao** ficam trancadas e CARREGAR segue disponivel.
+      Ali o SALVAR nem acende, e carregar outro perfil e a unica saida — trancar
+      as quatro deixaria o usuario sem nenhuma.
+- [ ] **H5.6.** Armar o **EXCLUIR** num perfil qualquer e, com a confirmacao no
+      ar, provocar o estado (mover o `.cfg` do ativo por fora).
+      **Esperado:** a confirmacao **se desarma sozinha** junto com o botao. Desenho
+      e pulso leem a mesma funcao (`AccCanDeleteSelected`); divergindo, sobraria
+      um SIM armado para uma acao que a tela ja nao oferece.
+- [ ] **H5.7.** ⚠️ **A SAIDA, e o passo mais importante do bloco.** Com o arquivo
+      fora **e a trava no ar**, prender tambem a gravacao (receita 1.5, no `.tmp`
+      do perfil ativo) e clicar **SALVAR**.
+      **Esperado:** `NAO FOI POSSIVEL SALVAR`, o cabecalho passa a
+      `· nao gravado no disco` e **os quatro botoes VOLTAM** — a faixa do arquivo
+      some.
+      **Por que:** a trava vale enquanto o SALVAR e uma saida plausivel. A
+      tentativa que falha e a prova de que ele nao resolve, e a partir dali vale
+      a politica registrada no plano — CARREGAR liberado, com a perda anunciada.
+      Sem isso a trava viraria beco: quatro botoes apagados e um SALVAR que falha
+      a cada clique.
+      **Se os botoes continuarem apagados**, a trava esta lendo `m_notSaved` — o
+      defeito que este passo existe para pegar.
 
 ### I. Conflito entre graficos (exige dois graficos)
 
