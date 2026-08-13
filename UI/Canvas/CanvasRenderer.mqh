@@ -752,16 +752,23 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| prenderia o conteudo no fim, e o usuario nao conseguiria mais   |
    //| rolar para cima enquanto o erro durasse.                        |
    //|                                                                |
-   //| Sao DUAS bordas, e a altura sozinha nao ve a segunda. A caixa e |
-   //| uma so e tres fontes a alimentam (card critico, aviso, erro da  |
-   //| tela — ver ScreenAlert), entao ela pode TROCAR de conteudo sem  |
-   //| nunca passar por zero. E o que acontece ao entrar no NOVO ou no |
-   //| DUPLICAR com um aviso na tela: ClearNotice apaga o aviso e, no  |
-   //| MESMO quadro, o erro do formulario ocupa a caixa. Nao existe    |
-   //| quadro intermediario com altura zero, e so a altura nao rolava. |
+   //| Sao DUAS bordas, e "a caixa surgiu" sozinha nao ve a segunda. A |
+   //| caixa e uma so e tres fontes a alimentam (card critico, aviso,  |
+   //| erro da tela — ver ScreenAlert), entao ela pode TROCAR de       |
+   //| conteudo sem nunca passar por zero. E o que acontece ao entrar  |
+   //| no NOVO ou no DUPLICAR com um aviso na tela: ClearNotice apaga o|
+   //| aviso e, no MESMO quadro, o erro do formulario ocupa a caixa.   |
+   //| Nao existe quadro intermediario com altura zero.                |
    //|                                                                |
    //| Por isso a entrada no formulario tambem e borda: se a caixa ja  |
    //| esta la quando ele abre, o conteudo vai ao fim do mesmo jeito.  |
+   //|                                                                |
+   //| E o que importa nao e a caixa APARECER, e ela CRESCER — apenas  |
+   //| um caso particular do outro, com o piso em zero. O que come a   |
+   //| area util e a altura, e ela muda com o texto: trocar o erro de  |
+   //| nome (duas linhas, o piso) pelo da configuracao, que nomeia a   |
+   //| aba e o campo e chega a quatro, empurra os botoes para baixo    |
+   //| sem a caixa nunca ter sumido.                                   |
    //|                                                                |
    //| ⚠ E SO no formulario de perfil. Nas telas de configuracao os    |
    //| botoes ficam no cabecalho, nada se perde no fim, e saltar para  |
@@ -772,10 +779,10 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| aritmetica de limite, no lugar onde ela ja vive.                |
    //+---------------------------------------------------------------+
    int screen=ScreenId();
-   bool alertAppeared =(m_alertH>0 && m_lastAlertH==0);
-   bool formOpened    =(m_lastScreen!=FCV_SCREEN_PROFILE_EDIT);
+   bool alertGrew  =(m_alertH>m_lastAlertH);
+   bool formOpened =(m_lastScreen!=FCV_SCREEN_PROFILE_EDIT);
    if(m_alertH>0 && screen==FCV_SCREEN_PROFILE_EDIT &&
-      (alertAppeared || formOpened))
+      (alertGrew || formOpened))
       m_scroll=m_contentH;
    m_lastAlertH=m_alertH;
    m_lastScreen=screen;

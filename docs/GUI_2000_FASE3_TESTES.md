@@ -413,6 +413,12 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** o aviso anterior some, o erro do formulario ocupa a caixa, e o
       conteudo rola ate os botoes. (Sem o tratamento das duas bordas a caixa
       trocava de conteudo sem passar por zero e a rolagem nao disparava.)
+- [ ] **G6.** No formulario com configuracao invalida, digitar um nome **ja
+      existente** e depois corrigi-lo.
+      **Esperado:** a caixa troca do erro de nome (curto) para o da configuracao
+      (mais longo, que nomeia a aba e o campo) e **o conteudo rola de novo**. A
+      caixa nao sumiu no meio — foi so o texto que cresceu, e e a altura dela que
+      come a area util.
 
 ### H. CARREGAR — a politica de conflito
 
