@@ -787,8 +787,16 @@ void ScreenProfiles(void)
    //--- Ver AccSaveFirstLock, que carrega o porque de cada uma e a metade que
    //--- impede o beco. A faixa do cabecalho (FCV_HBLK_NOFILE) explica.
    bool saveFirst=AccSaveFirstLock();
+   //--- Edicao em curso apaga as quatro, pelo mesmo motivo que acende SALVAR e
+   //--- CANCELAR no cabecalho: a acao consumiria o que esta sendo digitado. Ver a
+   //--- nota de EditingNow, que carrega o caminho — sair do campo por um clique
+   //--- grava o valor no rascunho ANTES de o botao agir.
+   //--- ⚠ Aqui e nao dentro dos Acc*: aquelas funcoes tambem respondem por outras
+   //--- perguntas (os campos do formulario, em FieldsLocked), e um campo que se
+   //--- tranca sozinho ao receber o cursor seria o defeito perfeito.
+   bool typing   =EditingNow();
    bool canLoad  =(!editing && !isActive && !selDup && !selLocked && !saveFirst &&
-                   AccCanLoadProfile());
+                   !typing && AccCanLoadProfile());
    //--- Nem o ativo nem o DEFAULT se apagam. A regra do default vinha faltando:
    //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
    //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
@@ -813,7 +821,7 @@ void ScreenProfiles(void)
    //--- funcao tambem governa se os CAMPOS do formulario aceitam digitacao
    //--- (FieldsLocked), e trancar por la reproduziria o defeito ja documentado
    //--- nela — formulario aberto e nada digitavel dentro.
-   bool canCreate=(!editing && !saveFirst && AccCanCreateProfile());
+   bool canCreate=(!editing && !saveFirst && !typing && AccCanCreateProfile());
    bool canDup   =(canCreate && !m_selRuntimeLocked);
    //--- Cada acao com a propria cor, como no painel 1.058: azul para as que
    //--- movem perfil, verde para criar, vermelho para destruir. A cor diz o

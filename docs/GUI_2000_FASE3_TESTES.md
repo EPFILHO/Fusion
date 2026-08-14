@@ -460,14 +460,23 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > `· arquivo do perfil nao encontrado`. **Devolva o arquivo ao fim do bloco.**
 
 - [ ] **H5.1.** Conferir a faixa do cabecalho.
-      **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave para recuperar antes de
-      trocar de perfil`, em vermelho. Ela vence "alteracoes pendentes" e perde
-      para configuracao invalida — o SALVAR e a saida, e ele exige configuracao
-      valida.
+      **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar
+      de perfil`, em vermelho. Ela vence "alteracoes pendentes" e perde para
+      configuracao invalida — o SALVAR e a saida, e ele exige configuracao valida.
 - [ ] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
       **Esperado:** **CARREGAR, NOVO, DUPLICAR e EXCLUIR apagados**; so
       `Atualizar lista` responde. O cartao do perfil ativo explica que SALVAR
       grava a configuracao em uso de volta nesse nome.
+- [ ] **H5.2b.** Olhar o **INICIAR**.
+      **Esperado:** apagado tambem — sao **cinco** botoes, e nao quatro.
+      **Por que, e o motivo nao e o das outras quatro:** INICIAR nao abandona o
+      perfil, ele **fecha a porta da recuperacao**. O SALVAR exige o EA parado,
+      entao iniciar com o arquivo ausente deixaria a unica copia da configuracao
+      presa na memoria, sem forma de grava-la, a um reinicio de sumir.
+      (Efeito de estar na escada: todo ramo dela retorna com o botao desabilitado.
+      Foi achado pela auditoria, conferido, e mantido de proposito — a faixa
+      nomeia as duas coisas justamente porque ela e a unica explicacao que o
+      INICIAR apagado tem.)
 - [ ] **H5.3.** Clicar **SALVAR** no cabecalho.
       **Esperado:** `PERFIL SALVO`, o arquivo reaparece na pasta, a faixa some e
       **os quatro botoes voltam**. E a saida pela propria GUI (licao 2).
@@ -500,6 +509,40 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a cada clique.
       **Se os botoes continuarem apagados**, a trava esta lendo `m_notSaved` — o
       defeito que este passo existe para pegar.
+
+### H6. Edicao em curso — o cabecalho e a coluna de perfis concordam
+
+> Achado pelo usuario: com o cursor no campo Magic, SALVAR e CANCELAR acendiam
+> (correto — e a edicao em curso) e **NOVO e DUPLICAR continuavam acesos**,
+> sugerindo que criariam um perfil COM o Magic recem-digitado.
+>
+> Nao e so aparencia. Sair do campo por um clique passa por `ReleaseEditFocus`,
+> que **le antes de destruir** e grava o valor no rascunho: o numero digitado
+> vira pendencia do perfil **ATIVO** e so entao o botao age. O usuario terminaria
+> dentro do formulario de criacao com uma alteracao pendente que nao quis, no
+> perfil errado.
+
+- [ ] **H6.1.** Na aba Perfis, clicar dentro do campo **Magic Number** do perfil
+      ativo, sem digitar nada.
+      **Esperado:** SALVAR e CANCELAR acendem **e** CARREGAR, NOVO, DUPLICAR e
+      EXCLUIR apagam, no mesmo quadro. A tela inteira passa a dizer a mesma coisa:
+      ha uma edicao em curso, conclua-a.
+- [ ] **H6.2.** Clicar fora do campo (no fundo do painel).
+      **Esperado:** tudo volta ao que era. Sem alteracao digitada, **nao** aparece
+      pendencia — o cursor no campo nunca afirma uma mudanca que pode nao existir.
+- [ ] **H6.3.** Selecionar outro perfil, clicar no Magic do ativo e olhar o
+      cartao PERFIL SELECIONADO.
+      **Esperado:** a nota diz `Ha um campo em edicao: conclua com SALVAR ou
+      CANCELAR` — e nao "Use CARREGAR", que esta apagado.
+- [ ] **H6.4.** Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no campo
+      Magic.
+      **Esperado:** a confirmacao se desarma junto com o botao (mesma fonte unica
+      do H5.6).
+- [ ] **H6.5.** Conferir que o **INICIAR nao** apaga com o cursor no campo.
+      **Esperado:** segue como estava. Ele nao consome a edicao, e bloquear uma
+      acao real so porque ha um cursor num campo seria pior que o problema —
+      decisao antiga, mantida. Se a digitacao virar alteracao de verdade, e a
+      pendencia que o bloqueia, pela escada.
 
 ### I. Conflito entre graficos (exige dois graficos)
 

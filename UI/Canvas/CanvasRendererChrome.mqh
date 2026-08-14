@@ -714,9 +714,22 @@ bool StreakConfigLocked(void)   { return m_snap.streakProtectionBlocked; }
 //--- campo, SALVAR e CANCELAR sao exatamente o que o usuario pode querer, e
 //--- oferece-los apagados enquanto ja funcionam era pior.
 //---
-//--- Vale SO para esses dois botoes. Nao vale para o INICIAR, que bloquearia
-//--- uma acao real so porque ha um cursor num campo, nem para o aviso
-//--- "alteracoes nao salvas", que afirmaria uma mudanca que pode nao existir.
+//--- Nao vale para o aviso "alteracoes nao salvas", que afirmaria uma mudanca
+//--- que pode nao existir, nem para o INICIAR — bloquear uma acao real so porque
+//--- ha um cursor num campo seria pior que o problema.
+//---
+//--- ⚠ VALE, SIM, PARA AS QUATRO ACOES DE PERFIL, e isso foi acrescentado depois
+//--- de o usuario notar a assimetria na tela: SALVAR e CANCELAR acendiam com o
+//--- cursor no Magic enquanto NOVO e DUPLICAR continuavam acesos, sugerindo que
+//--- criariam um perfil COM o Magic recem-digitado.
+//---
+//--- O criterio nao e "acao real", e se a acao CONSOME a edicao em curso. As
+//--- quatro consomem, e por um caminho que nao e obvio: sair do campo por um
+//--- clique passa por ReleaseEditFocus, que LE ANTES DE DESTRUIR e chama
+//--- FieldSetText. O numero digitado vira pendencia do perfil ATIVO, e so entao
+//--- o botao age — o usuario acaba dentro do formulario de criacao com uma
+//--- alteracao pendente que ele nunca quis, no perfil errado. O INICIAR nao tem
+//--- esse problema porque a pendencia que nasce ali ja o bloqueia pela escada.
 bool EditingNow(void) { return EditHasFocus(); }
 
 //--- Perfil preso a outro grafico.
@@ -983,14 +996,31 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //| E e a faixa que sustenta a trava das quatro acoes de perfil     |
    //| (AccSaveFirstLock). Sem ela seriam quatro botoes apagados sem   |
    //| explicacao — trocariamos um problema por outro.                 |
+   //|                                                                |
+   //| ⚠ SAO CINCO BOTOES, E NAO QUATRO: estar na escada apaga tambem  |
+   //| o INICIAR, porque todo ramo daqui retorna com `s.enabled` ainda |
+   //| falso. Isso passou despercebido na primeira versao — a auditoria|
+   //| achou, e o efeito era real e nao documentado.                   |
+   //|                                                                |
+   //| Conferido, ele esta CERTO, e o motivo nao e o mesmo das outras  |
+   //| quatro. INICIAR nao abandona o perfil: ele FECHA A PORTA DA     |
+   //| RECUPERACAO. O SALVAR exige AccActiveProfileEditable, que exige |
+   //| `!started` — entao iniciar com o arquivo ausente deixa a unica  |
+   //| copia da configuracao presa na memoria, sem forma de grava-la,  |
+   //| a um reinicio de sumir. Bloquear e o mesmo principio que governa|
+   //| a escada inteira, aplicado ao botao que a escada ja governava.  |
+   //|                                                                |
+   //| Por isso o texto nomeia AS DUAS coisas. A faixa e a unica       |
+   //| explicacao que o INICIAR apagado tem, e a versao anterior falava|
+   //| so em trocar de perfil — dizia menos do que fazia.              |
    //+---------------------------------------------------------------+
    if(AccSaveFirstLock())
      {
       s.block=FCV_HBLK_NOFILE;
       //--- Mesma condicao da trava, e nao uma parecida: a faixa existe para
-      //--- explicar aqueles quatro botoes apagados, entao aparecer sem eles (ou
-      //--- eles sem ela) seria pior que qualquer dos dois sozinho.
-      s.band="PERFIL EM USO SEM ARQUIVO — grave para recuperar antes de trocar de perfil";
+      //--- explicar aqueles botoes apagados, entao aparecer sem eles (ou eles sem
+      //--- ela) seria pior que qualquer dos dois sozinho.
+      s.band="PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar de perfil";
       s.bandSem=FCV_SEM_BAD;
       return s;
      }
@@ -1100,6 +1130,8 @@ string LoadBlockedWhy(void)
       return "Ele esta em uso por outro Fusion em execucao.";
    if(AccSaveFirstLock())
       return "Antes, grave o perfil em uso: a configuracao dele nao esta no disco.";
+   if(EditingNow())
+      return "Ha um campo em edicao: conclua com SALVAR ou CANCELAR.";
    if(m_snap.started)
       return "Carregar exige o EA parado.";
    if(m_snap.hasPosition)
@@ -1205,6 +1237,9 @@ bool AccCanDeleteSelected(void)
    //--- os dois e exatamente o furo que ela existe para nao ter. Posta fora, uma
    //--- exclusao armada sobreviveria ao botao que a ofereceu.
    if(AccSaveFirstLock()) return false;
+   //--- Edicao em curso, pelo mesmo motivo — e aqui dentro pela mesma razao que a
+   //--- linha acima: e desta funcao que o pulso desarma a confirmacao.
+   if(EditingNow()) return false;
    if(m_profSel<0 || m_profSel>=m_profCount) return false;
    if(m_profSel==ActiveProfileIndex()) return false;
    if(ProfileIsDefault(m_profSel)) return false;

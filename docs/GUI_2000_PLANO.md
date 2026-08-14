@@ -954,6 +954,37 @@ estado com duas portas". Nao sao — um descreve o disco, o outro descreve uma
 TENTATIVA. Foi reler a decisao ja registrada aqui, e nao raciocinar de novo, que
 pegou isso.
 
+**A quinta trava, achada pela auditoria.** Estar na escada apaga tambem o
+**INICIAR** — todo ramo dela retorna com `s.enabled` ainda falso. Nao foi
+intencional e nao estava documentado. Conferido, **esta certo, e por um motivo
+diferente do das outras quatro**: INICIAR nao abandona o perfil, ele *fecha a
+porta da recuperacao*. O SALVAR exige `AccActiveProfileEditable`, que exige
+`!started` — iniciar com o arquivo ausente deixaria a unica copia da configuracao
+presa na memoria, sem forma de grava-la, a um reinicio de sumir. Mantido de
+proposito, com a faixa nomeando as duas coisas ("grave antes de **iniciar** ou
+trocar de perfil"), porque ela e a unica explicacao que o INICIAR apagado tem.
+Testado no H5.2b.
+
+### CORRIGIDO junto: a coluna de perfis nao via a edicao em curso
+
+Achado pelo usuario na mesma sessao. `EditingNow()` (cursor num campo) acendia
+SALVAR e CANCELAR no cabecalho, e a coluna de perfis so olhava `HasPending()` —
+entao NOVO e DUPLICAR continuavam acesos, sugerindo que criariam um perfil **com
+o Magic recem-digitado**.
+
+A decisao registrada em `EditingNow` dizia "vale so para esses dois botoes", e
+nomeava o INICIAR como excecao. As acoes de perfil nunca tinham sido consideradas.
+
+**O criterio correto nao e "acao real", e se a acao CONSOME a edicao em curso.**
+As quatro consomem, por um caminho que nao e obvio: sair do campo por um clique
+passa por `ReleaseEditFocus`, que **le antes de destruir** e chama `FieldSetText`.
+O numero digitado vira pendencia do perfil ATIVO e so entao o botao age — o
+usuario terminaria dentro do formulario de criacao com uma alteracao pendente que
+nao quis, no perfil errado. O INICIAR fica de fora com a razao de sempre, e nao
+precisa da trava: a pendencia que nasce ali ja o bloqueia pela escada.
+
+Bloco H6 no roteiro, cinco passos, sendo o H6.5 o que protege a decisao antiga.
+
 ### CORRIGIDO junto: duas instrucoes para botoes apagados
 
 Do mesmo teste, e a mesma licao 1 em dois lugares que ninguem tinha olhado:
