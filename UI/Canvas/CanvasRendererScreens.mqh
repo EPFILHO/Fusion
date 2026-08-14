@@ -931,10 +931,21 @@ void ScreenProfiles(void)
       //| Fica so a orientacao NEUTRA, que nao e erro e nao tem outro     |
       //| lugar: ela descreve o que fazer no formulario.                  |
       //+---------------------------------------------------------------+
+      //--- ⚠ CADA UM DIZ DE ONDE COPIA, e os dois copiam de lugares DIFERENTES.
+      //--- NOVO parte da configuracao EM USO (o rascunho do perfil ativo, com o
+      //--- que estiver na tela); DUPLICAR parte do arquivo do perfil SELECIONADO
+      //--- na lista. A tela nao dizia nem um nem outro — "NOVO" sugeria comecar
+      //--- do zero, ou dos padroes, e nao e nada disso: ele grava o que voce ja
+      //--- tem sob um nome novo. Levantado pelo usuario, que perguntou "cria novo
+      //--- como? duplica quem?" depois de meses com a tela.
       RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Copia de "+((m_profSel>=0) ? m_profName[m_profSel] : "")+
-                 ". Ajuste o Magic e clique CRIAR COPIA."
-               : "Informe um nome e um Magic livre, e clique CRIAR PERFIL.");
+               ? "Copia a configuracao do perfil "+
+                 ((m_profSel>=0) ? m_profName[m_profSel] : "selecionado")+
+                 ", lida do arquivo dele. Ajuste o Magic e clique CRIAR COPIA."
+               : "Grava a configuracao EM USO ("+
+                 (m_snap.activeProfileName=="" ? "perfil ativo" : m_snap.activeProfileName)+
+                 ", com as alteracoes da tela) sob um nome novo. Informe nome e "+
+                 "Magic livre, e clique CRIAR PERFIL.");
       //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
       //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
       //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que

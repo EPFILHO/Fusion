@@ -978,52 +978,61 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- Antes de PENDING, senao a faixa diria "salve" com o SALVAR apagado: ele
    //--- tambem exige ConfigInputsValid(). CANCELAR nao exige, e continua sendo
    //--- saida nos dois casos — daí "ou cancele" nos dois textos.
-   if(!ConfigInputsValid())
-     { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
    //+---------------------------------------------------------------+
-   //| Perfil ativo sem arquivo — DEPOIS de CONFIG e ANTES de PENDING.|
+   //| Perfil ativo sem arquivo — ACIMA de CONFIG, e o resto da escada |
+   //| inalterado.                                                     |
    //|                                                                |
-   //| Depois de CONFIG pela regra que rege a escada inteira: a faixa |
-   //| manda GRAVAR, e o SALVAR exige ConfigInputsValid. Com a         |
-   //| configuracao invalida a instrucao seria inexecutavel — a licao  |
-   //| 1, a mesma razao pela qual PEERLOCK ja fica acima de CONFIG.    |
-   //|                                                                |
-   //| Antes de PENDING porque as duas se resolvem com o MESMO botao e |
+   //| Vence PENDING porque as duas se resolvem com o MESMO SALVAR e   |
    //| esta e a mais grave: "salve ou cancele" sugere que CANCELAR e   |
    //| saida, e aqui ele nao e — nao ha arquivo para onde voltar.      |
-   //| Dizer o menos grave dos dois esconderia justamente o que custa. |
    //|                                                                |
-   //| E e a faixa que sustenta a trava das quatro acoes de perfil     |
-   //| (AccSaveFirstLock). Sem ela seriam quatro botoes apagados sem   |
+   //| Perde para PEERLOCK, que continua acima: preso por outro        |
+   //| grafico o SALVAR nem acende, e ali CARREGAR e a saida — mandar  |
+   //| gravar seria instruir o impossivel.                             |
+   //|                                                                |
+   //| E e a faixa que sustenta a trava das acoes de perfil            |
+   //| (AccSaveFirstLock). Sem ela seriam botoes apagados sem          |
    //| explicacao — trocariamos um problema por outro.                 |
    //|                                                                |
    //| ⚠ SAO CINCO BOTOES, E NAO QUATRO: estar na escada apaga tambem  |
    //| o INICIAR, porque todo ramo daqui retorna com `s.enabled` ainda |
-   //| falso. Isso passou despercebido na primeira versao — a auditoria|
+   //| falso. Passou despercebido na primeira versao; a auditoria      |
    //| achou, e o efeito era real e nao documentado.                   |
    //|                                                                |
-   //| Conferido, ele esta CERTO, e o motivo nao e o mesmo das outras  |
-   //| quatro. INICIAR nao abandona o perfil: ele FECHA A PORTA DA     |
-   //| RECUPERACAO. O SALVAR exige AccActiveProfileEditable, que exige |
-   //| `!started` — entao iniciar com o arquivo ausente deixa a unica  |
-   //| copia da configuracao presa na memoria, sem forma de grava-la,  |
-   //| a um reinicio de sumir. Bloquear e o mesmo principio que governa|
-   //| a escada inteira, aplicado ao botao que a escada ja governava.  |
-   //|                                                                |
-   //| Por isso o texto nomeia AS DUAS coisas. A faixa e a unica       |
-   //| explicacao que o INICIAR apagado tem, e a versao anterior falava|
-   //| so em trocar de perfil — dizia menos do que fazia.              |
+   //| Conferido, esta CERTO, e o motivo nao e o das outras quatro:    |
+   //| INICIAR nao abandona o perfil, ele FECHA A PORTA DA RECUPERACAO.|
+   //| O SALVAR exige AccActiveProfileEditable, que exige `!started` — |
+   //| iniciar com o arquivo ausente deixa a unica copia da            |
+   //| configuracao presa na memoria, sem forma de grava-la, a um      |
+   //| reinicio de sumir.                                              |
    //+---------------------------------------------------------------+
-   if(AccSaveFirstLock())
+   //--- ⚠ SUBIU PARA CIMA DO CONFIG. Estava abaixo, e por isso a faixa calava
+   //--- exatamente no pior estado: arquivo ausente COM configuracao invalida
+   //--- mostrava "CONFIGURACAO INVALIDA — corrija ou cancele" e nao dizia uma
+   //--- palavra sobre o perfil estar a um clique de sumir. O usuario encontrou
+   //--- assim, e o unico sinal era o subtitulo vermelho do cabecalho.
+   //---
+   //--- ⚠ Aqui a faixa deixa de ter a MESMA condicao da trava, e isso e
+   //--- deliberado: `ActiveProfileOrphan` e o estado, `AccSaveFirstLock` e o
+   //--- estado MAIS o SALVAR ser saida. Onde a trava se cala por nao ter saida a
+   //--- oferecer, o risco continua existindo — e calar junto seria esconde-lo.
+   //--- O texto muda com isso, e nao so o gatilho.
+   if(ActiveProfileOrphan())
      {
       s.block=FCV_HBLK_NOFILE;
-      //--- Mesma condicao da trava, e nao uma parecida: a faixa existe para
-      //--- explicar aqueles botoes apagados, entao aparecer sem eles (ou eles sem
-      //--- ela) seria pior que qualquer dos dois sozinho.
-      s.band="PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar de perfil";
       s.bandSem=FCV_SEM_BAD;
+      //--- ⚠ Com a configuracao invalida NAO mandamos "corrigir". A
+      //--- incompatibilidade pode ser so com ESTE ativo — lote legitimo no ouro,
+      //--- impossivel no indice —, e "corrija" induziria a trocar 0.40 por 1.00,
+      //--- descaracterizando um perfil que esta perfeitamente certo para o ativo
+      //--- dele. O que preserva a configuracao ali e o arquivo original.
+      s.band=ConfigInputsValid()
+             ? "PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar de perfil"
+             : "PERFIL SEM ARQUIVO E INVALIDO NESTE ATIVO — restaure o arquivo para preservar";
       return s;
      }
+   if(!ConfigInputsValid())
+     { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
    if(HasPending())
      { s.block=FCV_HBLK_PENDING; s.band="ALTERACOES PENDENTES — salve ou cancele"; return s; }
    //--- Por ultimo: e o unico que nao se resolve dentro do painel. Aqui o texto
@@ -1188,15 +1197,24 @@ string LoadBlockedWhy(void)
 //| por OUTRO grafico: ali o SALVAR nem acende, e CARREGAR e a unica  |
 //| saida — trancar as quatro deixaria o usuario sem nenhuma.         |
 //+------------------------------------------------------------------+
-bool AccSaveFirstLock(void)
+//--- O ESTADO: o arquivo sumiu e a configuracao em uso so existe na memoria.
+//--- Separado da trava por UMA condicao — a validade da configuracao —, e e
+//--- justamente nessa diferenca que mora o caso que o usuario encontrou: perfil
+//--- de OUTRO ativo (lote 0.40 num indice de 1 contrato) nao pode ser gravado,
+//--- entao a trava nao engata e ele fica sem protecao nenhuma. O estado existe
+//--- para a FAIXA poder falar mesmo ali, onde a trava se cala.
+bool ActiveProfileOrphan(void)
   {
    if(!m_snap.activeProfileFileMissing) return false;
    if(m_notSaved) return false;
    //--- `m_createFailed` entra porque o SALVAR tambem o consulta: com uma
    //--- criacao falhada pendente ele fica apagado de proposito, e a saida dali e
    //--- o DESCARTAR do formulario.
-   return (!m_createFailed && AccActiveProfileEditable() && ConfigInputsValid());
+   return (!m_createFailed && AccActiveProfileEditable());
   }
+
+bool AccSaveFirstLock(void)
+  { return (ActiveProfileOrphan() && ConfigInputsValid()); }
 
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.
 bool AccCanAdminProfile(void)
