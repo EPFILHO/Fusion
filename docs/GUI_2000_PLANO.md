@@ -980,6 +980,56 @@ outro perfil e a saida daquele bloqueio. Fora dele o painel e mais rigido que o
 EA de proposito: descartar digitacao por um clique noutro perfil e o tipo de
 perda silenciosa que a 2.0 veio apertar. Roteiro corrigido (H1 e H1b).
 
+### Divida REGISTRADA no aceite da Fase 3: "o motivo esta no log"
+
+Levantada pelo usuario executando o bloco H. **Nada foi alterado** — decisao
+consciente de adiar, com o porque escrito abaixo.
+
+**O sintoma.** Perfil ativo sem arquivo, SALVAR recusado, e a caixa diz
+*"O EA nao concluiu a gravacao do perfil WIN. O motivo esta no log."* O motivo
+real era Magic ja usado por outro perfil — e o motor tinha a frase pronta, com o
+nome do culpado: `CanPersistProfile` monta
+`"Magic <n> ja esta em uso pelo perfil <X>."` e a manda para o log
+(`EAApplicationInstanceGuard.mqh`). Sao tres avisos do painel com esse final.
+
+**A causa nao e a mensagem, e a fronteira.** O `SUIPanelSnapshot` tem cerca de
+quinze campos `*Reason`, e **todos descrevem ESTADO** — nenhum descreve resultado
+de comando. O painel detecta a recusa por AUSENCIA (eco pendente que a recarga
+nunca respondeu), entao ele realmente nao sabe por que. A mensagem e a descricao
+honesta do que ele tem; o que falta e a faixa de rodagem.
+
+**O conserto, quando for a hora — nesta ordem:**
+
+1. **Campo de resultado no snapshot** (o conserto de verdade). ⚠️ O risco nao e
+   escrever o campo: e uma das 13 recusas de PROFILE esquecer de preenche-lo e a
+   explicacao da falha ANTERIOR ficar colada na nova — mensagem confiante e
+   errada, pior que "esta no log". Por isso a disciplina tem de ser **limpar na
+   entrada do comando**, e nunca confiar em quem recusa.
+2. **Reler a lista quando `activeProfileFileMissing` liga** (complemento). Foi o
+   que deixou este caso chegar ao clique: a lista mostrava `WIN` com o arquivo ja
+   renomeado, entao o Magic 2026 parecia ser do proprio perfil ativo e
+   `VMagicTakenByOther` o ignorava, por regra correta. `RefreshProfiles()` so roda
+   ao trocar de perfil ativo ou no botao manual.
+
+⚠️ **O item 2 NAO substitui o 1.** O painel nunca preve todas: arquivo ilegivel
+nao tem Magic conferivel (ja documentado no cartao), e outro grafico pode criar o
+conflito entre a leitura e o clique — a divida "corrida de unicidade" acima. O
+motor e a autoridade porque rele o disco na hora, e sempre podera recusar por algo
+que o painel nao tinha como saber.
+
+**Por que adiar foi a decisao certa.** O que esta errado e a QUALIDADE DA
+MENSAGEM, nao a seguranca: o painel nao mente, nao perde dado e nao instrui o
+impossivel — anuncia a falha, marca o perfil como nao gravado, mantem o SALVAR
+aceso para a retentativa e a configuracao segue valendo. Categoria diferente do
+defeito corrigido no mesmo dia, que apagava um perfil para sempre. E o conserto
+espalhado por 13 pontos, no meio de um aceite com o resto do codigo congelado, e
+o cenario classico de o item 1 entrar pela metade.
+
+**O gatilho para promover:** o D2 e o E4–E7 caem nestes caminhos. Se durante eles
+nao der para correlacionar a linha do log com o clique que a causou, a divida
+deixa de ser conforto e passa a atrapalhar o proprio diagnostico — e sobe de
+prioridade.
+
 **Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
 
 A integracao acontece na fase 3, cedo e reversivel — nao no fim.
