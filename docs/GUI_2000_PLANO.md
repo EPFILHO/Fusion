@@ -983,7 +983,43 @@ usuario terminaria dentro do formulario de criacao com uma alteracao pendente qu
 nao quis, no perfil errado. O INICIAR fica de fora com a razao de sempre, e nao
 precisa da trava: a pendencia que nasce ali ja o bloqueia pela escada.
 
-Bloco H6 no roteiro, cinco passos, sendo o H6.5 o que protege a decisao antiga.
+Bloco H6 no roteiro, sendo o H6.5 o que protege a decisao antiga.
+
+**A brecha de clique que veio junto, achada pela auditoria.** Apagar os quatro nao
+bastava: o registro de caixas de clique vem do desenho, e o desenho acontece
+DENTRO do mesmo evento. Sair do campo apaga `EditingNow`, o `HandlePress` repinta
+para acender SALVAR e CANCELAR — repinte que existe de proposito, para o SALVAR
+aceitar o clique unico depois da digitacao — e nesse repinte os quatro voltam a
+publicar caixa. Clicar num NOVO **visivelmente apagado** o executava.
+
+So no caso inocente: entrar no campo e sair sem mudar nada. Alterado o valor,
+`HasPending()` os mantem apagados e nao ha caixa a acertar.
+
+Corrigido com uma guarda no `HandleButtonClick` — o clique que apenas encerrou uma
+edicao **consome-se** quando o alvo e um dos quatro. Nao vale para SALVAR e
+CANCELAR nem para `Atualizar lista`, e a distincao e de contrato: aqueles dois SAO
+as saidas da edicao, entao clicar neles ao sair e o gesto esperado; os quatro a
+consomem por efeito colateral. Engolir todo clique depois do `ReleaseEditFocus`
+devolveria o defeito que o repinte veio consertar. H6.4 e H6.4b.
+
+### CORRIGIDO: a terceira obrigacao do Pulse nunca rodava em producao
+
+Achado meu ao conferir o que eu tinha escrito no roteiro — e e a mesma armadilha da
+correcao do `m_viewDirty`, que ja tinha me pegado uma vez: **`Pulse()` so e chamado
+pelo harness** (`FusionCanvasPhase1.mq5`). O EA chama `Render()` direto.
+
+Duas das tres obrigacoes do Pulse ja tinham sido movidas para o `Render` na epoca
+daquela correcao — `TouchProfileLocks()` e o prazo do aviso. A terceira ficou:
+`if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm()`. Em producao a
+confirmacao de exclusao **nunca** era desarmada por perda de acesso.
+
+O efeito nao aparece na hora, e por isso passou: o SIM some junto com o botao (o
+`armed` do desenho exige os dois) e **ressuscita** quando o acesso volta — uma
+pergunta vermelha feita ha muito tempo, reaparecendo sozinha. Movida para o
+`Render`, ao lado das outras duas.
+
+⚠️ E o motivo de eu ter achado: escrevi H5.6 e H6.4c afirmando que a confirmacao se
+desarma sozinha. Fui conferir se era verdade antes de deixar o passo no roteiro.
 
 ### CORRIGIDO junto: duas instrucoes para botoes apagados
 

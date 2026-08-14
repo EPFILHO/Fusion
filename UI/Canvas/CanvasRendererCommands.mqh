@@ -170,7 +170,18 @@ void ReloadDraft(void)
 //| acao. O que ela NAO garante e que a acao ainda cabe: quem         |
 //| reconfere contra o disco e os registros e o painel.               |
 //+------------------------------------------------------------------+
-bool HandleButtonClick(const int lx,const int ly)
+//--- Os quatro que a edicao em curso apaga (ver EditingNow e a coluna em
+//--- ScreenProfiles). Numa funcao para a guarda do clique abaixo e a decisao do
+//--- desenho nomearem o mesmo conjunto — em duas listas, uma envelheceria.
+//--- FCV_BTN_PROFREFRESH fica de fora de proposito: ele nao consome a edicao,
+//--- nunca esteve apagado por ela, e continua respondendo ao primeiro clique.
+bool ProfileActionButton(const int id)
+  {
+   return (id==FCV_BTN_LOAD || id==FCV_BTN_NEW ||
+           id==FCV_BTN_DUP  || id==FCV_BTN_DEL);
+  }
+
+bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
   {
    for(int i=0;i<m_btnCount;++i)
      {
@@ -179,6 +190,34 @@ bool HandleButtonClick(const int lx,const int ly)
       //--- Botao acima da area util e chrome (cabecalho) e nao rola; dentro
       //--- dela, so vale se ainda estiver visivel.
       if(m_btnY[i]>=ContentTop() && !InContentView(m_btnY[i],m_btnH[i])) continue;
+
+      //+---------------------------------------------------------------+
+      //| ESTE CLIQUE SO ENCERROU UMA EDICAO: os quatro nao executam nele.|
+      //|                                                                |
+      //| O registro de caixas vem do desenho, e o desenho aconteceu HA   |
+      //| POUCOS MICROSSEGUNDOS, dentro deste mesmo evento: sair do campo |
+      //| apaga `EditingNow`, o HandlePress repinta para acender SALVAR e |
+      //| CANCELAR, e nesse repinte os quatro — que estavam apagados por  |
+      //| causa da edicao — voltam a publicar caixa. Sem esta guarda o    |
+      //| clique num NOVO visivelmente APAGADO o executava.               |
+      //|                                                                |
+      //| ⚠ So quando a edicao NAO virou pendencia. Com o valor alterado, |
+      //| `HasPending()` os mantem apagados e nao ha caixa a acertar — a  |
+      //| brecha existia exatamente no caso inocente de entrar no campo e |
+      //| sair sem mudar nada.                                            |
+      //|                                                                |
+      //| ⚠ E so para estes quatro. O repinte foi criado para o SALVAR    |
+      //| aceitar o clique unico depois da digitacao (ver o comentario no |
+      //| HandlePress), e engolir tudo devolveria aquele defeito. A       |
+      //| diferenca e de contrato: SALVAR e CANCELAR SAO as saidas da     |
+      //| edicao, entao clicar neles ao sair e o gesto esperado; os       |
+      //| quatro a consomem por efeito colateral.                         |
+      //|                                                                |
+      //| Consome o clique (`return true`) em vez de seguir procurando    |
+      //| alvo: a caixa foi acertada, e deixar cair para as abas faria um |
+      //| clique num botao trocar de tela.                                |
+      //+---------------------------------------------------------------+
+      if(editJustEnded && ProfileActionButton(m_btnId[i])) return true;
 
       //--- Qualquer outro botao desarma a confirmacao pendente. Sem isto ela
       //--- ficaria armada enquanto o usuario faz outra coisa, e o proximo

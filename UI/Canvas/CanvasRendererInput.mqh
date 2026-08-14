@@ -385,7 +385,12 @@ void HandlePress(const int cx,const int cy)
    //--- Todo botao, do cabecalho ou de conteudo, e resolvido pelo registro
    //--- publicado no desenho. Antes o cabecalho tinha a propria aritmetica de
    //--- retangulo aqui, repetindo a conta que o desenho ja fazia.
-   if(HandleButtonClick(lx,ly)) return;
+   //--- ⚠ O registro pode ter acabado de mudar POR CAUSA deste clique — e o
+   //--- repinte logo acima. Quem sai da edicao sem alterar nada reacende os
+   //--- quatro botoes de perfil no mesmo evento, e sem avisar o
+   //--- HandleButtonClick disso um deles executaria estando visivelmente
+   //--- apagado. Ver a guarda la dentro.
+   if(HandleButtonClick(lx,ly,wasEditing && !EditingNow())) return;
 
    if(ly>=FCV_HEADER_BOTTOM && ly<FCV_F1_BOTTOM)
      {

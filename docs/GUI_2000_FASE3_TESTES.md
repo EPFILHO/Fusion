@@ -422,7 +422,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 ### H. CARREGAR — a politica de conflito
 
-- [ ] **H1.** Com alteracoes pendentes (de configuracao **ou** do Magic),
+- [x] **H1.** Com alteracoes pendentes (de configuracao **ou** do Magic),
       selecionar outro perfil.
       **Esperado:** **CARREGAR fica apagado**, e o cartao PERFIL SELECIONADO diz
       por que ("Salve ou cancele as alteracoes pendentes primeiro").
@@ -534,7 +534,24 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       cartao PERFIL SELECIONADO.
       **Esperado:** a nota diz `Ha um campo em edicao: conclua com SALVAR ou
       CANCELAR` — e nao "Use CARREGAR", que esta apagado.
-- [ ] **H6.4.** Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no campo
+- [ ] **H6.4.** ⚠️ **O clique que so encerra a edicao nao executa.** Clicar no
+      campo Magic **sem alterar nada** e, com os quatro ja apagados, clicar
+      **direto no NOVO apagado**.
+      **Esperado:** o primeiro clique **so** encerra a edicao — os botoes
+      reaparecem e **nada e criado**. O segundo clique e que abre o formulario.
+      Repetir com DUPLICAR, CARREGAR e EXCLUIR.
+      **Por que:** sair do campo apaga a edicao em curso e o painel repinta no
+      mesmo evento para acender SALVAR e CANCELAR; nesse repinte os quatro voltam
+      a publicar caixa de clique, e sem guarda um botao visivelmente APAGADO
+      executava. So acontece quando a edicao **nao** virou pendencia — com o valor
+      alterado eles seguem apagados por `HasPending()`.
+- [ ] **H6.4b.** No mesmo estado, clicar direto em **SALVAR** depois de digitar um
+      valor novo.
+      **Esperado:** grava no **primeiro** clique, como sempre. A guarda do H6.4 e
+      so para os quatro de perfil — SALVAR e CANCELAR **sao** as saidas da edicao,
+      e clicar neles ao sair do campo e o gesto esperado.
+      Igualmente, **Atualizar lista** continua respondendo ao primeiro clique.
+- [ ] **H6.4c.** Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no campo
       Magic.
       **Esperado:** a confirmacao se desarma junto com o botao (mesma fonte unica
       do H5.6).

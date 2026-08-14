@@ -326,11 +326,8 @@ public:
       //--- outro grafico e exatamente o tipo de mudanca que ninguem vem contar,
       //--- e sem isto a tela so a mostraria no proximo clique.
       if(TouchProfileLocks()) m_viewDirty=true;
-      //--- A confirmacao da exclusao pode ter perdido o chao sem um clique: o
-      //--- EA iniciou, uma posicao abriu, outro grafico tomou o perfil. Deixa-la
-      //--- armada sobre uma acao que a tela ja nao oferece guardaria um aviso
-      //--- vermelho pedindo confirmacao de algo impossivel.
-      if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
+      //--- A confirmacao da exclusao mudou-se para o Render, que os DOIS caminhos
+      //--- chamam. Aqui ela so alcancava o harness.
       //--- Aviso com prazo vencido. E o unico caminho que o apaga sem o usuario
       //--- ter feito nada, e por isso depende deste pulso: sem ele, o recado de
       //--- "valor nao aceito" ficaria ate o proximo clique em qualquer coisa.
@@ -846,6 +843,14 @@ void CFusionCanvasRenderer::Render(void)
    //--- quem chama o Pulse e o harness, por temporizador. No EA, um aviso com
    //--- prazo nunca expiraria — ele seria repintado identico a cada Update.
    if(NoticeExpired()) ClearNotice();
+   //--- E a terceira obrigacao do Pulse, que tinha ficado para tras: a
+   //--- confirmacao de exclusao perde o chao sem clique nenhum — o EA iniciou,
+   //--- uma posicao abriu, outro grafico tomou o perfil, o arquivo do ativo
+   //--- sumiu. So no Pulse, ela NUNCA era desarmada em producao, e o efeito nao
+   //--- e visivel na hora: o SIM some junto com o botao (o `armed` do desenho
+   //--- exige os dois), e RESSUSCITA quando o acesso volta — uma pergunta
+   //--- vermelha que o usuario fez ha muito tempo, reaparecendo sozinha.
+   if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
 
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    if(!EnsureSize(S(FCV_PANEL_W),S(h))) return;

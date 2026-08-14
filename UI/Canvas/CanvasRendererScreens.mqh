@@ -465,8 +465,13 @@ void ScreenStatus(void)
    RowStatic("TF Operacional",m_snap.timeframe=="" ? "—" : m_snap.timeframe);
    //--- Sem responsavel definido o campo mostra travessao, nao vazio: espaco em
    //--- branco parece falha de desenho, travessao diz "nao ha".
-   RowStatic("Responsavel",m_snap.ownerStrategyName=="" ? "—" : m_snap.ownerStrategyName);
-   RowStatic("Conflito",m_snap.conflictMode==CONFLICT_PRIORITY ? "PRIORIDADE" : "CANCELAR");
+   RowStatic("Responsavel pela operacao atual",
+             m_snap.ownerStrategyName=="" ? "—" : m_snap.ownerStrategyName);
+   //--- "Resolucao de conflito", e nao "Conflito": o valor e a POLITICA escolhida
+   //--- (PRIORIDADE ou CANCELAR), nao a existencia de um conflito. Lido curto,
+   //--- "Conflito: CANCELAR" parecia anunciar um conflito em curso.
+   RowStatic("Resolucao de conflito",
+             m_snap.conflictMode==CONFLICT_PRIORITY ? "PRIORIDADE" : "CANCELAR");
    //--- Titulo em selo colorido pela gravidade, corpo em nota. A 1.058 pinta os
    //--- dois com a cor do aviso; aqui a cor fica no selo, que e o que se le
    //--- primeiro, e o corpo permanece legivel.
