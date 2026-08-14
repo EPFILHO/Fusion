@@ -1007,9 +1007,39 @@ outro. Cai sozinha ao trocar de selecao, ao navegar, e quando o estado que a
 justifica passa.
 
 ⚠️ **So nos dois caminhos que perdem.** NOVO, EXCLUIR e Atualizar lista nao pedem
-confirmacao — e o H5.8.7 existe para garantir isso, porque confirmacao que
+confirmacao — e o H5.8.10 existe para garantir isso, porque confirmacao que
 aparece onde nao precisa ensina a clicar SIM sem ler, e ai ela deixa de proteger
 onde precisa.
+
+**A primeira versao nasceu com a metade importante morta**, e a auditoria pegou:
+a confirmacao da copia era **inalcancavel**. `AbandonNeedsConfirm` perguntava se o
+perfil ativo podia ser gravado usando `ConfigInputsValid()`, que le o RASCUNHO — e
+entrar no DUPLICAR troca o rascunho pela ORIGEM. Como o CRIAR COPIA so acende com
+o rascunho valido e a confirmacao so existia com ele invalido, **as duas condicoes
+nunca podiam ser verdadeiras juntas**. Eu escrevi, no comentario dela, a
+explicacao correta de por que a copia acende — e logo abaixo um predicado que a
+contradizia.
+
+O conserto e semantico e nao um remendo: a pergunta e sobre o **comprometido**, a
+configuracao que o EA esta usando, que `BeginDuplicate` nao toca.
+`CommittedConfigValid()` responde por ele, com cache proprio e a troca de rascunho
+feita e desfeita internamente, salvando o cache do outro. A resposta fica estavel
+do primeiro clique ate a conclusao, que e o que uma confirmacao precisa.
+
+Junto vieram dois consertos do mesmo contrato:
+
+- **o payload e mesmo usado.** O SIM da criacao relia `ProfileFormRawName()` e
+  `ProfileFormMagic()` em vez do que fora capturado — e os campos seguem
+  editaveis. A pergunta podia nomear um perfil e a execucao gravar outro. Agora o
+  Magic viaja junto do nome, e o segundo clique nao consulta mais nada;
+- **o desarme olha a DISPONIBILIDADE**, e nao so o estado. Com a pergunta armada e
+  a acao ficando indisponivel (peer lock, por exemplo), SIM/NAO sumiam da tela e
+  `m_abandonOp` sobrevivia — voltando o acesso, a pergunta RESSUSCITAVA. Foi
+  preciso extrair `AccCanLoadSelected()` e `AccCanCreateCopy()`, exatamente pela
+  razao que ja fizera `AccCanDeleteSelected` existir: quem desarma precisa da
+  mesma resposta de quem ofereceu. E entrar em qualquer campo derruba as duas
+  confirmacoes, porque a digitacao limpa o aviso e deixaria os botoes sem a frase
+  que os explica.
 
 **RETRATACAO: o "terceiro caminho" que eu anunciei nao existe.** Eu disse que,
 com o rascunho semeado pela duplicacao, o SALVAR do cabecalho gravaria a

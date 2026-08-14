@@ -462,8 +462,10 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 - [ ] **H5.1.** Conferir a faixa do cabecalho.
       **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar
       de perfil`, em vermelho. Ela vence "alteracoes pendentes" **e tambem
-      "configuracao invalida"**; perde so para o peer lock, onde o SALVAR nem
-      acende e mandar gravar seria instruir o impossivel.
+      "configuracao invalida"**. Perde, na ordem, para: bloqueio de runtime,
+      reconciliacao de fechamento, formulario de perfil aberto, peer lock e
+      conflito de Magic — todos acima dela na escada, e todos por descreverem algo
+      que impede o proprio SALVAR ou que passa sozinho.
 - [ ] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
       **Esperado:** **CARREGAR, NOVO, DUPLICAR e EXCLUIR apagados**; so
       `Atualizar lista` responde. O cartao do perfil ativo explica que SALVAR
@@ -514,21 +516,44 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** a pergunta cai sozinha. (Ela guarda o alvo capturado no
       primeiro clique; sobrevivendo a uma troca, nomearia um perfil e executaria
       outro.)
-- [ ] **H5.8.4.** Armar e, **sem confirmar**, restaurar o `.cfg` do perfil ativo
-      na pasta.
+- [ ] **H5.8.4.** Armar de novo e, **sem confirmar**, clicar dentro de um campo
+      (o Magic do perfil ativo).
+      **Esperado:** a pergunta cai. A digitacao limpa o aviso, e a pergunta viva
+      sem a frase que a explica deixaria SIM e NAO na tela sem ninguem dizendo o
+      que o SIM faz.
+- [ ] **H5.8.5.** Armar de novo e, **sem confirmar**, restaurar o `.cfg` do
+      perfil ativo na pasta.
       **Esperado:** a pergunta cai sozinha em ate ~1 s — o estado que a justifica
       passou, e mante-la anunciaria uma perda que ja nao aconteceria.
-- [ ] **H5.8.5.** Clicar **SIM**.
+- [ ] **H5.8.6.** ⚠️ **A que some e nao pode voltar.** Refazer o preparo, armar a
+      confirmacao do CARREGAR e, **sem confirmar**, fazer o perfil selecionado
+      ficar preso por outro grafico (bloco I) — ou simplesmente carrega-lo no
+      outro grafico.
+      **Esperado:** SIM/NAO somem **e a pergunta nao volta** quando a trava sair.
+      **Se ela ressuscitar**, o desarme voltou a olhar so o estado e nao a
+      disponibilidade da acao.
+- [ ] **H5.8.7.** ⚠️ **Refazer o preparo do H5.4** (o SIM anterior trocou o perfil
+      ativo, entao o orfao ja nao e o ativo). Com o estado de volta, clicar
+      **CARREGAR** em outro perfil e confirmar com **SIM**.
       **Esperado:** aí sim carrega, e a configuracao orfa e abandonada — que e o
       que voce confirmou.
-- [ ] **H5.8.6.** **DUPLICAR** um perfil **compativel** com o grafico e clicar
-      **CRIAR COPIA**.
+- [ ] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.** Refazer o
+      preparo do H5.4, **DUPLICAR** um perfil **compativel** com o grafico e
+      clicar **CRIAR COPIA**.
       **Esperado:** a mesma confirmacao, no lugar do CRIAR COPIA; DESCARTAR
       continua ao lado, intacto.
-      **Por que a copia chega a acender** com o ativo invalido: entrar no
+      **Por que a copia chega a acender** com o perfil ativo invalido: entrar no
       DUPLICAR semeia o rascunho com o perfil de ORIGEM, que pode valer neste
-      grafico.
-- [ ] **H5.8.7.** ⚠️ **Onde a confirmacao NAO deve aparecer.** No mesmo estado:
+      grafico. **Foi exatamente isso que quebrou a primeira versao** — a
+      confirmacao perguntava pela validade do RASCUNHO, que ali ja era o da
+      origem, e por isso nunca aparecia. Se este passo nao mostrar SIM/NAO, o
+      defeito voltou.
+- [ ] **H5.8.9.** Com a confirmacao da copia armada, **alterar o Nome ou o Magic**
+      no formulario e so entao clicar **SIM**.
+      **Esperado:** a pergunta cai ao tocar no campo (H5.8.4). Se por algum
+      caminho ela sobreviver, o que for criado tem de ser o **nome e o Magic que
+      a pergunta nomeou**, nunca o que ficou no campo depois.
+- [ ] **H5.8.10.** ⚠️ **Onde a confirmacao NAO deve aparecer.** No mesmo estado:
       abrir **NOVO**; clicar **EXCLUIR** em outro perfil; clicar **Atualizar
       lista**.
       **Esperado:** nenhuma pergunta de abandono nos tres. Abrir o NOVO nao perde

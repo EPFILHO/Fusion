@@ -43,7 +43,7 @@ void GoTo(const int tab,const int sub,const int rail)
    m_delConfirm=false;
    //--- A do abandono cai pelo mesmo motivo: navegar e outro assunto, e uma
    //--- pergunta grave sobreviver a isso a faria reaparecer fora de contexto.
-   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
    if(rail>=0 && HasRail()) m_railSel[Sub()]=rail;
    m_scroll=0;
    m_comboOpen=-1;
@@ -376,6 +376,13 @@ void HandlePress(const int cx,const int cy)
    //--- ficava bloqueada para o resto da sessao.
    bool wasPending=HasPending(), wasEditing=EditingNow();
    NoteEditFocus(lx,ly);
+   //--- Entrar num campo derruba as confirmacoes armadas. Nao e zelo: a primeira
+   //--- coisa que a digitacao faz e limpar o aviso (FieldSetText -> ClearNotice),
+   //--- e a pergunta ficaria viva SEM a frase que a explica — os dois botoes na
+   //--- tela e ninguem dizendo o que o SIM faz. Alem disso o formulario continua
+   //--- editavel durante a confirmacao da copia, entao o nome mostrado na
+   //--- pergunta poderia deixar de ser o que esta no campo.
+   if(m_focusSlot>=0) { CancelDeleteConfirm(); CancelAbandonConfirm(); }
    //--- Sair do campo confirma o texto, e o texto pode criar a pendencia que
    //--- HABILITA o SALVAR e o CANCELAR. As caixas de clique deles vem do quadro
    //--- anterior, quando ainda estavam apagados e nao publicaram nada — sem

@@ -1092,7 +1092,7 @@ string ScreenError(const int screen)
 //| fronteira natural — e depender de lembrar de invalidar em cada    |
 //| ponto de escrita seria criar a chance de esquecer um.             |
 //+------------------------------------------------------------------+
-void InvalidateValidationCache(void) { m_cfgValidKnown=false; }
+void InvalidateValidationCache(void) { m_cfgValidKnown=false; m_cmtValidKnown=false; }
 
 bool ConfigInputsValid(void)
   {
@@ -1102,6 +1102,43 @@ bool ConfigInputsValid(void)
       m_cfgValidKnown=true;
      }
    return m_cfgValid;
+  }
+
+//+------------------------------------------------------------------+
+//| A MESMA pergunta, sobre o COMPROMETIDO — a configuracao que o EA  |
+//| esta usando, e nao a que esta na tela.                            |
+//|                                                                   |
+//| Existe por um defeito que a auditoria pegou. `AbandonNeedsConfirm`|
+//| perguntava "o perfil ativo pode ser gravado?" usando              |
+//| `ConfigInputsValid()`, que le o RASCUNHO — e entrar no DUPLICAR   |
+//| troca o rascunho pelo perfil de ORIGEM. A pergunta passava a ser  |
+//| sobre a origem, que costuma valer neste grafico, e a confirmacao  |
+//| da copia ficava INALCANCAVEL: o CRIAR COPIA so acende com o       |
+//| rascunho valido, e a confirmacao so existia com ele invalido. As  |
+//| duas condicoes nunca podiam ser verdadeiras juntas.               |
+//|                                                                   |
+//| O comprometido nao muda ao entrar no formulario — `BeginDuplicate`|
+//| so mexe em `m_draft` —, entao a resposta fica estavel do primeiro |
+//| clique ate a conclusao, que e o que a confirmacao precisa.        |
+//|                                                                   |
+//| A troca e feita e desfeita aqui dentro, com o cache do rascunho   |
+//| salvo e devolvido: sem isso esta consulta deixaria o              |
+//| `ConfigInputsValid` do mesmo quadro respondendo pelo comprometido.|
+//+------------------------------------------------------------------+
+bool CommittedConfigValid(void)
+  {
+   if(!m_cmtValidKnown)
+     {
+      SEASettings keepDraft=m_draft;
+      bool keepKnown=m_cfgValidKnown, keepValid=m_cfgValid;
+      m_draft=m_committed;
+      m_cfgValidKnown=false;
+      m_cmtValid=(FirstConfigError()=="");
+      m_draft=keepDraft;
+      m_cfgValidKnown=keepKnown; m_cfgValid=keepValid;
+      m_cmtValidKnown=true;
+     }
+   return m_cmtValid;
   }
 
 //--- Primeiro erro na ordem em que as abas aparecem: e a ordem em que o

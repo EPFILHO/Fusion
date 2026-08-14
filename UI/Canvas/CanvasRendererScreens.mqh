@@ -800,8 +800,10 @@ void ScreenProfiles(void)
    //--- perguntas (os campos do formulario, em FieldsLocked), e um campo que se
    //--- tranca sozinho ao receber o cursor seria o defeito perfeito.
    bool typing   =EditingNow();
-   bool canLoad  =(!editing && !isActive && !selDup && !selLocked && !saveFirst &&
-                   !typing && AccCanLoadProfile());
+   //--- A composicao inteira mora em AccCanLoadSelected, e nao aqui: o desarme da
+   //--- confirmacao de abandono precisa da mesma resposta. `selDup` e `selLocked`
+   //--- continuam calculados acima porque as LINHAS da lista tambem os usam.
+   bool canLoad  =(!editing && AccCanLoadSelected());
    //--- Nem o ativo nem o DEFAULT se apagam. A regra do default vinha faltando:
    //--- a 1.058 a aplica em BuildProfileActionState e o proprio painel avisa por
    //--- escrito ("Nao apague o perfil default"). Sem ela a 2.0 oferecia EXCLUIR
@@ -992,7 +994,7 @@ void ScreenProfiles(void)
       //--- CRIAR COPIA; o DESCARTAR fica onde esta, porque ele continua sendo a
       //--- saida e nao abandona nada.
       bool createArmed=(AbandonArmed(FCV_ABANDON_CREATE) && AbandonNeedsConfirm() &&
-                        m_profEdit==FCV_PROF_DUP);
+                        AccCanCreateCopy());
       if(createArmed)
         {
          int cw=(bw-6)/2;

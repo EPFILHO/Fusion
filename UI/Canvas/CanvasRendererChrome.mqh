@@ -1216,6 +1216,36 @@ bool ActiveProfileOrphan(void)
 bool AccSaveFirstLock(void)
   { return (ActiveProfileOrphan() && ConfigInputsValid()); }
 
+//+------------------------------------------------------------------+
+//| CARREGAR do SELECIONADO, e CONCLUIR a copia — numa funcao cada.   |
+//|                                                                   |
+//| Pela mesma razao que fez `AccCanDeleteSelected` existir: quem     |
+//| desarma uma confirmacao precisa da MESMA resposta que a ofereceu. |
+//| Escritas so na tela, a confirmacao de abandono sumia da vista     |
+//| quando a acao ficava indisponivel (peer lock, por exemplo) e o    |
+//| estado dela continuava vivo — voltando o acesso, a pergunta       |
+//| RESSUSCITAVA. Foi o P2 da auditoria, e e o mesmo furo que a       |
+//| Etapa 2b abriu com uma copia divergente de predicado.             |
+//+------------------------------------------------------------------+
+bool AccCanLoadSelected(void)
+  {
+   if(m_profEdit!=FCV_PROF_VIEW) return false;
+   if(m_profSel<0 || m_profSel>=m_profCount) return false;
+   if(m_profSel==ActiveProfileIndex()) return false;
+   if(m_profDup[m_profSel]) return false;
+   if(m_selRuntimeLocked || m_selProfileLocked) return false;
+   if(AccSaveFirstLock() || EditingNow()) return false;
+   return AccCanLoadProfile();
+  }
+
+bool AccCanCreateCopy(void)
+  {
+   if(m_profEdit!=FCV_PROF_DUP) return false;
+   bool nameBad=false, magicBad=false; string err="";
+   if(!ProfileFormReady(nameBad,magicBad,err)) return false;
+   return ConfigInputsValid();
+  }
+
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.
 bool AccCanAdminProfile(void)
   { return (AccActiveProfileEditable() && !HasPending()); }

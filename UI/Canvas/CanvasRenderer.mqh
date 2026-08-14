@@ -289,6 +289,7 @@ private:
    //--- precisa nomear o perfil. Ver AbandonNeedsConfirm.
    int               m_abandonOp;
    string            m_abandonTarget;
+   int               m_abandonMagic;
    //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
    //--- o desenho roda 5x por segundo. Ver PutButton.
    bool              m_btnFitLogged;
@@ -301,6 +302,10 @@ private:
    //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
    //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
    bool              m_cfgValid, m_cfgValidKnown;
+   //--- A mesma pergunta sobre o COMPROMETIDO, e nao sobre o rascunho. Cache
+   //--- proprio pelo mesmo motivo do de cima: a resposta custa vinte e uma telas.
+   //--- Ver CommittedConfigValid.
+   bool              m_cmtValid, m_cmtValidKnown;
 
    //--- medicao
    bool              m_stress;                // tela sintetica de pior caso
@@ -408,7 +413,7 @@ public:
       //--- perfil naquele indice pode ser outro agora — ou nem existir mais.
       //--- Vale para as DUAS confirmacoes, pelo mesmo motivo.
       m_delConfirm=false;
-      m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
+      m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
       m_profSel=-1;
       if(StringLen(keep)>0)
          for(int i=0;i<m_profCount;++i)
@@ -529,9 +534,10 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
    m_noticeAt=0; m_noticeTtl=0;
    m_delConfirm=false; m_btnFitLogged=false;
-   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
    m_notSaved=false; m_createFailed=false;
    m_cfgValid=true; m_cfgValidKnown=false;
+   m_cmtValid=true; m_cmtValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
    //--- com campos vazios no primeiro quadro — parece defeito, nao "sem dado".
@@ -859,10 +865,16 @@ void CFusionCanvasRenderer::Render(void)
    //--- exige os dois), e RESSUSCITA quando o acesso volta — uma pergunta
    //--- vermelha que o usuario fez ha muito tempo, reaparecendo sozinha.
    if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
-   //--- E a do abandono cai quando o estado que a justifica passa: o arquivo
-   //--- voltou, ou a configuracao ficou valida e o SALVAR virou saida. Manter a
-   //--- pergunta ali anunciaria uma perda que ja nao aconteceria.
-   if(m_abandonOp!=FCV_ABANDON_NONE && !AbandonNeedsConfirm()) CancelAbandonConfirm();
+   //--- E a do abandono cai por DOIS motivos, nao um. O primeiro e o estado que a
+   //--- justifica passar — o arquivo voltou, ou o SALVAR virou saida: manter a
+   //--- pergunta anunciaria uma perda que ja nao aconteceria.
+   //--- O segundo e a ACAO deixar de estar disponivel, e faltava. Sem ele a
+   //--- pergunta sumia da tela (o desenho exige a acao disponivel) e sobrevivia no
+   //--- estado — voltando o acesso, ela RESSUSCITAVA. Mesmo furo que fez
+   //--- AccCanDeleteSelected virar funcao: quem desarma le a mesma resposta de
+   //--- quem ofereceu.
+   if(m_abandonOp!=FCV_ABANDON_NONE && (!AbandonNeedsConfirm() || !AbandonOpAvailable()))
+      CancelAbandonConfirm();
 
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    if(!EnsureSize(S(FCV_PANEL_W),S(h))) return;

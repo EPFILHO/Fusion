@@ -169,16 +169,36 @@ void CancelDeleteConfirm(void)
 //| passou a ser o do perfil de ORIGEM, que pode valer neste grafico  |
 //| enquanto o ativo nao vale.                                        |
 //+------------------------------------------------------------------+
+//--- ⚠ `CommittedConfigValid` e nao `ConfigInputsValid`. A pergunta e sobre o
+//--- PERFIL ATIVO poder ser gravado, e o rascunho deixa de representa-lo assim
+//--- que o DUPLICAR o substitui pela origem. Com o rascunho, as duas condicoes da
+//--- confirmacao da copia eram mutuamente exclusivas e ela nunca aparecia — ver a
+//--- nota daquela funcao.
 bool AbandonNeedsConfirm(void)
-  { return (ActiveProfileOrphan() && !ConfigInputsValid()); }
+  { return (ActiveProfileOrphan() && !CommittedConfigValid()); }
 
 bool AbandonArmed(const int op)
   { return (m_abandonOp==op); }
 
-void ArmAbandonConfirm(const int op,const string target)
+//--- Continua disponivel a acao que a pergunta esta segurando? Sem isto ela
+//--- some da tela e sobrevive no estado, para ressuscitar quando o acesso voltar.
+bool AbandonOpAvailable(void)
+  {
+   if(m_abandonOp==FCV_ABANDON_LOAD)   return AccCanLoadSelected();
+   if(m_abandonOp==FCV_ABANDON_CREATE) return AccCanCreateCopy();
+   return false;
+  }
+
+void ArmAbandonConfirm(const int op,const string target,const int magic=0)
   {
    m_abandonOp=op;
    m_abandonTarget=target;
+   //--- ⚠ O Magic viaja junto porque o SIM da criacao PRECISA dele, e os campos
+   //--- continuam editaveis enquanto a pergunta esta no ar. Relendo o formulario
+   //--- no segundo clique, a pergunta nomearia um nome e a execucao gravaria
+   //--- outro — o contrato e "operacao e alvo capturados no primeiro clique", e
+   //--- ele so vale se o segundo clique nao consultar mais nada.
+   m_abandonMagic=magic;
    //--- Sem prazo, como a do EXCLUIR: descreve um ESTADO em vigor, e sumindo
    //--- sozinha deixaria SIM e NAO na tela sem a frase que diz o que fazem.
    string what=(op==FCV_ABANDON_LOAD)
@@ -196,7 +216,7 @@ void CancelAbandonConfirm(void)
   {
    if(m_abandonOp==FCV_ABANDON_NONE) return;
    m_abandonOp=FCV_ABANDON_NONE;
-   m_abandonTarget="";
+   m_abandonTarget=""; m_abandonMagic=0;
    ClearNotice();
    m_viewDirty=true;
   }
@@ -306,7 +326,12 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
          //--- invalida e este ramo nunca e alcancado por ele.
          if(m_btnId[i]==FCV_BTN_SAVE && m_profEdit==FCV_PROF_DUP &&
             !AbandonArmed(FCV_ABANDON_CREATE))
-           { ArmAbandonConfirm(FCV_ABANDON_CREATE,ProfileFormRawName()); Render(); return true; }
+           {
+            int armMagic=0;
+            ProfileFormMagic(armMagic);
+            ArmAbandonConfirm(FCV_ABANDON_CREATE,ProfileFormRawName(),armMagic);
+            Render(); return true;
+           }
         }
 
       switch(m_btnId[i])
@@ -315,19 +340,19 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
          //--- foi tratado pela regra acima.
          case FCV_BTN_ABANDONOK:
            {
+            //--- Executa o que foi CAPTURADO, sem reler formulario nem selecao:
+            //--- e essa releitura que faria a pergunta nomear um alvo e a acao
+            //--- atingir outro.
             int op=m_abandonOp;
-            m_abandonOp=FCV_ABANDON_NONE;
             string target=m_abandonTarget;
-            m_abandonTarget="";
+            int magic=m_abandonMagic;
+            m_abandonOp=FCV_ABANDON_NONE;
+            m_abandonTarget=""; m_abandonMagic=0;
             ClearNotice();
             if(op==FCV_ABANDON_LOAD)
                QueueIntent(FCV_INTENT_LOAD_PROFILE,target);
             else if(op==FCV_ABANDON_CREATE)
-              {
-               int magic=0;
-               ProfileFormMagic(magic);
-               QueueIntent(FCV_INTENT_CREATE_PROFILE,ProfileFormRawName(),magic);
-              }
+               QueueIntent(FCV_INTENT_CREATE_PROFILE,target,magic);
             break;
            }
          case FCV_BTN_ABANDONNO: break;   // o desarme ja aconteceu acima
