@@ -461,8 +461,9 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 - [ ] **H5.1.** Conferir a faixa do cabecalho.
       **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar
-      de perfil`, em vermelho. Ela vence "alteracoes pendentes" e perde para
-      configuracao invalida — o SALVAR e a saida, e ele exige configuracao valida.
+      de perfil`, em vermelho. Ela vence "alteracoes pendentes" **e tambem
+      "configuracao invalida"**; perde so para o peer lock, onde o SALVAR nem
+      acende e mandar gravar seria instruir o impossivel.
 - [ ] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
       **Esperado:** **CARREGAR, NOVO, DUPLICAR e EXCLUIR apagados**; so
       `Atualizar lista` responde. O cartao do perfil ativo explica que SALVAR
@@ -480,12 +481,61 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 - [ ] **H5.3.** Clicar **SALVAR** no cabecalho.
       **Esperado:** `PERFIL SALVO`, o arquivo reaparece na pasta, a faixa some e
       **os quatro botoes voltam**. E a saida pela propria GUI (licao 2).
-- [ ] **H5.4.** ⚠️ **A metade que impede o beco.** Repetir o preparo e, com o
-      arquivo fora, deixar a configuracao **invalida** (um Lote Fixo impossivel,
-      por exemplo).
-      **Esperado:** a faixa volta a dizer `CONFIGURACAO INVALIDA` — nao a do
-      arquivo — porque o SALVAR esta apagado e mandar gravar seria instruir o
-      impossivel. Corrigido o lote, a faixa troca para a do arquivo.
+- [ ] **H5.4.** ⚠️ **A metade que impede o beco — e o caso que o usuario
+      encontrou.** Repetir o preparo com um perfil ativo **de outro ativo** (no
+      WIN, um perfil de lote `0.40`), ou deixar a configuracao invalida de
+      proposito.
+      **Esperado:** a faixa diz
+      `PERFIL SEM ARQUIVO E INVALIDO NESTE ATIVO — restaure o arquivo para
+      preservar`, e **os botoes de perfil NAO travam** — CARREGAR, NOVO,
+      DUPLICAR e EXCLUIR ficam disponiveis conforme as regras normais.
+      **Por que os dois ao mesmo tempo:** o SALVAR nao acende (exige configuracao
+      valida), entao travar viraria beco — nao ha saida a oferecer. Mas o risco
+      continua, e calar seria esconde-lo. **A faixa avisa onde a trava se cala**,
+      e a protecao vem por confirmacao (H5.8).
+      ⚠️ A faixa **nao** manda "corrigir a configuracao": a incompatibilidade pode
+      ser so com este ativo, e corrigir descaracterizaria um perfil que esta certo
+      para o ativo dele.
+
+### H5.8. Confirmacao de abandono — os dois caminhos que perdem
+
+> Preparo: o do H5.4 — arquivo do perfil ativo fora da pasta **e** configuracao
+> invalida para este grafico. E o unico estado em que estas confirmacoes existem.
+
+- [ ] **H5.8.1.** Selecionar outro perfil e clicar **CARREGAR**.
+      **Esperado:** nao carrega. No lugar do CARREGAR aparecem **SIM** e **NAO**,
+      e o rodape explica que o perfil em uso esta sem arquivo, nao pode ser
+      gravado aqui, e que a configuracao dele sera perdida — dizendo tambem que
+      restaurar o arquivo preserva tudo. NOVO e DUPLICAR apagam enquanto a
+      pergunta esta no ar.
+- [ ] **H5.8.2.** Clicar **NAO**.
+      **Esperado:** volta ao normal, nada carregado, aviso some.
+- [ ] **H5.8.3.** Armar de novo e **trocar a selecao** de perfil.
+      **Esperado:** a pergunta cai sozinha. (Ela guarda o alvo capturado no
+      primeiro clique; sobrevivendo a uma troca, nomearia um perfil e executaria
+      outro.)
+- [ ] **H5.8.4.** Armar e, **sem confirmar**, restaurar o `.cfg` do perfil ativo
+      na pasta.
+      **Esperado:** a pergunta cai sozinha em ate ~1 s — o estado que a justifica
+      passou, e mante-la anunciaria uma perda que ja nao aconteceria.
+- [ ] **H5.8.5.** Clicar **SIM**.
+      **Esperado:** aí sim carrega, e a configuracao orfa e abandonada — que e o
+      que voce confirmou.
+- [ ] **H5.8.6.** **DUPLICAR** um perfil **compativel** com o grafico e clicar
+      **CRIAR COPIA**.
+      **Esperado:** a mesma confirmacao, no lugar do CRIAR COPIA; DESCARTAR
+      continua ao lado, intacto.
+      **Por que a copia chega a acender** com o ativo invalido: entrar no
+      DUPLICAR semeia o rascunho com o perfil de ORIGEM, que pode valer neste
+      grafico.
+- [ ] **H5.8.7.** ⚠️ **Onde a confirmacao NAO deve aparecer.** No mesmo estado:
+      abrir **NOVO**; clicar **EXCLUIR** em outro perfil; clicar **Atualizar
+      lista**.
+      **Esperado:** nenhuma pergunta de abandono nos tres. Abrir o NOVO nao perde
+      nada (o CRIAR PERFIL de dentro dele segue apagado pela configuracao
+      invalida), EXCLUIR mexe em outro perfil, e Atualizar lista so relê a pasta.
+      **Por que o teste existe:** confirmacao que aparece onde nao precisa ensina
+      a clicar SIM sem ler, e ai ela deixa de proteger onde precisa.
 - [ ] **H5.5.** O mesmo com o perfil ativo **preso por outro grafico** (exige
       dois graficos; ver bloco I).
       **Esperado:** as acoes **nao** ficam trancadas e CARREGAR segue disponivel.

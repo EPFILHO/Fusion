@@ -143,6 +143,65 @@ void CancelDeleteConfirm(void)
   }
 
 //+------------------------------------------------------------------+
+//| CONFIRMAR ABANDONO — quando a acao descarta a unica copia.        |
+//|                                                                   |
+//| O estado: o arquivo do perfil ativo sumiu E a configuracao nao    |
+//| pode ser gravada porque nao vale para ESTE ativo (lote legitimo   |
+//| no ouro, impossivel num indice de 1 contrato). A trava            |
+//| `AccSaveFirstLock` nao engata ali de proposito — sem SALVAR nao   |
+//| ha saida a oferecer, e trancar viraria beco. So que sem trava a   |
+//| perda fica a um clique, e a faixa sozinha apenas a torna visivel. |
+//|                                                                   |
+//| Entao nem trancar nem deixar passar: CONFIRMAR. O usuario que     |
+//| realmente quer abandonar continua podendo, e quem ia clicar sem   |
+//| saber e avisado do que custa.                                     |
+//|                                                                   |
+//| ⚠ SO NOS DOIS CAMINHOS QUE PERDEM DE VERDADE. Abrir o NOVO nao    |
+//| perde nada — o CRIAR PERFIL de dentro dele exige a mesma          |
+//| configuracao valida e fica apagado. EXCLUIR mexe em OUTRO perfil. |
+//| Atualizar lista so relê a pasta. Pedir confirmacao neles          |
+//| ensinaria o usuario a clicar SIM sem ler, que e como uma          |
+//| confirmacao deixa de proteger.                                    |
+//|                                                                   |
+//| ⚠ A duplicacao e confirmada ao CONCLUIR, e nao ao entrar: entrar  |
+//| no formulario nao aplica nada, e o DESCARTAR devolve o rascunho.  |
+//| Quem abandona e o CRIAR COPIA — e ele so acende porque o rascunho |
+//| passou a ser o do perfil de ORIGEM, que pode valer neste grafico  |
+//| enquanto o ativo nao vale.                                        |
+//+------------------------------------------------------------------+
+bool AbandonNeedsConfirm(void)
+  { return (ActiveProfileOrphan() && !ConfigInputsValid()); }
+
+bool AbandonArmed(const int op)
+  { return (m_abandonOp==op); }
+
+void ArmAbandonConfirm(const int op,const string target)
+  {
+   m_abandonOp=op;
+   m_abandonTarget=target;
+   //--- Sem prazo, como a do EXCLUIR: descreve um ESTADO em vigor, e sumindo
+   //--- sozinha deixaria SIM e NAO na tela sem a frase que diz o que fazem.
+   string what=(op==FCV_ABANDON_LOAD)
+               ? "Carregar "+target
+               : "Criar "+target;
+   SetNotice("ISTO DESCARTA A CONFIGURACAO EM USO",
+             what+" ativa outro perfil neste grafico. O perfil "+
+             m_snap.activeProfileName+" esta sem arquivo em disco e nao pode ser "+
+             "gravado aqui — a configuracao dele existe SO na memoria e sera "+
+             "perdida. Restaurar o arquivo dele preserva tudo. Clique SIM para "+
+             "abandonar mesmo assim, ou NAO para voltar.",FCV_SEM_BAD);
+  }
+
+void CancelAbandonConfirm(void)
+  {
+   if(m_abandonOp==FCV_ABANDON_NONE) return;
+   m_abandonOp=FCV_ABANDON_NONE;
+   m_abandonTarget="";
+   ClearNotice();
+   m_viewDirty=true;
+  }
+
+//+------------------------------------------------------------------+
 //| Recarga deliberada do rascunho.                                   |
 //|                                                                   |
 //| Usada pelo CANCELAR e pelo LoadSettings do EA (carga de perfil,   |
@@ -223,9 +282,56 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
       //--- ficaria armada enquanto o usuario faz outra coisa, e o proximo
       //--- clique no lugar do SIM apagaria um perfil sem aviso.
       if(m_btnId[i]!=FCV_BTN_DELOK && m_delConfirm) CancelDeleteConfirm();
+      //--- Mesma regra para a do abandono. O SIM dela e o unico que a preserva —
+      //--- inclusive o NAO desarma, que e o que ele significa.
+      if(m_btnId[i]!=FCV_BTN_ABANDONOK && m_abandonOp!=FCV_ABANDON_NONE)
+         CancelAbandonConfirm();
+
+      //+---------------------------------------------------------------+
+      //| Primeiro clique nos dois caminhos que abandonam: ARMA, nao age.|
+      //| Ver AbandonNeedsConfirm — inclusive por que nao vale para o    |
+      //| NOVO, para o EXCLUIR nem para Atualizar lista.                 |
+      //|                                                                |
+      //| O alvo e capturado AQUI e nao lido de novo no SIM: entre um    |
+      //| clique e outro a selecao pode mudar, e a pergunta nomearia um  |
+      //| perfil e executaria outro. Trocar a selecao desarma, entao o   |
+      //| alvo guardado e sempre o que estava na pergunta.                |
+      //+---------------------------------------------------------------+
+      if(AbandonNeedsConfirm())
+        {
+         if(m_btnId[i]==FCV_BTN_LOAD && !AbandonArmed(FCV_ABANDON_LOAD))
+           { ArmAbandonConfirm(FCV_ABANDON_LOAD,SelectedProfileName()); Render(); return true; }
+         //--- So a DUPLICACAO: no NOVO o rascunho continua sendo o do perfil
+         //--- orfao, entao o CRIAR PERFIL ja esta apagado pela configuracao
+         //--- invalida e este ramo nunca e alcancado por ele.
+         if(m_btnId[i]==FCV_BTN_SAVE && m_profEdit==FCV_PROF_DUP &&
+            !AbandonArmed(FCV_ABANDON_CREATE))
+           { ArmAbandonConfirm(FCV_ABANDON_CREATE,ProfileFormRawName()); Render(); return true; }
+        }
 
       switch(m_btnId[i])
         {
+         //--- SIM do abandono: executa a operacao guardada. NAO so desarma, e ja
+         //--- foi tratado pela regra acima.
+         case FCV_BTN_ABANDONOK:
+           {
+            int op=m_abandonOp;
+            m_abandonOp=FCV_ABANDON_NONE;
+            string target=m_abandonTarget;
+            m_abandonTarget="";
+            ClearNotice();
+            if(op==FCV_ABANDON_LOAD)
+               QueueIntent(FCV_INTENT_LOAD_PROFILE,target);
+            else if(op==FCV_ABANDON_CREATE)
+              {
+               int magic=0;
+               ProfileFormMagic(magic);
+               QueueIntent(FCV_INTENT_CREATE_PROFILE,ProfileFormRawName(),magic);
+              }
+            break;
+           }
+         case FCV_BTN_ABANDONNO: break;   // o desarme ja aconteceu acima
+
          //--- Comecar uma criacao limpa o formulario. Sem isto, cancelar e
          //--- recomecar traria de volta o que foi digitado antes.
          case FCV_BTN_NEW:

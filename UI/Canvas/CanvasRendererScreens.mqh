@@ -819,9 +819,11 @@ void ScreenProfiles(void)
    //--- A regra inteira vive em AccCanDeleteSelected: o pulso precisa da MESMA
    //--- resposta para desarmar a confirmacao quando a oferta desaparece.
    bool canDelete=AccCanDeleteSelected();
-   //--- NOVO nao depende da selecao: cria do zero. DUPLICAR depende, e olha so a
-   //--- trava de RUNTIME — nao a de perfil ativo em outro grafico. A assimetria
-   //--- e da 1.058 e faz sentido: duplicar nao toca no original.
+   //--- NOVO nao depende da SELECAO: ele parte da configuracao em uso, nao de um
+   //--- perfil escolhido na lista — e nao "do zero", como esta linha dizia antes.
+   //--- DUPLICAR depende, e olha so a trava de RUNTIME — nao a de perfil ativo em
+   //--- outro grafico. A assimetria e da 1.058 e faz sentido: duplicar nao toca
+   //--- no original. As notas do formulario nomeiam a origem de cada um.
    //--- ⚠ `saveFirst` entra AQUI e nao dentro de AccCanCreateProfile: aquela
    //--- funcao tambem governa se os CAMPOS do formulario aceitam digitacao
    //--- (FieldsLocked), e trancar por la reproduziria o defeito ja documentado
@@ -839,9 +841,21 @@ void ScreenProfiles(void)
    //--- "um unico botao preenchido por vez" do plano, aplicada onde ela mais
    //--- vale — o proximo passo aqui e responder SIM ou NAO, e mais nada.
    bool armed=(m_delConfirm && canDelete);
-   PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad  && !armed);
-   PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate && !armed);
-   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup   && !armed);
+   //--- Confirmacao de abandono no CARREGAR: mesma coreografia do EXCLUIR, no
+   //--- lugar do proprio botao. Cai junto se a oferta sumir — armar sobre uma
+   //--- acao que a tela ja nao oferece deixaria um SIM apontando para o vazio.
+   bool loseArmed=(AbandonArmed(FCV_ABANDON_LOAD) && canLoad && AbandonNeedsConfirm());
+   if(loseArmed)
+     {
+      int lw=(aw-6)/2;
+      PutButton(ax,y+0*34,lw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_ABANDONOK,true);
+      PutButton(ax+lw+6,y+0*34,aw-lw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
+                FCV_BTN_ABANDONNO,true);
+     }
+   else
+      PutButton(ax,y+0*34,aw,30,"CARREGAR",true,m_t.acc, m_t.onAcc, FCV_BTN_LOAD,canLoad && !armed);
+   PutButton(ax,y+1*34,aw,30,"NOVO",    true,m_t.good,m_t.onGood,FCV_BTN_NEW, canCreate && !armed && !loseArmed);
+   PutButton(ax,y+2*34,aw,30,"DUPLICAR",true,m_t.warn,m_t.onAcc, FCV_BTN_DUP, canDup   && !armed && !loseArmed);
    //--- Excluir e a unica acao irreversivel do painel, e nao tem desfazer: o
    //--- arquivo sai do disco. Por isso ela pede confirmacao — e a confirmacao
    //--- acontece AQUI, na propria coluna, e nao num popup: o popup teria de
@@ -938,14 +952,21 @@ void ScreenProfiles(void)
       //--- do zero, ou dos padroes, e nao e nada disso: ele grava o que voce ja
       //--- tem sob um nome novo. Levantado pelo usuario, que perguntou "cria novo
       //--- como? duplica quem?" depois de meses com a tela.
+      //--- ⚠ "Cria e ATIVA", nas duas. A ativacao e a consequencia que o usuario
+      //--- nao espera e a origem do risco desta tela: e por ela que criar aqui
+      //--- abandona o perfil em uso. Dizer so "cria" escondia a metade que custa.
+      //--- ⚠ E nada de "com as alteracoes da tela" no NOVO: ele fica APAGADO
+      //--- enquanto ha edicao ou pendencia, entao nunca captura alteracao nao
+      //--- gravada — a frase prometia algo que o botao nao consegue fazer.
       RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Copia a configuracao do perfil "+
+               ? "Cria e ATIVA uma copia do perfil "+
                  ((m_profSel>=0) ? m_profName[m_profSel] : "selecionado")+
-                 ", lida do arquivo dele. Ajuste o Magic e clique CRIAR COPIA."
-               : "Grava a configuracao EM USO ("+
-                 (m_snap.activeProfileName=="" ? "perfil ativo" : m_snap.activeProfileName)+
-                 ", com as alteracoes da tela) sob um nome novo. Informe nome e "+
-                 "Magic livre, e clique CRIAR PERFIL.");
+                 ", com a configuracao lida do arquivo dele. Ajuste o Magic e "+
+                 "clique CRIAR COPIA."
+               : "Cria e ATIVA um perfil novo a partir da configuracao atualmente "+
+                 "em uso por "+
+                 (m_snap.activeProfileName=="" ? "este grafico" : m_snap.activeProfileName)+
+                 ". Informe nome e Magic livre, e clique CRIAR PERFIL.");
       //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
       //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
       //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que
@@ -967,9 +988,22 @@ void ScreenProfiles(void)
       //--- Antes acendia sempre, e um botao que promete gravar sem ter o que
       //--- gravar so descobre o problema depois do clique — pior aqui, onde o
       //--- clique cria um arquivo novo com a configuracao invalida dentro.
-      PutButton(m_fx1,m_fy,bw,30,
-                m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
-                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ConfigInputsValid());
+      //--- Confirmacao de abandono ao CONCLUIR a copia. No lugar do proprio
+      //--- CRIAR COPIA; o DESCARTAR fica onde esta, porque ele continua sendo a
+      //--- saida e nao abandona nada.
+      bool createArmed=(AbandonArmed(FCV_ABANDON_CREATE) && AbandonNeedsConfirm() &&
+                        m_profEdit==FCV_PROF_DUP);
+      if(createArmed)
+        {
+         int cw=(bw-6)/2;
+         PutButton(m_fx1,m_fy,cw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_ABANDONOK,true);
+         PutButton(m_fx1+cw+6,m_fy,bw-cw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
+                   FCV_BTN_ABANDONNO,true);
+        }
+      else
+         PutButton(m_fx1,m_fy,bw,30,
+                   m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
+                   true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ConfigInputsValid());
       PutButton(m_fx1+bw+8,m_fy,bw,30,"DESCARTAR",
                 false,m_t.warn,m_t.onAcc,FCV_BTN_CANCEL,true);
       m_fy+=30+FCV_CARD_GAP;

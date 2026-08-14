@@ -156,6 +156,18 @@
 //--- e nao sob o cursor. DELOK e o SIM; DELNO e o NAO.
 #define FCV_BTN_DELOK    13
 #define FCV_BTN_DELNO    14
+//--- SIM/NAO da confirmacao de ABANDONO: a acao vai descartar a unica copia da
+//--- configuracao em uso. Par proprio, e nao os do EXCLUIR, porque o alvo e a
+//--- pergunta sao outros e as duas confirmacoes podem existir na mesma tela.
+#define FCV_BTN_ABANDONOK 15
+#define FCV_BTN_ABANDONNO 16
+
+//--- Qual operacao esta pendente de confirmacao. Guardar a OPERACAO, e nao so
+//--- "ha algo a confirmar": o SIM precisa saber o que executar, e o alvo precisa
+//--- viajar junto para a pergunta nomear o perfil certo.
+#define FCV_ABANDON_NONE   0
+#define FCV_ABANDON_LOAD   1
+#define FCV_ABANDON_CREATE 2
 
 //--- Prazo do aviso que descreve um EVENTO passado. Estado em vigor nao expira
 //--- — ver a nota em ClearNotice (CanvasRendererCommands.mqh).

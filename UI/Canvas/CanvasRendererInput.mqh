@@ -41,6 +41,9 @@ void GoTo(const int tab,const int sub,const int rail)
    //--- acontecer, e a partir daqui o usuario esta em outro assunto.
    ClearNotice();
    m_delConfirm=false;
+   //--- A do abandono cai pelo mesmo motivo: navegar e outro assunto, e uma
+   //--- pergunta grave sobreviver a isso a faria reaparecer fora de contexto.
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
    if(rail>=0 && HasRail()) m_railSel[Sub()]=rail;
    m_scroll=0;
    m_comboOpen=-1;
@@ -449,7 +452,8 @@ void HandlePress(const int cx,const int cy)
             //--- E desarma a exclusao: armada, ela passaria a mirar o perfil
             //--- recem-selecionado, e o clique seguinte apagaria o errado.
             if(m_profSel!=i)
-              { m_profSel=i; CancelDeleteConfirm(); RefreshSelectedProfileLocks(); Render(); }
+              { m_profSel=i; CancelDeleteConfirm(); CancelAbandonConfirm();
+                RefreshSelectedProfileLocks(); Render(); }
             return;
            }
      }

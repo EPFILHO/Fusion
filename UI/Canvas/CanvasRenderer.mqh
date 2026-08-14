@@ -284,6 +284,11 @@ private:
    //--- EXCLUIR armado: o botao vermelho ja foi clicado uma vez e aguarda
    //--- confirmacao. Cai em qualquer mudanca de contexto.
    bool              m_delConfirm;
+   //--- Confirmacao de ABANDONO: operacao pendente e o alvo dela. Dois campos e
+   //--- nao um booleano — o SIM precisa saber o que executar, e a pergunta
+   //--- precisa nomear o perfil. Ver AbandonNeedsConfirm.
+   int               m_abandonOp;
+   string            m_abandonTarget;
    //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
    //--- o desenho roda 5x por segundo. Ver PutButton.
    bool              m_btnFitLogged;
@@ -401,7 +406,9 @@ public:
 
       //--- A lista mudou sob os pes da confirmacao: ela mirava um indice, e o
       //--- perfil naquele indice pode ser outro agora — ou nem existir mais.
+      //--- Vale para as DUAS confirmacoes, pelo mesmo motivo.
       m_delConfirm=false;
+      m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
       m_profSel=-1;
       if(StringLen(keep)>0)
          for(int i=0;i<m_profCount;++i)
@@ -522,6 +529,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
    m_noticeAt=0; m_noticeTtl=0;
    m_delConfirm=false; m_btnFitLogged=false;
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
    m_notSaved=false; m_createFailed=false;
    m_cfgValid=true; m_cfgValidKnown=false;
 
@@ -851,6 +859,10 @@ void CFusionCanvasRenderer::Render(void)
    //--- exige os dois), e RESSUSCITA quando o acesso volta — uma pergunta
    //--- vermelha que o usuario fez ha muito tempo, reaparecendo sozinha.
    if(m_delConfirm && !AccCanDeleteSelected()) CancelDeleteConfirm();
+   //--- E a do abandono cai quando o estado que a justifica passa: o arquivo
+   //--- voltou, ou a configuracao ficou valida e o SALVAR virou saida. Manter a
+   //--- pergunta ali anunciaria uma perda que ja nao aconteceria.
+   if(m_abandonOp!=FCV_ABANDON_NONE && !AbandonNeedsConfirm()) CancelAbandonConfirm();
 
    int h = m_minimized ? FCV_TITLEBAR_H : m_ph;
    if(!EnsureSize(S(FCV_PANEL_W),S(h))) return;

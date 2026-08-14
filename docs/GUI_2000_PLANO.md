@@ -965,6 +965,61 @@ proposito, com a faixa nomeando as duas coisas ("grave antes de **iniciar** ou
 trocar de perfil"), porque ela e a unica explicacao que o INICIAR apagado tem.
 Testado no H5.2b.
 
+### CORRIGIDO: o buraco da trava — faixa avisa, confirmacao protege
+
+Achado pelo usuario executando o H5.1. `AccSaveFirstLock()` exige
+`ConfigInputsValid()`, entao com um perfil ativo **de outro ativo** (lote `0.40`
+num indice de 1 contrato) a trava **nao engata** — e o perfil orfao fica sem
+protecao nenhuma. A metade que impede o beco tinha um custo que eu nao tinha
+medido.
+
+**Primeiro, o que eu exagerei**, corrigido pela auditoria e conferido: `INICIAR`
+continua apagado pelo ramo da configuracao invalida; abrir `NOVO` nao perde nada,
+porque o CRIAR PERFIL de dentro dele exige a mesma configuracao valida; `EXCLUIR`
+de outro perfil nao abandona o ativo. **Os caminhos que perdem sao dois**:
+CARREGAR e **concluir** uma duplicacao — esta porque `BeginDuplicate` semeia o
+rascunho com o perfil de ORIGEM, que pode valer neste grafico enquanto o ativo
+nao vale.
+
+**Faixa.** O estado saiu da trava e virou `ActiveProfileOrphan()`;
+`AccSaveFirstLock()` passou a ser ele **mais** `ConfigInputsValid()`. A faixa usa
+o estado e subiu para cima do CONFIG — antes ela calava exatamente no pior caso,
+mostrando "CONFIGURACAO INVALIDA" e nao dizendo uma palavra sobre o perfil estar
+a um clique de sumir.
+
+⚠️ **Faixa e trava deixaram de ter a mesma condicao, de proposito**, contra o que
+eu tinha escrito um dia antes. Onde a trava se cala por nao ter saida a oferecer,
+o risco continua existindo, e calar junto o esconde. O texto muda com o gatilho,
+entao a faixa nunca promete uma trava que nao existe. E ele **nao manda
+"corrigir"**: a incompatibilidade pode ser so com este ativo, e corrigir
+descaracterizaria um perfil que esta certo para o ativo dele.
+
+**Confirmacao.** So a faixa deixava a perda a um clique — critica correta da
+auditoria, especialmente depois de termos tratado o caso como protecao contra
+perda de dados. Nem trancar (beco) nem deixar passar: `AbandonNeedsConfirm()` =
+`ActiveProfileOrphan() && !ConfigInputsValid()`, com SIM/NAO no lugar do proprio
+botao, na coreografia do EXCLUIR.
+
+O estado guarda **operacao e alvo** (`m_abandonOp`, `m_abandonTarget`) e nao um
+booleano: o SIM precisa saber o que executar, e o alvo e capturado no primeiro
+clique — lido de novo no segundo, a pergunta nomearia um perfil e executaria
+outro. Cai sozinha ao trocar de selecao, ao navegar, e quando o estado que a
+justifica passa.
+
+⚠️ **So nos dois caminhos que perdem.** NOVO, EXCLUIR e Atualizar lista nao pedem
+confirmacao — e o H5.8.7 existe para garantir isso, porque confirmacao que
+aparece onde nao precisa ensina a clicar SIM sem ler, e ai ela deixa de proteger
+onde precisa.
+
+**RETRATACAO: o "terceiro caminho" que eu anunciei nao existe.** Eu disse que,
+com o rascunho semeado pela duplicacao, o SALVAR do cabecalho gravaria a
+configuracao da origem sob o nome do perfil ativo. Nao grava: `headerLive` exige
+`FCV_PROF_VIEW`, e **todas** as tres saidas para VIEW chamam `ReloadDraft()`
+antes — `GoTo`, `FCV_BTN_CANCEL` e `ReloadFromEA`. Mais do que isso: o comentario
+do `GoTo` **descreve exatamente esse perigo** como algo ja fechado de proposito.
+Eu reportei como aberto um buraco que o proprio codigo documentava como tapado —
+parei de ler cedo demais, o mesmo erro do falso alarme do historico diario.
+
 ### CORRIGIDO junto: a coluna de perfis nao via a edicao em curso
 
 Achado pelo usuario na mesma sessao. `EditingNow()` (cursor num campo) acendia
