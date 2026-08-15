@@ -438,10 +438,10 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       perfil.
       **Esperado:** o perfil novo entra e o painel avisa que a digitacao foi
       descartada. (Precisa de dois graficos — pode ser feito junto do bloco I.)
-- [ ] **H2.** Carregar um perfil e conferir o cabecalho.
+- [x] **H2.** Carregar um perfil e conferir o cabecalho.
       **Esperado:** nome do perfil novo, SALVAR e CANCELAR apagados (nao ha
       pendencia recem-carregada).
-- [ ] **H3.** Renomear um `.cfg` por fora para algo ilegivel e tentar carregar.
+- [x] **H3.** Renomear um `.cfg` por fora para algo ilegivel e tentar carregar.
       **Esperado:** `PERFIL NAO CARREGADO`, **a configuracao atual preservada**.
 - [ ] **H4.** Com protecao de drawdown em curso, carregar um perfil de
       parametros de DD diferentes.
@@ -459,18 +459,18 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > (ou renomeie). Em ate ~1 s o cabecalho passa a dizer
 > `· arquivo do perfil nao encontrado`. **Devolva o arquivo ao fim do bloco.**
 
-- [ ] **H5.1.** Conferir a faixa do cabecalho.
+- [x] **H5.1.** Conferir a faixa do cabecalho.
       **Esperado:** `PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar
       de perfil`, em vermelho. Ela vence "alteracoes pendentes" **e tambem
       "configuracao invalida"**. Perde, na ordem, para: bloqueio de runtime,
       reconciliacao de fechamento, formulario de perfil aberto, peer lock e
       conflito de Magic — todos acima dela na escada, e todos por descreverem algo
       que impede o proprio SALVAR ou que passa sozinho.
-- [ ] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
+- [x] **H5.2.** Ir para Perfis e olhar a coluna de acoes.
       **Esperado:** **CARREGAR, NOVO, DUPLICAR e EXCLUIR apagados**; so
       `Atualizar lista` responde. O cartao do perfil ativo explica que SALVAR
       grava a configuracao em uso de volta nesse nome.
-- [ ] **H5.2b.** Olhar o **INICIAR**.
+- [x] **H5.2b.** Olhar o **INICIAR**.
       **Esperado:** apagado tambem — sao **cinco** botoes, e nao quatro.
       **Por que, e o motivo nao e o das outras quatro:** INICIAR nao abandona o
       perfil, ele **fecha a porta da recuperacao**. O SALVAR exige o EA parado,
@@ -480,10 +480,10 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       Foi achado pela auditoria, conferido, e mantido de proposito — a faixa
       nomeia as duas coisas justamente porque ela e a unica explicacao que o
       INICIAR apagado tem.)
-- [ ] **H5.3.** Clicar **SALVAR** no cabecalho.
+- [x] **H5.3.** Clicar **SALVAR** no cabecalho.
       **Esperado:** `PERFIL SALVO`, o arquivo reaparece na pasta, a faixa some e
       **os quatro botoes voltam**. E a saida pela propria GUI (licao 2).
-- [ ] **H5.4.** ⚠️ **A metade que impede o beco — e o caso que o usuario
+- [x] **H5.4.** ⚠️ **A metade que impede o beco — e o caso que o usuario
       encontrou.** Repetir o preparo com um perfil ativo **de outro ativo** (no
       WIN, um perfil de lote `0.40`), ou deixar a configuracao invalida de
       proposito.
@@ -499,69 +499,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       ser so com este ativo, e corrigir descaracterizaria um perfil que esta certo
       para o ativo dele.
 
-### H5.8. Confirmacao de abandono — os dois caminhos que perdem
-
-> Preparo: o do H5.4 — arquivo do perfil ativo fora da pasta **e** configuracao
-> invalida para este grafico. E o unico estado em que estas confirmacoes existem.
-
-- [ ] **H5.8.1.** Selecionar outro perfil e clicar **CARREGAR**.
-      **Esperado:** nao carrega. No lugar do CARREGAR aparecem **SIM** e **NAO**,
-      e o rodape explica que o perfil em uso esta sem arquivo, nao pode ser
-      gravado aqui, e que a configuracao dele sera perdida — dizendo tambem que
-      restaurar o arquivo preserva tudo. NOVO e DUPLICAR apagam enquanto a
-      pergunta esta no ar.
-- [ ] **H5.8.2.** Clicar **NAO**.
-      **Esperado:** volta ao normal, nada carregado, aviso some.
-- [ ] **H5.8.3.** Armar de novo e **trocar a selecao** de perfil.
-      **Esperado:** a pergunta cai sozinha. (Ela guarda o alvo capturado no
-      primeiro clique; sobrevivendo a uma troca, nomearia um perfil e executaria
-      outro.)
-- [ ] **H5.8.4.** Armar de novo e, **sem confirmar**, clicar dentro de um campo
-      (o Magic do perfil ativo).
-      **Esperado:** a pergunta cai. A digitacao limpa o aviso, e a pergunta viva
-      sem a frase que a explica deixaria SIM e NAO na tela sem ninguem dizendo o
-      que o SIM faz.
-- [ ] **H5.8.5.** Armar de novo e, **sem confirmar**, restaurar o `.cfg` do
-      perfil ativo na pasta.
-      **Esperado:** a pergunta cai sozinha em ate ~1 s — o estado que a justifica
-      passou, e mante-la anunciaria uma perda que ja nao aconteceria.
-- [ ] **H5.8.6.** ⚠️ **A que some e nao pode voltar.** Refazer o preparo, armar a
-      confirmacao do CARREGAR e, **sem confirmar**, fazer o perfil selecionado
-      ficar preso por outro grafico (bloco I) — ou simplesmente carrega-lo no
-      outro grafico.
-      **Esperado:** SIM/NAO somem **e a pergunta nao volta** quando a trava sair.
-      **Se ela ressuscitar**, o desarme voltou a olhar so o estado e nao a
-      disponibilidade da acao.
-- [ ] **H5.8.7.** ⚠️ **Refazer o preparo do H5.4** (o SIM anterior trocou o perfil
-      ativo, entao o orfao ja nao e o ativo). Com o estado de volta, clicar
-      **CARREGAR** em outro perfil e confirmar com **SIM**.
-      **Esperado:** aí sim carrega, e a configuracao orfa e abandonada — que e o
-      que voce confirmou.
-- [ ] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.** Refazer o
-      preparo do H5.4, **DUPLICAR** um perfil **compativel** com o grafico e
-      clicar **CRIAR COPIA**.
-      **Esperado:** a mesma confirmacao, no lugar do CRIAR COPIA; DESCARTAR
-      continua ao lado, intacto.
-      **Por que a copia chega a acender** com o perfil ativo invalido: entrar no
-      DUPLICAR semeia o rascunho com o perfil de ORIGEM, que pode valer neste
-      grafico. **Foi exatamente isso que quebrou a primeira versao** — a
-      confirmacao perguntava pela validade do RASCUNHO, que ali ja era o da
-      origem, e por isso nunca aparecia. Se este passo nao mostrar SIM/NAO, o
-      defeito voltou.
-- [ ] **H5.8.9.** Com a confirmacao da copia armada, **alterar o Nome ou o Magic**
-      no formulario e so entao clicar **SIM**.
-      **Esperado:** a pergunta cai ao tocar no campo (H5.8.4). Se por algum
-      caminho ela sobreviver, o que for criado tem de ser o **nome e o Magic que
-      a pergunta nomeou**, nunca o que ficou no campo depois.
-- [ ] **H5.8.10.** ⚠️ **Onde a confirmacao NAO deve aparecer.** No mesmo estado:
-      abrir **NOVO**; clicar **EXCLUIR** em outro perfil; clicar **Atualizar
-      lista**.
-      **Esperado:** nenhuma pergunta de abandono nos tres. Abrir o NOVO nao perde
-      nada (o CRIAR PERFIL de dentro dele segue apagado pela configuracao
-      invalida), EXCLUIR mexe em outro perfil, e Atualizar lista so relê a pasta.
-      **Por que o teste existe:** confirmacao que aparece onde nao precisa ensina
-      a clicar SIM sem ler, e ai ela deixa de proteger onde precisa.
-- [ ] **H5.5.** O mesmo com o perfil ativo **preso por outro grafico** (exige
+- [x] **H5.5.** O mesmo com o perfil ativo **preso por outro grafico** (exige
       dois graficos; ver bloco I).
       **Esperado:** as acoes **nao** ficam trancadas e CARREGAR segue disponivel.
       Ali o SALVAR nem acende, e carregar outro perfil e a unica saida — trancar
@@ -584,6 +522,95 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a cada clique.
       **Se os botoes continuarem apagados**, a trava esta lendo `m_notSaved` — o
       defeito que este passo existe para pegar.
+
+### H5.8. Confirmacao de abandono — os dois caminhos que perdem
+
+> **Preparo (o do H5.4), e ele e a metade do trabalho.** Precisa de DUAS coisas ao
+> mesmo tempo:
+>
+> 1. o perfil ATIVO tem de ser **incompativel com este grafico** — carregue, num
+>    grafico de WIN, um perfil de outro ativo (lote `0.40`, por exemplo). O
+>    cabecalho passa a mostrar `CONFIGURACAO INVALIDA`;
+> 2. **so entao** mova o `.cfg` **dele** para fora da pasta. Em ate ~1 s o
+>    cabecalho ganha `· arquivo do perfil nao encontrado`.
+>
+> **Conferencia antes de comecar:** a faixa tem de dizer
+> `PERFIL SEM ARQUIVO E INVALIDO NESTE ATIVO — restaure o arquivo para preservar`.
+> **Se ela disser `PERFIL EM USO SEM ARQUIVO — grave antes de iniciar...`, o
+> preparo NAO esta certo** — a configuracao esta valida, a trava do H5.2 pegou, e
+> nenhuma destas confirmacoes vai aparecer (nem deve). Este e o unico estado em
+> que elas existem.
+>
+> ⚠️ Cada **SIM** confirmado troca o perfil ativo e desfaz o preparo. Os passos
+> avisam onde refazer.
+
+- [x] **H5.8.1.** Selecionar outro perfil e clicar **CARREGAR**.
+      **Esperado:** nao carrega. No lugar do CARREGAR aparecem **SIM** e **NAO**,
+      e o rodape explica que o perfil em uso esta sem arquivo, nao pode ser
+      gravado aqui, e que a configuracao dele sera perdida — dizendo tambem que
+      restaurar o arquivo preserva tudo. NOVO e DUPLICAR apagam enquanto a
+      pergunta esta no ar.
+- [x] **H5.8.2.** Clicar **NAO**.
+      **Esperado:** volta ao normal, nada carregado, aviso some.
+- [x] **H5.8.3.** Armar de novo e **trocar a selecao** de perfil.
+      **Esperado:** a pergunta cai sozinha. (Ela guarda o alvo capturado no
+      primeiro clique; sobrevivendo a uma troca, nomearia um perfil e executaria
+      outro.)
+- [x] **H5.8.5.** Armar de novo e, **sem confirmar**, restaurar o `.cfg` do
+      perfil ativo na pasta.
+      **Esperado:** a pergunta cai sozinha em ate ~1 s — o estado que a justifica
+      passou, e mante-la anunciaria uma perda que ja nao aconteceria.
+- [x] **H5.8.6.** ⚠️ **A que some e nao pode voltar.** Refazer o preparo, armar a
+      confirmacao do CARREGAR e, **sem confirmar**, fazer o perfil selecionado
+      ficar preso por outro grafico (bloco I) — ou simplesmente carrega-lo no
+      outro grafico.
+      **Esperado:** SIM/NAO somem **e a pergunta nao volta** quando a trava sair.
+      **Se ela ressuscitar**, o desarme voltou a olhar so o estado e nao a
+      disponibilidade da acao.
+- [x] **H5.8.7.** ⚠️ **Refazer o preparo do H5.4** (o SIM anterior trocou o perfil
+      ativo, entao o orfao ja nao e o ativo). Com o estado de volta, clicar
+      **CARREGAR** em outro perfil e confirmar com **SIM**.
+      **Esperado:** aí sim carrega, e a configuracao orfa e abandonada — que e o
+      que voce confirmou.
+- [ ] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.**
+      Refazer o preparo do H5.4 e **DUPLICAR** um perfil **compativel** com o
+      grafico.
+      ⚠️ **O CRIAR COPIA comeca APAGADO, e isso e normal** — a copia herda o Magic
+      da origem, que colide com ela. **Digite um Magic livre**; so entao o botao
+      acende. (Mesma pre-condicao do G2; sem ela o clique nao faz nada e parece
+      que a confirmacao quebrou.) Com o botao aceso, clicar **CRIAR COPIA**.
+      **Esperado:** a copia **nao** e criada. No lugar do CRIAR COPIA aparecem
+      **SIM** e **NAO**, com a mesma pergunta do rodape; DESCARTAR continua ao
+      lado, intacto.
+      **Por que a copia chega a acender** com o perfil ativo invalido: entrar no
+      DUPLICAR semeia o rascunho com o perfil de ORIGEM, que pode valer neste
+      grafico. **Foi exatamente isso que quebrou a primeira versao** — a
+      confirmacao perguntava pela validade do RASCUNHO, que ali ja era o da
+      origem, e por isso nunca aparecia. Se este passo nao mostrar SIM/NAO, o
+      defeito voltou.
+- [ ] **H5.8.9.** ⚠️ **Tocar num campo derruba a pergunta.** Com o SIM/NAO da
+      copia no ar, clicar dentro do campo **Nome** ou **Magic** do formulario.
+      **Esperado:** a pergunta **cai** — SIM e NAO somem e o CRIAR COPIA volta.
+      Nada e criado.
+      **Por que:** digitar limpa o aviso do rodape, e a pergunta viva sem a frase
+      que a explica deixaria dois botoes na tela sem ninguem dizendo o que o SIM
+      faz. E o nome mostrado na pergunta poderia deixar de ser o que esta no
+      campo — a pergunta nomearia um perfil e o SIM criaria outro.
+      ⚠️ **Este e o unico lugar onde este teste e possivel.** Com a confirmacao do
+      CARREGAR (H5.8.1) nao ha campo editavel ao alcance: com outro perfil
+      selecionado o Magic do cartao e **so leitura**, e selecionar o ativo para
+      chegar a um campo editavel ja derruba a pergunta pelo H5.8.3.
+- [ ] **H5.8.10.** ⚠️ **Onde a confirmacao de ABANDONO nao deve aparecer.** No
+      mesmo estado: abrir **NOVO**; clicar **EXCLUIR** em outro perfil; clicar
+      **Atualizar lista**.
+      **Esperado:** nenhuma pergunta **de abandono** nos tres. Abrir o NOVO nao
+      perde nada (o CRIAR PERFIL de dentro dele segue apagado pela configuracao
+      invalida), EXCLUIR mexe em outro perfil, e Atualizar lista so relê a pasta.
+      ⚠️ **O EXCLUIR mostra a confirmacao DELE** — `CONFIRMAR EXCLUSAO`, com SIM e
+      NAO. Isso e correto e nao e o que este passo procura. O que nao pode
+      aparecer e a pergunta sobre descartar a configuracao em uso.
+      **Por que o teste existe:** confirmacao que aparece onde nao precisa ensina
+      a clicar SIM sem ler, e ai ela deixa de proteger onde precisa.
 
 ### H6. Edicao em curso — o cabecalho e a coluna de perfis concordam
 
