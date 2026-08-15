@@ -504,11 +504,26 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** as acoes **nao** ficam trancadas e CARREGAR segue disponivel.
       Ali o SALVAR nem acende, e carregar outro perfil e a unica saida — trancar
       as quatro deixaria o usuario sem nenhuma.
-- [ ] **H5.6.** Armar o **EXCLUIR** num perfil qualquer e, com a confirmacao no
-      ar, provocar o estado (mover o `.cfg` do ativo por fora).
-      **Esperado:** a confirmacao **se desarma sozinha** junto com o botao. Desenho
-      e pulso leem a mesma funcao (`AccCanDeleteSelected`); divergindo, sobraria
-      um SIM armado para uma acao que a tela ja nao oferece.
+- [ ] **H5.6.** Armar o **EXCLUIR** num perfil qualquer e, **com a confirmacao no
+      ar**, fazer o acesso sumir sem tocar no painel. Dois caminhos servem:
+      **(a)** mover o `.cfg` do **PERFIL ATIVO** — nao o do perfil que esta na
+      pergunta; **(b)** mais facil, com dois graficos: carregar o **perfil ativo
+      deste grafico** no outro, criando o peer lock.
+      **Esperado:** a confirmacao **se desarma sozinha** junto com o botao.
+      Desenho e Render leem a mesma funcao (`AccCanDeleteSelected`); divergindo,
+      sobraria um SIM armado para uma acao que a tela ja nao oferece.
+      ⚠️ **Confira o preparo pelo cabecalho, no caminho (a):** ele tem de ganhar
+      `· arquivo do perfil nao encontrado` em ate ~1 s. **Se nao ganhar, voce moveu
+      o arquivo errado** — e comum mover o do perfil que esta na pergunta de
+      exclusao, e esse nao muda nada.
+      ⚠️ **Nao use o `default` como perfil ativo aqui.** Se o EA reiniciar com o
+      `default.cfg` ausente, ele o **recria sozinho** a partir dos inputs
+      (`EAApplication.mqh`), e o estado some sem voce ter feito nada. Carregue
+      outro perfil antes de comecar.
+      ⚠️ **O "IMPEDIDO" do distintivo nao atrapalha** — ele e permissao de
+      negociacao (`tradePermissionBlocked`) e nenhuma regra de acesso a perfil o
+      consulta. Quem trancaria e o `runtimeBlocked`, e esse apareceria como
+      **BLOQUEADO**.
 - [ ] **H5.7.** ⚠️ **A SAIDA, e o passo mais importante do bloco.** Com o arquivo
       fora **e a trava no ar**, prender tambem a gravacao (receita 1.5, no `.tmp`
       do perfil ativo) e clicar **SALVAR**.
