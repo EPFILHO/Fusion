@@ -695,6 +695,12 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a publicar caixa de clique, e sem guarda um botao visivelmente APAGADO
       executava. So acontece quando a edicao **nao** virou pendencia — com o valor
       alterado eles seguem apagados por `HasPending()`.
+      ⚠️ **Sao DOIS caminhos, e o segundo so foi descoberto medindo.** Alem da
+      saida do campo pelo proprio clique, o terminal manda `OBJECT_ENDEDIT`
+      **antes** da borda do mouse — 31 ms antes, no mesmo clique, conforme o log
+      do usuario de 2026-08-15. A primeira versao da guarda so cobria o primeiro
+      caminho, e por isso NOVO e DUPLICAR continuavam executando apagados. Se este
+      passo falhar de novo, e a marca do ENDEDIT que parou de ser consumida.
 - [x] **H6.4b.** No mesmo estado, clicar direto em **SALVAR** depois de digitar um
       valor novo.
       **Esperado:** grava no **primeiro** clique, como sempre. A guarda do H6.4 e

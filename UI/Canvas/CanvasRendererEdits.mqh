@@ -262,11 +262,18 @@ void ReleaseEditFocus(void)
       if(m_liveEditSlot[k]==m_focusSlot)
         {
          //--- LER ANTES DE DESTRUIR. O objeto e a unica copia do que foi
-         //--- digitado ate aqui: o terminal so avisa por ENDEDIT, e sair
-         //--- clicando num botao nao gera esse aviso. Destruir sem ler jogava
-         //--- fora o valor — digitar um periodo e clicar em SALVAR salvava o
-         //--- valor antigo. Sair do campo confirma o que esta nele, que e o que
-         //--- a 1.058 faz ao ler os controles na hora de salvar.
+         //--- digitado ate aqui. Destruir sem ler jogava fora o valor — digitar
+         //--- um periodo e clicar em SALVAR salvava o valor antigo. Sair do campo
+         //--- confirma o que esta nele, que e o que a 1.058 faz ao ler os
+         //--- controles na hora de salvar.
+         //--- ⚠ CORRECAO: esta nota afirmava que "sair clicando num botao nao
+         //--- gera ENDEDIT". E FALSO neste terminal, e a suposicao custou caro —
+         //--- foi ela que me fez descartar a hipotese certa do H6.4. O log do
+         //--- usuario (2026-08-15) mostra o ENDEDIT chegando 31 ms ANTES da borda
+         //--- do mouse, no mesmo clique. Ver a nota no tratamento do evento, em
+         //--- CanvasRendererInput. A leitura antes de destruir continua
+         //--- necessaria: o caminho do teclado (trocar de aba, rolar) nao passa
+         //--- por ENDEDIT nenhum.
          if(ObjectFind(m_chart,m_liveEditName[k])>=0)
            {
             string txt=ObjectGetString(m_chart,m_liveEditName[k],OBJPROP_TEXT);
@@ -314,17 +321,6 @@ void NoteEditFocus(const int lx,const int ly)
 
 //--- Ha campo em edicao agora? Se o objeto ja nao existe (troca de aba,
 //--- rolagem que o levou para fora), o foco morreu com ele.
-#ifdef FCV_DEBUG_EDITCLICK
-//--- ⚠ TEMPORARIO — ver a nota do FCV_DEBUG_EDITCLICK em CanvasLayout.
-//--- Sequencia PROPRIA alem do tempo: dois eventos do mesmo clique caem no mesmo
-//--- milissegundo, e e a ORDEM que esta em questao.
-void DbgEditClick(const string where,const string body)
-  {
-   m_dbgSeq++;
-   Print("[FCV-DBG ",m_dbgSeq,"] t=",GetTickCount(),"  ",where,"  |  ",body);
-  }
-#endif
-
 bool EditHasFocus(void)
   {
    if(m_focusSlot<0) return false;

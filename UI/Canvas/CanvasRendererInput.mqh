@@ -324,6 +324,12 @@ void HandleBarDrag(const int ly)
 
 void HandlePress(const int cx,const int cy)
   {
+   //--- Consumido LOGO NA ENTRADA, e guardado num local: toda borda de mouse
+   //--- gasta a marca, inclusive as que saem por outro caminho (barra de titulo,
+   //--- popup) e as que nem chegam a testar botao. Deixada no membro, ela
+   //--- sobreviveria e engoliria um clique legitimo mais tarde.
+   bool endedByTerminal=m_editEndedPending;
+   m_editEndedPending=false;
    //--- Segunda fronteira de escala: o clique chega em pixels do grafico e daqui
    //--- para baixo tudo e unidade logica, igual as caixas publicadas no desenho.
    int lx=L(cx-m_px), ly=L(cy-m_py);
@@ -375,16 +381,6 @@ void HandlePress(const int cx,const int cy)
    //--- tocou; como so o ENDEDIT libera, e ele nunca vinha, a roda do mouse
    //--- ficava bloqueada para o resto da sessao.
    bool wasPending=HasPending(), wasEditing=EditingNow();
-#ifdef FCV_DEBUG_EDITCLICK
-   //--- PONTO 2 de 3 — ⚠ TEMPORARIO, ver FCV_DEBUG_EDITCLICK em CanvasLayout.
-   //--- Se a linha 1-ENDEDIT aparecer com sequencia MENOR que esta, o terminal
-   //--- encerrou a edicao num evento anterior e `wasEditing` ja nasce falso —
-   //--- que e a hipotese a confirmar.
-   DbgEditClick("2-PRESS","focus="+IntegerToString(m_focusSlot)+
-                " wasEditing="+(wasEditing?"S":"N")+
-                " editandoAgora="+(EditingNow()?"S":"N")+
-                " pendencia="+(wasPending?"S":"N"));
-#endif
    NoteEditFocus(lx,ly);
    //--- Entrar num campo derruba as confirmacoes armadas. Nao e zelo: a primeira
    //--- coisa que a digitacao faz e limpar o aviso (FieldSetText -> ClearNotice),
@@ -405,12 +401,14 @@ void HandlePress(const int cx,const int cy)
    //--- Todo botao, do cabecalho ou de conteudo, e resolvido pelo registro
    //--- publicado no desenho. Antes o cabecalho tinha a propria aritmetica de
    //--- retangulo aqui, repetindo a conta que o desenho ja fazia.
-   //--- ⚠ O registro pode ter acabado de mudar POR CAUSA deste clique — e o
-   //--- repinte logo acima. Quem sai da edicao sem alterar nada reacende os
-   //--- quatro botoes de perfil no mesmo evento, e sem avisar o
-   //--- HandleButtonClick disso um deles executaria estando visivelmente
-   //--- apagado. Ver a guarda la dentro.
-   if(HandleButtonClick(lx,ly,wasEditing && !EditingNow())) return;
+   //--- ⚠ O registro pode ter acabado de mudar POR CAUSA deste clique, e por DOIS
+   //--- caminhos: o repinte logo acima (quando e a saida do campo que encerra a
+   //--- edicao) e o repinte do ENDEDIT, que o terminal manda ANTES desta borda de
+   //--- mouse. Os dois reacendem os quatro botoes de perfil no mesmo gesto, e sem
+   //--- avisar o HandleButtonClick um deles executaria estando visivelmente
+   //--- apagado. O segundo caminho e o que o log do usuario mediu — ver a nota no
+   //--- tratamento do ENDEDIT. Ver tambem a guarda la dentro.
+   if(HandleButtonClick(lx,ly,(wasEditing && !EditingNow()) || endedByTerminal)) return;
 
    if(ly>=FCV_HEADER_BOTTOM && ly<FCV_F1_BOTTOM)
      {
@@ -698,13 +696,29 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       //--- conferir apagaria SALVAR/CANCELAR e liberaria a roda com o segundo
       //--- campo ainda em edicao.
       int endedSlot=(int)StringToInteger(StringSubstr(sparam,StringLen(m_prefix+"edit_")));
-#ifdef FCV_DEBUG_EDITCLICK
-      //--- PONTO 1 de 3 — ⚠ TEMPORARIO, ver FCV_DEBUG_EDITCLICK em CanvasLayout.
-      DbgEditClick("1-ENDEDIT","slotEncerrado="+IntegerToString(endedSlot)+
-                   " focusAntes="+IntegerToString(m_focusSlot)+
-                   " editando="+(EditHasFocus()?"S":"N"));
-#endif
-      if(m_focusSlot==endedSlot) m_focusSlot=-1;
+      //+---------------------------------------------------------------+
+      //| ⚠ ESTE EVENTO CHEGA ANTES DA BORDA DO MOUSE — medido, nao      |
+      //| suposto. Log do usuario, 2026-08-15:                            |
+      //|                                                                |
+      //|   [3] t=...719765  ENDEDIT  slot=440 focusAntes=440             |
+      //|   [4] t=...719796  PRESS    focus=-1 wasEditing=N               |
+      //|   [5] t=...719796  BOTAO    id=2 editJustEnded=N                |
+      //|                                                                |
+      //| 31 ms separam os dois, e sao o MESMO clique. Ao encerrar aqui,  |
+      //| o foco cai e o Render logo abaixo reacende os quatro botoes de  |
+      //| perfil; quando o clique enfim chega, `wasEditing` ja nasce      |
+      //| falso e a guarda do HandleButtonClick nao dispara — NOVO e      |
+      //| DUPLICAR executavam estando visivelmente apagados.              |
+      //|                                                                |
+      //| Por isso a marca: quem limpou o foco fui EU, neste evento, por  |
+      //| causa de um clique que ainda vai chegar. A proxima borda de     |
+      //| mouse precisa saber disso.                                      |
+      //|                                                                |
+      //| ⚠ E o comentario do ReleaseEditFocus dizia o contrario — "sair  |
+      //| clicando num botao nao gera esse aviso". Falso neste terminal.  |
+      //| Corrigido la, com a mesma evidencia.                            |
+      //+---------------------------------------------------------------+
+      if(m_focusSlot==endedSlot) { m_focusSlot=-1; m_editEndedPending=true; }
       StoreEditText(sparam);
       Render();
       return;
