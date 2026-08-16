@@ -1131,10 +1131,23 @@ bool CommittedConfigValid(void)
      {
       SEASettings keepDraft=m_draft;
       bool keepKnown=m_cfgValidKnown, keepValid=m_cfgValid;
+      //--- ⚠ O MODO TAMBEM E TROCADO, e nao so o rascunho. `ScreenErrorProfiles`
+      //--- decide por `m_profEdit`, e dentro do formulario ele PULA a unicidade
+      //--- do Magic de proposito — a excecao existe porque, ali, o Magic do
+      //--- rascunho e o do perfil de origem e cobra-lo acusaria colisao com o
+      //--- proprio arquivo que se esta copiando.
+      //---
+      //--- Sem esta troca a excecao vazava para ca: perguntando pelo COMPROMETIDO
+      //--- de dentro do DUPLICAR, um perfil orfao invalido justamente por Magic
+      //--- repetido passava por valido, e a confirmacao de abandono nao aparecia
+      //--- ao concluir a copia. Estreito, mas e a mesma protecao contra perda.
+      int keepMode=m_profEdit;
+      m_profEdit=FCV_PROF_VIEW;
       m_draft=m_committed;
       m_cfgValidKnown=false;
       m_cmtValid=(FirstConfigError()=="");
       m_draft=keepDraft;
+      m_profEdit=keepMode;
       m_cfgValidKnown=keepKnown; m_cfgValid=keepValid;
       m_cmtValidKnown=true;
      }

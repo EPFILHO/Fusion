@@ -290,6 +290,10 @@ private:
    int               m_abandonOp;
    string            m_abandonTarget;
    int               m_abandonMagic;
+#ifdef FCV_DEBUG_EDITCLICK
+   //--- ⚠ TEMPORARIO — ver a nota do FCV_DEBUG_EDITCLICK em CanvasLayout.
+   int               m_dbgSeq;
+#endif
    //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
    //--- o desenho roda 5x por segundo. Ver PutButton.
    bool              m_btnFitLogged;
@@ -491,6 +495,9 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_origScroll=true;
    m_scroll=0; m_contentH=0; m_alertH=0; m_lastAlertH=0;
    m_lastScreen=FCV_SCREEN_STATUS; m_scrollEnd=false;
+#ifdef FCV_DEBUG_EDITCLICK
+   m_dbgSeq=0;
+#endif
 
    m_editCount=0; m_toggleCount=0; m_comboCount=0; m_colorCount=0;
    m_rowCount=0; m_slotSeq=0; m_screen=0;

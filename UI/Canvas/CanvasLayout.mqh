@@ -165,6 +165,26 @@
 //--- Qual operacao esta pendente de confirmacao. Guardar a OPERACAO, e nao so
 //--- "ha algo a confirmar": o SIM precisa saber o que executar, e o alvo precisa
 //--- viajar junto para a pergunta nomear o perfil certo.
+//+------------------------------------------------------------------+
+//| ⚠⚠ INSTRUMENTACAO TEMPORARIA — REMOVER APOS O DIAGNOSTICO DO H6.4.|
+//|                                                                   |
+//| Existe para responder UMA pergunta: quem limpa o foco antes do    |
+//| clique chegar. A guarda de CanvasRendererCommands deveria engolir |
+//| o clique que apenas encerrou uma edicao, e no grafico ela nao     |
+//| engole — NOVO e DUPLICAR executam estando visivelmente apagados.  |
+//| Lendo o codigo a logica fecha, entao falta medir a ORDEM real dos |
+//| eventos em vez de supo-la.                                        |
+//|                                                                   |
+//| Registra tres pontos com sequencia e tempo: o ENDEDIT do terminal,|
+//| a entrada do HandlePress e o acerto da caixa do botao. Se a linha |
+//| do ENDEDIT aparecer ANTES da do HandlePress, a hipotese esta       |
+//| confirmada e a guarda precisa de causa, nao de janela de tempo.    |
+//|                                                                   |
+//| Comente a linha abaixo para desligar; apague o bloco inteiro e as |
+//| tres chamadas quando o diagnostico fechar.                        |
+//+------------------------------------------------------------------+
+#define FCV_DEBUG_EDITCLICK
+
 #define FCV_ABANDON_NONE   0
 #define FCV_ABANDON_LOAD   1
 #define FCV_ABANDON_CREATE 2

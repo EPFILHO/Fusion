@@ -715,6 +715,23 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       decisao antiga, mantida. Se a digitacao virar alteracao de verdade, e a
       pendencia que o bloqueia, pela escada.
 
+### H7. Confirmacao de abandono com Magic repetido (P2 estreito)
+
+- [ ] **H7.1.** Preparo: perfil ativo **orfao** (arquivo fora da pasta) e invalido
+      **por Magic repetido** — nao por lote. Edite um `.cfg` por fora para outro
+      perfil ficar com o mesmo Magic do ativo, e confira que a aba Perfis acende.
+      Entao **DUPLICAR** um perfil compativel, digitar um Magic livre e clicar
+      **CRIAR COPIA**.
+      **Esperado:** a confirmacao de abandono aparece (SIM/NAO), como no H5.8.8.
+      **Por que este caso e separado:** `ScreenErrorProfiles` **pula** a checagem
+      de unicidade do Magic quando o formulario esta aberto — excecao correta, ali
+      o Magic do rascunho e o da origem. Mas `CommittedConfigValid` consultava a
+      validade do comprometido de DENTRO do formulario, herdava a excecao, e o
+      perfil orfao invalido so por Magic passava por valido: sem confirmacao, a
+      copia era criada e a configuracao em uso ia embora.
+      **Se nao aparecer SIM/NAO**, a validacao do comprometido voltou a rodar em
+      modo de formulario.
+
 ### I. Conflito entre graficos (exige dois graficos)
 
 - [ ] **I1.** `FusionCanvas` em dois graficos, o segundo tentando carregar o

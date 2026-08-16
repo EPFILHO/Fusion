@@ -314,6 +314,17 @@ void NoteEditFocus(const int lx,const int ly)
 
 //--- Ha campo em edicao agora? Se o objeto ja nao existe (troca de aba,
 //--- rolagem que o levou para fora), o foco morreu com ele.
+#ifdef FCV_DEBUG_EDITCLICK
+//--- ⚠ TEMPORARIO — ver a nota do FCV_DEBUG_EDITCLICK em CanvasLayout.
+//--- Sequencia PROPRIA alem do tempo: dois eventos do mesmo clique caem no mesmo
+//--- milissegundo, e e a ORDEM que esta em questao.
+void DbgEditClick(const string where,const string body)
+  {
+   m_dbgSeq++;
+   Print("[FCV-DBG ",m_dbgSeq,"] t=",GetTickCount(),"  ",where,"  |  ",body);
+  }
+#endif
+
 bool EditHasFocus(void)
   {
    if(m_focusSlot<0) return false;

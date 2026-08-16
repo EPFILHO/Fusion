@@ -375,6 +375,16 @@ void HandlePress(const int cx,const int cy)
    //--- tocou; como so o ENDEDIT libera, e ele nunca vinha, a roda do mouse
    //--- ficava bloqueada para o resto da sessao.
    bool wasPending=HasPending(), wasEditing=EditingNow();
+#ifdef FCV_DEBUG_EDITCLICK
+   //--- PONTO 2 de 3 — ⚠ TEMPORARIO, ver FCV_DEBUG_EDITCLICK em CanvasLayout.
+   //--- Se a linha 1-ENDEDIT aparecer com sequencia MENOR que esta, o terminal
+   //--- encerrou a edicao num evento anterior e `wasEditing` ja nasce falso —
+   //--- que e a hipotese a confirmar.
+   DbgEditClick("2-PRESS","focus="+IntegerToString(m_focusSlot)+
+                " wasEditing="+(wasEditing?"S":"N")+
+                " editandoAgora="+(EditingNow()?"S":"N")+
+                " pendencia="+(wasPending?"S":"N"));
+#endif
    NoteEditFocus(lx,ly);
    //--- Entrar num campo derruba as confirmacoes armadas. Nao e zelo: a primeira
    //--- coisa que a digitacao faz e limpar o aviso (FieldSetText -> ClearNotice),
@@ -688,6 +698,12 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       //--- conferir apagaria SALVAR/CANCELAR e liberaria a roda com o segundo
       //--- campo ainda em edicao.
       int endedSlot=(int)StringToInteger(StringSubstr(sparam,StringLen(m_prefix+"edit_")));
+#ifdef FCV_DEBUG_EDITCLICK
+      //--- PONTO 1 de 3 — ⚠ TEMPORARIO, ver FCV_DEBUG_EDITCLICK em CanvasLayout.
+      DbgEditClick("1-ENDEDIT","slotEncerrado="+IntegerToString(endedSlot)+
+                   " focusAntes="+IntegerToString(m_focusSlot)+
+                   " editando="+(EditHasFocus()?"S":"N"));
+#endif
       if(m_focusSlot==endedSlot) m_focusSlot=-1;
       StoreEditText(sparam);
       Render();

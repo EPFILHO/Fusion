@@ -296,6 +296,17 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
       //| alvo: a caixa foi acertada, e deixar cair para as abas faria um |
       //| clique num botao trocar de tela.                                |
       //+---------------------------------------------------------------+
+#ifdef FCV_DEBUG_EDITCLICK
+      //--- PONTO 3 de 3 — ⚠ TEMPORARIO, ver FCV_DEBUG_EDITCLICK em CanvasLayout.
+      //--- Sai ANTES da guarda, para registrar tambem o clique que ela engole.
+      //--- ids: 1=CARREGAR 2=NOVO 3=DUPLICAR 4=EXCLUIR 5=CRIAR 8=SALVAR
+      //--- 9=CANCELAR 12=Atualizar lista.
+      DbgEditClick("3-BOTAO","id="+IntegerToString(m_btnId[i])+
+                   " editJustEnded="+(editJustEnded?"S":"N")+
+                   " deAcao="+(ProfileActionButton(m_btnId[i])?"S":"N")+
+                   " editandoAgora="+(EditingNow()?"S":"N")+
+                   " pendencia="+(HasPending()?"S":"N"));
+#endif
       if(editJustEnded && ProfileActionButton(m_btnId[i])) return true;
 
       //--- Qualquer outro botao desarma a confirmacao pendente. Sem isto ela
