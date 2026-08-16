@@ -751,17 +751,27 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //--- anterior — um quadro de atraso a cada troca de tela.
    MeasureAlert();
    //+---------------------------------------------------------------+
-   //| A caixa ACABOU de aparecer no formulario de perfil: leva o     |
-   //| conteudo ao fim, onde estao CRIAR PERFIL e DESCARTAR.          |
+   //| Leva o conteudo ao fim do formulario de perfil, onde estao     |
+   //| CRIAR PERFIL e DESCARTAR.                                      |
    //|                                                                |
-   //| Existe por um efeito colateral de ter mandado o erro do        |
-   //| formulario para o rodape: a caixa encurta a area util, e os    |
-   //| dois botoes — que vivem no fim do conteudo rolavel — podem cair |
-   //| abaixo da dobra. E a roda do mouse NAO rola com um campo em     |
-   //| foco (limitacao do terminal, `if(EditHasFocus()) return;`), que |
-   //| e exatamente o estado de quem acabou de digitar o nome invalido.|
-   //| Sem isto, o caminho natural de alcancar o botao fica fechado no |
-   //| unico momento em que ele some.                                  |
+   //| ⚠ O GATILHO E ENTRAR NO FORMULARIO, e nao a caixa de aviso     |
+   //| aparecer. A primeira versao exigia `m_alertH>0` porque nasceu  |
+   //| de um efeito colateral concreto — mandar o erro do formulario  |
+   //| para o rodape encurtou a area util —, e eu confundi a CAUSA    |
+   //| daquele caso com a razao do mecanismo.                          |
+   //|                                                                |
+   //| A razao e outra e independe do aviso: **os dois botoes vivem   |
+   //| no fim do conteudo rolavel**, e a lista de perfis sozinha ja os |
+   //| empurra para baixo da dobra. Duplicar um perfil abre o         |
+   //| formulario com o campo Magic VAZIO — que nao e erro, e campo   |
+   //| por preencher, entao `ProfileFormReady` nao devolve mensagem   |
+   //| nenhuma. Sem caixa, o gatilho antigo nao disparava e os botoes |
+   //| ficavam fora da tela. O usuario achou exatamente assim.         |
+   //|                                                                |
+   //| E a roda do mouse NAO rola com um campo em foco (limitacao do   |
+   //| terminal, `if(EditHasFocus()) return;`), que e o estado de quem |
+   //| acabou de digitar o nome. Sem isto, o caminho natural de        |
+   //| alcancar o botao fica fechado justamente ali.                   |
    //|                                                                |
    //| ⚠ Detecta a BORDA, nao o estado: reagir ao aviso estar presente |
    //| prenderia o conteudo no fim, e o usuario nao conseguiria mais   |
@@ -795,10 +805,12 @@ void CFusionCanvasRenderer::DrawFrame(void)
    //| ela e de OUTRA tela. Ver a nota do atendimento, no Render.      |
    //+---------------------------------------------------------------+
    int screen=ScreenId();
+   //--- `alertGrew` ja implica caixa presente (a altura anterior nunca e
+   //--- negativa), entao a guarda `m_alertH>0` que existia aqui so servia para
+   //--- matar o caso de entrar sem aviso — que e justamente o que faltava.
    bool alertGrew  =(m_alertH>m_lastAlertH);
    bool formOpened =(m_lastScreen!=FCV_SCREEN_PROFILE_EDIT);
-   if(m_alertH>0 && screen==FCV_SCREEN_PROFILE_EDIT &&
-      (alertGrew || formOpened))
+   if(screen==FCV_SCREEN_PROFILE_EDIT && (formOpened || alertGrew))
       m_scrollEnd=true;
    m_lastAlertH=m_alertH;
    m_lastScreen=screen;

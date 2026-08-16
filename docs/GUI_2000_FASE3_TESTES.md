@@ -419,6 +419,18 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       (mais longo, que nomeia a aba e o campo) e **o conteudo rola de novo**. A
       caixa nao sumiu no meio — foi so o texto que cresceu, e e a altura dela que
       come a area util.
+- [ ] **G7.** ⚠️ **Rolar SEM caixa de aviso nenhuma.** Duplicar um perfil
+      **compativel** com o grafico, com nome sugerido livre — o caso limpo, em que
+      o rodape fica vazio.
+      **Esperado:** o conteudo rola ate **CRIAR COPIA** e **DESCARTAR** do mesmo
+      jeito.
+      **Por que este passo existe:** ate 2026-08-14 a rolagem exigia caixa de
+      aviso presente, e este caso nao tem nenhuma — o campo Magic abre VAZIO, e
+      campo por preencher **nao e erro**, entao `ProfileFormReady` nao devolve
+      mensagem. Os botoes ficavam abaixo da dobra e so a roda do mouse os
+      alcancava. O gatilho passou a ser ENTRAR no formulario: os dois botoes vivem
+      no fim do conteudo rolavel, e a lista de perfis sozinha ja os empurra para
+      fora da tela — o aviso era so mais um empurrao, nunca a causa.
 
 ### H. CARREGAR — a politica de conflito
 
@@ -590,10 +602,11 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 - [ ] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.**
       Refazer o preparo do H5.4 e **DUPLICAR** um perfil **compativel** com o
       grafico.
-      ⚠️ **O CRIAR COPIA comeca APAGADO, e isso e normal** — a copia herda o Magic
-      da origem, que colide com ela. **Digite um Magic livre**; so entao o botao
-      acende. (Mesma pre-condicao do G2; sem ela o clique nao faz nada e parece
-      que a confirmacao quebrou.) Com o botao aceso, clicar **CRIAR COPIA**.
+      ⚠️ **O CRIAR COPIA comeca APAGADO, e isso e normal** — o campo Magic do
+      formulario abre **VAZIO** (o Magic da origem fica no rascunho, nao no
+      campo). **Digite um Magic livre**; so entao o botao acende. Sem isso o
+      clique nao faz nada e parece que a confirmacao quebrou. Com o botao aceso,
+      clicar **CRIAR COPIA**.
       **Esperado:** a copia **nao** e criada. No lugar do CRIAR COPIA aparecem
       **SIM** e **NAO**, com a mesma pergunta do rodape; DESCARTAR continua ao
       lado, intacto.
