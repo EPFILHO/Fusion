@@ -628,7 +628,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       CARREGAR (H5.8.1) nao ha campo editavel ao alcance: com outro perfil
       selecionado o Magic do cartao e **so leitura**, e selecionar o ativo para
       chegar a um campo editavel ja derruba a pergunta pelo H5.8.3.
-- [ ] **H5.8.10.** ⚠️ **Onde a confirmacao de ABANDONO nao deve aparecer.** No
+- [x] **H5.8.10.** ⚠️ **Onde a confirmacao de ABANDONO nao deve aparecer.** No
       mesmo estado, **um de cada vez, fechando o formulario entre eles**: abrir
       **NOVO** (e sair com DESCARTAR); depois clicar **EXCLUIR** em outro perfil;
       depois clicar **Atualizar lista**.
@@ -664,16 +664,29 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** SALVAR e CANCELAR acendem **e** CARREGAR, NOVO, DUPLICAR e
       EXCLUIR apagam, no mesmo quadro. A tela inteira passa a dizer a mesma coisa:
       ha uma edicao em curso, conclua-a.
-- [ ] **H6.2.** Clicar fora do campo (no fundo do painel).
+- [x] **H6.2.** Clicar fora do campo (no fundo do painel).
       **Esperado:** tudo volta ao que era. Sem alteracao digitada, **nao** aparece
       pendencia — o cursor no campo nunca afirma uma mudanca que pode nao existir.
-- [ ] **H6.3.** Selecionar outro perfil, clicar no Magic do ativo e olhar o
-      cartao PERFIL SELECIONADO.
+- [ ] **H6.3.** ⚠️ **Exige o perfil ativo FORA da lista** (preparo do H5: mova o
+      `.cfg` dele). So nesse estado o cartao `PERFIL ATIVO` aparece com o Magic
+      **editavel** ao mesmo tempo que outro perfil pode estar selecionado.
+      Selecionar outro perfil, clicar no Magic do **ativo** (o do cartao de cima)
+      e olhar o cartao PERFIL SELECIONADO.
       **Esperado:** a nota diz `Ha um campo em edicao: conclua com SALVAR ou
       CANCELAR` — e nao "Use CARREGAR", que esta apagado.
-- [ ] **H6.4.** ⚠️ **O clique que so encerra a edicao nao executa.** Clicar no
-      campo Magic **sem alterar nada** e, com os quatro ja apagados, clicar
-      **direto no NOVO apagado**.
+      **Por que a pre-condicao:** com o ativo DENTRO da lista, os dois estados se
+      excluem. Selecionado o ativo, o cartao e `PERFIL ATIVO` e a nota do "Use
+      CARREGAR" nem existe; selecionado outro, o Magic do cartao e **so leitura**
+      e nao aceita clique. Sem o ativo fora da lista este passo e impossivel — foi
+      erro de quem escreveu, nao seu.
+- [ ] **H6.4.** ⚠️ **O clique que so encerra a edicao nao executa.**
+      ⚠️ **Selecione um perfil que NAO seja o ativo, e use o preparo do H6.3 (ativo
+      fora da lista).** Com o ativo selecionado, CARREGAR e EXCLUIR ficam apagados
+      por `isActive` — motivo independente da digitacao —, e testa-los ali da
+      **falso positivo**: eles "nao fazem nada" por outra razao e nao provam nada
+      sobre esta guarda.
+      Clicar no campo Magic do **ativo** (cartao de cima) **sem alterar nada** e,
+      com os quatro ja apagados, clicar **direto no NOVO apagado**.
       **Esperado:** o primeiro clique **so** encerra a edicao — os botoes
       reaparecem e **nada e criado**. O segundo clique e que abre o formulario.
       Repetir com DUPLICAR, CARREGAR e EXCLUIR.
@@ -682,14 +695,18 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a publicar caixa de clique, e sem guarda um botao visivelmente APAGADO
       executava. So acontece quando a edicao **nao** virou pendencia — com o valor
       alterado eles seguem apagados por `HasPending()`.
-- [ ] **H6.4b.** No mesmo estado, clicar direto em **SALVAR** depois de digitar um
+- [x] **H6.4b.** No mesmo estado, clicar direto em **SALVAR** depois de digitar um
       valor novo.
       **Esperado:** grava no **primeiro** clique, como sempre. A guarda do H6.4 e
       so para os quatro de perfil — SALVAR e CANCELAR **sao** as saidas da edicao,
       e clicar neles ao sair do campo e o gesto esperado.
       Igualmente, **Atualizar lista** continua respondendo ao primeiro clique.
-- [ ] **H6.4c.** Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no campo
-      Magic.
+- [ ] **H6.4c.** ⚠️ **Tambem exige o ativo FORA da lista** (preparo do H6.3), pela
+      mesma razao: armado o EXCLUIR, o perfil selecionado nao e o ativo, e o Magic
+      do cartao `PERFIL SELECIONADO` e **so leitura** — nao ha onde clicar. O
+      campo editavel e o do cartao `PERFIL ATIVO`, que so aparece com ele fora da
+      lista.
+      Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no Magic do **ativo**.
       **Esperado:** a confirmacao se desarma junto com o botao (mesma fonte unica
       do H5.6).
 - [ ] **H6.5.** Conferir que o **INICIAR nao** apaga com o cursor no campo.
