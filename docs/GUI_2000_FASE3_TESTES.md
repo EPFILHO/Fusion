@@ -667,7 +667,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 - [x] **H6.2.** Clicar fora do campo (no fundo do painel).
       **Esperado:** tudo volta ao que era. Sem alteracao digitada, **nao** aparece
       pendencia — o cursor no campo nunca afirma uma mudanca que pode nao existir.
-- [ ] **H6.3.** ⚠️ **Exige o perfil ativo FORA da lista** (preparo do H5: mova o
+- [x] **H6.3.** ⚠️ **Exige o perfil ativo FORA da lista** (preparo do H5: mova o
       `.cfg` dele). So nesse estado o cartao `PERFIL ATIVO` aparece com o Magic
       **editavel** ao mesmo tempo que outro perfil pode estar selecionado.
       Selecionar outro perfil, clicar no Magic do **ativo** (o do cartao de cima)

@@ -292,8 +292,11 @@ private:
    int               m_abandonMagic;
    //--- O TERMINAL encerrou uma edicao e a borda do mouse ainda nao chegou. Ver
    //--- a guarda em HandleButtonClick: sem isto, o clique que encerra a edicao
-   //--- executa o botao que ele proprio acabou de reacender.
+   //--- executa o botao que ele proprio acabou de reacender. O INSTANTE anda
+   //--- junto porque o mesmo evento serve ao clique e ao ENTER/TAB, e so o
+   //--- primeiro tem um clique atras dele.
    bool              m_editEndedPending;
+   uint              m_editEndedAt;
    //--- Ja avisamos no log sobre rotulo que nao cabe? Uma vez por sessao basta:
    //--- o desenho roda 5x por segundo. Ver PutButton.
    bool              m_btnFitLogged;
@@ -495,7 +498,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_origScroll=true;
    m_scroll=0; m_contentH=0; m_alertH=0; m_lastAlertH=0;
    m_lastScreen=FCV_SCREEN_STATUS; m_scrollEnd=false;
-   m_editEndedPending=false;
+   m_editEndedPending=false; m_editEndedAt=0;
 
    m_editCount=0; m_toggleCount=0; m_comboCount=0; m_colorCount=0;
    m_rowCount=0; m_slotSeq=0; m_screen=0;

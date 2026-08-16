@@ -169,6 +169,14 @@
 #define FCV_ABANDON_LOAD   1
 #define FCV_ABANDON_CREATE 2
 
+//--- Quanto tempo a marca de "o terminal encerrou uma edicao" continua valendo
+//--- para o clique seguinte. MEDIDO: no log do usuario (2026-08-15) o
+//--- OBJECT_ENDEDIT precede a borda do mouse do MESMO clique em 31 ms — duas
+//--- unidades do GetTickCount, que tem resolucao de ~15,6 ms. Este valor da seis
+//--- vezes de folga sobre a medicao e continua muito abaixo do minimo humano
+//--- para soltar o ENTER, levar a mao ao mouse e clicar. Ver o tratador do mouse.
+#define FCV_ENDEDIT_CLICK_MS 200
+
 //--- Prazo do aviso que descreve um EVENTO passado. Estado em vigor nao expira
 //--- — ver a nota em ClearNotice (CanvasRendererCommands.mqh).
 #define FCV_NOTICE_TTL_MS 5000

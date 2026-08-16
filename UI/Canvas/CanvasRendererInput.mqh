@@ -322,14 +322,11 @@ void HandleBarDrag(const int ly)
    if(ScrollBy(target-m_scroll)) Render();
   }
 
-void HandlePress(const int cx,const int cy)
+//--- `endedByTerminal` vem de fora e ja chega consumido: quem gasta a marca e a
+//--- borda de descida, no tratador do mouse, para que o clique FORA do painel —
+//--- que nunca chega aqui — tambem a gaste. Ver a nota la.
+void HandlePress(const int cx,const int cy,const bool endedByTerminal)
   {
-   //--- Consumido LOGO NA ENTRADA, e guardado num local: toda borda de mouse
-   //--- gasta a marca, inclusive as que saem por outro caminho (barra de titulo,
-   //--- popup) e as que nem chegam a testar botao. Deixada no membro, ela
-   //--- sobreviveria e engoliria um clique legitimo mais tarde.
-   bool endedByTerminal=m_editEndedPending;
-   m_editEndedPending=false;
    //--- Segunda fronteira de escala: o clique chega em pixels do grafico e daqui
    //--- para baixo tudo e unidade logica, igual as caixas publicadas no desenho.
    int lx=L(cx-m_px), ly=L(cy-m_py);
@@ -671,9 +668,44 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       bool pressOut=(down && !m_mouseDown && !over);
       m_mouseDown=down;
 
+      //+---------------------------------------------------------------+
+      //| A marca do ENDEDIT e gasta AQUI, em qualquer borda de descida — |
+      //| dentro OU fora do painel.                                       |
+      //|                                                                |
+      //| Estava so na entrada do HandlePress, que o clique de fora nao   |
+      //| alcanca: ele sai pelo `pressOut` e retorna antes. A marca       |
+      //| sobrevivia e o proximo clique legitimo em NOVO ou DUPLICAR era  |
+      //| engolido — o usuario encontrou exatamente assim, precisando     |
+      //| clicar duas vezes depois de encerrar a edicao com ENTER ou TAB. |
+      //|                                                                |
+      //| ⚠ E O PRAZO, que a borda sozinha nao resolve: o ENDEDIT do      |
+      //| TECLADO nao vem seguido de clique nenhum, entao a marca ficaria |
+      //| esperando o proximo — que pode ser legitimo e chegar minutos    |
+      //| depois. O prazo existe para ela nao atravessar o gesto que a    |
+      //| originou.                                                       |
+      //|                                                                |
+      //| O numero saiu da MEDICAO, e nao de palpite: no log do usuario o |
+      //| ENDEDIT precede o clique em 31 ms (duas unidades do             |
+      //| GetTickCount). FCV_ENDEDIT_CLICK_MS da folga de seis vezes sobre |
+      //| isso e continua muito abaixo do minimo humano para soltar o     |
+      //| ENTER, levar a mao ao mouse e clicar.                           |
+      //|                                                                |
+      //| Falha para o lado seguro nos dois extremos: expirando cedo      |
+      //| demais, volta o clique que executa apagado (visivel, e o H6.4   |
+      //| pega); tarde demais, custa um clique a mais. Nenhum dos dois    |
+      //| perde dado.                                                     |
+      //+---------------------------------------------------------------+
+      bool endedByTerminal=false;
+      if(press || pressOut)
+        {
+         endedByTerminal=(m_editEndedPending &&
+                          (GetTickCount()-m_editEndedAt)<=FCV_ENDEDIT_CLICK_MS);
+         m_editEndedPending=false;
+        }
+
       if(pressOut && m_focusSlot>=0) { ReleaseEditFocus(); Render(); }
 
-      if(press)                          HandlePress(cx,cy);
+      if(press)                          HandlePress(cx,cy,endedByTerminal);
       else if(down && m_dragging)        HandleDrag(cx,cy);
       else if(down && m_barDrag)         HandleBarDrag(L(cy-m_py));
       else if(down && m_scrollDrag)      HandleScrollDrag(L(cy-m_py));
@@ -718,7 +750,16 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
       //| clicando num botao nao gera esse aviso". Falso neste terminal.  |
       //| Corrigido la, com a mesma evidencia.                            |
       //+---------------------------------------------------------------+
-      if(m_focusSlot==endedSlot) { m_focusSlot=-1; m_editEndedPending=true; }
+      if(m_focusSlot==endedSlot)
+        {
+         m_focusSlot=-1;
+         m_editEndedPending=true;
+         //--- O INSTANTE viaja junto: este evento tanto pode ser a metade de um
+         //--- clique quanto o efeito de um ENTER ou TAB, e so o teclado deixa a
+         //--- marca sem clique nenhum atras dela. Ver o prazo no tratador do
+         //--- mouse — e por ele que a marca do teclado nao atravessa o gesto.
+         m_editEndedAt=GetTickCount();
+        }
       StoreEditText(sparam);
       Render();
       return;
