@@ -600,6 +600,25 @@ Enquanto isso, a tela **explica a cadeia** em vez de so acusar: a nota do
 formulario diz que criar tambem ativa neste grafico, por isso a configuracao
 precisa ser valida para o simbolo dele, e aponta a aba a corrigir.
 
+⚠️ **A instrucao aponta a aba e ir ate la DESTROI o formulario** — levantado pelo
+usuario no aceite, e e uma licao 1 de forma nova: a instrucao e executavel e se
+autodestroi. `GoTo` fecha o formulario e chama `ReloadDraft()`, entao o nome e o
+Magic digitados somem; o usuario seguiu a orientacao da tela e perdeu o trabalho.
+
+E o conserto cai no perfil **ATIVO**, nao no que ele ia criar — a configuracao e
+uma so, e as abas editam a do perfil em uso. Com o ativo orfao (arquivo ausente)
+fica pior: o SALVAR reaparece apontando para ele, e gravar ali **muda a
+configuracao do perfil que se queria preservar**, exatamente o que a faixa do
+cabecalho pede para nao fazer. Ficam duas mensagens com conselhos opostos na
+mesma tela — "restaure o arquivo" no cabecalho, "corrija o Lote" no rodape.
+
+Nao ha conserto so de texto: e esta divida encostando na tela pela terceira vez.
+O que deu para fazer agora foi **avisar antes** — a nota do formulario diz que
+trocar de aba o descarta e que o que se ajusta nas outras abas pertence ao perfil
+em uso. A contradicao entre as duas mensagens **so morre com a divisao de
+`ConfigInputsValid`**: com ela, criar para a biblioteca deixa de exigir validade
+do grafico e a caixa nao tem mais por que mandar corrigir nada.
+
 ### Divida ACEITA, nao resolvida: `ApplySettings` nao e transacional
 
 ⚠️ **`false` de `ApplySettings` nao significa "nada aconteceu".** Ela atribui

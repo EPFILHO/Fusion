@@ -969,6 +969,30 @@ void ScreenProfiles(void)
                  "em uso por "+
                  (m_snap.activeProfileName=="" ? "este grafico" : m_snap.activeProfileName)+
                  ". Informe nome e Magic livre, e clique CRIAR PERFIL.");
+      //+---------------------------------------------------------------+
+      //| ⚠ TROCAR DE ABA DESCARTA ISTO, e a tela precisava dizer.        |
+      //|                                                                |
+      //| Levantado pelo usuario, e e uma licao 1 de forma nova: a        |
+      //| instrucao e executavel e se AUTODESTROI. A caixa do rodape pode |
+      //| mandar "Corrija em Gestao: Lote Fixo", e ir ate la passa pelo   |
+      //| GoTo, que fecha o formulario e chama ReloadDraft — o nome e o   |
+      //| Magic digitados somem. O usuario seguiu a orientacao da tela e  |
+      //| perdeu o que estava fazendo.                                    |
+      //|                                                                |
+      //| E o conserto cai no perfil ATIVO, nao no que ele ia criar: a    |
+      //| configuracao e uma so, e as abas editam a do perfil em uso. Com |
+      //| o ativo orfao isso fica pior — o SALVAR reaparece apontando     |
+      //| para ele, e gravar ali muda a configuracao do perfil que se     |
+      //| queria preservar, que e justo o que a faixa do cabecalho pede   |
+      //| para NAO fazer.                                                 |
+      //|                                                                |
+      //| Nao da para consertar so com texto: e a divida "criar perfil    |
+      //| sempre ATIVA" (secao 6) encostando na tela de novo. O que da e  |
+      //| avisar antes, que e o que falta para a decisao ser informada.   |
+      //+---------------------------------------------------------------+
+      RowNoteSem("Trocar de aba descarta este formulario — inclusive para corrigir "
+                 "a configuracao. O que voce ajustar nas outras abas pertence ao "
+                 "perfil EM USO, nao a este.",FCV_SEM_WARN);
       //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
       //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
       //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que

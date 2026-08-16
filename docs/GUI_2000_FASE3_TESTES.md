@@ -599,7 +599,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **CARREGAR** em outro perfil e confirmar com **SIM**.
       **Esperado:** aí sim carrega, e a configuracao orfa e abandonada — que e o
       que voce confirmou.
-- [ ] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.**
+- [x] **H5.8.8.** ⚠️ **A metade mais importante: CONCLUIR a copia.**
       Refazer o preparo do H5.4 e **DUPLICAR** um perfil **compativel** com o
       grafico.
       ⚠️ **O CRIAR COPIA comeca APAGADO, e isso e normal** — o campo Magic do
@@ -616,7 +616,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       confirmacao perguntava pela validade do RASCUNHO, que ali ja era o da
       origem, e por isso nunca aparecia. Se este passo nao mostrar SIM/NAO, o
       defeito voltou.
-- [ ] **H5.8.9.** ⚠️ **Tocar num campo derruba a pergunta.** Com o SIM/NAO da
+- [x] **H5.8.9.** ⚠️ **Tocar num campo derruba a pergunta.** Com o SIM/NAO da
       copia no ar, clicar dentro do campo **Nome** ou **Magic** do formulario.
       **Esperado:** a pergunta **cai** — SIM e NAO somem e o CRIAR COPIA volta.
       Nada e criado.
@@ -629,8 +629,15 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       selecionado o Magic do cartao e **so leitura**, e selecionar o ativo para
       chegar a um campo editavel ja derruba a pergunta pelo H5.8.3.
 - [ ] **H5.8.10.** ⚠️ **Onde a confirmacao de ABANDONO nao deve aparecer.** No
-      mesmo estado: abrir **NOVO**; clicar **EXCLUIR** em outro perfil; clicar
-      **Atualizar lista**.
+      mesmo estado, **um de cada vez, fechando o formulario entre eles**: abrir
+      **NOVO** (e sair com DESCARTAR); depois clicar **EXCLUIR** em outro perfil;
+      depois clicar **Atualizar lista**.
+      ⚠️ **Com o formulario aberto a lista nao aceita clique** — e deliberado, para
+      a selecao nao mudar no meio de uma criacao. Entao nao da para "abrir NOVO e
+      depois selecionar outro perfil": sao tres verificacoes independentes.
+      ⚠️ **O EXCLUIR tambem exige nada pendente.** Se voce corrigiu alguma coisa
+      nas abas de configuracao, ha pendencia e ele fica apagado com razao — salve
+      ou cancele antes.
       **Esperado:** nenhuma pergunta **de abandono** nos tres. Abrir o NOVO nao
       perde nada (o CRIAR PERFIL de dentro dele segue apagado pela configuracao
       invalida), EXCLUIR mexe em outro perfil, e Atualizar lista so relê a pasta.
@@ -652,7 +659,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > dentro do formulario de criacao com uma alteracao pendente que nao quis, no
 > perfil errado.
 
-- [ ] **H6.1.** Na aba Perfis, clicar dentro do campo **Magic Number** do perfil
+- [x] **H6.1.** Na aba Perfis, clicar dentro do campo **Magic Number** do perfil
       ativo, sem digitar nada.
       **Esperado:** SALVAR e CANCELAR acendem **e** CARREGAR, NOVO, DUPLICAR e
       EXCLUIR apagam, no mesmo quadro. A tela inteira passa a dizer a mesma coisa:
