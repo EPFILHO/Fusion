@@ -679,7 +679,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       CARREGAR" nem existe; selecionado outro, o Magic do cartao e **so leitura**
       e nao aceita clique. Sem o ativo fora da lista este passo e impossivel — foi
       erro de quem escreveu, nao seu.
-- [ ] **H6.4.** ⚠️ **O clique que so encerra a edicao nao executa.**
+- [x] **H6.4.** ⚠️ **O clique que so encerra a edicao nao executa.**
       ⚠️ **Selecione um perfil que NAO seja o ativo, e use o preparo do H6.3 (ativo
       fora da lista).** Com o ativo selecionado, CARREGAR e EXCLUIR ficam apagados
       por `isActive` — motivo independente da digitacao —, e testa-los ali da
@@ -707,7 +707,38 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       so para os quatro de perfil — SALVAR e CANCELAR **sao** as saidas da edicao,
       e clicar neles ao sair do campo e o gesto esperado.
       Igualmente, **Atualizar lista** continua respondendo ao primeiro clique.
-- [ ] **H6.4c.** ⚠️ **Tambem exige o ativo FORA da lista** (preparo do H6.3), pela
+- [ ] **H6.4d.** ⚠️ **O controle do TECLADO — clique legitimo nao pode ser
+      engolido.** Clicar no campo Magic, encerrar a edicao com **ENTER** (ou TAB),
+      esperar **mais de um segundo** e clicar **uma vez** em NOVO. Repetir com
+      DUPLICAR.
+      **Esperado:** abre no **primeiro** clique.
+      **Por que:** o `ENDEDIT` do teclado nao vem seguido de clique nenhum. A
+      primeira versao da guarda deixava a marca esperando o proximo clique — que
+      podia ser legitimo e chegar muito depois —, e eram precisos dois cliques. O
+      usuario encontrou assim. **Se voltar a exigir dois cliques**, a marca esta
+      atravessando o gesto que a originou: ou o prazo
+      (`FCV_ENDEDIT_CLICK_MS`) parou de valer, ou ela deixou de ser consumida na
+      borda do mouse.
+- [ ] **H6.4e.** ⚠️ **O controle do clique FORA do painel.** Clicar no campo
+      Magic, encerrar a edicao clicando **fora do painel** (no grafico) e depois
+      clicar **uma vez** em NOVO.
+      **Esperado:** abre no primeiro clique.
+      **Por que:** o clique de fora sai por `pressOut` e nao chega ao tratamento
+      normal do painel. Enquanto a marca era gasta so la dentro, ele nao a
+      consumia e ela sobrava para o clique seguinte.
+- [ ] **H6.4f.** ⚠️ **A rolagem nao pode voltar ao topo sem trocar de tela.** Com
+      o formulario rolado ate os botoes — por exemplo com a confirmacao do H5.8.8
+      no ar —, clicar **NAO**.
+      **Esperado:** a pergunta some e **a pagina continua onde estava**, com CRIAR
+      COPIA e DESCARTAR a vista. Conferir o mesmo ao **armar o EXCLUIR** e ao usar
+      as **setas da lista**: nenhum deles muda de tela, entao nenhum deve mover a
+      pagina.
+      **Por que:** o despacho de botao terminava com um `m_scroll=0` para todos,
+      sem distincao — logo depois de o painel ter rolado ate os botoes para fazer
+      a pergunta, responder NAO devolvia tudo ao inicio. Agora so a troca de
+      IDENTIDADE da tela zera a rolagem. Entrar num formulario continua indo ao
+      **fim**, nao ao topo.
+- [x] **H6.4c.** ⚠️ **Tambem exige o ativo FORA da lista** (preparo do H6.3), pela
       mesma razao: armado o EXCLUIR, o perfil selecionado nao e o ativo, e o Magic
       do cartao `PERFIL SELECIONADO` e **so leitura** — nao ha onde clicar. O
       campo editavel e o do cartao `PERFIL ATIVO`, que so aparece com ele fora da
@@ -715,7 +746,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       Armar o **EXCLUIR** e, com a confirmacao no ar, clicar no Magic do **ativo**.
       **Esperado:** a confirmacao se desarma junto com o botao (mesma fonte unica
       do H5.6).
-- [ ] **H6.5.** Conferir que o **INICIAR nao** apaga com o cursor no campo.
+- [x] **H6.5.** Conferir que o **INICIAR nao** apaga com o cursor no campo.
       **Esperado:** segue como estava. Ele nao consome a edicao, e bloquear uma
       acao real so porque ha um cursor num campo seria pior que o problema —
       decisao antiga, mantida. Se a digitacao virar alteracao de verdade, e a
@@ -723,7 +754,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 ### H7. Confirmacao de abandono com Magic repetido (P2 estreito)
 
-- [ ] **H7.1.** Preparo: perfil ativo **orfao** (arquivo fora da pasta) e invalido
+- [x] **H7.1.** Preparo: perfil ativo **orfao** (arquivo fora da pasta) e invalido
       **por Magic repetido** — nao por lote. Edite um `.cfg` por fora para outro
       perfil ficar com o mesmo Magic do ativo, e confira que a aba Perfis acende.
       Entao **DUPLICAR** um perfil compativel, digitar um Magic livre e clicar

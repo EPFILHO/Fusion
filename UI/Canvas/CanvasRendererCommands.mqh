@@ -298,6 +298,11 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
       //+---------------------------------------------------------------+
       if(editJustEnded && ProfileActionButton(m_btnId[i])) return true;
 
+      //--- Guardado ANTES do despacho: e com ele que se decide, la embaixo, se a
+      //--- rolagem volta ao topo. Varios ramos mexem em m_profEdit e portanto na
+      //--- identidade da tela.
+      int screenBefore=ScreenId();
+
       //--- Qualquer outro botao desarma a confirmacao pendente. Sem isto ela
       //--- ficaria armada enquanto o usuario faz outra coisa, e o proximo
       //--- clique no lugar do SIM apagaria um perfil sem aviso.
@@ -452,7 +457,31 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
                       m_snap.activeProfileName+".",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
             break;
         }
-      m_scroll=0;
+      //+---------------------------------------------------------------+
+      //| A rolagem so volta ao topo quando a TELA MUDA.                 |
+      //|                                                                |
+      //| Era `m_scroll=0` para todo botao, sem distincao, e isso jogava  |
+      //| o usuario para o inicio do conteudo em acoes que nao mudam de   |
+      //| tela nenhuma. O caso que ele encontrou: responder NAO a uma     |
+      //| confirmacao dentro do formulario devolvia a pagina ao topo, com |
+      //| CRIAR COPIA e DESCARTAR de novo abaixo da dobra — logo depois   |
+      //| de o painel ter rolado ate eles para fazer a pergunta.          |
+      //|                                                                |
+      //| Valia tambem para armar o EXCLUIR, para SALVAR e CANCELAR do    |
+      //| cabecalho e para as setas da lista: em todos, quem clicava      |
+      //| perdia o lugar onde estava lendo, sem motivo.                   |
+      //|                                                                |
+      //| Comparar a IDENTIDADE da tela — e nao listar os botoes que      |
+      //| navegam — porque a lista envelheceria: quem acrescentasse um    |
+      //| botao novo teria de lembrar de inscreve-lo aqui, e esquecer     |
+      //| daria um sintoma silencioso. A identidade ja e a mesma que      |
+      //| indexa os slots, e ela sabe sozinha quando mudou.               |
+      //|                                                                |
+      //| Entrar num formulario continua indo ao FIM, e nao ao topo: a    |
+      //| borda do DrawFrame corre depois desta linha e vence. Ver a nota |
+      //| da rolagem automatica.                                          |
+      //+---------------------------------------------------------------+
+      if(ScreenId()!=screenBefore) m_scroll=0;
       Render();
       return true;
      }
