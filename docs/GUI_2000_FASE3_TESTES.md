@@ -707,7 +707,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       so para os quatro de perfil — SALVAR e CANCELAR **sao** as saidas da edicao,
       e clicar neles ao sair do campo e o gesto esperado.
       Igualmente, **Atualizar lista** continua respondendo ao primeiro clique.
-- [ ] **H6.4d.** ⚠️ **O controle do TECLADO — clique legitimo nao pode ser
+- [x] **H6.4d.** ⚠️ **O controle do TECLADO — clique legitimo nao pode ser
       engolido.** Clicar no campo Magic, encerrar a edicao com **ENTER** (ou TAB),
       esperar **mais de um segundo** e clicar **uma vez** em NOVO. Repetir com
       DUPLICAR.
@@ -719,14 +719,14 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       atravessando o gesto que a originou: ou o prazo
       (`FCV_ENDEDIT_CLICK_MS`) parou de valer, ou ela deixou de ser consumida na
       borda do mouse.
-- [ ] **H6.4e.** ⚠️ **O controle do clique FORA do painel.** Clicar no campo
+- [x] **H6.4e.** ⚠️ **O controle do clique FORA do painel.** Clicar no campo
       Magic, encerrar a edicao clicando **fora do painel** (no grafico) e depois
       clicar **uma vez** em NOVO.
       **Esperado:** abre no primeiro clique.
       **Por que:** o clique de fora sai por `pressOut` e nao chega ao tratamento
       normal do painel. Enquanto a marca era gasta so la dentro, ele nao a
       consumia e ela sobrava para o clique seguinte.
-- [ ] **H6.4f.** ⚠️ **A rolagem nao pode voltar ao topo sem trocar de tela.** Com
+- [x] **H6.4f.** ⚠️ **A rolagem nao pode voltar ao topo sem trocar de tela.** Com
       o formulario rolado ate os botoes — por exemplo com a confirmacao do H5.8.8
       no ar —, clicar **NAO**.
       **Esperado:** a pergunta some e **a pagina continua onde estava**, com CRIAR
@@ -738,6 +738,19 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a pergunta, responder NAO devolvia tudo ao inicio. Agora so a troca de
       IDENTIDADE da tela zera a rolagem. Entrar num formulario continua indo ao
       **fim**, nao ao topo.
+- [ ] **H6.4g.** ⚠️ **O outro lado: a tela que muda DEPOIS, pela resposta do EA.**
+      Com o formulario rolado ate os botoes, **concluir** uma criacao (CRIAR
+      PERFIL ou CRIAR COPIA com nome e Magic livres).
+      **Esperado:** o formulario fecha e a lista reaparece **no topo**, nao na
+      posicao em que o formulario estava.
+      Repetir com o **DESCARTAR depois de uma criacao que FALHOU** (receita 1.5):
+      a restauracao tambem fecha o formulario, e a lista tambem tem de voltar ao
+      topo.
+      **Por que este passo existe:** a identidade da tela muda em **duas**
+      fronteiras — no clique e na resposta do EA, que chega depois. A primeira
+      versao da regra so olhava o clique, e no caminho assincrono a lista
+      reaparecia rolada, parecendo que o topo tinha sido comido. **Se a lista
+      voltar rolada**, a comparacao sumiu do `ReloadFromEA`.
 - [x] **H6.4c.** ⚠️ **Tambem exige o ativo FORA da lista** (preparo do H6.3), pela
       mesma razao: armado o EXCLUIR, o perfil selecionado nao e o ativo, e o Magic
       do cartao `PERFIL SELECIONADO` e **so leitura** — nao ha onde clicar. O

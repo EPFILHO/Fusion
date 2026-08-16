@@ -249,6 +249,38 @@ void ReloadDraft(void)
 //| acao. O que ela NAO garante e que a acao ainda cabe: quem         |
 //| reconfere contra o disco e os registros e o painel.               |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| A ROLAGEM PERTENCE A TELA.                                        |
+//|                                                                   |
+//| Trocando de tela, o conteudo e outro e comecar do meio dele nao   |
+//| faz sentido. Ficando na mesma, mover a pagina tira o usuario de   |
+//| onde ele estava lendo sem motivo.                                 |
+//|                                                                   |
+//| Antes o despacho de botao zerava a rolagem para TODO clique, sem  |
+//| distincao: responder NAO a uma confirmacao devolvia o formulario  |
+//| ao topo — logo depois de o painel ter rolado ate os botoes         |
+//| justamente para fazer a pergunta. Valia tambem para armar o        |
+//| EXCLUIR, para SALVAR e CANCELAR e para as setas da lista.          |
+//|                                                                   |
+//| ⚠ NUMA FUNCAO PORQUE SAO DUAS FRONTEIRAS, e a primeira versao      |
+//| cobriu so uma. A identidade da tela muda no CLIQUE                 |
+//| (HandleButtonClick) e tambem na RESPOSTA DO EA (ReloadFromEA), que |
+//| fecha o formulario um tempo depois — criar perfil e restaurar apos |
+//| criacao falhada passam por la. O `m_scroll=0` cego cobria as duas  |
+//| por acidente; trocando-o por uma comparacao em um lugar so, o      |
+//| caminho assincrono ficou sem nada e a lista reaparecia rolada.     |
+//|                                                                   |
+//| Escrita duas vezes, uma das copias envelheceria — e o sintoma seria|
+//| silencioso.                                                        |
+//|                                                                   |
+//| Entrar num formulario continua indo ao FIM, e nao ao topo: a borda |
+//| do DrawFrame corre depois disto e vence.                           |
+//+------------------------------------------------------------------+
+void ResetScrollIfScreenChanged(const int screenBefore)
+  {
+   if(ScreenId()!=screenBefore) m_scroll=0;
+  }
+
 //--- Os quatro que a edicao em curso apaga (ver EditingNow e a coluna em
 //--- ScreenProfiles). Numa funcao para a guarda do clique abaixo e a decisao do
 //--- desenho nomearem o mesmo conjunto — em duas listas, uma envelheceria.
@@ -457,31 +489,7 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
                       m_snap.activeProfileName+".",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
             break;
         }
-      //+---------------------------------------------------------------+
-      //| A rolagem so volta ao topo quando a TELA MUDA.                 |
-      //|                                                                |
-      //| Era `m_scroll=0` para todo botao, sem distincao, e isso jogava  |
-      //| o usuario para o inicio do conteudo em acoes que nao mudam de   |
-      //| tela nenhuma. O caso que ele encontrou: responder NAO a uma     |
-      //| confirmacao dentro do formulario devolvia a pagina ao topo, com |
-      //| CRIAR COPIA e DESCARTAR de novo abaixo da dobra — logo depois   |
-      //| de o painel ter rolado ate eles para fazer a pergunta.          |
-      //|                                                                |
-      //| Valia tambem para armar o EXCLUIR, para SALVAR e CANCELAR do    |
-      //| cabecalho e para as setas da lista: em todos, quem clicava      |
-      //| perdia o lugar onde estava lendo, sem motivo.                   |
-      //|                                                                |
-      //| Comparar a IDENTIDADE da tela — e nao listar os botoes que      |
-      //| navegam — porque a lista envelheceria: quem acrescentasse um    |
-      //| botao novo teria de lembrar de inscreve-lo aqui, e esquecer     |
-      //| daria um sintoma silencioso. A identidade ja e a mesma que      |
-      //| indexa os slots, e ela sabe sozinha quando mudou.               |
-      //|                                                                |
-      //| Entrar num formulario continua indo ao FIM, e nao ao topo: a    |
-      //| borda do DrawFrame corre depois desta linha e vence. Ver a nota |
-      //| da rolagem automatica.                                          |
-      //+---------------------------------------------------------------+
-      if(ScreenId()!=screenBefore) m_scroll=0;
+      ResetScrollIfScreenChanged(screenBefore);
       Render();
       return true;
      }
@@ -636,10 +644,21 @@ void BeginDuplicate(const SEASettings &source,const string suggestedName)
 //+------------------------------------------------------------------+
 void ReloadFromEA(const string reason,const bool keepForm=false)
   {
+   //--- A SEGUNDA fronteira em que a identidade da tela muda — e a assincrona.
+   //--- Ver ResetScrollIfScreenChanged: fechar o formulario aqui (criacao
+   //--- concluida, restauracao apos falha) trocava a tela sem devolver a rolagem,
+   //--- e a lista reaparecia na posicao em que o formulario estava.
+   int screenBefore=ScreenId();
    bool lostTyping=(EditHasFocus() || HasPending());
    if(!keepForm) m_profEdit=FCV_PROF_VIEW;
    m_delConfirm=false;
+   //--- A do abandono cai pelo mesmo motivo do m_delConfirm: o EA acabou de
+   //--- mudar o mundo sob ela. Reset cru, e nao CancelAbandonConfirm, para o
+   //--- ClearNotice dela nao apagar o aviso que esta funcao pode escrever logo
+   //--- abaixo.
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
    ReloadDraft();
+   ResetScrollIfScreenChanged(screenBefore);
    //--- Com o formulario mantido, nada se perdeu: o que o usuario digitou
    //--- continua ali. Anunciar perda seria falso.
    if(lostTyping && !keepForm)
