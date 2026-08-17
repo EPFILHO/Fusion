@@ -13,7 +13,7 @@
 
 A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudança principal — migrada da biblioteca `Controls` para desenho em `CCanvas` ao longo de quatro fases. Não é uma reescrita do motor: a distribuição medida na Fase 2 mostrou que a GUI antiga tinha 18.094 linhas contra ~11.000 de todo o resto, e o motor carrega dezenas de correções achadas em operação real.
 
-⚠️ **Mas o motor compartilhado não ficou intocado.** A migração produziu correções pontuais de segurança nele, porque a GUI nova expôs caminhos que a antiga não alcançava:
+⚠️ **Mas o motor compartilhado não ficou intocado.** A **auditoria da migração revelou vulnerabilidades** nele — os caminhos já eram alcançáveis pela GUI antiga; o que a migração fez foi encontrá-los, ao obrigar a reler cada regra para portá-la:
 
 - **guarda de posição aberta no `UI_COMMAND_LOAD_PROFILE`**, com a leitura de posição sincronizada **antes** de decidir (o cache `m_positionState` pode estar atrasado). Sem ela, carregar um perfil com operação em gerenciamento trocava a configuração ativa — inclusive o `Magic`, que é como o EA reconhece as próprias ordens;
 - **`UI_COMMAND_RESTORE_ACTIVE_PROFILE`**, verbo novo e aditivo: "voltar ao que eu já tinha" era indistinguível de "adotar outro perfil" e herdava recusas que existem só para o segundo caso;

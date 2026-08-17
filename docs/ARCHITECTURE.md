@@ -261,7 +261,7 @@ Fora de `Canvas/`, `UI/` guarda apenas o que desenha no **grafico**, e nunca foi
 
 O escopo da exclusao precisa ser **auditavel por leitura**.
 
-> ⚠️ **Um prefixo `Fusion_` que engana:** `Fusion_visual_ma_*` aparece no codigo, mas **nada o cria**. E o nome ANTIGO da legenda, e sobrevive apenas dentro de `DeleteLegacyLegend()`, que o apaga por compatibilidade — as funcoes `LegacyLegendName()`/`DeleteLegacyLegend()` em `ChartIndicatorVisualizer.mqh` sao os unicos usos, todos `ObjectDelete`. Registrado aqui porque **um nome que so aparece sendo apagado se le como um nome vivo**, e ja induziu erro duas vezes na revisao desta fase.
+> ⚠️ **Um prefixo `Fusion_` que engana:** `Fusion_visual_ma_*` aparece no codigo, mas **nada o cria**. E o nome ANTIGO da legenda, e sobrevive apenas dentro de `DeleteLegacyLegend()`, que o apaga por compatibilidade — as funcoes `LegacyLegendName()`/`DeleteLegacyLegend()` em `ChartIndicatorVisualizer.mqh` sao os unicos usos, todos `ObjectDelete`. Registrado aqui porque induziu erro duas vezes na revisao desta fase. **A regra: um nome que so aparece sendo APAGADO nao prova que esteja vivo. Antes de classificar um prefixo de objeto, localize quem o CRIA** — `ObjectCreate`, `ObjectSetString`, qualquer escrita. So o `ObjectDelete` nao responde.
 
 ⚠️ **Objeto nativo em foco nao pode ser destruido.** Os campos de texto continuam sendo `OBJ_EDIT` do terminal sobrepostos ao bitmap, e sao sincronizados por diferenca: sai so o que saiu da tela, nasce so o que entrou, o que permanece e **movido**.
 

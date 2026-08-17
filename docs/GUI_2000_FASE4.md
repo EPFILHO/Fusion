@@ -121,10 +121,20 @@ namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`). Nao alargar.
 > **A conclusao operacional nao mudou:** varredura por `Fusion_` continua proibida,
 > por causa da legenda. Mudou o motivo, e e por isso que a correcao vale registro.
 >
-> ⚠️ **A licao nova: um nome que so aparece sendo APAGADO se le como um nome
-> vivo.** Eu vi `Fusion_visual_ma_` no codigo, num `ObjectDelete`, e conclui que
-> algo o criava. Perguntar "quem escreve isto?" e diferente de "isto aparece?" —
-> e para prefixo de objeto e a unica pergunta que importa.
+> ⚠️ **A LICAO NOVA: um nome que so aparece sendo APAGADO nao prova que esteja
+> vivo. Antes de classificar um prefixo de objeto, localize quem o CRIA** —
+> `ObjectCreate`, `ObjectSetString`, qualquer escrita. Eu vi `Fusion_visual_ma_`
+> num `ObjectDelete` e concluí que algo o criava. "Isto aparece no codigo?" e
+> "quem escreve isto?" sao perguntas diferentes, e so a segunda responde.
+>
+> ⚠️⚠️ **E a primeira redacao desta licao estava ESCRITA AO CONTRARIO** — dizia
+> "um nome que so aparece sendo apagado se le como um nome vivo", que descreve o
+> erro em voz de regra e, lido como instrucao, manda comete-lo. Pego pela
+> auditoria. **E a mesma familia do defeito mais reincidente da migracao:** texto
+> que instrui a acao errada, ou que instrui acao que a interface impede — apareceu
+> quatro vezes na Fase 2 e mais duas no aceite da Fase 3. Vale para licao escrita
+> tanto quanto para mensagem de tela: **reler perguntando "se eu seguir isto ao pe
+> da letra, faco a coisa certa?"**
 
 > **Como o erro entrou, porque vale mais que a correcao.** Eu levantei os
 > prefixos com um `grep` sobre `UI/`, **agrupei por prefixo e joguei fora a
@@ -200,13 +210,17 @@ sobe. Cinco minutos, contando a preparacao.
 `Ctrl+B` lista **objetos** de grafico; `Ctrl+I` lista **indicadores**. As linhas
 visuais do Fusion sao indicadores; a legenda e a barra do painel sao objetos.
 
-**Pre-condicao (senao os passos 4 e 8 sao impossiveis).** `showChartIndicators`
-nasce **`false`**, entao o perfil de teste precisa:
+**Pre-condicao (senao os passos visuais sao impossiveis).** `showChartIndicators`
+nasce **`false`** (`Core/Types.mqh:611`), entao o perfil de teste precisa ser
+preparado. ⚠️ **Determinada de proposito, e nao "algum visual ligado":** RSI e
+Bollinger podem cair em **subjanela**, e timeframe divergente do grafico produz
+"nao apareceu" que se confunde com defeito. A estrategia de Medias desenha na
+janela principal e e a unica combinacao sem ambiguidade.
 
 - [ ] **0a.** `Indicadores no Grafico` **ligado** (aba `Layout`);
-- [ ] **0b.** ao menos uma estrategia ou filtro visual habilitado, em **timeframe
-  compativel com o do grafico** — sem isso nao ha o que desenhar;
-- [ ] **0c.** salvar o perfil, para o estado sobreviver a reanexacao.
+- [ ] **0b.** estrategia de **Medias ligada**;
+- [ ] **0c.** MA **rapida** e MA **lenta** no **mesmo timeframe do grafico**;
+- [ ] **0d.** **salvar o perfil**, para o estado sobreviver a reanexacao.
 
 **O teste:**
 
@@ -221,9 +235,11 @@ nasce **`false`**, entao o perfil de teste precisa:
   outra coisa, o `.ex5` que subiu nao e o deste build — **parar aqui**.
 - [ ] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
   fica, conforme a regra da tela — o que importa e o campo responder).
-- [ ] **5.** **Antes de remover**, confirmar que existem: as linhas no grafico, a
-  legenda das medias, e em **`Ctrl+I`** os indicadores `Fusion Visual MA`,
-  `Fusion Visual BB` ou `Fusion Visual RSI` (os que o perfil ligou).
+- [ ] **5.** **Aguardar alguns segundos** — a construcao dos indicadores nao e
+  sincrona com a do painel, e conferir antes da hora produz falso negativo. Depois,
+  **antes de remover**, confirmar que existem as tres coisas: as **duas linhas de
+  media** no grafico, a **legenda das medias**, e em **`Ctrl+I`** o indicador
+  **`Fusion Visual MA <chartId>`**.
 - [ ] **6.** Remover o EA do grafico.
 - [ ] **7.** Em **`Ctrl+I`**, confirmar que **nenhum `Fusion Visual ...` sobrou**.
 - [ ] **8.** Em **`Ctrl+B`**, confirmar que **nao sobrou objeto comecando por
