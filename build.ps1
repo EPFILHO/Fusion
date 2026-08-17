@@ -157,21 +157,20 @@ Write-Host ("Versao:     {0}" -f $editorItem.VersionInfo.ProductVersion)
 Write-Host ("MQL5:       {0}" -f $mql5Root)
 Write-Host ''
 
-# Fusion.mq5 e FusionCanvas.mq5 sao o MESMO EA compilado duas vezes: o primeiro
-# com o painel antigo, o segundo com o painel em canvas (Fase 3). Os dois estao
-# no gate porque o #define que os separa troca uma classe inteira - um erro que
-# so aparece no lado do canvas nao apareceria compilando apenas o Fusion.mq5, e
-# e exatamente esse o lado em avaliacao.
+# Quatro alvos desde a Fase 4. Foram seis durante a transicao da GUI 2.0: o
+# harness Prototype\FusionCanvasPhase1.mq5, que compilava o renderizador sozinho,
+# e FusionCanvas.mq5, o mesmo EA com o painel em canvas no lugar do classico.
+# Removido o painel antigo, nao ha mais dois paineis para comparar nem um
+# renderizador fora do EA - o Fusion.mq5 voltou a ser o unico EA, ja com a GUI
+# 2.0 dentro.
 #
-# Ordem deliberada: o alvo de producao vem primeiro. Falhando o experimental, o
-# Fusion.ex5 ja esta gravado e valido.
+# Os indicadores vem antes do EA porque ele os embute por #resource: compilados
+# depois, o Fusion.ex5 carregaria a versao anterior deles.
 $targets = @(
     'VisualIndicators\FusionVisualMA.mq5',
     'VisualIndicators\FusionVisualBands.mq5',
     'VisualIndicators\FusionVisualRSI.mq5',
-    'Prototype\FusionCanvasPhase1.mq5',
-    'Fusion.mq5',
-    'FusionCanvas.mq5'
+    'Fusion.mq5'
 )
 
 $results = foreach ($target in $targets) {

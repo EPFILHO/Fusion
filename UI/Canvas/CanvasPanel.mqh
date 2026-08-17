@@ -615,33 +615,25 @@ public:
       //| cobre a saida que NAO roda Destroy: terminal encerrado de      |
       //| forma anormal com o painel no ar.                              |
       //|                                                                |
-      //| ⚠ Cobre so os objetos DESTE painel, e a promessa e essa. O     |
-      //| painel classico nao e alcancado daqui: a casca do dialogo dele |
-      //| vive sob um prefixo numerico do CAppDialog e seus controles    |
-      //| sob 274 nomes fixos. Varrer aquilo exigiria um inventario      |
-      //| completo — que e exatamente onde uma limpeza ampla volta a     |
-      //| apagar o que nao devia. Fora do escopo desta fase, e por       |
-      //| decisao registrada, nao por esquecimento.                      |
+      //| ⚠ Cobre so os objetos DESTE painel, e a promessa e essa.       |
+      //|                                                                |
+      //| Sobras do painel CLASSICO nao sao alcancadas daqui, e a Fase 4 |
+      //| decidiu por escrito nao acrescentar codigo para isso: a casca  |
+      //| do dialogo dele nascia sob um prefixo numerico do CAppDialog e |
+      //| seus controles sob nomes fixos `Fusion_*`, e varrer aquilo     |
+      //| seria escrever uma limpeza nova dentro da fase que existe para |
+      //| REMOVER codigo. Na troca normal o assunto nem aparece: trocar  |
+      //| o EA do grafico roda o Destroy do painel que sai. O caso       |
+      //| descoberto e o terminal encerrado de forma anormal com o       |
+      //| painel antigo no ar — ali as sobras se apagam uma vez, pela    |
+      //| lista de objetos do grafico.                                   |
+      //|                                                                |
+      //| Saiu junto a limpeza de compatibilidade dos nomes que builds   |
+      //| anteriores do canvas usaram ("EP Fusioncanvas", "EP           |
+      //| Fusionedit_"): eram anteriores a correcao do namespace, nunca  |
+      //| sairam da maquina de desenvolvimento, e ja fizeram o trabalho. |
       //+---------------------------------------------------------------+
       ObjectsDeleteAll(chartId,FCV_OBJ_NAMESPACE);
-      //+---------------------------------------------------------------+
-      //| Compatibilidade: nomes que builds anteriores do canvas usaram. |
-      //|                                                                |
-      //| Ate a correcao do namespace, os objetos nasciam do `name` do   |
-      //| EA — "EP Fusioncanvas" e "EP Fusionedit_N". Uma sobra desse    |
-      //| tempo nao seria mais varrida pelo namespace novo, e ficaria    |
-      //| no grafico para sempre.                                        |
-      //|                                                                |
-      //| Estreito de proposito: o bitmap por nome EXATO e os campos por |
-      //| um prefixo que ninguem digita. Nada de "EP Fusion" solto, que  |
-      //| e justamente o alcance que estamos removendo.                  |
-      //|                                                                |
-      //| ⚠ Descartavel: o canvas nunca saiu da maquina de              |
-      //| desenvolvimento, entao isto so tem trabalho a fazer aqui. Sai  |
-      //| na Fase 4, junto com o resto da transicao.                     |
-      //+---------------------------------------------------------------+
-      ObjectDelete(chartId,"EP Fusioncanvas");
-      ObjectsDeleteAll(chartId,"EP Fusionedit_");
       //--- Antes do Create: ele ja desenha o primeiro quadro, e desenhar com
       //--- dado neutro para so depois receber o real causaria um piscada.
       m_renderer.SetSnapshot(m_snapshot);
