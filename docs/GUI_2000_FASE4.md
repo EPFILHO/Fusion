@@ -263,21 +263,36 @@ destes estados visto em execucao**. O `H4` provou a recusa do CARREGAR, que e
 outra coisa. Estes passos dependem de estados que o mercado produz, entao valem
 como roteiro a cumprir ao longo dos proximos pregoes, e nao numa sentada.
 
-⚠️ **R1, R2 e R4 exigem o EA INICIADO e SEM POSICAO ABERTA.** Com posicao aberta
-o distintivo diz `OPERANDO` — corretamente, por precedencia — e o passo pareceria
-falhar quando o painel esta certo. R3 e justamente o caso com posicao.
+⚠️⚠️ **R1 e R2 sao SEQUENCIAS, nao fotografias — e e por isso que a primeira
+versao deles era impossivel.** Ela exigia "sem posicao aberta" **e** o projetado
+tocando o piso; sem posicao o projetado nao oscila e nunca toca nada. Os dois
+estados de DD **nascem com posicao aberta** (a meta do dia se bate operando), e e
+so **depois** que o distintivo pode ser conferido: enquanto houver posicao, o
+correto e `OPERANDO`, por precedencia.
 
-- [ ] **R1. DD armado** *(iniciado, sem posicao)*. Meta do dia batida com
-  `ATIVAR DD`: distintivo segue **`RODANDO`** (verde) e a faixa mostra
-  **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
-  carregado`** em ambar.
-  ⚠️ Distintivo **`SEM ENTRADAS` aqui e ERRO**: com o DD apenas armado as
-  entradas seguem permitidas ate o piso.
-- [ ] **R2. DD atingido** *(iniciado, sem posicao)*. O projetado toca o piso:
-  distintivo vira **`SEM ENTRADAS`** em ambar, a faixa diz **`DRAWDOWN — ...`** e
-  o `Status` mostra a mesma frase. Conferir que os dois **nao discordam**.
+⚠️ **R4 exige o EA iniciado e SEM posicao aberta.** R3 e justamente o caso com
+posicao.
+
+- [ ] **R1. DD armado** — sequencia:
+  1. bater a meta do dia com `ATIVAR DD`, operando normalmente;
+  2. **esperar a posicao fechar** e a reconciliacao terminar;
+  3. **so entao conferir:** distintivo **`RODANDO`** (verde) e faixa
+     **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
+     carregado`** em ambar.
+
+  ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
+  entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
+- [ ] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
+  1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
+     tocar o piso**;
+  2. o motor pede o fechamento na hora
+     (`DrawdownProtection::ShouldForceClose`);
+  3. **esperar a posicao sumir** e a reconciliacao terminar;
+  4. **so entao conferir:** distintivo **`SEM ENTRADAS`** em ambar, faixa
+     **`DRAWDOWN — ...`** e o `Status` com a mesma frase — os dois **nao podem
+     discordar**.
 - [ ] **R3. Restricao COM posicao aberta.** Encenar com **filtro de sessao ligado,
-  `Fechar na sessao` DESLIGADO, e o horario fora da janela** — ou com uma janela
+  `Fechar no fim` DESLIGADO, e o horario fora da janela** — ou com uma janela
   de noticia configurada so para bloquear entradas —, mantendo uma posicao em
   gerenciamento. **Esperado:** distintivo **`OPERANDO`**; a faixa **continua
   explicando a posicao aberta** (`POSICAO ABERTA — ...`); **marcador ambar** na
@@ -290,8 +305,9 @@ falhar quando o painel esta certo. R3 e justamente o caso com posicao.
   > ⚠️ **E NAO usar "DD atingido + posicao aberta" para este passo.**
   > `DrawdownProtection::ShouldForceClose` devolve `true` assim que
   > `m_limitReached` liga, entao o motor pede o fechamento na hora: o estado se
-  > desfaz sozinho e o passo vira uma corrida contra o EA. Sessao com
-  > `Fechar na sessao` desligado nao fecha posicao — conferido em
+  > desfaz sozinho e o passo vira uma corrida contra o EA — e e justamente esse
+  > fechamento que o **R2** aproveita, em vez de tentar evita-lo. Sessao com
+  > `Fechar no fim` desligado nao fecha posicao — conferido em
   > `SessionProtection::ShouldForceClose`, que sai cedo sem essa chave.
 - [ ] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
   fora da janela, ou janela de noticia, ou pausa de sequencia: distintivo
