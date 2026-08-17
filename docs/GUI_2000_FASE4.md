@@ -192,7 +192,11 @@ sobe. Sao dois minutos.
 - [ ] **5.** Remover o EA do grafico.
 - [ ] **6.** Em `Ctrl+B` (lista de objetos), confirmar que **nao sobrou nenhum
   objeto comecando por `Fusion2.Canvas.`**.
-- [ ] **7.** Confirmar que **`EP Fusion MinhaLinha` continua lá**.
+- [ ] **7.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
+- [ ] **8.** Conferir que as linhas dos indicadores e a legenda aparecem e somem
+  com o EA, sem sobra. Elas vivem sob `Fusion_visual_ma_*` e
+  `Fusion_indicator_legend_*` — os prefixos da correcao da secao 3, e a razao pela
+  qual nenhuma varredura por `Fusion_` pode existir.
 
 ⚠️ **O passo 6 pergunta por sobras do namespace, e nao se o grafico ficou vazio.**
 Um grafico normal tem objetos do usuario, e exigir "nenhum objeto" transformaria o
