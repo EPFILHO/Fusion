@@ -675,9 +675,11 @@ public:
       //--- O prefixo dos objetos e uma constante nossa (FCV_OBJ_NAMESPACE), e nao
       //--- um nome vindo do EA: nenhum OUTRO objeto do grafico comeca por
       //--- "Fusion2", e e isso que mantem a limpeza estreita.
-      //--- ⚠ Nao alargar para "Fusion_": esse prefixo pertence aos objetos do
-      //--- CHART, vivos e legitimos — Fusion_visual_ma_* (as medias) e
-      //--- Fusion_indicator_legend_* (a legenda).
+      //--- ⚠ Nao alargar para "Fusion_": sob esse prefixo vive a LEGENDA DAS
+      //--- MEDIAS (Fusion_indicator_legend_*, seis objetos criados por
+      //--- UI/IndicatorLegendOverlay.mqh), que e do grafico e nao do painel.
+      //--- As LINHAS em si nao sao objeto: sao indicadores anexados por
+      //--- ChartIndicatorAdd, com nome "Fusion Visual MA|BB|RSI <chartId>".
       m_created=m_renderer.Create(chartId,FCV_OBJ_NAMESPACE,FUSION_CANVAS_THEME_AUTO,
                                   FUSION_PALETTE_PETROLEO,true,x,y);
       if(m_created)

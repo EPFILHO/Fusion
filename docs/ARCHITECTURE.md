@@ -245,11 +245,23 @@ Modulos de `UI/Canvas/`:
 - `CanvasRendererValidate.mqh`: validacao por tela, com cache invalidado por quadro.
 - `CanvasRendererCommands.mqh`, `CanvasRendererPrefs.mqh`, `CanvasRendererStress.mqh`, `CanvasRendererPerf.mqh`.
 
-Fora de `Canvas/`, `UI/` guarda apenas o que desenha no **grafico**, e nunca foi painel: `ChartIndicatorVisualizer.mqh` (as linhas dos indicadores, sob o prefixo de objeto `Fusion_visual_ma_`) e `IndicatorLegendOverlay.mqh` (a legenda, sob `Fusion_indicator_legend_`). `Platform/FolderLauncher.mqh` segue como integracao opcional com o shell do Windows, fora do core operacional.
+Fora de `Canvas/`, `UI/` guarda apenas o que desenha no **grafico**, e nunca foi painel:
+
+- `ChartIndicatorVisualizer.mqh` — anexa os indicadores visuais ao grafico por `ChartIndicatorAdd()`, com os nomes curtos `Fusion Visual MA <chartId>`, `Fusion Visual BB <chartId>` e `Fusion Visual RSI <chartId>`. ⚠️ **Sao indicadores, nao objetos de grafico**: aparecem na lista de indicadores (`Ctrl+I`), nao na de objetos (`Ctrl+B`);
+- `IndicatorLegendOverlay.mqh` — a legenda das medias, e esta sim em **objetos**: seis, um `OBJ_RECTANGLE_LABEL` de fundo e cinco `OBJ_LABEL`, sob o prefixo `Fusion_indicator_legend_`.
+
+`Platform/FolderLauncher.mqh` segue como integracao opcional com o shell do Windows, fora do core operacional.
 
 #### Regras de objeto de grafico
 
-⚠️ **A limpeza automatica do painel usa exclusivamente o namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`), e nao deve ser alargada. Uma varredura por `Fusion_` apagaria `Fusion_visual_ma_*` e `Fusion_indicator_legend_*`, que sao objetos legitimos e vivos; uma varredura por `EP Fusion` alcancaria anotacoes do usuario. O escopo da exclusao precisa ser auditavel por leitura.
+⚠️ **A limpeza automatica do painel usa exclusivamente o namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`), e nao deve ser alargada. As duas tentacoes, e por que cada uma e errada:
+
+- **`Fusion_`** apagaria `Fusion_indicator_legend_*` — a legenda das medias, viva e do **grafico**, nao do painel;
+- **`EP Fusion`** alcancaria anotacoes do usuario, porque e prefixo e nao nome exato. Foi o defeito corrigido no P1 da auditoria da Fase 3.
+
+O escopo da exclusao precisa ser **auditavel por leitura**.
+
+> ⚠️ **Um prefixo `Fusion_` que engana:** `Fusion_visual_ma_*` aparece no codigo, mas **nada o cria**. E o nome ANTIGO da legenda, e sobrevive apenas dentro de `DeleteLegacyLegend()`, que o apaga por compatibilidade — as funcoes `LegacyLegendName()`/`DeleteLegacyLegend()` em `ChartIndicatorVisualizer.mqh` sao os unicos usos, todos `ObjectDelete`. Registrado aqui porque **um nome que so aparece sendo apagado se le como um nome vivo**, e ja induziu erro duas vezes na revisao desta fase.
 
 ⚠️ **Objeto nativo em foco nao pode ser destruido.** Os campos de texto continuam sendo `OBJ_EDIT` do terminal sobrepostos ao bitmap, e sao sincronizados por diferenca: sai so o que saiu da tela, nasce so o que entrou, o que permanece e **movido**.
 

@@ -92,21 +92,39 @@ Removido o painel, nao sobra codigo capaz de varrer aquilo.
   trocar o problema de lugar. A auditoria da Fase 3 ja tinha ensinado que
   inventario incompleto vira limpeza ampla, que e o defeito removido no P1.
 
-⚠️⚠️ **CORRECAO (auditoria, mesmo dia): a primeira versao deste documento dizia
-que uma varredura por `Fusion_` seria "tecnicamente estreita, sem interseccao".
-ISSO ERA FALSO E PERIGOSO.** Objetos legitimos e vivos usam esse prefixo:
+⚠️⚠️ **CORRECAO: a primeira versao deste documento dizia que uma varredura por
+`Fusion_` seria "tecnicamente estreita, sem interseccao". ISSO ERA FALSO E
+PERIGOSO** — sob aquele prefixo vive um objeto legitimo:
 
-- `Fusion_visual_ma_*` — as linhas das medias, criadas por
-  `UI/ChartIndicatorVisualizer.mqh`;
-- `Fusion_indicator_legend_*` — a legenda, criada por
-  `UI/IndicatorLegendOverlay.mqh`.
+- **`Fusion_indicator_legend_*`** — a **legenda das medias**: seis objetos, um
+  `OBJ_RECTANGLE_LABEL` de fundo e cinco `OBJ_LABEL`, criados por
+  `UI/IndicatorLegendOverlay.mqh`. Esse arquivo **sobreviveu a Fase 4** justamente
+  porque nunca foi painel: desenha no grafico.
 
-Os dois arquivos **sobreviveram a Fase 4** justamente porque nunca foram painel:
-desenham no grafico. `ObjectsDeleteAll(chart,"Fusion_")` apagaria as medias e a
-legenda de quem estivesse com os indicadores ligados.
+`ObjectsDeleteAll(chart,"Fusion_")` apagaria a legenda de quem estivesse com os
+indicadores visuais ligados. **A unica limpeza automatica permitida e pelo
+namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`). Nao alargar.
 
-**A unica limpeza automatica permitida e pelo namespace exato
-`Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`). Nao alargar.
+> ⚠️ **SEGUNDA CORRECAO, da rodada seguinte da auditoria — e ela derrubou tambem
+> a versao corrigida acima.** A primeira correcao listava um segundo prefixo,
+> `Fusion_visual_ma_*`, como "as linhas das medias". **Errado nas duas metades:**
+>
+> - **nada cria `Fusion_visual_ma_*`.** E o nome ANTIGO da legenda, e sobrevive so
+>   dentro de `DeleteLegacyLegend()`, que o apaga por compatibilidade.
+>   `LegacyLegendName()` e `DeleteLegacyLegend()` sao os unicos usos, e todos sao
+>   `ObjectDelete`. Uma varredura por `Fusion_` nao teria o que apagar ali;
+> - **as linhas nao sao objeto de grafico.** Sao **indicadores**, anexados por
+>   `ChartIndicatorAdd()` com os nomes curtos `Fusion Visual MA|BB|RSI <chartId>`.
+>   Aparecem em `Ctrl+I`, nunca em `Ctrl+B`, e nenhuma varredura de objeto as
+>   alcanca — quem as remove e `ChartIndicatorDelete()`.
+>
+> **A conclusao operacional nao mudou:** varredura por `Fusion_` continua proibida,
+> por causa da legenda. Mudou o motivo, e e por isso que a correcao vale registro.
+>
+> ⚠️ **A licao nova: um nome que so aparece sendo APAGADO se le como um nome
+> vivo.** Eu vi `Fusion_visual_ma_` no codigo, num `ObjectDelete`, e conclui que
+> algo o criava. Perguntar "quem escreve isto?" e diferente de "isto aparece?" —
+> e para prefixo de objeto e a unica pergunta que importa.
 
 > **Como o erro entrou, porque vale mais que a correcao.** Eu levantei os
 > prefixos com um `grep` sobre `UI/`, **agrupei por prefixo e joguei fora a
@@ -176,9 +194,23 @@ enquanto quem conferiu esta na sala.**
 ## 6. Smoke test do `Fusion.ex5` definitivo
 
 Pequeno, mas obrigatorio: o gate compila, e nao prova que o binario de producao
-sobe. Sao dois minutos.
+sobe. Cinco minutos, contando a preparacao.
 
-- [ ] **1.** No grafico de teste, criar uma linha horizontal e renomea-la para
+⚠️ **Duas listas diferentes do terminal, e confundi-las invalida o teste:**
+`Ctrl+B` lista **objetos** de grafico; `Ctrl+I` lista **indicadores**. As linhas
+visuais do Fusion sao indicadores; a legenda e a barra do painel sao objetos.
+
+**Pre-condicao (senao os passos 4 e 8 sao impossiveis).** `showChartIndicators`
+nasce **`false`**, entao o perfil de teste precisa:
+
+- [ ] **0a.** `Indicadores no Grafico` **ligado** (aba `Layout`);
+- [ ] **0b.** ao menos uma estrategia ou filtro visual habilitado, em **timeframe
+  compativel com o do grafico** — sem isso nao ha o que desenhar;
+- [ ] **0c.** salvar o perfil, para o estado sobreviver a reanexacao.
+
+**O teste:**
+
+- [ ] **1.** No grafico, criar uma linha horizontal e renomea-la para
   **`EP Fusion MinhaLinha`**. ⚠️ **Este passo e o teste, nao preparacao.** O nome
   comeca por "EP Fusion" de proposito: era o prefixo que a **primeira** versao da
   limpeza do canvas varria, e apagar anotacao do usuario foi o P1 da auditoria da
@@ -189,18 +221,23 @@ sobe. Sao dois minutos.
   outra coisa, o `.ex5` que subiu nao e o deste build — **parar aqui**.
 - [ ] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
   fica, conforme a regra da tela — o que importa e o campo responder).
-- [ ] **5.** Remover o EA do grafico.
-- [ ] **6.** Em `Ctrl+B` (lista de objetos), confirmar que **nao sobrou nenhum
-  objeto comecando por `Fusion2.Canvas.`**.
-- [ ] **7.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
-- [ ] **8.** Conferir que as linhas dos indicadores e a legenda aparecem e somem
-  com o EA, sem sobra. Elas vivem sob `Fusion_visual_ma_*` e
-  `Fusion_indicator_legend_*` — os prefixos da correcao da secao 3, e a razao pela
-  qual nenhuma varredura por `Fusion_` pode existir.
+- [ ] **5.** **Antes de remover**, confirmar que existem: as linhas no grafico, a
+  legenda das medias, e em **`Ctrl+I`** os indicadores `Fusion Visual MA`,
+  `Fusion Visual BB` ou `Fusion Visual RSI` (os que o perfil ligou).
+- [ ] **6.** Remover o EA do grafico.
+- [ ] **7.** Em **`Ctrl+I`**, confirmar que **nenhum `Fusion Visual ...` sobrou**.
+- [ ] **8.** Em **`Ctrl+B`**, confirmar que **nao sobrou objeto comecando por
+  `Fusion2.Canvas.`** (o painel) **nem por `Fusion_indicator_legend_`** (a
+  legenda).
+- [ ] **9.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
 
-⚠️ **O passo 6 pergunta por sobras do namespace, e nao se o grafico ficou vazio.**
-Um grafico normal tem objetos do usuario, e exigir "nenhum objeto" transformaria o
-passo em falso negativo garantido. Correcao vinda da auditoria.
+⚠️ **Os passos 7 e 8 perguntam por sobras NOMEADAS, e nao se o grafico ficou
+vazio.** Um grafico normal tem objetos do usuario, e exigir "nenhum objeto"
+transformaria o passo em falso negativo garantido.
+
+⚠️ **Nao ha passo procurando `Fusion_visual_ma_*`**, e a ausencia e deliberada:
+nada cria esse nome (ver a segunda correcao da secao 3). Um passo que procura o
+que nunca existe passa sempre, e passo que passa sempre nao testa nada.
 
 ## 7. Dividas de projeto, inalteradas
 

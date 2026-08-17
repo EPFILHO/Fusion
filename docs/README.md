@@ -11,7 +11,13 @@
 
 ### A GUI 2.0
 
-O motor da 2.000 é o da 1.058; o que mudou é a interface, migrada da biblioteca `Controls` para desenho em `CCanvas` ao longo de quatro fases.
+A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudança principal — migrada da biblioteca `Controls` para desenho em `CCanvas` ao longo de quatro fases. Não é uma reescrita do motor: a distribuição medida na Fase 2 mostrou que a GUI antiga tinha 18.094 linhas contra ~11.000 de todo o resto, e o motor carrega dezenas de correções achadas em operação real.
+
+⚠️ **Mas o motor compartilhado não ficou intocado.** A migração produziu correções pontuais de segurança nele, porque a GUI nova expôs caminhos que a antiga não alcançava:
+
+- **guarda de posição aberta no `UI_COMMAND_LOAD_PROFILE`**, com a leitura de posição sincronizada **antes** de decidir (o cache `m_positionState` pode estar atrasado). Sem ela, carregar um perfil com operação em gerenciamento trocava a configuração ativa — inclusive o `Magic`, que é como o EA reconhece as próprias ordens;
+- **`UI_COMMAND_RESTORE_ACTIVE_PROFILE`**, verbo novo e aditivo: "voltar ao que eu já tinha" era indistinguível de "adotar outro perfil" e herdava recusas que existem só para o segundo caso;
+- `debugLogs` saiu do arquivo de perfil e voltou a ser governado pelo `input`.
 
 - `GUI_2000_PLANO.md`: o plano da migração — o porquê, as regras técnicas descobertas na prática, as dívidas aceitas (seção 6) e as lições (seção 8). **É a fonte; os demais são recortes.**
 - `GUI_2000_FASE3_TESTES.md`: o roteiro de aceite do painel novo, executado com 88 passos. Documento histórico — descreve o ambiente de dois `.ex5`, que a Fase 4 desfez.
