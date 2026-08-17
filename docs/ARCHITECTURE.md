@@ -273,11 +273,16 @@ Continuam valendo, agora por motivo proprio e nao por heranca:
 
 ⚠️ **Mas o `Status` nao e o unico lugar onde um aviso aparece, e nao deve ser.** Um aviso que so existe dentro de uma aba nao e lido por quem esta em outra — foi um achado do aceite da Fase 3, com a formulacao "a aba ficou vermelha nao conta quando o usuario esta em outra aba". A GUI 2.0 tem tres niveis, com papeis distintos:
 
-- **faixa de motivo no cabecalho** — resumo global, sempre visivel, resolvido uma vez por quadro em `ResolveHeaderActionState()`. Diz a **acao** ("Habilite para iniciar"), nao so a condicao, e o distintivo ao lado diz o **estado** (`BLOQUEADO`/`IMPEDIDO`/`OPERANDO`/`RODANDO`/`PAUSADO`), nunca a causa;
+- **faixa de motivo no cabecalho** — resumo global, sempre visivel, resolvido uma vez por quadro em `ResolveHeaderActionState()`. Carrega **dois tipos de conteudo, e a ordem entre eles importa**:
+  1. **acao**, quando ha uma ("Habilite para iniciar") — tem prioridade, porque responde algo que o usuario acabou de perguntar com o cursor;
+  2. **informacao**, quando a faixa estaria vazia — a causa da restricao de entradas, ou o aviso de DD armado. ⚠️ Informacao **nao empurra instrucao para fora da tela**: com posicao aberta, por exemplo, a faixa fica com `POSICAO ABERTA` e a causa da restricao **nao aparece nela** — vai para o `Status`, apontada pelo marcador;
+- **distintivo** ao lado — diz o **estado** (`BLOQUEADO`/`IMPEDIDO`/`OPERANDO`/`SEM ENTRADAS`/`RODANDO`/`PAUSADO`), nunca a causa;
 - **card critico** — o que nao pode esperar a navegacao;
-- **marcador vermelho na aba e na subaba** — a cadeia de erro, que leva do topo ate o campo.
+- **duas marcacoes de aba, com significados diferentes e que nao se misturam**:
+  - **vermelho** na aba e na subaba — a **cadeia de validacao**, que leva do topo ate o campo invalido;
+  - **ambar** na aba `Status`, em forma propria — **marcador operacional**: ha algo acontecendo cujo detalhe esta la. Nao e erro de configuracao, e nao aponta para campo nenhum.
 
-A regra que liga os tres: **a faixa responde "sei o que fazer agora?"**, o `Status` responde "por que exatamente?". Texto neutro que descreve a condicao sem dizer o que fazer foi corrigido tres vezes na migracao, e uma delas eu tinha introduzido ao consertar uma contradicao — joguei fora a acao junto com o erro.
+A regra que liga tudo: **a faixa responde "sei o que fazer agora?"**, o `Status` responde "por que exatamente?". Texto neutro que descreve a condicao sem dizer o que fazer foi corrigido tres vezes na migracao, e uma delas eu tinha introduzido ao consertar uma contradicao — joguei fora a acao junto com o erro.
 
 Fonte unica obrigatoria: botao, faixa, distintivo, marcador da aba `Status` e card critico leem **uma** resposta, do mesmo resolvedor. Predicados paralelos para a mesma pergunta divergem — foi por isso que `AccCanStart()` e `AccCanPause()` foram removidos, e a escada do resolvedor passou a **ser** o predicado.
 

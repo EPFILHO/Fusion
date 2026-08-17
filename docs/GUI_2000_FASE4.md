@@ -263,26 +263,53 @@ destes estados visto em execucao**. O `H4` provou a recusa do CARREGAR, que e
 outra coisa. Estes passos dependem de estados que o mercado produz, entao valem
 como roteiro a cumprir ao longo dos proximos pregoes, e nao numa sentada.
 
-- [ ] **R1. DD armado.** Meta do dia batida com `ATIVAR DD`: distintivo segue
-  **`RODANDO`** (verde) e a faixa mostra **`DD ATIVO — parametros protegidos;
-  perfil incompativel nao pode ser carregado`** em ambar.
+⚠️ **R1, R2 e R4 exigem o EA INICIADO e SEM POSICAO ABERTA.** Com posicao aberta
+o distintivo diz `OPERANDO` — corretamente, por precedencia — e o passo pareceria
+falhar quando o painel esta certo. R3 e justamente o caso com posicao.
+
+- [ ] **R1. DD armado** *(iniciado, sem posicao)*. Meta do dia batida com
+  `ATIVAR DD`: distintivo segue **`RODANDO`** (verde) e a faixa mostra
+  **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
+  carregado`** em ambar.
   ⚠️ Distintivo **`SEM ENTRADAS` aqui e ERRO**: com o DD apenas armado as
   entradas seguem permitidas ate o piso.
-- [ ] **R2. DD atingido.** O projetado toca o piso: distintivo vira
-  **`SEM ENTRADAS`** em ambar, a faixa diz **`DRAWDOWN — ...`** e o `Status`
-  mostra a mesma frase. Conferir que os dois **nao discordam**.
-- [ ] **R3. Posicao aberta durante a restricao.** Com R2 valendo e uma posicao em
-  gerenciamento, o distintivo tem de dizer **`OPERANDO`**, nao `SEM ENTRADAS` —
-  ha dinheiro exposto agora, e esse e o estado mais especifico verdadeiro. A
-  causa desce para a faixa.
-- [ ] **R4. Uma restricao que passa sozinha.** Sessao fora da janela, ou janela
-  de noticia, ou pausa de sequencia: distintivo `SEM ENTRADAS` com a causa certa
-  na faixa **e a liberacao acontecendo sozinha** quando a condicao termina — sem
-  precisar de clique. ⚠️ Este e o passo que pega restricao que nao se desarma.
+- [ ] **R2. DD atingido** *(iniciado, sem posicao)*. O projetado toca o piso:
+  distintivo vira **`SEM ENTRADAS`** em ambar, a faixa diz **`DRAWDOWN — ...`** e
+  o `Status` mostra a mesma frase. Conferir que os dois **nao discordam**.
+- [ ] **R3. Restricao COM posicao aberta.** Encenar com **filtro de sessao ligado,
+  `Fechar na sessao` DESLIGADO, e o horario fora da janela** — ou com uma janela
+  de noticia configurada so para bloquear entradas —, mantendo uma posicao em
+  gerenciamento. **Esperado:** distintivo **`OPERANDO`**; a faixa **continua
+  explicando a posicao aberta** (`POSICAO ABERTA — ...`); **marcador ambar** na
+  aba `Status`; e a causa da restricao detalhada **dentro do `Status`**.
+
+  > ⚠️ **A faixa NAO mostra a causa aqui, e isto e o comportamento correto** — a
+  > restricao so ocupa a faixa quando ela esta livre, e a posicao aberta ja a
+  > ocupa. Quem garante que a causa nao se perde e o marcador.
+  >
+  > ⚠️ **E NAO usar "DD atingido + posicao aberta" para este passo.**
+  > `DrawdownProtection::ShouldForceClose` devolve `true` assim que
+  > `m_limitReached` liga, entao o motor pede o fechamento na hora: o estado se
+  > desfaz sozinho e o passo vira uma corrida contra o EA. Sessao com
+  > `Fechar na sessao` desligado nao fecha posicao — conferido em
+  > `SessionProtection::ShouldForceClose`, que sai cedo sem essa chave.
+- [ ] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
+  fora da janela, ou janela de noticia, ou pausa de sequencia: distintivo
+  `SEM ENTRADAS` com a causa certa na faixa **e a liberacao acontecendo sozinha**
+  quando a condicao termina — sem precisar de clique. ⚠️ Este e o passo que pega
+  restricao que nao se desarma.
 - [ ] **R5. EA pausado.** Com qualquer restricao valendo, PAUSAR o EA: o
   distintivo tem de dizer **`PAUSADO`**, e nao `SEM ENTRADAS` — parado, ninguem
   espera entrada. A faixa de **DD armado**, essa, **continua aparecendo**, de
   proposito: e o estado em que o usuario vai a aba Perfis e leva a recusa.
+
+> ⚠️ **A primeira versao do R3 estava ERRADA, e ficou registrado porque o erro se
+> repete.** Ela mandava usar DD atingido com posicao aberta e afirmava que "a
+> causa desce para a faixa" — as duas coisas contrariam o codigo, e eu as escrevi
+> RACIOCINANDO em vez de conferir. E a licao da Fase 3 outra vez: **receita de
+> teste que eu escrevo tem de ser executada, ou ao menos lida contra a fonte,
+> nunca deduzida.** Um passo impossivel gasta a rodada do testador e, pior,
+> ensina a desconfiar do painel certo.
 
 ## 7. Dividas de projeto, inalteradas
 
