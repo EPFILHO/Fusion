@@ -915,7 +915,7 @@ se a resposta for nao, e defeito mesmo que a frase esteja correta.
 
 ### J. Comparacao lado a lado
 
-- x ] **J1.** `Fusion` num grafico e `FusionCanvas` em outro, **mesmo simbolo,
+- [x] **J1.** `Fusion` num grafico e `FusionCanvas` em outro, **mesmo simbolo,
       perfis e Magic diferentes**, os dois pausados.
       **Esperado:** as duas telas concordam sobre o que descrevem.
 - [x] **J2.** Trocar o EA de um grafico (remover um, anexar o outro).

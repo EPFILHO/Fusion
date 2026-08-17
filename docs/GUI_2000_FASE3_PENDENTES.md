@@ -1,7 +1,7 @@
 # Fase 3 — fechamento e o que ficou de fora
 
-**ENCERRADA em 2026-08-16**, HEAD `c7312fd`+, arvore limpa, gate 0/0 nos seis
-alvos. `docs/GUI_2000_FASE3_TESTES.md` fechou com **86 passos marcados**.
+**ENCERRADA em 2026-08-16**, HEAD `1bb6bf2`+, arvore limpa, gate 0/0 nos seis
+alvos. `docs/GUI_2000_FASE3_TESTES.md` fechou com **88 passos marcados**.
 
 ---
 
@@ -55,16 +55,6 @@ migracao, e o codigo daquele ramo **nao foi tocado** pela 2.0. O que o `H4`
 verificaria e a mensagem chegando a tela nova. Nao e o caminho de nenhum dos
 defeitos encontrados nesta fase.
 
-### `G7` — conferir e marcar
-
-> Duplicar um perfil compativel, com nome sugerido livre — o caso limpo, em que o
-> rodape fica vazio. Esperado: o conteudo rola ate CRIAR COPIA e DESCARTAR.
-
-Trinta segundos, sem preparo. **Vale fazer antes de encerrar de fato**, porque e
-o passo que confere a correcao da rolagem que o proprio usuario reportou: ate
-2026-08-14 o gatilho exigia caixa de aviso presente, e este caso nao tem
-nenhuma — o campo Magic abre vazio, e campo por preencher nao e erro.
-
 ### A matriz `I2` continua sem marcacao — divida do documento
 
 `I2.1` a `I2.19` e uma **tabela**, nao lista de caixas: so o `I2.13` e o `I2.14`
@@ -94,7 +84,7 @@ so funciona enquanto quem conferiu esta na sala.
 
 **Proximo passo: Fase 4** — remocao do painel antigo. Saem o painel classico, o
 harness e o `FusionCanvas.mq5`; o `Fusion.mq5` volta a ser o unico EA, ja com o
-painel novo. O plano condiciona a fase a "confianca no novo", e e isso que os 86
+painel novo. O plano condiciona a fase a "confianca no novo", e e isso que os 88
 passos compraram.
 
 ---
