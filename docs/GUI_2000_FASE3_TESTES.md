@@ -1,5 +1,16 @@
 # Fase 3 — roteiro de aceite do painel em canvas
 
+> ⚠️ **DOCUMENTO HISTORICO — executado e encerrado em 2026-08-16, com 88 passos
+> marcados.** Ele descreve o ambiente da Fase 3, quando os dois paineis conviviam
+> em dois `.ex5`. **A Fase 4 removeu o painel classico e o `FusionCanvas.ex5`**
+> (ver `GUI_2000_FASE4.md`), entao onde se le "anexe o `FusionCanvas`" hoje se le
+> **`Fusion`**, que e o unico EA e ja traz o painel novo; e os passos que comparam
+> os dois lado a lado (bloco J) so sao reexecutaveis voltando ao commit `5f9524a`.
+>
+> **O texto abaixo nao foi reescrito de proposito.** Um roteiro de aceite e o
+> registro do que foi conferido e em que condicoes; reescrever as condicoes depois
+> do fato apagaria a evidencia. O unico passo que ficou sem executar e o `H4`.
+
 Este documento existe por um motivo especifico, e nao por formalidade.
 
 A Etapa 2c/2d fechou com oito rodadas de revisao, e **tudo o que saiu delas vive

@@ -1106,9 +1106,10 @@ SHeaderAction ResolveHeaderActionLadder(void)
 //| antes de decidir. Esta camada existe para o botao nem acender —   |
 //| aquela, para que nenhum emissor do comando escape.                |
 //|                                                                   |
-//| A 1.058 nao foi alterada e ainda acende o botao nesse estado. Nao |
-//| e mais perigoso: o comando chega ao motor e volta recusado, com o |
-//| motivo no log. A incoerencia visual dela morre na Fase 4.         |
+//| A 1.058 nao foi alterada e acendia o botao nesse estado — sem     |
+//| perigo, porque o comando chegava ao motor e voltava recusado. A   |
+//| Fase 4 removeu aquele painel, e essa incoerencia foi com ele; a   |
+//| guarda do motor fica, que e a que protege o COMANDO.              |
 //+------------------------------------------------------------------+
 bool AccCanLoadProfile(void)
   {

@@ -52,9 +52,11 @@ Hoje ela permite:
 - criar perfis novos;
 - duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
 - validar risco, protecoes, estrategias, filtros e Magic com feedback visual e marcadores vermelhos nas abas;
-- configurar os timeframes operacionais dos modulos em `STRATS` e `FILTERS` com `ComboBox`;
-- manter avisos operacionais persistentes na aba `STATUS`.
-- refletir bloqueios de protecao ativos na `STATUS`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
+- configurar os timeframes operacionais dos modulos em `Estrategias` e `Filtros` com combo;
+- manter avisos operacionais persistentes na aba `Status`;
+- refletir bloqueios de protecao ativos no `Status`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
+
+⚠️ **A GUI que o EA constroi hoje e a 2.0, desenhada em `CCanvas`** — a Fase 4 da migracao removeu o painel classico, que era baseado na biblioteca `Controls`. A organizacao das abas mudou nessa troca: o nivel 1 agora e `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`, e a antiga aba `CONFIG` deixou de existir (Risco e Protecao foram para `Gestao`; aparencia, para `Layout`; `Magic Number`, para `Perfis`). O [Manual do Usuario](docs/USER_MANUAL.md) ainda descreve a GUI da 1.057 e **nao foi atualizado para a 2.0** — o raciocinio de cada divergencia esta na secao 6 de [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md).
 
 ## Manual do Usuario
 
@@ -81,15 +83,15 @@ Ordem usada pelo script:
 1. `VisualIndicators/FusionVisualMA.mq5`;
 2. `VisualIndicators/FusionVisualBands.mq5`;
 3. `VisualIndicators/FusionVisualRSI.mq5`;
-4. `Prototype/FusionCanvasPhase1.mq5` — harness de desenvolvimento da GUI 2.0. Nao opera e nao e distribuido; esta no gate porque compila os modulos de `UI/Canvas/`;
-5. `Fusion.mq5` — o EA, com o painel classico. **E este o alvo de producao**;
-6. `FusionCanvas.mq5` — o **mesmo** EA com a GUI 2.0 em canvas, em avaliacao.
+4. `Fusion.mq5` — o EA. **E o unico alvo de producao, e o unico EA do projeto.**
 
-Os dois ultimos compartilham todo o codigo: `FusionCanvas.mq5` apenas define `FUSION_USE_CANVAS_PANEL`, que em `Core/EAApplication.mqh` decide a classe do membro `m_panel`. Sem esse define — ou seja, no `Fusion.mq5` — vale o painel classico. Os handlers do terminal ficam em `Core/EAEntryPoints.mqh`, compartilhados pelos dois.
+Os indicadores vem antes porque o EA os embute por `#resource`: compilados depois, o `Fusion.ex5` carregaria a versao anterior deles.
 
-Qual painel um `.ex5` tem dentro se le no log do terminal, na inicializacao: `Painel: classico (Controls)` ou `Painel: canvas (GUI 2.0, em avaliacao)`.
+Durante a migracao da GUI havia mais dois alvos, e a Fase 4 os removeu: `Prototype/FusionCanvasPhase1.mq5`, harness que compilava os modulos de `UI/Canvas/` fora do EA, e `FusionCanvas.mq5`, o **mesmo** EA construido com o painel novo no lugar do classico, para os dois rodarem lado a lado em graficos diferentes. Com o painel classico removido nao ha mais o que comparar: o `Fusion.mq5` voltou a ser o unico EA, ja com a GUI 2.0 dentro. Os handlers do terminal continuam em `Core/EAEntryPoints.mqh`, extraidos quando havia dois `.mq5` para nao existirem duas copias capazes de divergir em silencio.
 
-O plano da migracao esta em [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md); o roteiro de aceite do painel novo, em [docs/GUI_2000_FASE3_TESTES.md](docs/GUI_2000_FASE3_TESTES.md).
+Qual painel um `.ex5` tem dentro se le no log do terminal, na inicializacao: `Painel: canvas (GUI 2.0)`.
+
+O plano da migracao esta em [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md); o roteiro de aceite do painel novo, em [docs/GUI_2000_FASE3_TESTES.md](docs/GUI_2000_FASE3_TESTES.md); o fechamento da remocao, em [docs/GUI_2000_FASE4.md](docs/GUI_2000_FASE4.md).
 
 ### Projeto fora da pasta MQL5
 
@@ -155,7 +157,7 @@ Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o te
 
 Para o usuario final, distribua somente o `Fusion.ex5` produzido ao final do build. Os tres indicadores visuais ja ficam incorporados nele e nao precisam ser instalados separadamente. O arquivo deve ser copiado para `MQL5/Experts`; depois, atualize o Navegador ou reinicie o terminal.
 
-⚠️ **`FusionCanvas.ex5` nao vai para o usuario final.** E o mesmo EA com a GUI 2.0 em canvas, que ainda esta em avaliacao (Fase 3 da migracao da GUI). Ele existe para rodar ao lado do `Fusion.ex5` durante a transicao, em maquina de desenvolvimento. O `FusionCanvasPhase1.ex5`, harness de desenho, tambem nao — ele nem opera.
+O build produz um `.ex5` de EA e mais nenhum. Ate a Fase 3 havia tres, e dois deles nao podiam ser distribuidos: `FusionCanvas.ex5`, o mesmo EA com o painel em avaliacao, e `FusionCanvasPhase1.ex5`, um harness de desenho que nem operava. Os dois sairam com a Fase 4.
 
 Para desenvolvimento ou validacao de compilacao, distribua o repositorio completo e use `build.ps1`.
 

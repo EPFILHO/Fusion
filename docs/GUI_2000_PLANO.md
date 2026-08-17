@@ -747,9 +747,11 @@ usa `TryLoadProfileFromDisk`, ambos fora deste caminho.
 > ativo do grafico, sincronizar leria posicoes do simbolo **errado**. Custa uma
 > varredura por clique em CARREGAR — nao por quadro nem por tick.
 
-**A 1.058 nao foi alterada**, e nao precisa ser: com a guarda no motor, o botao
-que ela ainda acende indevidamente fica inerte e registra o motivo no log. A
-incoerencia visual dela sobrevive documentada ate a Fase 4 remove-la.
+**A 1.058 nao foi alterada**, e nao precisou ser: com a guarda no motor, o botao
+que ela acendia indevidamente ficava inerte e registrava o motivo no log. A
+incoerencia visual dela sobreviveu documentada ate a Fase 4 remover o painel
+antigo. ⚠️ **A guarda do motor fica**, e e a que importa: ela protege o comando,
+nao o botao.
 
 ### A 1.058 nao ficou literalmente congelada: dois textos do motor mudaram
 
@@ -851,9 +853,15 @@ comparados. O aceite em curso deve comparar igual com igual, e uma mudanca que
 mexe em validacao de protecao merece a propria passada de teste — nao pegar
 carona no meio de outras dez.
 
-**Fase 3 — Troca por interruptor. FEITA** (fiacao; o aceite em execucao e do
-usuario, ver `docs/GUI_2000_FASE3_TESTES.md`). Os dois paineis convivem,
-comparaveis lado a lado, com reversao imediata.
+**Fase 3 — Troca por interruptor. ENCERRADA** em 2026-08-16, com 88 passos de
+aceite executados pelo usuario (`docs/GUI_2000_FASE3_TESTES.md`). Os dois paineis
+conviveram, comparaveis lado a lado, com reversao imediata.
+
+> O que segue nesta secao descreve o mecanismo **enquanto ele existiu**. A Fase 4
+> removeu o painel antigo e, com ele, o interruptor, o segundo `.ex5` e o harness.
+> Fica escrito porque a decisao de fazer a troca em tempo de compilacao — e nao
+> por indirecao de runtime — so se justifica olhando o fim: era ela que garantia
+> que nada sobreviveria a transicao sem uso.
 
 > **Correcao (Fase 1).** A promessa original — "o EA nao muda uma linha" — estava
 > errada. `m_panel` e um `CFusionPanel` concreto em `Core/EAApplication.mqh`, e
@@ -923,7 +931,8 @@ um crash nao estao garantidas em nenhuma das duas direcoes.
 
 Junto foi uma limpeza de compatibilidade estreita — o objeto de nome exato
 `EP Fusioncanvas` e o prefixo `EP Fusionedit_` —, para as sobras que builds
-anteriores do canvas deixaram na maquina de desenvolvimento. Sai na Fase 4.
+anteriores do canvas deixaram na maquina de desenvolvimento. **Saiu na Fase 4**,
+como estava previsto: nunca deixou esta maquina e ja tinha feito o trabalho.
 
 > **Pendencia da Fase 2 FECHADA sem codigo: paleta/tema/escala nao viram input.**
 > A 2c registrou que faltava um caminho do EA ate o `CreatePanel`. Faltava — mas
@@ -1220,9 +1229,61 @@ recusa que ele confere e do MOTOR, cujo ramo de drawdown no `LOAD_PROFILE` **nao
 foi tocado** por esta migracao; o que faltou verificar e a mensagem chegando a
 tela nova. Detalhes e o custo de encena-lo em `GUI_2000_FASE3_PENDENTES.md`.
 
-**Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
+### ✅ FASE 4 ENCERRADA — 2026-08-16, o painel classico saiu
 
-A integracao acontece na fase 3, cedo e reversivel — nao no fim.
+Era a condicao escrita desde o comeco: **remocao somente depois de confianca no
+novo**, e os 88 passos da Fase 3 foram o que a comprou.
+
+**Sairam 64 arquivos e 13.068 linhas** — os 61 `.mqh` alcancaveis somente pelo
+painel antigo, o alvo `FusionCanvas.mq5` e a pasta `Prototype` (o harness da Fase
+1 e o prototipo congelado que o antecedeu). O `Fusion.mq5` voltou a ser o unico
+EA do projeto, ja com a GUI 2.0 dentro.
+
+⚠️ **A lista nao foi escrita a mao.** Foi o fecho transitivo de `#include` a
+partir do `UIPanel.mqh` menos o fecho a partir do que fica (`CanvasPanel.mqh` e
+`ChartIndicatorVisualizer.mqh`). A conferencia inversa importa tanto quanto:
+**nenhum arquivo de `UI/Canvas/` inclui coisa alguma da raiz de `UI/`**. Essa
+separacao nao apareceu agora — foi construida na Fase 2, quando `VolumeFormat`,
+`TextParse` e `SettingsNotices` foram extraidos de `PanelUtils.mqh` justamente
+para que este dia fosse uma exclusao e nao uma cirurgia.
+
+**O interruptor sumiu junto, que era o combinado.** Com uma implementacao so, o
+`#ifdef` nao tem o que escolher. Foi exatamente por isso que a Fase 1 recusou a
+indirecao de runtime: ela sobreviveria a transicao sem uso, o `#define` nao.
+
+**A fronteira encolheu.** `CreatePanel` perdeu `name`, `subwin`, `x2` e `y2` —
+nenhum era lido. Existiam porque `CFusionPanel` herdava de `CAppDialog`. Enquanto
+os dois paineis conviviam a assinatura **tinha** de ser identica nos dois lados,
+porque era ela que fazia o compilador garantir a troca; sozinha, passou a afirmar
+que o painel aceita coisas que ignora. Com `name` foram-se `FusionWindowTitle()`,
+`FusionDialogProgramName()` e `FusionHeaderTitle()`, em `Core/Version.mqh`: os
+tres so alimentavam a legenda e o cabecalho do dialogo antigo.
+
+**Decisao do usuario: nenhuma varredura das sobras do painel classico.** Os
+controles dele viviam sob nomes fixos `Fusion_*` e a casca sob um prefixo
+numerico do `CAppDialog`, e nada disso e alcancavel depois da remocao. Na troca
+normal o assunto nao existe — trocar o EA do grafico roda o `Destroy()` do que
+sai. O caso descoberto e o terminal encerrado de forma anormal com o painel
+antigo no ar, e ali as sobras se apagam uma vez pela lista de objetos do grafico.
+Escrever limpeza nova dentro da fase que existe para remover codigo seria trocar
+o problema de lugar.
+
+⚠️ **Reverter mudou de natureza aqui.** Ate a Fase 3 era trocar o EA do grafico,
+sem recompilar (`J3`). Agora e operacao de Git: **`5f9524a`**, publicado em
+`origin`, e o ultimo commit em que os dois paineis coexistem. Foi para isso que a
+branch `gui-2.0` foi publicada antes desta fase.
+
+**Pendencias que atravessaram a fase**, ambas registradas na Fase 3 e ainda
+abertas: o passo `H4` (carregar perfil com parametros de drawdown diferentes com
+a protecao **em curso**), que exige a meta do dia batida e o DD armado — estado
+que o mercado produz, nao a interface —, e a matriz `I2.1`–`I2.19` do roteiro,
+que e tabela e nao lista de caixas. Detalhes em `docs/GUI_2000_FASE4.md`.
+
+---
+
+A integracao aconteceu na fase 3, cedo e reversivel — nao no fim. Foi o que
+permitiu que a fase 4 fosse uma exclusao de arquivos com o gate em 0/0, e nao uma
+migracao.
 
 ---
 
@@ -1423,34 +1484,40 @@ garante. Segunda condicao: a raiz precisa ser **a do proprio MetaEditor**, porqu
 contra a pasta de dados dele que os `#resource` iniciados por `\` resolvem;
 `build-paths.ps1` faz esse pareamento por `origin.txt`.
 
-O gate continua sendo **0 errors, 0 warnings** nos alvos — **seis** desde a
-Fase 3: os tres indicadores, o harness `Prototype/FusionCanvasPhase1.mq5` (que
-compila os modulos de `UI/Canvas/` e por isso entra no gate) e os **dois**
-executaveis do EA, `Fusion.mq5` e `FusionCanvas.mq5`.
+O gate continua sendo **0 errors, 0 warnings** nos alvos — **quatro** desde a
+Fase 4: os tres indicadores e o `Fusion.mq5`. Os indicadores vem antes porque o
+EA os embute por `#resource`; compilados depois, o `.ex5` do EA carregaria a
+versao anterior deles.
 
-Os dois alvos do EA estao no gate porque o `#define` que os separa troca uma
-**classe inteira**: um erro que so aparece do lado do canvas nao apareceria
-compilando apenas o `Fusion.mq5`, e e exatamente esse o lado em avaliacao. A
-ordem tambem e deliberada — o alvo de producao vem primeiro, entao uma falha do
-experimental deixa o `Fusion.ex5` ja gravado e valido.
+Foram **seis** durante a Fase 3, e os dois que sairam merecem registro porque a
+razao de existirem terminou junto com a fase:
 
-O harness e o `FusionCanvas.mq5` saem quando a Fase 4 remover o painel antigo:
-naquele ponto o `Fusion.mq5` volta a ser o unico EA, ja com o painel novo.
+- `Prototype/FusionCanvasPhase1.mq5`, o harness, compilava os modulos de
+  `UI/Canvas/` fora do EA — era o que dava retorno rapido enquanto o painel novo
+  ainda nao estava ligado a nada;
+- `FusionCanvas.mq5` era o **mesmo** EA com o painel novo no lugar do antigo. Os
+  dois estavam no gate porque o `#define` que os separava trocava uma **classe
+  inteira**: um erro do lado do canvas nao apareceria compilando so o
+  `Fusion.mq5`. A ordem tambem era deliberada — o alvo de producao vinha
+  primeiro, entao uma falha do experimental deixava o `Fusion.ex5` ja gravado.
 
-⚠️ **Prova de que o interruptor faz o que diz.** Compilar `0/0` mostra que as
-duas classes tem a mesma fronteira, nao que a escolha teve efeito — e o `.ex5` e
-comprimido, entao procurar uma string dentro dele nao responde. O metodo que
-responde: **compilar o mesmo fonte com e sem o `#define`** e comparar os
-tamanhos. O alvo com o interruptor sai cerca de **230 KB menor** — a biblioteca
-`Controls` e as 14 mil linhas do painel antigo, que so entram num dos dois —, e o
-alvo **sem** ele sai do tamanho do `Fusion.ex5`.
+> ⚠️ **Como se provou, na epoca, que o interruptor fazia o que dizia.** Fica
+> registrado porque a armadilha se repete sempre que um `#define` escolhe entre
+> duas implementacoes. Compilar `0/0` mostra que as duas classes tem a mesma
+> fronteira, **nao** que a escolha teve efeito — e o `.ex5` e comprimido, entao
+> procurar uma string dentro dele nao responde (tentei; falso negativo nos dois).
+> O metodo que responde: **compilar o mesmo fonte com e sem o `#define`** e
+> comparar os tamanhos. O alvo com o interruptor saia cerca de **230 KB menor** —
+> a biblioteca `Controls` e as 13 mil linhas do painel antigo, que so entravam num
+> dos dois — e o alvo **sem** ele saia do tamanho do `Fusion.ex5`.
+>
+> Os valores absolutos nunca foram registrados de proposito: variam alguns
+> milhares de bytes entre compilacoes do mesmo codigo, e um numero exato num
+> documento vira uma constante que alguem confere e acha que quebrou. O que era
+> estavel era a **diferenca**.
 
-> Os valores absolutos **nao** ficam registrados aqui de proposito: eles variam
-> alguns milhares de bytes entre compilacoes do mesmo codigo, e um numero exato
-> num documento vira uma constante que alguem vai conferir e achar que quebrou. O
-> que e estavel e a **diferenca** e a **coincidencia com o `Fusion.ex5`**; e isso
-> que se repete para conferir.
-
-O deploy e manual: copiar o `.ex5` para `<terminal>\MQL5\Experts\`. **A partir da
-Fase 3 sao dois**, e qual esta rodando se le no log, na primeira linha que o
-painel escreve (`Painel: canvas...` ou `Painel: classico...`).
+O deploy e manual: copiar o `.ex5` para `<terminal>\MQL5\Experts\`. Voltou a ser
+**um so** com a Fase 4. A linha `Painel: canvas (GUI 2.0)`, que o painel escreve
+no log ao inicializar, continua util pelo motivo original da licao 4 da secao 8:
+ela diz qual **build** esta no ar, e um `.ex5` desatualizado ja invalidou uma
+rodada inteira de testes.

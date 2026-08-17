@@ -47,7 +47,9 @@ um estado que o mercado produz.
 primeira operacao positiva arma a protecao e o passo fica ao alcance em minutos.
 
 **Nao foi marcado de proposito.** Um passo marcado sem ter rodado mente; um passo
-pendente apenas espera. Fica como **primeira pendencia da Fase 4**.
+pendente apenas espera. **Atravessou a Fase 4 sem ser executado** — o usuario
+optou por remover o painel classico primeiro, e o passo segue aberto em
+`GUI_2000_FASE4.md`, secao 5.
 
 **O risco de deixa-lo:** baixo e delimitado. A recusa que ele confere e do
 **motor**, nao do painel — `LOAD_PROFILE` ja barrava por drawdown antes desta
@@ -72,13 +74,18 @@ so funciona enquanto quem conferiu esta na sala.
 
 ## 3. Estado para a proxima sessao
 
-- Branch **`gui-2.0` publicada em `origin`** (HEAD `9d6b2ce`), como checkpoint
-  remoto **antes** da Fase 4 — ela remove arquivos, e a partir dali a reversao
-  deixa de ser "trocar o EA do grafico" e passa a ser pelo Git. `main` no GitHub
-  segue na 1.058.
-- **O painel novo nao esta em producao.** O `Fusion.ex5` continua sendo o caminho
-  seguro, e a reversao e trocar o EA do grafico — nao depende de recompilar nada
-  (`J3`, conferido).
+> ⚠️ **Esta secao descreve o estado no fim da Fase 3. A Fase 4 ja aconteceu** —
+> ver `GUI_2000_FASE4.md`. O que segue vale como registro do ponto de partida
+> dela, e o checkpoint citado e justamente o commit para onde se volta.
+
+- Branch **`gui-2.0` publicada em `origin`** (HEAD `9d6b2ce`, depois `5f9524a`),
+  como checkpoint remoto **antes** da Fase 4 — ela remove arquivos, e a partir
+  dali a reversao deixa de ser "trocar o EA do grafico" e passa a ser pelo Git.
+  `main` no GitHub segue na 1.058.
+- **O painel novo nao estava em producao** neste ponto. O `Fusion.ex5` era o
+  caminho seguro, com o painel classico dentro, e a reversao era trocar o EA do
+  grafico, sem recompilar (`J3`, conferido). **A Fase 4 inverteu isso:** o
+  `Fusion.ex5` passou a ser o painel novo.
 - Dividas registradas na **secao 6 do `GUI_2000_PLANO.md`**, todas conscientes:
   criar perfil sempre ATIVA (a que mais encostou na tela, tres vezes),
   `ApplySettings` nao transacional, corrida de unicidade entre graficos, campo
