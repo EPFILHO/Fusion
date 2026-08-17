@@ -1,11 +1,18 @@
 //+------------------------------------------------------------------+
 //| CanvasRenderer.mqh                                                |
-//| Renderizador da GUI 2.0 em CCanvas — Fase 1: dados falsos.        |
+//| Renderizador da GUI 2.0 em CCanvas. Desenha; nao decide.          |
 //|                                                                   |
-//| Porta os padroes provados em Prototype/FusionCanvasPrototype.mq5  |
-//| para a estrutura definitiva. O prototipo permanece intocado como  |
-//| referencia. Na Fase 2 esta classe passa a ser alimentada pelo     |
-//| snapshot real e embrulhada na interface do CFusionPanel.          |
+//| Nasceu na Fase 1 portando os padroes provados em                  |
+//| Prototype/FusionCanvasPrototype.mq5 — fichario de dois niveis,    |
+//| trilho, campo nativo sobreposto, combo, grade de cores, rolagem,  |
+//| arrasto — para a estrutura definitiva. Na Fase 2 passou a ser     |
+//| alimentado pelo snapshot real; a Fase 4 apagou o prototipo e o    |
+//| harness, que ja tinham feito o trabalho deles. Estao no historico |
+//| do Git, ate o commit 5f9524a.                                     |
+//|                                                                   |
+//| Quem embrulha esta classe na fronteira que o EA usa e             |
+//| CFusionCanvasPanel (CanvasPanel.mqh): o renderizador decide o que |
+//| OFERECER, o painel decide o que ACONTECE.                         |
 //|                                                                   |
 //| Segue o idioma de UI do projeto: uma classe com muitos membros    |
 //| compartilhados, dividida em fragmentos incluidos no corpo.        |
@@ -41,8 +48,8 @@
 #include "..\..\Core\InstanceRegistry.mqh"
 #include "..\..\Core\ActiveProfileRegistry.mqh"
 //--- Parse de texto digitado. Mesmas funcoes que a 1.058 usa para decidir o
-//--- que e um numero valido — extraidas de PanelUtils para ca justamente
-//--- porque aquele arquivo arrasta a biblioteca Controls.
+//--- que e um numero valido — extraidas do PanelUtils dela para ca justamente
+//--- porque aquele arquivo arrastava a biblioteca Controls.
 #include "..\..\Core\TextParse.mqh"
 #include "CanvasTheme.mqh"
 #include "CanvasLayout.mqh"

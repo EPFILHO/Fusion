@@ -83,7 +83,7 @@
 #define FCV_COMBO_CONFLICT  8
 #define FCV_COMBO_LINESTYLE 9
 //--- Listas operacionais, com os mesmos rotulos das combos da 1.058
-//--- (UI/PanelUtils.mqh). Os textos vao para a tela do usuario: divergir aqui
+//--- (UI/PanelUtils.mqh dela). Os textos vao para a tela do usuario: divergir aqui
 //--- faria a 2.0 chamar de outro nome o que ele ja conhece.
 #define FCV_COMBO_ENTRY     10
 #define FCV_COMBO_EXIT      11

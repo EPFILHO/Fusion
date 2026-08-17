@@ -2,11 +2,12 @@
 //| TextParse.mqh                                                     |
 //| O que conta como numero digitado, e como um texto e aparado.      |
 //|                                                                   |
-//| Extraido de UI/PanelUtils.mqh na Etapa 2d, pelo mesmo motivo que  |
-//| levou VolumeFormat.mqh para ca na 2b: a validacao da GUI 2.0      |
-//| precisa recusar EXATAMENTE o que a 1.058 recusa, e PanelUtils     |
-//| arrasta a biblioteca Controls inteira — que o renderizador em     |
-//| canvas nao pode incluir.                                          |
+//| Extraido do UI/PanelUtils.mqh da 1.058 na Etapa 2d, pelo mesmo    |
+//| motivo que levou VolumeFormat.mqh para ca na 2b: a validacao da   |
+//| GUI 2.0 precisa recusar EXATAMENTE o que a 1.058 recusa, e        |
+//| PanelUtils arrastava a biblioteca Controls inteira — que o        |
+//| renderizador em canvas nao podia incluir. Aquele arquivo saiu     |
+//| desta arvore na Fase 4; esta na 1.058 e no historico.             |
 //|                                                                   |
 //| A alternativa era uma segunda copia das regras de parse. Ela      |
 //| divergiria sem quebrar o build: "12a" seria recusado num painel e |

@@ -2,10 +2,12 @@
 //| SettingsNotices.mqh                                               |
 //| Avisos derivados apenas de SEASettings.                           |
 //|                                                                   |
-//| Extraido de UI/PanelUtils.mqh porque o painel 2.0 precisa das     |
-//| mesmas respostas e nao pode incluir aquele arquivo: PanelUtils    |
-//| arrasta os controles do CAppDialog, que e justamente o que a 2.0  |
-//| deixou de usar.                                                   |
+//| Extraido do UI/PanelUtils.mqh DA 1.058 porque o painel 2.0        |
+//| precisava das mesmas respostas e nao podia incluir aquele         |
+//| arquivo: PanelUtils arrastava os controles do CAppDialog, que e   |
+//| justamente o que a 2.0 deixou de usar. A Fase 4 apagou o painel   |
+//| classico, e o PanelUtils com ele — a referencia acima aponta para |
+//| a pasta Fusion-1.058 e para o historico, nao para esta arvore.    |
 //|                                                                   |
 //| Extrair, e nao copiar. Duplicar regra que decide o que o usuario  |
 //| ve foi o erro que ja nos custou combos divergentes: duas copias   |

@@ -22,9 +22,6 @@
 #include "../Normalization/SymbolNormalizer.mqh"
 #include "../Execution/ExecutionService.mqh"
 #include "../Persistence/SettingsStore.mqh"
-//--- Geometria do painel (FUSION_PANEL_LEFT/TOP/WIDTH/HEIGHT), usada na unica
-//--- chamada de CreatePanel deste arquivo.
-#include "../UI/UIPanelTypes.mqh"
 //+------------------------------------------------------------------+
 //| FASE 4 — o painel em canvas e o unico que existe.                 |
 //|                                                                   |
@@ -432,15 +429,12 @@ private:
          // no ar sem precisar abrir o log de debug.
          m_logger.Info("UI", "Painel: " + FUSION_PANEL_BUILD_NAME);
 
-         int x1 = FUSION_PANEL_LEFT;
-
+         //--- So a POSICAO inicial: o painel decide a propria largura e altura
+         //--- (FCV_PANEL_W e DecidePanelHeight), e depois do primeiro arrasto
+         //--- quem manda aqui e o estado salvo do grafico.
          if(!m_panel.CreatePanel(ChartID(),
-                                  FusionDialogProgramName(),
-                                  0,
-                                 x1,
-                                 FUSION_PANEL_TOP,
-                                 x1 + FUSION_PANEL_WIDTH,
-                                 FUSION_PANEL_TOP + FUSION_PANEL_HEIGHT,
+                                 FCV_PANEL_X,
+                                 FCV_PANEL_Y,
                                  BuildPanelSnapshot()))
            {
            m_logger.Error("UI", "Failed to create Fusion panel");

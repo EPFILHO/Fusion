@@ -214,7 +214,7 @@ int ComboItems(const int kind,string &out[])
    //--- Enquanto nada as lia, o erro era so cosmetico; ligadas ao rascunho, o
    //--- indice E o valor do enum, e cada uma gravaria o oposto do escolhido:
    //--- "Parar" viraria ATIVAR_DD, "Financeiro" viraria PERCENTUAL. Ordem
-   //--- conferida em Core/Types.mqh e nos FusionPopulate*Combo de PanelUtils.
+   //--- conferida em Core/Types.mqh e nos FusionPopulate*Combo do PanelUtils da 1.058.
    if(kind==FCV_COMBO_TARGET)     // PROFIT_ACTION_PARAR=0, ATIVAR_DD=1
      { string a[2]={"Parar","Ativar DD"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_DDTYPE)     // DD_TIPO_FINANCEIRO=0, PERCENTUAL=1

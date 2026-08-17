@@ -326,8 +326,8 @@ string ShortTF(const ENUM_TIMEFRAMES tf)
 
 //--- Estado operacional em CINCO nomes, do mais grave ao mais brando:
 //--- BLOQUEADO > IMPEDIDO > OPERANDO > RODANDO > PAUSADO. A 1.058 tem tres
-//--- (Pages/StatusPage); IMPEDIDO e OPERANDO nasceram na Fase 3, o primeiro
-//--- para separar "o EA nao pode operar por condicao externa" de "o contexto o
+//--- (no Pages/StatusPage.mqh dela); IMPEDIDO e OPERANDO nasceram na Fase 3, o
+//--- primeiro para separar "o EA nao pode operar por condicao externa" de "o contexto o
 //--- travou", e o segundo porque era rotulo de botao e estado pertence aqui.
 //--- A ordem e a regra: se o EA esta impedido de operar, dizer que ele esta
 //--- rodando seria a pior informacao possivel nesta linha.

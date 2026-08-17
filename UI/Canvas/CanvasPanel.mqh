@@ -601,8 +601,23 @@ public:
      }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.
-   bool              CreatePanel(const long chartId,const string name,const int subwin,
-                                 const int x1,const int y1,const int x2,const int y2,
+   //+------------------------------------------------------------------+
+   //| ⚠ A assinatura ENCOLHEU na Fase 4: sairam name, subwin, x2 e y2.  |
+   //|                                                                   |
+   //| Os quatro existiam por causa de CFusionPanel, que herdava de      |
+   //| CAppDialog: `name` era a legenda do dialogo, `subwin` a           |
+   //| subjanela, e x2,y2 fechavam o retangulo. Esta classe nunca leu    |
+   //| nenhum deles — o prefixo dos objetos e FCV_OBJ_NAMESPACE, o       |
+   //| titulo e desenhado por ela, o bitmap vive sempre na janela 0, a   |
+   //| largura e FCV_PANEL_W e a altura sai de DecidePanelHeight().      |
+   //|                                                                   |
+   //| Enquanto os dois paineis conviviam a assinatura TINHA de ser      |
+   //| identica nos dois lados: era ela que fazia o compilador garantir  |
+   //| a troca (secao 5 do plano). Com um painel so, manter os quatro    |
+   //| seria afirmar que o painel aceita coisas que ele ignora.          |
+   //+------------------------------------------------------------------+
+   bool              CreatePanel(const long chartId,
+                                 const int x,const int y,
                                  const SUIPanelSnapshot &snapshot)
      {
       m_snapshot=snapshot;
@@ -657,11 +672,11 @@ public:
       //| Petroleo/Automatico sao, entao, o padrao de fabrica: valem uma |
       //| vez, ate a primeira escolha na aba Layout.                     |
       //+---------------------------------------------------------------+
-      //--- O `name` do EA NAO vai como prefixo (ver FCV_OBJ_NAMESPACE). Ele
-      //--- continua na fronteira porque o painel classico o usa como legenda
-      //--- do CAppDialog; o canvas escreve o proprio titulo e nao precisa dele.
+      //--- O prefixo dos objetos e uma constante nossa (FCV_OBJ_NAMESPACE), e nao
+      //--- um nome vindo do EA: nenhum objeto do grafico comeca por "Fusion2", em
+      //--- nenhuma direcao, e e isso que mantem a limpeza estreita.
       m_created=m_renderer.Create(chartId,FCV_OBJ_NAMESPACE,FUSION_CANVAS_THEME_AUTO,
-                                  FUSION_PALETTE_PETROLEO,true,x1,y1);
+                                  FUSION_PALETTE_PETROLEO,true,x,y);
       if(m_created)
         {
          RefreshProfiles();

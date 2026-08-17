@@ -2,7 +2,9 @@
 //| CanvasLayout.mqh                                                  |
 //| Geometria da GUI 2.0. Constantes puras, sem estado.               |
 //| Prefixo FCV_ em tudo: na Fase 3 o painel novo e o antigo convivem |
-//| na mesma unidade de compilacao, e nomes crus colidiriam.          |
+//| na mesma unidade de compilacao, e nomes crus colidiriam. A Fase 4 |
+//| removeu o antigo e o prefixo ficou, agora por clareza e nao por   |
+//| necessidade.                                                      |
 //+------------------------------------------------------------------+
 #ifndef __FUSION_CANVAS_LAYOUT_MQH__
 #define __FUSION_CANVAS_LAYOUT_MQH__
@@ -10,6 +12,14 @@
 #define FCV_PANEL_W        590
 #define FCV_PANEL_H_MIN    560
 #define FCV_PANEL_H_MAX    900
+//--- Onde o painel nasce no grafico, em pixels do grafico. Vieram de
+//--- UI/UIPanelTypes.mqh (FUSION_PANEL_LEFT/TOP), que a Fase 4 apagou junto com
+//--- o painel classico: e a POSICAO inicial, e posicao de painel e geometria de
+//--- painel. Nao ha largura nem altura ao lado delas de proposito — o painel as
+//--- decide sozinho (FCV_PANEL_W e DecidePanelHeight), e depois do primeiro
+//--- arrasto quem manda na posicao e o estado salvo do grafico.
+#define FCV_PANEL_X         10
+#define FCV_PANEL_Y         20
 //--- Quanto do painel tem de sobrar dentro do grafico ao arrasta-lo para a
 //--- direita. Mede a faixa da ESQUERDA, que e a que fica visivel nesse sentido:
 //--- 160 unidades cobrem "EP Fusion 2.000" e area de arrasto de sobra. Os tres
