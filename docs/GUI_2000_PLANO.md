@@ -1201,6 +1201,25 @@ nao der para correlacionar a linha do log com o clique que a causou, a divida
 deixa de ser conforto e passa a atrapalhar o proprio diagnostico — e sobe de
 prioridade.
 
+### ✅ FASE 3 ENCERRADA — 2026-08-16, 86 passos do roteiro marcados
+
+O aceite em execucao terminou. **Os blocos D e E, que eram a razao de a fase
+existir, foram executados e aprovados** — os caminhos em que a gravacao falha,
+que nunca tinham rodado fora do compilador.
+
+⚠️ **A fiacao foram tres commits; todo o resto saiu do usuario testando em grafico
+real.** Quase nenhum daqueles achados apareceria pelo harness, que dirige o
+renderizador direto e nao alcanca o caminho de volta. Foi essa proporcao que
+validou a decisao de fazer a Fase 3 antes de seguir.
+
+**Fica de fora, por decisao registrada: o `H4`** (carregar perfil com DD diferente
+com a protecao de drawdown EM CURSO). Exige a meta do dia batida e o DD armado —
+estado que o mercado produz, nao a interface. **Nao foi marcado de proposito:**
+passo marcado sem ter rodado mente, pendente apenas espera. Risco delimitado — a
+recusa que ele confere e do MOTOR, cujo ramo de drawdown no `LOAD_PROFILE` **nao
+foi tocado** por esta migracao; o que faltou verificar e a mensagem chegando a
+tela nova. Detalhes e o custo de encena-lo em `GUI_2000_FASE3_PENDENTES.md`.
+
 **Fase 4 — Remocao do painel antigo**, somente depois de confianca no novo.
 
 A integracao acontece na fase 3, cedo e reversivel — nao no fim.

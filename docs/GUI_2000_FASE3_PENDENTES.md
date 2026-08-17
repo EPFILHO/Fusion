@@ -1,156 +1,103 @@
-# Fase 3 — o que falta, e quanto custa cada um
+# Fase 3 — fechamento e o que ficou de fora
 
-Retrato de **2026-08-16**, HEAD `c7312fd`, arvore limpa, gate 0/0 nos seis alvos.
-
-`docs/GUI_2000_FASE3_TESTES.md` esta com **77 passos marcados e 12 pendentes**.
-Os blocos **D e E — a razao de a Fase 3 existir — estao inteiros e aprovados**:
-sao os caminhos em que a gravacao FALHA, que nunca tinham rodado fora do
-compilador.
-
-Este documento existe porque "faltam 12" nao diz o que interessa. Alguns custam
-trinta segundos e outros exigem uma posicao aberta pelo EA numa conta real.
+**ENCERRADA em 2026-08-16**, HEAD `c7312fd`+, arvore limpa, gate 0/0 nos seis
+alvos. `docs/GUI_2000_FASE3_TESTES.md` fechou com **86 passos marcados**.
 
 ---
 
-## 1. ⚠️ A conta nao e 12 — a matriz I2 nao tem marcacao
+## 1. O que a fase entregou
 
-A tabela **I2.1 a I2.19** (secao "Cabecalho: por que a acao nao esta disponivel")
-e uma **tabela**, nao uma lista de caixas. So o `I2.13` e o `I2.14` viraram
-passos marcaveis; **os outros 17 estados nao tem `[ ]` nenhum** e portanto nao
-entram na contagem.
+O interruptor de compilacao (`FUSION_USE_CANVAS_PANEL`), o sexto alvo
+(`FusionCanvas.mq5`) e os handlers compartilhados (`Core/EAEntryPoints.mqh`)
+foram **tres commits**. Todo o resto saiu do usuario executando o painel em
+grafico real, com auditoria externa revisando cada entrega.
 
-Nao e a mesma numeracao do bloco I (`I1`…`I6`) — o rotulo `I2` aparece com dois
-sentidos no roteiro, e isso confunde. Fica registrado como divida do documento.
+⚠️ **Foi essa proporcao que validou a decisao de fazer a Fase 3 antes de seguir.**
+Quase nenhum dos achados apareceria pelo harness: ele dirige o renderizador
+direto e nao alcanca o caminho de volta — clique, comando, EA, disco, resposta.
 
-**Consequencia pratica:** dos 17 estados da matriz, **seis exigem posicao aberta**
-(I2.11, I2.12, I2.15, I2.17, I2.18, I2.19) e caem na mesma dificuldade do `I6`
-abaixo. Se eles ja foram conferidos ao longo do aceite, vale marcar; se nao,
-entram na lista de custo alto.
+**Os blocos D e E — a razao de a fase existir — foram executados e aprovados.**
+Sao os caminhos em que a gravacao FALHA (`D2`, `E4`–`E7`), que ate entao nunca
+tinham rodado fora do compilador. Junto com eles passaram o rollback da criacao
+falhada, a conferencia da gravacao em disco, `m_notSaved` e a politica de
+conflito na recarga.
 
----
-
-## 2. Os 12, agrupados pelo que exigem
-
-O agrupamento **e** o plano de execucao: cada bloco e uma sentada.
-
-### Sessao A — dois graficos, tudo numa vez (8 dos 12)
-
-Monte `FusionCanvas` em dois graficos do mesmo simbolo e resolva:
-
-| Passo | O que e |
-|---|---|
-| `H1b` | peer lock + pendencia: CARREGAR outro perfil, e o EA vence com aviso |
-| `H5.6` | armar EXCLUIR e criar o peer lock pelo outro grafico — a confirmacao cai sozinha |
-| `I5` | Magic repetido do perfil **ativo** tambem bloqueia o INICIAR |
-| `I2.13` | marcador **ambar** na aba Status (nos casos I2.2 e I2.10; o I2.12 fica para a Sessao C) |
-| `J1` | os dois paineis lado a lado concordam sobre o que descrevem |
-| `J2` | trocar o EA de um grafico nao deixa objeto do painel anterior |
-| `J3` | reverter para producao — remover o canvas, anexar o `Fusion` |
-| `I6` | ⚠️ **so com posicao aberta — ver secao 3** |
-
-O `H5.6` tem um caminho **(b)** que dispensa mexer em arquivo: carregar, no outro
-grafico, o perfil que este tem ativo. E o mais barato.
-
-### Sessao B — um grafico, com preparo de disco (2)
-
-| Passo | O que e |
-|---|---|
-| `H5.7` | ⚠️ **o mais importante que sobrou.** Arquivo do ativo fora **+** gravacao presa pelo `.tmp` (receita 1.5). Prova que a trava do perfil orfao nao virou beco: os botoes tem de VOLTAR quando o SALVAR falha |
-| `G7` | duplicar um perfil compativel, com nome livre — o caso limpo, sem caixa de aviso. Trinta segundos |
-
-A receita do `.tmp` do `H5.7` e a **mesma** ja usada no `D2` e no `E4`, entao o
-mecanismo esta dominado.
-
-### Sessao C — estado caro (2, e sao os que doem)
-
-| Passo | O que e | Por que custa |
-|---|---|---|
-| `H4` | carregar perfil com DD diferente **com a protecao de drawdown em curso** | exige a meta do dia BATIDA e o DD armado — ou seja, negociacao real que fecha no lucro |
-| `I6` | posicao aberta **e** perfil preso por outro grafico: CARREGAR tem de ficar apagado | exige **posicao aberta pelo EA** e dois graficos |
-
-### Fora dos grupos — tedioso, nao dificil (1)
-
-`I2.14` — geometria nas **tres escalas** (Menor/Padrao/Maior) e num **grafico
-baixo**, percorrendo as sete abas. Sem preparo nenhum, mas e o passo mais longo
-do roteiro: reserve uns 20 minutos e faca com calma, porque e o unico que olha o
-desenho e nao o comportamento.
+**O achado com consequencia de dinheiro** foi o `AccCanLoadProfile` devolvendo
+`true` no peer lock antes de olhar `hasPosition`, com o motor sem guarda de
+posicao aberta no `LOAD_PROFILE`: CARREGAR trocava a configuracao ativa —
+inclusive o Magic — com uma operacao em gerenciamento. Corrigido nos dois niveis
+e conferido pelo `I6`.
 
 ---
 
-## 3. Sim, ha um pior que o H4: o `I6`
+## 2. O que ficou de fora, por escrito
 
-Voce perguntou se algum outro e tao dificil quanto o `H4`. **E o `I6`, e ele e
-pior**, por tres razoes somadas:
+### `H4` — NAO EXECUTADO, por decisao registrada
 
-**1. A posicao tem de ser do EA.** Nao adianta abrir a mao: o Fusion so reconhece
-como sua a posicao cujo `POSITION_MAGIC` bate com o Magic do perfil
-(`ExecutionService.mqh:403`). Uma ordem aberta manualmente entra com magic 0 e o
-painel a ignora. **A posicao precisa ter sido aberta pelo proprio EA**, ou seja,
-o EA tem de rodar e a estrategia tem de disparar.
+> Com protecao de drawdown **em curso**, carregar um perfil de parametros de DD
+> diferentes. Esperado: recusa com a mensagem de drawdown.
 
-**2. Ele colide com a regra de seguranca do proprio roteiro.** A secao 1.1 diz,
-em maiusculas, **"Nao rode com posicao aberta"** e **"Use conta DEMO"**. As
-capturas desta fase mostram `GenialInvestimentos-PRD`. Executar o `I6` na conta
-que aparece nelas contraria as duas linhas.
+**Por que ficou:** exige a meta do dia **batida** e o DD **armado** — ou seja,
+negociacao real que fecha no lucro. Nao e um estado que se monta na interface; e
+um estado que o mercado produz.
 
-**3. Precisa dos dois ao mesmo tempo** — posicao aberta **e** peer lock, o que
-significa segundo grafico montado antes de a posicao abrir e mantido enquanto ela
-durar.
+**O que o custo seria:** conta DEMO, lote minimo, estrategia de disparo rapido
+(cruzamento de medias curtas em M1) e `Max Ganho` no menor valor aceito, com
+`Limites Diarios` ligados, acao **ATIVAR DD** e `Drawdown` ligado. Assim a
+primeira operacao positiva arma a protecao e o passo fica ao alcance em minutos.
 
-⚠️ **E o `I6` e o passo cuja falha e mais grave de todos os que sobraram**: ele
-confere que CARREGAR fica APAGADO com posicao aberta. Se ele acender, o clique
-trocaria a configuracao — **inclusive o Magic** — com uma operacao em
-gerenciamento. Foi o unico achado desta migracao com consequencia de dinheiro, e
-o `I6` e o teste dele.
+**Nao foi marcado de proposito.** Um passo marcado sem ter rodado mente; um passo
+pendente apenas espera. Fica como **primeira pendencia da Fase 4**.
 
-**As seis linhas da matriz I2 que exigem posicao** (I2.11, I2.12, I2.15, I2.17,
-I2.18, I2.19) estao na mesma situacao. E duas delas sao piores ainda: **I2.18 e
-I2.19 vivem na janela entre fechar a posicao e o historico confirmar** — poucos
-segundos, so visiveis olhando o painel no instante de um fechamento.
+**O risco de deixa-lo:** baixo e delimitado. A recusa que ele confere e do
+**motor**, nao do painel — `LOAD_PROFILE` ja barrava por drawdown antes desta
+migracao, e o codigo daquele ramo **nao foi tocado** pela 2.0. O que o `H4`
+verificaria e a mensagem chegando a tela nova. Nao e o caminho de nenhum dos
+defeitos encontrados nesta fase.
 
----
+### `G7` — conferir e marcar
 
-## 4. O que torna os caros baratos
+> Duplicar um perfil compativel, com nome sugerido livre — o caso limpo, em que o
+> rodape fica vazio. Esperado: o conteudo rola ate CRIAR COPIA e DESCARTAR.
 
-Uma unica preparacao destrava `H4`, `I6` e as seis linhas da matriz de uma vez:
+Trinta segundos, sem preparo. **Vale fazer antes de encerrar de fato**, porque e
+o passo que confere a correcao da rolagem que o proprio usuario reportou: ate
+2026-08-14 o gatilho exigia caixa de aviso presente, e este caso nao tem
+nenhuma — o campo Magic abre vazio, e campo por preencher nao e erro.
 
-**Uma conta DEMO, num ativo que se mexe, com o EA configurado para disparar
-rapido.** Concretamente:
+### A matriz `I2` continua sem marcacao — divida do documento
 
-- **conta DEMO** — resolve a objecao (2) do `I6` e obedece a secao 1.1;
-- **lote minimo**, para o resultado nao importar;
-- **uma estrategia que dispara com frequencia** (cruzamento de medias curtas em
-  M1, por exemplo) — assim a posicao aparece em minutos em vez de horas, e o
-  `I6`, o `I2.11/12/15/17` e a janela do `I2.18/19` vem junto;
-- **`Max Ganho` minusculo** (o menor valor aceito) com `Limites Diarios` ligados,
-  acao **ATIVAR DD** e `Drawdown` ligado — assim **a primeira operacao positiva
-  ja arma a protecao** e o `H4` fica ao alcance, sem esperar um dia de ganho de
-  verdade.
+`I2.1` a `I2.19` e uma **tabela**, nao lista de caixas: so o `I2.13` e o `I2.14`
+viraram passos marcaveis. Os outros 17 estados foram conferidos ao longo do
+aceite mas **nao tem registro individual**.
 
-Sem isso, `H4` e `I6` nao sao "dificeis": sao **indefinidos**, porque dependem de
-o mercado colaborar num ativo real.
+E o rotulo `I2` aparece com **dois sentidos** no roteiro — o item `I2` do bloco I
+(SALVAR sob peer lock) e a matriz `I2.x` do cabecalho. Confunde na leitura.
+
+**Para a Fase 4:** se a matriz sobreviver ao roteiro novo, transformar as linhas
+em caixas e renumerar. Um documento de aceite que nao registra o que foi conferido
+so funciona enquanto quem conferiu esta na sala.
 
 ---
 
-## 5. Recomendacao
+## 3. Estado para a proxima sessao
 
-**Sessao A** (dois graficos) e **Sessao B** (disco) fecham 10 dos 12 e nao pedem
-nada de mercado. Faria as duas primeiro — o `H5.7` de preferencia logo, porque e
-o que fecha a protecao do perfil orfao.
+- Branch local **`gui-2.0`**, **sem push**. `main` no GitHub segue na 1.058.
+- **O painel novo nao esta em producao.** O `Fusion.ex5` continua sendo o caminho
+  seguro, e a reversao e trocar o EA do grafico — nao depende de recompilar nada
+  (`J3`, conferido).
+- Dividas registradas na **secao 6 do `GUI_2000_PLANO.md`**, todas conscientes:
+  criar perfil sempre ATIVA (a que mais encostou na tela, tres vezes),
+  `ApplySettings` nao transacional, corrida de unicidade entre graficos, campo
+  aceso com a chave desligada, perfil com espaco no nome, e a mensagem "o motivo
+  esta no log" — esta ultima com gatilho de promocao ja escrito.
 
-**`I2.14`** entra em qualquer momento; e so tempo.
-
-**`H4` e `I6` dependem da conta demo.** Se ela nao existir hoje, a decisao honesta
-e **deixa-los pendentes por escrito** — junto das seis linhas da matriz — e nao
-marca-los. Um passo marcado sem ter rodado e pior que um passo pendente: o
-primeiro mente, o segundo apenas espera.
-
-⚠️ **O `I6` nao deveria ir para a Fase 4 sem resposta.** Ele guarda o unico
-defeito desta migracao que custava dinheiro. Se a demo nao for viavel agora, vale
-registra-lo como **condicao de entrada da Fase 4** em vez de simplesmente
-pendencia — a remocao do painel antigo pode esperar por ele.
+**Proximo passo: Fase 4** — remocao do painel antigo. Saem o painel classico, o
+harness e o `FusionCanvas.mq5`; o `Fusion.mq5` volta a ser o unico EA, ja com o
+painel novo. O plano condiciona a fase a "confianca no novo", e e isso que os 86
+passos compraram.
 
 ---
 
 Relacionado: `GUI_2000_FASE3_TESTES.md` (o roteiro), `GUI_2000_PLANO.md`
-(secao 6, dividas registradas; secao 8, licoes).
+(secao 6, dividas; secao 8, licoes).

@@ -419,7 +419,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       (mais longo, que nomeia a aba e o campo) e **o conteudo rola de novo**. A
       caixa nao sumiu no meio — foi so o texto que cresceu, e e a altura dela que
       come a area util.
-- [ ] **G7.** ⚠️ **Rolar SEM caixa de aviso nenhuma.** Duplicar um perfil
+- [x] **G7.** ⚠️ **Rolar SEM caixa de aviso nenhuma.** Duplicar um perfil
       **compativel** com o grafico, com nome sugerido livre — o caso limpo, em que
       o rodape fica vazio.
       **Esperado:** o conteudo rola ate **CRIAR COPIA** e **DESCARTAR** do mesmo
@@ -442,7 +442,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       clicar num CARREGAR que o painel nunca acende. Ele descrevia o MOTOR, nao
       o painel: `AccCanLoadProfile` termina em `!HasPending()`, e o painel e
       deliberadamente mais rigido que o EA aqui. Ver a nota no plano.
-- [ ] **H1b.** A politica do motor — "na recarga deliberada o EA vence, com
+- [x] **H1b.** A politica do motor — "na recarga deliberada o EA vence, com
       aviso" — existe e e alcancavel, mas **so sob peer lock**: ali
       `AccCanLoadProfile` devolve `true` antes de olhar a pendencia, porque
       carregar outro perfil e a saida daquele bloqueio. Com o perfil ativo preso
@@ -516,7 +516,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       **Esperado:** as acoes **nao** ficam trancadas e CARREGAR segue disponivel.
       Ali o SALVAR nem acende, e carregar outro perfil e a unica saida — trancar
       as quatro deixaria o usuario sem nenhuma.
-- [ ] **H5.6.** Armar o **EXCLUIR** num perfil qualquer e, **com a confirmacao no
+- [x] **H5.6.** Armar o **EXCLUIR** num perfil qualquer e, **com a confirmacao no
       ar**, fazer o acesso sumir sem tocar no painel. Dois caminhos servem:
       **(a)** mover o `.cfg` do **PERFIL ATIVO** — nao o do perfil que esta na
       pergunta; **(b)** mais facil, com dois graficos: carregar o **perfil ativo
@@ -536,7 +536,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       negociacao (`tradePermissionBlocked`) e nenhuma regra de acesso a perfil o
       consulta. Quem trancaria e o `runtimeBlocked`, e esse apareceria como
       **BLOQUEADO**.
-- [ ] **H5.7.** ⚠️ **A SAIDA, e o passo mais importante do bloco.** Com o arquivo
+- [x] **H5.7.** ⚠️ **A SAIDA, e o passo mais importante do bloco.** Com o arquivo
       fora **e a trava no ar**, prender tambem a gravacao (receita 1.5, no `.tmp`
       do perfil ativo) e clicar **SALVAR**.
       **Esperado:** `NAO FOI POSSIVEL SALVAR`, o cabecalho passa a
@@ -738,7 +738,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       a pergunta, responder NAO devolvia tudo ao inicio. Agora so a troca de
       IDENTIDADE da tela zera a rolagem. Entrar num formulario continua indo ao
       **fim**, nao ao topo.
-- [ ] **H6.4g.** ⚠️ **O outro lado: a tela que muda DEPOIS, pela resposta do EA.**
+- [x] **H6.4g.** ⚠️ **O outro lado: a tela que muda DEPOIS, pela resposta do EA.**
       Com o formulario rolado ate os botoes, **concluir** uma criacao (CRIAR
       PERFIL ou CRIAR COPIA com nome e Magic livres).
       **Esperado:** o formulario fecha e a lista reaparece **no topo**, nao na
@@ -784,21 +784,21 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 
 ### I. Conflito entre graficos (exige dois graficos)
 
-- [ ] **I1.** `FusionCanvas` em dois graficos, o segundo tentando carregar o
+- [x] **I1.** `FusionCanvas` em dois graficos, o segundo tentando carregar o
       perfil ativo do primeiro.
       **Esperado:** recusa nomeando o conflito. A trava e reconsultada **no
       instante do clique**, nao no desenho.
-- [ ] **I2.** Perfil ativo preso pelo outro grafico: tentar **SALVAR**.
+- [x] **I2.** Perfil ativo preso pelo outro grafico: tentar **SALVAR**.
       **Esperado:** `NAO FOI POSSIVEL SALVAR` com o motivo do registro.
-- [ ] **I3.** Nesse mesmo estado, abrir **NOVO**.
+- [x] **I3.** Nesse mesmo estado, abrir **NOVO**.
       **Esperado:** o formulario de criacao **e editavel** — criar perfil e a
       saida deliberadamente permitida desse bloqueio. Os campos do perfil
       **ativo**, esses, seguem trancados.
-- [ ] **I4.** Dois perfis **em disco** com o mesmo Magic (edite um `.cfg`).
+- [x] **I4.** Dois perfis **em disco** com o mesmo Magic (edite um `.cfg`).
       **Esperado:** a aba Perfis acende, as linhas envolvidas sao pintadas
       nomeando quem colide, e CARREGAR e bloqueado nos dois. **EXCLUIR e
       DUPLICAR seguem liberados** — sao a saida.
-- [ ] **I6.** ⚠️ **Posicao aberta com o perfil preso por outro grafico.**
+- [x] **I6.** ⚠️ **Posicao aberta com o perfil preso por outro grafico.**
       **Esperado:** **CARREGAR apagado**. A excecao que libera CARREGAR sob peer
       lock existe para dar saida ao bloqueio, mas com posicao aberta nao ha saida
       a oferecer — ha uma operacao a proteger. **Se ele acender, pare e
@@ -827,7 +827,7 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
 > so barra por reconciliacao pendente, que e outra coisa. Se algum dia a guarda
 > de posicao for movida para dentro de `ApplySettings`, ela passa a alcancar
 > este comando — e e exatamente isso que nao pode acontecer.
-- [ ] **I5.** Ainda em I4: se o repetido for o do perfil **ativo**, o INICIAR
+- [x] **I5.** Ainda em I4: se o repetido for o do perfil **ativo**, o INICIAR
       tambem bloqueia. Se forem dois perfis parados colidindo entre si, o
       INICIAR **continua liberado** — nao afetam esta conta.
 
@@ -902,12 +902,12 @@ rodando — ela nomeia a causa entre as cinco que o guard cobre **e** diz o que
 fazer. Ao conferir este passo, leia a faixa perguntando "sei o que fazer agora?";
 se a resposta for nao, e defeito mesmo que a frase esteja correta.
 
-- [ ] **I2.13.** Marcador da aba **Status** nos casos I2.2, I2.10 e I2.12.
+- [x] **I2.13.** Marcador da aba **Status** nos casos I2.2, I2.10 e I2.12.
       **Esperado:** ponto **ambar** a direita do rotulo — **nao** o vermelho de
       validacao. O vermelho promete "ha campo a corrigir nesta tela", e
       AutoTrading nao se corrige em tela nenhuma do painel.
 
-- [ ] **I2.14.** Geometria, com o cabecalho 16 unidades mais alto.
+- [x] **I2.14.** Geometria, com o cabecalho 16 unidades mais alto.
       **Esperado:** conferir nas **tres escalas** (Menor/Padrao/Maior) **e num
       grafico baixo**, onde o painel ja excede a altura disponivel. Percorrer
       todas as abas olhando: campos nativos no lugar, barra de rolagem
@@ -915,10 +915,10 @@ se a resposta for nao, e defeito mesmo que a frase esteja correta.
 
 ### J. Comparacao lado a lado
 
-- [ ] **J1.** `Fusion` num grafico e `FusionCanvas` em outro, **mesmo simbolo,
+- x ] **J1.** `Fusion` num grafico e `FusionCanvas` em outro, **mesmo simbolo,
       perfis e Magic diferentes**, os dois pausados.
       **Esperado:** as duas telas concordam sobre o que descrevem.
-- [ ] **J2.** Trocar o EA de um grafico (remover um, anexar o outro).
+- [x] **J2.** Trocar o EA de um grafico (remover um, anexar o outro).
       **Esperado:** nenhum objeto do painel anterior sobra na tela.
       **O que este passo prova, e o que nao prova:** remover o EA roda
       `Destroy()`, e e o `Destroy()` que limpa. Entao J2 exercita o caminho
@@ -926,7 +926,7 @@ se a resposta for nao, e defeito mesmo que a frase esteja correta.
       sobre sobras apos encerramento anormal. Para aquilo nao ha garantia
       cruzada: cada painel limpa os proprios objetos, e depois de um crash as
       sobras do outro podem permanecer. Ver a secao 3.
-- [ ] **J3.** Reverter para producao: remover o `FusionCanvas` e anexar o
+- [x] **J3.** Reverter para producao: remover o `FusionCanvas` e anexar o
       `Fusion`.
       **Esperado:** tudo como antes, perfis intactos. **Esta e a reversao** — ela
       nao depende de recompilar nada.
