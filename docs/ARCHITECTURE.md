@@ -224,20 +224,22 @@ A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusi
 
 A divisao de responsabilidades entre os dois e a peca central do desenho:
 
-- **o renderizador decide o que OFERECER** — desenha, publica as caixas de clique e resolve o estado visual a partir do snapshot;
-- **o painel decide o que ACONTECE** — e o unico lado que alcanca `Persistence` e os registros do terminal, e por isso reconfere cada intencao **no instante do clique**, nao no instante do desenho.
+- **o renderizador decide o que OFERECER** — desenha, publica as caixas de clique e resolve o estado visual a partir do snapshot. Ele **nao alcanca `Persistence`**: a lista de perfis chega pronta, em vetores primitivos. Os registros de concorrencia (`CInstanceRegistry`, `CActiveProfileRegistry`) ele **tambem consulta**, para desenhar — mas a leitura dele pode ter ate um segundo de idade, e por isso nao decide nada;
+- **o painel decide o que ACONTECE** — e o unico lado que alcanca `Persistence`, e reconfere **no instante do clique** as condicoes externas **pertinentes a cada operacao**, nao no instante do desenho.
 
-Entre os dois circulam **intencoes** (`UI/Canvas/CanvasIntents.mqh`), nao comandos: o renderizador publica "o usuario pediu X", e o painel traduz para `SUICommand` apenas depois de reconferir contra o disco. Duas operacoes nunca chegam ao EA — **excluir e duplicar perfil sao operacoes de disco do proprio painel**, como na 1.058.
+⚠️ **"Reconferir" nao e uniforme, e supor que fosse leva a erro nas duas direcoes.** Gravar, criar, carregar e excluir perfil dependem do disco e das travas, e sao reconferidos contra os dois. **Iniciar/pausar nao consulta nada** — e alternancia de estado do motor, e a autoridade e o EA. E o **desfazer de criacao falhada** (`FCV_INTENT_RESTORE_ACTIVE`) e deliberadamente **independente do disco**: ele carrega as configuracoes anteriores em maos porque o caso em que existe e justamente aquele em que o arquivo do perfil ativo nao esta la.
+
+Entre os dois circulam **intencoes** (`UI/Canvas/CanvasIntents.mqh`), nao comandos: o renderizador publica "o usuario pediu X", e o painel traduz para `SUICommand` — ou executa sozinho. **Excluir e duplicar perfil nunca chegam ao EA**: sao operacoes de disco do proprio painel, como na 1.058, onde o EA nao tem comando de excluir.
 
 Modulos de `UI/Canvas/`:
 
 - `CanvasTheme.mqh`, `CanvasLayout.mqh`: cores, geometria e constantes. Sem estado, prefixo `FCV_` em tudo.
 - `CanvasFields.mqh`, `CanvasForm.mqh`: identificadores de campo e o construtor declarativo de formulario (cada tela empilha linhas; a altura do cartao deriva das linhas).
-- `CanvasIntents.mqh`: os seis tipos de intencao que atravessam a fronteira renderizador -> painel.
+- `CanvasIntents.mqh`: os tipos de intencao que atravessam a fronteira renderizador -> painel. A lista esta no proprio arquivo; nao repetir a contagem aqui, que ja envelheceu uma vez (`FCV_INTENT_RESTORE_ACTIVE` entrou depois e virou a setima).
 - `CanvasRenderer.mqh`: a classe, com os fragmentos abaixo incluidos no corpo — idioma de UI do projeto.
 - `CanvasRendererPrimitives.mqh`: desenho basico e a conversao logico -> pixel (`S()`/`L()`).
 - `CanvasRendererChrome.mqh`: cabecalho, abas, trilho e a **camada de acesso** (quem pode iniciar, salvar, carregar, criar, excluir).
-- `CanvasRendererScreens.mqh`, `CanvasRendererForm.mqh`, `CanvasRendererFields.mqh`: as 21 telas, os controles e o mapeamento campo <-> `SEASettings`.
+- `CanvasRendererScreens.mqh`, `CanvasRendererForm.mqh`, `CanvasRendererFields.mqh`: as telas, os controles e o mapeamento campo <-> `SEASettings`. As identidades de tela sao os `FCV_SCREEN_*` de `CanvasLayout.mqh`, e algumas sao **base + indice** (`FCV_SCREEN_PROT0` mais o item do trilho, por exemplo) — quem precisa do numero conta de lá, porque e ele que indexa o estado dos controles.
 - `CanvasRendererEdits.mqh`: sincronizacao dos `OBJ_EDIT` nativos **por diferenca**, nunca apagando em massa.
 - `CanvasRendererInput.mqh`: clique, rolagem, arrasto e foco.
 - `CanvasRendererValidate.mqh`: validacao por tela, com cache invalidado por quadro.
@@ -255,9 +257,17 @@ Fora de `Canvas/`, `UI/` guarda apenas o que desenha no **grafico**, e nunca foi
 
 Continuam valendo, agora por motivo proprio e nao por heranca:
 
-Mensagens operacionais persistentes ficam concentradas em `Status`. A aba `Resultados` permanece voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+**O `Status` e dono do DETALHE operacional**, inclusive em formato multilinha: a escada completa de alertas, os cartoes de sessao e posicao, o motivo de cada bloqueio. A aba `Resultados` permanece voltada a leitura de estado e resultados, sem acumular alertas de contexto.
 
-Quando um alerta operacional for importante para a seguranca, o `Status` e dono da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
+⚠️ **Mas o `Status` nao e o unico lugar onde um aviso aparece, e nao deve ser.** Um aviso que so existe dentro de uma aba nao e lido por quem esta em outra — foi um achado do aceite da Fase 3, com a formulacao "a aba ficou vermelha nao conta quando o usuario esta em outra aba". A GUI 2.0 tem tres niveis, com papeis distintos:
+
+- **faixa de motivo no cabecalho** — resumo global, sempre visivel, resolvido uma vez por quadro em `ResolveHeaderActionState()`. Diz a **acao** ("Habilite para iniciar"), nao so a condicao, e o distintivo ao lado diz o **estado** (`BLOQUEADO`/`IMPEDIDO`/`OPERANDO`/`RODANDO`/`PAUSADO`), nunca a causa;
+- **card critico** — o que nao pode esperar a navegacao;
+- **marcador vermelho na aba e na subaba** — a cadeia de erro, que leva do topo ate o campo.
+
+A regra que liga os tres: **a faixa responde "sei o que fazer agora?"**, o `Status` responde "por que exatamente?". Texto neutro que descreve a condicao sem dizer o que fazer foi corrigido tres vezes na migracao, e uma delas eu tinha introduzido ao consertar uma contradicao — joguei fora a acao junto com o erro.
+
+Fonte unica obrigatoria: botao, faixa, distintivo, marcador da aba `Status` e card critico leem **uma** resposta, do mesmo resolvedor. Predicados paralelos para a mesma pergunta divergem — foi por isso que `AccCanStart()` e `AccCanPause()` foram removidos, e a escada do resolvedor passou a **ser** o predicado.
 
 ⚠️ **Todo bloqueio precisa de caminho de volta, e botao apagado precisa dizer por que.** Mensagem que instrui uma acao que a interface impede foi o defeito mais reincidente da migracao — apareceu quatro vezes na Fase 2 e mais duas no aceite da Fase 3.
 

@@ -165,7 +165,26 @@ Toda mudanca relevante deve entrar no `CHANGELOG.md`.
 
 O historico ajuda humanos e IAs a entender por que o projeto esta como esta, especialmente quando decisoes anteriores sao revertidas ou refinadas.
 
-## 15. GUI Pesada Deve Ser Isolada por Grupos de Hit-Test
+## 15. GUI Pesada Deve Ser Isolada por Grupos de Hit-Test — ⚠️ SUPERADA PELA GUI 2.0
+
+> **Esta decisao nao e mais uma regra de manutencao. Fica registrada por dois
+> motivos:** ela explica por que a GUI 1.x tinha a forma que tinha, e o problema
+> que ela resolve **e da Standard Library do MT5**, nao do Fusion — quem voltar a
+> usar `CAppDialog` em qualquer contexto vai reencontra-lo.
+>
+> **O que a substituiu.** A Fase 4 da migracao removeu o painel classico
+> (2026-08-16). A GUI 2.0 desenha em `CCanvas` e **nao tem arvore de controles**:
+> quem publica caixa de clique e o proprio desenho, e **controle bloqueado
+> simplesmente nao publica caixa** — nao basta parecer desligado. `CFusionHitGroup`,
+> a pre-criacao antes de `Run()` e os `CComboBox` da biblioteca `Controls` deixaram
+> de existir junto com o painel.
+>
+> **A regra equivalente hoje** esta na secao `UI` do `ARCHITECTURE.md`: o estado dos
+> controles vive indexado por identidade de tela (`m_screen*FCV_SLOT_MAX+seq`), o
+> que impede um controle de vazar de uma subaba para outra — e um modo que troca o
+> conjunto de campos e uma **tela nova**, nao uma variacao da mesma. Essa ultima
+> regra nasceu de um defeito real: o formulario de criar perfil compartilhava
+> identidade com a lista, e o nome digitado reaparecia dentro do campo Magic.
 
 A investigacao da regressao dos `CComboBox` em `STRATS > MA` mostrou que a Standard Library do MT5 nao trata `Hide()` de controles simples como isolamento suficiente de mouse quando esses controles sao filhos diretos de um container visivel.
 
@@ -183,7 +202,7 @@ O que resolveu na versao `1.046`:
 - fazer o grupo invisivel retornar `false` no roteamento de mouse antes de consultar seus filhos;
 - manter `STRATS > MA`, `RSI`, `BB`, `CONFIG > PROTECT` e demais blocos em grupos separados.
 
-Regra de manutencao: novos blocos de conteudo da GUI nao devem ser adicionados diretamente ao `CAppDialog`. Eles devem entrar no grupo logico da pagina/subpagina correspondente. Se um controle estiver escondido visualmente, ele tambem precisa estar isolado por um container invisivel para nao interceptar cliques.
+Regra de manutencao **da epoca**: novos blocos de conteudo da GUI nao devem ser adicionados diretamente ao `CAppDialog`. Eles devem entrar no grupo logico da pagina/subpagina correspondente. Se um controle estiver escondido visualmente, ele tambem precisa estar isolado por um container invisivel para nao interceptar cliques.
 
 ## 16. Integracao com o Sistema Operacional Deve Ficar Fora do Core
 

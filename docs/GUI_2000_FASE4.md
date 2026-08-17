@@ -173,7 +173,32 @@ Se um roteiro novo reaproveitar a matriz, transformar as linhas em caixas e
 renumerar. **Documento de aceite que nao registra o que foi conferido so funciona
 enquanto quem conferiu esta na sala.**
 
-## 6. Dividas de projeto, inalteradas
+## 6. Smoke test do `Fusion.ex5` definitivo
+
+Pequeno, mas obrigatorio: o gate compila, e nao prova que o binario de producao
+sobe. Sao dois minutos.
+
+- [ ] **1.** No grafico de teste, criar uma linha horizontal e renomea-la para
+  **`EP Fusion MinhaLinha`**. ⚠️ **Este passo e o teste, nao preparacao.** O nome
+  comeca por "EP Fusion" de proposito: era o prefixo que a **primeira** versao da
+  limpeza do canvas varria, e apagar anotacao do usuario foi o P1 da auditoria da
+  Fase 3. Se a linha desaparecer, a limpeza voltou a ser ampla.
+- [ ] **2.** Copiar o `Fusion.ex5` novo para `<terminal>\MQL5\Experts\`, atualizar
+  o Navegador, e anexar **esse** EA a um grafico com `inp_ShowPanel = true`.
+- [ ] **3.** No log do terminal, confirmar `Painel: canvas (GUI 2.0)`. Dizendo
+  outra coisa, o `.ex5` que subiu nao e o deste build — **parar aqui**.
+- [ ] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
+  fica, conforme a regra da tela — o que importa e o campo responder).
+- [ ] **5.** Remover o EA do grafico.
+- [ ] **6.** Em `Ctrl+B` (lista de objetos), confirmar que **nao sobrou nenhum
+  objeto comecando por `Fusion2.Canvas.`**.
+- [ ] **7.** Confirmar que **`EP Fusion MinhaLinha` continua lá**.
+
+⚠️ **O passo 6 pergunta por sobras do namespace, e nao se o grafico ficou vazio.**
+Um grafico normal tem objetos do usuario, e exigir "nenhum objeto" transformaria o
+passo em falso negativo garantido. Correcao vinda da auditoria.
+
+## 7. Dividas de projeto, inalteradas
 
 Seguem na **secao 6 do `GUI_2000_PLANO.md`**, todas conscientes e nenhuma tocada
 por esta fase: criar perfil sempre ATIVA, `ApplySettings` nao transacional,
