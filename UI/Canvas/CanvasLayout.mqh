@@ -251,11 +251,44 @@ struct SHeaderAction
    int    block;       // FCV_HBLK_*
    string band;        // texto da faixa; "" = sem faixa
    int    bandSem;     // FCV_SEM_*
-   //--- Precedencia: BLOQUEADO > IMPEDIDO > OPERANDO > RODANDO > PAUSADO
+   //--- Precedencia:
+   //--- BLOQUEADO > IMPEDIDO > OPERANDO > SEM ENTRADAS > RODANDO > PAUSADO
    string badge;
    int    badgeSem;
    bool   statusMark;  // marcador na aba Status (ambar, forma propria)
    bool   critical;    // card global: trading indisponivel COM posicao aberta
+  };
+
+//+------------------------------------------------------------------+
+//| Restricao PERSISTENTE de novas entradas.                          |
+//|                                                                   |
+//| Pergunta diferente da que SHeaderAction responde, e por isso vive |
+//| em estrutura propria: aquela responde "por que o botao do         |
+//| cabecalho aceita ou recusa clique"; esta responde "o EA vai       |
+//| procurar uma entrada agora?". Sao independentes — com DD atingido |
+//| o PAUSAR continua aceso, e o EA continua gerenciando posicao.     |
+//|                                                                   |
+//| ⚠ NAO e o CanOpen() do motor, e o codigo nao pode fingir que e.   |
+//| ProtectionManager::CanOpen() confere SEIS coisas, nesta ordem:    |
+//| streak, sessao, noticias, SPREAD, limites diarios e drawdown; e o |
+//| risco ainda pode recusar depois, ja com o sinal em maos. Destas,  |
+//| so cinco tem estado PERSISTENTE no snapshot. Ficam de fora:       |
+//|                                                                   |
+//|  - SPREAD: instantaneo, medido com o simbolo no momento da        |
+//|    tentativa. Nao ha campo, e inventar um na GUI seria            |
+//|    reimplementar o motor;                                         |
+//|  - RISCO (entryBlockReason/entryBlockDetail): e o resultado de    |
+//|    UMA tentativa, nao um estado. Tratado como permanente, diria   |
+//|    "sem entradas" para sempre depois de uma recusa isolada.       |
+//|                                                                   |
+//| Consequencia honesta: `active` falso significa "nenhuma restricao |
+//| PERSISTENTE conhecida", e nunca "a proxima entrada vai passar".   |
+//+------------------------------------------------------------------+
+struct SEntryRestriction
+  {
+   bool   active;
+   string cause;   // rotulo curto para a faixa: SEQUENCIA, SESSAO, ...
+   string reason;  // a frase do motor, sem reescrita
   };
 
 //--- Altura MINIMA da caixa de aviso, em linhas de texto.

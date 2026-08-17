@@ -382,16 +382,34 @@ bool StatusNotice(string &title,string &body,int &sem)
      }
    if(HasText(m_snap.entryBlockReason))
      { title="ENTRADA BLOQUEADA"; body=m_snap.entryBlockReason; return true; }
-   if(m_snap.dailyLimitsBlocked)
-     { title="LIMITE DIARIO"; body=m_snap.dailyLimitsBlockReason; return true; }
-   if(m_snap.drawdownLimitReached)
-     { title="DRAWDOWN"; body=m_snap.drawdownConfigLockReason; return true; }
-   //--- Os dois filtros so falam quando estao ligados: anunciar bloqueio de
-   //--- sessao com o filtro desligado seria acusar quem nao agiu.
-   if(m_snap.settings.enableSessionFilter && m_snap.sessionProtectionBlocked)
-     { title="SESSAO"; body=m_snap.sessionProtectionBlockReason; return true; }
-   if(FusionHasEnabledNewsWindow(m_snap.settings) && m_snap.newsProtectionBlocked)
-     { title="NEWS"; body=m_snap.newsProtectionBlockReason; return true; }
+   //+------------------------------------------------------------------+
+   //| Restricao PERSISTENTE de entradas — pelo resolvedor unico.        |
+   //|                                                                   |
+   //| Aqui havia quatro ramos escritos a mao: limites diarios, drawdown,|
+   //| sessao e noticias, nesta ordem. Foram trocados por uma chamada a  |
+   //| ResolveEntryRestriction(), que o cabecalho tambem consome. Duas   |
+   //| razoes, e a segunda e a que pesa:                                 |
+   //|                                                                   |
+   //| 1. FALTAVA SEQUENCIA. A escada nunca anunciou o bloqueio por      |
+   //|    streak, embora ele seja a PRIMEIRA coisa que CanOpen() confere.|
+   //|    Com Loss/Win Streak armado, o Status dizia "Sem alertas" com o |
+   //|    EA sem tomar entrada — dado certo sob desenho errado.          |
+   //|                                                                   |
+   //| 2. A ORDEM DIVERGIA DO MOTOR. Aqui era diario > DD > sessao >     |
+   //|    noticias; CanOpen() recusa em streak > sessao > noticias >     |
+   //|    spread > diario > drawdown. Com duas causas verdadeiras ao     |
+   //|    mesmo tempo, o Status nomeava uma e o motor barrava por outra. |
+   //|    ⚠ E a mesma armadilha do "Estado DD" da Fase 2, calculado em   |
+   //|    dois arquivos com prioridades opostas: as duas telas           |
+   //|    discordavam dentro do mesmo painel. Fidelidade por arquivo nao |
+   //|    garante coerencia entre telas.                                 |
+   //|                                                                   |
+   //| A guarda "so fala com a protecao ligada" nao se perdeu: mudou de  |
+   //| lugar, para dentro do resolvedor.                                 |
+   //+------------------------------------------------------------------+
+   SEntryRestriction entryR=ResolveEntryRestriction();
+   if(entryR.active)
+     { title=entryR.cause; body=entryR.reason; return true; }
    if(HasText(m_snap.runtimeNotice))
      {
       title=m_snap.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";

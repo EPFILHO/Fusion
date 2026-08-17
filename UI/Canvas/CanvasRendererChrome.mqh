@@ -797,9 +797,125 @@ bool AccActiveProfileEditable(void)
 //--- todos os desfechos dela. Sem ela a supressao teria de ser repetida em cada
 //--- `return` da escada, e bastaria um esquecido para o card e a faixa dizerem
 //--- a mesma coisa duas vezes.
+//+------------------------------------------------------------------+
+//| ResolveEntryRestriction — fonte unica de "novas entradas estao    |
+//| suspensas, e por que".                                            |
+//|                                                                   |
+//| Consumida pelo distintivo, pela faixa e pelo marcador da aba      |
+//| Status, e tambem pela escada de alertas do Status. Uma pergunta,  |
+//| uma resposta: enquanto os dois lados a calculavam por conta        |
+//| propria, a Fase 2 ja tinha visto o resultado — o "Estado DD" era  |
+//| montado em dois arquivos com prioridades OPOSTAS, e as duas telas |
+//| discordavam dentro do mesmo painel.                               |
+//|                                                                   |
+//| ⚠ A ORDEM E A DO MOTOR, nao uma de gravidade nossa.               |
+//| ProtectionManager::CanOpen() recusa nesta sequencia — streak,     |
+//| sessao, noticias, spread, limites diarios, drawdown — e nomear a  |
+//| causa em outra ordem faria a faixa apontar para um bloqueio que   |
+//| nao e o que efetivamente barra a entrada. Spread nao entra: e     |
+//| instantaneo (ver SEntryRestriction).                              |
+//|                                                                   |
+//| ⚠⚠ FILTRO E PROTECAO TRAVADA NAO SE GUARDAM IGUAL, e supor que    |
+//| sim esconde protecao em vigor. Extraido modulo a modulo de        |
+//| Protection/Modules/, nao presumido:                               |
+//|                                                                   |
+//|  - FILTRO (sessao, noticias) so bloqueia com a chave LIGADA. O    |
+//|    proprio modulo devolve "pode abrir" quando desligado           |
+//|    (`IsInsideSession` retorna true sem o filtro). A guarda aqui e |
+//|    defensiva, e existe para nunca acusar quem nao agiu;           |
+//|                                                                   |
+//|  - PROTECAO TRAVADA (sequencia, limites diarios, drawdown) NAO E  |
+//|    GUARDADA, de proposito. `StreakProtection::CanOpen` nao olha   |
+//|    as chaves em momento algum, e `DailyLimitsProtection::CanOpen` |
+//|    consulta `CurrentBlockReason()` ANTES de olhar                 |
+//|    `enableDailyLimits` — ou seja, o bloqueio ja travado sobrevive |
+//|    a chave ser desligada depois. E isso e deliberado no motor:    |
+//|    senao quem batesse o limite desligaria a protecao e voltaria a |
+//|    operar, desfazendo por edicao o que ela acabou de fazer.       |
+//|    Guardar aqui faria a tela dizer "sem restricao" com o EA       |
+//|    recusando entradas — dado certo sob desenho errado, que e pior |
+//|    que erro visivel.                                              |
+//|                                                                   |
+//| ⚠ DD ARMADO NAO ENTRA AQUI. `drawdownProtectionActive` protege a  |
+//| configuracao e recusa perfil incompativel, mas as entradas SEGUEM |
+//| PERMITIDAS ate o preco tocar o piso. So `drawdownLimitReached`    |
+//| suspende. Confundir os dois transformaria a protecao agindo       |
+//| normalmente num bloqueio que nao existe.                          |
+//+------------------------------------------------------------------+
+SEntryRestriction ResolveEntryRestriction(void)
+  {
+   SEntryRestriction r;
+   r.active=false; r.cause=""; r.reason="";
+
+   //--- Protecao travada: sem guarda de chave (ver o cabecalho).
+   if(m_snap.streakProtectionBlocked)
+     { r.active=true; r.cause="SEQUENCIA"; r.reason=m_snap.streakProtectionBlockReason; return r; }
+   //--- Filtros: so falam ligados.
+   if(m_snap.settings.enableSessionFilter && m_snap.sessionProtectionBlocked)
+     { r.active=true; r.cause="SESSAO";    r.reason=m_snap.sessionProtectionBlockReason; return r; }
+   if(FusionHasEnabledNewsWindow(m_snap.settings) && m_snap.newsProtectionBlocked)
+     { r.active=true; r.cause="NOTICIAS";  r.reason=m_snap.newsProtectionBlockReason; return r; }
+   //--- Protecao travada, as duas ultimas.
+   if(m_snap.dailyLimitsBlocked)
+     { r.active=true; r.cause="LIMITE DIARIO"; r.reason=m_snap.dailyLimitsBlockReason; return r; }
+   if(m_snap.drawdownLimitReached)
+     { r.active=true; r.cause="DRAWDOWN";  r.reason=m_snap.drawdownConfigLockReason; return r; }
+   return r;
+  }
+
+//--- DD ARMADO: informacao, e nao restricao. Fica fora do resolvedor acima de
+//--- proposito, e a faixa so a mostra quando nao ha nada mais forte a dizer.
+//--- As duas consequencias sao reais e hoje so aparecem quando o usuario
+//--- esbarra nelas: os parametros de DD ficam so-leitura, e o CARREGAR recusa
+//--- perfil com regra de DD diferente (o passo H4 do aceite da Fase 3).
+bool DrawdownArmedOnly(void)
+  {
+   return (m_snap.drawdownProtectionActive && !m_snap.drawdownLimitReached);
+  }
+
 SHeaderAction ResolveHeaderActionState(void)
   {
    SHeaderAction s=ResolveHeaderActionLadder();
+   //+------------------------------------------------------------------+
+   //| Faixa livre: quem ocupa e a restricao de entradas.                |
+   //|                                                                   |
+   //| A escada acima tem prioridade porque a faixa dela responde "por   |
+   //| que este botao esta apagado" ou "por que o distintivo diz         |
+   //| IMPEDIDO" — perguntas que o usuario acabou de fazer com o cursor. |
+   //| A restricao de entradas nao instrui acao nenhuma no cabecalho;    |
+   //| ela informa. Informacao nao empurra instrucao para fora da tela.  |
+   //|                                                                   |
+   //| Na pratica quase nunca competem: com o EA rodando e sem posicao,  |
+   //| a escada so escreve na faixa quando ha bloqueio de permissao.     |
+   //+------------------------------------------------------------------+
+   if(!HasText(s.band))
+     {
+      SEntryRestriction r=ResolveEntryRestriction();
+      //--- `started`: parado o distintivo ja diz PAUSADO, e ninguem espera
+      //--- entrada de EA parado — anunciar suspensao ali seria ruido.
+      if(m_snap.started && r.active)
+        {
+         s.band=r.cause+" — "+r.reason;
+         s.bandSem=FCV_SEM_WARN;
+        }
+      //+---------------------------------------------------------------+
+      //| DD ARMADO: informacao de baixa prioridade, e SEM condicao de   |
+      //| `started`.                                                     |
+      //|                                                                |
+      //| Parado e justamente quando ela mais serve: e o estado em que o |
+      //| usuario vai a aba Perfis e leva uma recusa no CARREGAR. Foi o  |
+      //| que o passo H4 do aceite da Fase 3 exercitou, e ate aqui a     |
+      //| unica pista vinha DEPOIS do clique.                            |
+      //|                                                                |
+      //| Nao diz "sem entradas" em lugar nenhum, de proposito: com o DD |
+      //| apenas armado elas continuam permitidas ate o piso.            |
+      //+---------------------------------------------------------------+
+      else if(DrawdownArmedOnly())
+        {
+         s.band="DD ATIVO — parametros protegidos; perfil incompativel nao pode ser carregado";
+         s.bandSem=FCV_SEM_WARN;
+        }
+     }
    //--- Card critico no ar: a faixa cala, sempre. Ele ja diz, e mais alto e com
    //--- o texto grave do motor. Antes a supressao existia so no ramo
    //--- "rodando com posicao", entao o EA PARADO com posicao e permissao
@@ -816,6 +932,8 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- PAUSADO em ambar, como sempre foi: "parado e pronto" nao e defeito.
    s.badge="PAUSADO";      s.badgeSem=FCV_SEM_WARN;
    s.statusMark=false;     s.critical=false;
+
+   SEntryRestriction entryR=ResolveEntryRestriction();
 
    //--- Distintivo: ESTADO, nunca causa. Nomear a causa aqui seria mentir em
    //--- quatro dos cinco motivos que o guard cobre — ele bloqueia por conexao
@@ -840,12 +958,34 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- Dizer OPERANDO ali anunciaria uma operacao que nao existe mais.
    else if(m_snap.started && m_snap.hasOpenPosition)
      { s.badge="OPERANDO";  s.badgeSem=FCV_SEM_GOOD; }
+   //+------------------------------------------------------------------+
+   //| SEM ENTRADAS — armado, mas nao vai procurar entrada.              |
+   //|                                                                   |
+   //| ⚠ AMBAR, e nao vermelho. Vermelho e para "o EA nao pode operar"   |
+   //| (BLOQUEADO, IMPEDIDO); aqui a protecao esta FUNCIONANDO, e pintar |
+   //| de vermelho o mecanismo agindo como devia ensinaria o usuario a   |
+   //| tratar a propria protecao como defeito.                           |
+   //|                                                                   |
+   //| ⚠ DEPOIS de OPERANDO. Com posicao aberta ha dinheiro exposto      |
+   //| agora, e esse e o estado mais especifico verdadeiro; a suspensao  |
+   //| de NOVAS entradas nao muda o que ja esta em gerenciamento e desce |
+   //| para a faixa. Antes de RODANDO porque "rodando" afirma aptidao —  |
+   //| e a mesma razao que fez BLOQUEADO vencer RODANDO na Fase 2.       |
+   //|                                                                   |
+   //| ⚠ So com `started`: parado, o distintivo ja diz PAUSADO, que e    |
+   //| mais forte e mais simples — ninguem espera entrada de EA parado.  |
+   //+------------------------------------------------------------------+
+   else if(m_snap.started && entryR.active)
+     { s.badge="SEM ENTRADAS"; s.badgeSem=FCV_SEM_WARN; }
    else if(m_snap.started)
      { s.badge="RODANDO";   s.badgeSem=FCV_SEM_GOOD; }
 
-   //--- O marcador da aba aponta para onde a EXPLICACAO esta, e so estes dois
-   //--- tem a explicacao no Status: os demais motivos moram na tela deles.
-   s.statusMark = (m_snap.runtimeBlocked || m_snap.tradePermissionBlocked);
+   //--- O marcador da aba aponta para onde a EXPLICACAO esta. Os dois primeiros
+   //--- tem a explicacao no Status; os demais motivos moram na tela deles. A
+   //--- restricao de entradas entra porque o detalhe dela tambem vive la, na
+   //--- escada de alertas — que agora le ESTE mesmo resolvedor.
+   s.statusMark = (m_snap.runtimeBlocked || m_snap.tradePermissionBlocked ||
+                   (m_snap.started && entryR.active));
    //--- Trading indisponivel com posicao aberta: o gerenciamento parou no meio
    //--- de uma operacao. E o unico estado que merece tomar espaco de conteudo
    //--- em qualquer aba.
