@@ -72,7 +72,10 @@ so funciona enquanto quem conferiu esta na sala.
 
 ## 3. Estado para a proxima sessao
 
-- Branch local **`gui-2.0`**, **sem push**. `main` no GitHub segue na 1.058.
+- Branch **`gui-2.0` publicada em `origin`** (HEAD `9d6b2ce`), como checkpoint
+  remoto **antes** da Fase 4 — ela remove arquivos, e a partir dali a reversao
+  deixa de ser "trocar o EA do grafico" e passa a ser pelo Git. `main` no GitHub
+  segue na 1.058.
 - **O painel novo nao esta em producao.** O `Fusion.ex5` continua sendo o caminho
   seguro, e a reversao e trocar o EA do grafico — nao depende de recompilar nada
   (`J3`, conferido).
