@@ -324,13 +324,16 @@ string ShortTF(const ENUM_TIMEFRAMES tf)
    return (StringFind(s,"PERIOD_")==0) ? StringSubstr(s,7) : s;
   }
 
-//--- Estado operacional em CINCO nomes, do mais grave ao mais brando:
-//--- BLOQUEADO > IMPEDIDO > OPERANDO > RODANDO > PAUSADO. A 1.058 tem tres
-//--- (no Pages/StatusPage.mqh dela); IMPEDIDO e OPERANDO nasceram na Fase 3, o
-//--- primeiro para separar "o EA nao pode operar por condicao externa" de "o contexto o
-//--- travou", e o segundo porque era rotulo de botao e estado pertence aqui.
-//--- A ordem e a regra: se o EA esta impedido de operar, dizer que ele esta
-//--- rodando seria a pior informacao possivel nesta linha.
+//--- Estado operacional em SEIS nomes, do mais grave ao mais brando:
+//--- BLOQUEADO > IMPEDIDO > OPERANDO > SEM ENTRADAS > RODANDO > PAUSADO.
+//--- A 1.058 tem tres (no Pages/StatusPage.mqh dela). IMPEDIDO e OPERANDO
+//--- nasceram na Fase 3 — o primeiro para separar "o EA nao pode operar por
+//--- condicao externa" de "o contexto o travou", e o segundo porque era rotulo de
+//--- botao e estado pertence aqui. SEM ENTRADAS veio depois, na Fase 4: o EA
+//--- podia estar com uma protecao suspendendo entradas e o distintivo dizia
+//--- RODANDO em verde, com a informacao so na aba Resultados.
+//--- A ordem e a regra: se o EA esta impedido de operar — ou nao vai procurar
+//--- entrada —, dizer que ele esta rodando seria a pior informacao desta linha.
 //--- Distintivo e botao leem do resolvedor, resolvido uma vez por quadro no
 //--- inicio do DrawFrame. Perguntar por conta aqui reabriria a divergencia que
 //--- SHeaderAction existe para fechar.

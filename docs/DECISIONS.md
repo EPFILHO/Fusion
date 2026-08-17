@@ -99,7 +99,9 @@ A GUI nao e um acessorio descartavel.
 
 Ela e o centro de operacao visual, perfis, validacao e feedback de bloqueios. Por isso deve permanecer com estrutura clara, abas e subpaginas.
 
-Avisos operacionais persistentes, como troca indevida de ativo ou mudanca relevante de contexto do grafico, devem ficar concentrados na aba `STATUS`.
+Avisos operacionais persistentes, como troca indevida de ativo ou mudanca relevante de contexto do grafico, devem ter o **detalhe** concentrado na aba `Status` — e nao espalhado pela GUI, para haver um unico ponto de leitura.
+
+⚠️ **Precisao adicionada na Fase 4 da GUI 2.0: "concentrado" nao pode virar "escondido".** Um aviso que so existe dentro de uma aba nao e lido por quem esta em outra, e isso foi achado no aceite da Fase 3. A regra completa tem tres niveis: o `Status` guarda o **detalhe**; a **faixa do cabecalho** e o **card critico** carregam o resumo **global**, visivel em qualquer aba; o **marcador vermelho** na aba e na subaba e a cadeia que leva do topo ate o campo. A faixa responde "sei o que fazer agora?"; o `Status` responde "por que exatamente?".
 
 Como o Fusion opera em multi-timeframe por modulo, troca de timeframe do grafico nao deve gerar alerta persistente por si so. O chart pode ser usado para leitura visual sem que isso seja tratado como falha do usuario.
 
@@ -122,9 +124,11 @@ No motor, a direcao e:
 - um orquestrador central (`ProtectionManager`);
 - submodulos dedicados para `Spread`, `Session`, `News`, `Day`, `Drawdown` e `Streak`.
 
-Na GUI, a mesma separacao deve aparecer na subaba `PROTECT`, com subpaginas internas em vez de um formulario gigante. Isso reduz acoplamento, facilita validacao e evita repetir o problema historico de crescimento desordenado visto em outros projetos.
+Na GUI, a mesma separacao deve aparecer na subaba de protecao — hoje `Gestao > Protecao`, `CONFIG > PROTECT` na 1.x —, com subpaginas internas em vez de um formulario gigante. Isso reduz acoplamento, facilita validacao e evita repetir o problema historico de crescimento desordenado visto em outros projetos.
 
-No runtime, bloqueios de protecao devem aparecer na aba `STATUS` enquanto estiverem ativos, com mensagens persistentes e log rate-limited. Isso evita depender apenas do Journal para entender por que o EA nao abriu uma nova operacao.
+No runtime, bloqueios de protecao devem aparecer no `Status` enquanto estiverem ativos, com mensagens persistentes e log rate-limited. Isso evita depender apenas do Journal para entender por que o EA nao abriu uma nova operacao.
+
+⚠️ **Desde a Fase 4 da GUI 2.0, o `Status` nao e mais o unico lugar.** Um bloqueio que suspende novas entradas — sequencia, sessao, noticias, limite diario ou drawdown atingido — aparece tambem no **distintivo do cabecalho** (`SEM ENTRADAS`) e na **faixa**, com a causa. O motivo e o mesmo desta decisao levado a serio: se o objetivo e "nao depender do Journal para entender por que o EA nao abriu uma operacao", entao o aviso tambem nao pode depender de o usuario estar na aba certa.
 
 ## 12. Drawdown Diario Depende de Meta de Ganho
 

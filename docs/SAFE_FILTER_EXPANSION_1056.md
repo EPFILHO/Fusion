@@ -49,4 +49,4 @@ As duas medias visuais usam handles proprios, aparecem apenas quando o timeframe
 8. Testar cada media isoladamente e confirmar que ela bloqueia BUY abaixo e SELL acima.
 9. Testar timeframes diferentes e confirmar que a validacao usa `periodo x TF`; M1 igual ou mais curta que M2 deve impedir o salvamento.
 10. Confirmar que a comparacao acompanha o preco atual e o valor corrente de cada MA.
-11. Em `CONFIG > VISUAL`, testar cor e estilo das quatro MAs e das Bandas sem alterar qualquer decisao operacional.
+11. Em `CONFIG > VISUAL` — **hoje a aba `Layout`**, desde a GUI 2.0 —, testar cor e estilo das quatro MAs e das Bandas sem alterar qualquer decisao operacional.

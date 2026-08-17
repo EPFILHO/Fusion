@@ -1,7 +1,8 @@
 # Fase 3 — roteiro de aceite do painel em canvas
 
-> ⚠️ **DOCUMENTO HISTORICO — executado e encerrado em 2026-08-16, com 88 passos
-> marcados.** Ele descreve o ambiente da Fase 3, quando os dois paineis conviviam
+> ⚠️ **DOCUMENTO HISTORICO — encerrado em 2026-08-16 com 88 passos marcados, e
+> fechado em 89 de 89 quando o `H4` foi executado em 2026-08-17.** Ele descreve o
+> ambiente da Fase 3, quando os dois paineis conviviam
 > em dois `.ex5`. **A Fase 4 removeu o painel classico e o `FusionCanvas.ex5`**
 > (ver `GUI_2000_FASE4.md`), entao onde se le "anexe o `FusionCanvas`" hoje se le
 > **`Fusion`**, que e o unico EA e ja traz o painel novo; e os passos que comparam
@@ -9,7 +10,8 @@
 >
 > **O texto abaixo nao foi reescrito de proposito.** Um roteiro de aceite e o
 > registro do que foi conferido e em que condicoes; reescrever as condicoes depois
-> do fato apagaria a evidencia. O unico passo que ficou sem executar e o `H4`.
+> do fato apagaria a evidencia. O `H4`, unico que ficou sem executar quando a
+> fase foi encerrada, **passou em 2026-08-17** — o roteiro fecha em **89 de 89**.
 
 Este documento existe por um motivo especifico, e nao por formalidade.
 
@@ -466,10 +468,15 @@ Ate aqui todos os numeros vinham do harness. Agora sao reais.
       pendencia recem-carregada).
 - [x] **H3.** Renomear um `.cfg` por fora para algo ilegivel e tentar carregar.
       **Esperado:** `PERFIL NAO CARREGADO`, **a configuracao atual preservada**.
-- [ ] **H4.** Com protecao de drawdown em curso, carregar um perfil de
+- [x] **H4.** Com protecao de drawdown em curso, carregar um perfil de
       parametros de DD diferentes.
       **Esperado:** recusa com a mensagem de drawdown. Trocar ali recomecaria a
       conta no meio.
+      **EXECUTADO EM 2026-08-17**, ja depois de a Fase 3 ter sido encerrada e de
+      a Fase 4 ter removido o painel classico. Passou: `PERFIL NAO CARREGADO`,
+      com a frase do motor chegando a tela nova — *"Perfil nao carregado: DD
+      diario ativo. O novo perfil deve manter a mesma regra ate o novo dia."*
+      Era o unico passo que faltava; o roteiro fecha em **89**.
 
 ### H5. Perfil ativo SEM ARQUIVO — a trava do "grave primeiro"
 

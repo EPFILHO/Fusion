@@ -1221,13 +1221,17 @@ real.** Quase nenhum daqueles achados apareceria pelo harness, que dirige o
 renderizador direto e nao alcanca o caminho de volta. Foi essa proporcao que
 validou a decisao de fazer a Fase 3 antes de seguir.
 
-**Fica de fora, por decisao registrada: o `H4`** (carregar perfil com DD diferente
-com a protecao de drawdown EM CURSO). Exige a meta do dia batida e o DD armado —
-estado que o mercado produz, nao a interface. **Nao foi marcado de proposito:**
-passo marcado sem ter rodado mente, pendente apenas espera. Risco delimitado — a
-recusa que ele confere e do MOTOR, cujo ramo de drawdown no `LOAD_PROFILE` **nao
-foi tocado** por esta migracao; o que faltou verificar e a mensagem chegando a
-tela nova. Detalhes e o custo de encena-lo em `GUI_2000_FASE3_PENDENTES.md`.
+**Ficou de fora no encerramento, por decisao registrada: o `H4`** (carregar perfil
+com DD diferente com a protecao de drawdown EM CURSO). Exige a meta do dia batida
+e o DD armado — estado que o mercado produz, nao a interface. **Nao foi marcado de
+proposito:** passo marcado sem ter rodado mente, pendente apenas espera.
+
+> ✅ **ADENDO — o `H4` foi executado em 2026-08-17 e PASSOU.** Ja depois de a Fase
+> 4 remover o painel classico. Com o DD diario ativo, o CARREGAR foi recusado e a
+> frase do motor chegou a tela nova. **O roteiro fecha em 89 de 89**, e nao nos 88
+> do encerramento. Ele e a evidencia de que adiar foi certo e nao custou nada: o
+> passo rodou contra o `Fusion.ex5` DEFINITIVO, e nao contra a configuracao de
+> transicao com dois executaveis.
 
 ### ✅ FASE 4 ENCERRADA — 2026-08-16, o painel classico saiu
 
@@ -1273,11 +1277,15 @@ sem recompilar (`J3`). Agora e operacao de Git: **`5f9524a`**, publicado em
 `origin`, e o ultimo commit em que os dois paineis coexistem. Foi para isso que a
 branch `gui-2.0` foi publicada antes desta fase.
 
-**Pendencias que atravessaram a fase**, ambas registradas na Fase 3 e ainda
-abertas: o passo `H4` (carregar perfil com parametros de drawdown diferentes com
-a protecao **em curso**), que exige a meta do dia batida e o DD armado — estado
-que o mercado produz, nao a interface —, e a matriz `I2.1`–`I2.19` do roteiro,
-que e tabela e nao lista de caixas. Detalhes em `docs/GUI_2000_FASE4.md`.
+**Pendencias que atravessaram a fase**, ambas registradas na Fase 3:
+
+- o passo **`H4`** (carregar perfil com parametros de drawdown diferentes com a
+  protecao **em curso**) — ✅ **executado em 2026-08-17 e aprovado**, ja com o
+  painel classico removido. O roteiro fecha em **89 de 89**;
+- a matriz **`I2.1`–`I2.19`** do roteiro, que e tabela e nao lista de caixas —
+  **continua aberta**.
+
+Detalhes em `docs/GUI_2000_FASE4.md`.
 
 ---
 

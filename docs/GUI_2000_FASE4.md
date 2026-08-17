@@ -170,25 +170,26 @@ instalacao antiga esta trocando de GUI, nao atualizando o motor.
 
 ## 5. Pendencias que atravessaram a fase
 
-Duas, ambas herdadas da Fase 3 e nenhuma bloqueante.
-
-### `H4` — nao executado
+### ✅ `H4` — EXECUTADO E APROVADO em 2026-08-17
 
 > Com protecao de drawdown **em curso**, carregar um perfil de parametros de DD
 > diferentes. Esperado: recusa com a mensagem de drawdown.
 
-Exige a meta do dia **batida** e o DD **armado** — estado que o mercado produz,
-nao a interface. **Nao foi marcado de proposito:** passo marcado sem ter rodado
-mente; passo pendente apenas espera.
+**Passou.** Com o DD diario ativo, o CARREGAR foi recusado e a frase do motor
+chegou a tela nova: *"Perfil nao carregado: DD diario ativo. O novo perfil deve
+manter a mesma regra ate o novo dia."*
 
-**Risco delimitado.** A recusa que ele confere e do **motor**, e o ramo de
-drawdown do `LOAD_PROFILE` **nao foi tocado** nem pela migracao nem por esta
-fase. O que falta verificar e a mensagem chegando a tela nova.
+**Adendo ao encerramento da Fase 3, e o numero muda.** A fase foi encerrada em
+2026-08-16 com **88** passos e o `H4` deliberadamente sem marca — ele exige a
+meta do dia **batida** e o DD **armado**, estado que o mercado produz e nao a
+interface, e passo marcado sem ter rodado mente. Foi executado no dia seguinte,
+ja **depois** de a Fase 4 remover o painel classico, e o roteiro fecha em
+**89 de 89**.
 
-**Custo de encena-lo:** conta demo, lote minimo, estrategia de disparo rapido
-(cruzamento de medias curtas em M1), `Max Ganho` no menor valor aceito com
-`Limites Diarios` ligados, acao **ATIVAR DD**, e `Drawdown` ligado. A primeira
-operacao positiva arma a protecao e o passo fica ao alcance em minutos.
+⚠️ **A ordem tem uma consequencia que vale registrar:** o `H4` rodou contra o
+`Fusion.ex5` ja sem o painel antigo, entao o que ele conferiu foi o EA definitivo
+— nao a configuracao de transicao com dois executaveis. E melhor evidencia do que
+teria sido antes.
 
 ### A matriz `I2` do roteiro
 
@@ -254,6 +255,34 @@ transformaria o passo em falso negativo garantido.
 ⚠️ **Nao ha passo procurando `Fusion_visual_ma_*`**, e a ausencia e deliberada:
 nada cria esse nome (ver a segunda correcao da secao 3). Um passo que procura o
 que nunca existe passa sempre, e passo que passa sempre nao testa nada.
+
+### 6.1 Restricao de entradas no cabecalho — validacao propria
+
+O commit que trouxe `SEM ENTRADAS` e a faixa de restricao **nao teve nenhum
+destes estados visto em execucao**. O `H4` provou a recusa do CARREGAR, que e
+outra coisa. Estes passos dependem de estados que o mercado produz, entao valem
+como roteiro a cumprir ao longo dos proximos pregoes, e nao numa sentada.
+
+- [ ] **R1. DD armado.** Meta do dia batida com `ATIVAR DD`: distintivo segue
+  **`RODANDO`** (verde) e a faixa mostra **`DD ATIVO — parametros protegidos;
+  perfil incompativel nao pode ser carregado`** em ambar.
+  ⚠️ Distintivo **`SEM ENTRADAS` aqui e ERRO**: com o DD apenas armado as
+  entradas seguem permitidas ate o piso.
+- [ ] **R2. DD atingido.** O projetado toca o piso: distintivo vira
+  **`SEM ENTRADAS`** em ambar, a faixa diz **`DRAWDOWN — ...`** e o `Status`
+  mostra a mesma frase. Conferir que os dois **nao discordam**.
+- [ ] **R3. Posicao aberta durante a restricao.** Com R2 valendo e uma posicao em
+  gerenciamento, o distintivo tem de dizer **`OPERANDO`**, nao `SEM ENTRADAS` —
+  ha dinheiro exposto agora, e esse e o estado mais especifico verdadeiro. A
+  causa desce para a faixa.
+- [ ] **R4. Uma restricao que passa sozinha.** Sessao fora da janela, ou janela
+  de noticia, ou pausa de sequencia: distintivo `SEM ENTRADAS` com a causa certa
+  na faixa **e a liberacao acontecendo sozinha** quando a condicao termina — sem
+  precisar de clique. ⚠️ Este e o passo que pega restricao que nao se desarma.
+- [ ] **R5. EA pausado.** Com qualquer restricao valendo, PAUSAR o EA: o
+  distintivo tem de dizer **`PAUSADO`**, e nao `SEM ENTRADAS` — parado, ninguem
+  espera entrada. A faixa de **DD armado**, essa, **continua aparecendo**, de
+  proposito: e o estado em que o usuario vai a aba Perfis e leva a recusa.
 
 ## 7. Dividas de projeto, inalteradas
 

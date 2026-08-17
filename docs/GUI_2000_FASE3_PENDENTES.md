@@ -32,7 +32,20 @@ e conferido pelo `I6`.
 
 ## 2. O que ficou de fora, por escrito
 
-### `H4` — NAO EXECUTADO, por decisao registrada
+### ~~`H4` — NAO EXECUTADO~~ → ✅ EXECUTADO E APROVADO EM 2026-08-17
+
+> ⚠️ **ADENDO, posterior ao fechamento desta fase.** O `H4` **passou** em
+> 2026-08-17, ja depois de a Fase 4 ter removido o painel classico. O roteiro
+> fecha em **89 de 89**, e nao nos 88 que esta secao registra. O texto original
+> segue abaixo porque descreve por que a decisao de adiar foi correta na epoca —
+> e ela foi: o passo exigia um estado que o mercado produz.
+
+**O que aconteceu:** com o DD diario ativo, o CARREGAR foi recusado e a frase do
+motor chegou a tela nova — *"Perfil nao carregado: DD diario ativo. O novo perfil
+deve manter a mesma regra ate o novo dia."* Detalhes em `GUI_2000_FASE4.md`,
+secao 5.
+
+**Texto original, mantido como registro:**
 
 > Com protecao de drawdown **em curso**, carregar um perfil de parametros de DD
 > diferentes. Esperado: recusa com a mensagem de drawdown.
@@ -47,9 +60,9 @@ um estado que o mercado produz.
 primeira operacao positiva arma a protecao e o passo fica ao alcance em minutos.
 
 **Nao foi marcado de proposito.** Um passo marcado sem ter rodado mente; um passo
-pendente apenas espera. **Atravessou a Fase 4 sem ser executado** — o usuario
-optou por remover o painel classico primeiro, e o passo segue aberto em
-`GUI_2000_FASE4.md`, secao 5.
+pendente apenas espera. Atravessou a Fase 4 sem ser executado — o usuario optou
+por remover o painel classico primeiro —, **e foi executado logo depois dela**
+(ver o adendo no topo desta secao).
 
 **O risco de deixa-lo:** baixo e delimitado. A recusa que ele confere e do
 **motor**, nao do painel — `LOAD_PROFILE` ja barrava por drawdown antes desta

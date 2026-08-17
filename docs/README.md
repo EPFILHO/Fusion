@@ -20,7 +20,7 @@ A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudan�
 - `debugLogs` saiu do arquivo de perfil e voltou a ser governado pelo `input`.
 
 - `GUI_2000_PLANO.md`: o plano da migração — o porquê, as regras técnicas descobertas na prática, as dívidas aceitas (seção 6) e as lições (seção 8). **É a fonte; os demais são recortes.**
-- `GUI_2000_FASE3_TESTES.md`: o roteiro de aceite do painel novo, executado com 88 passos. Documento histórico — descreve o ambiente de dois `.ex5`, que a Fase 4 desfez.
+- `GUI_2000_FASE3_TESTES.md`: o roteiro de aceite do painel novo, **89 de 89 passos executados** (88 no encerramento da fase, mais o `H4` em 2026-08-17). Documento histórico — descreve o ambiente de dois `.ex5`, que a Fase 4 desfez.
 - `GUI_2000_FASE3_PENDENTES.md`: fechamento da Fase 3.
 - `GUI_2000_FASE4.md`: fechamento da Fase 4 — a remoção do painel clássico, e as pendências que atravessaram.
 

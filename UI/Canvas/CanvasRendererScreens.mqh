@@ -404,8 +404,14 @@ bool StatusNotice(string &title,string &body,int &sem)
    //|    discordavam dentro do mesmo painel. Fidelidade por arquivo nao |
    //|    garante coerencia entre telas.                                 |
    //|                                                                   |
-   //| A guarda "so fala com a protecao ligada" nao se perdeu: mudou de  |
-   //| lugar, para dentro do resolvedor.                                 |
+   //| ⚠ A guarda "so fala com a protecao ligada" mudou de lugar para    |
+   //| dentro do resolvedor, mas ela NUNCA valeu para todas — e dizer    |
+   //| que vale seria pior que nao dizer nada. Ela e dos FILTROS: sessao |
+   //| e noticias, que so bloqueiam com a chave ligada. Sequencia,       |
+   //| limites diarios e drawdown NAO sao guardados, de proposito, e     |
+   //| tambem nao eram aqui antes: o bloqueio ja travado sobrevive a     |
+   //| chave ser desligada. O porque, extraido modulo a modulo, esta no  |
+   //| cabecalho de ResolveEntryRestriction().                           |
    //+------------------------------------------------------------------+
    SEntryRestriction entryR=ResolveEntryRestriction();
    if(entryR.active)
