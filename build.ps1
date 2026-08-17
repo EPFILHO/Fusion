@@ -146,7 +146,12 @@ else {
     $mql5Root = Resolve-RequiredDirectory -Path $Mql5 -Description 'Raiz MQL5'
 }
 
-$requiredInclude = Join-Path $mql5Root 'Include\Controls\Dialog.mqh'
+# Marcador de que a raiz resolvida tem a biblioteca padrao que o projeto USA.
+# Era Include\Controls\Dialog.mqh ate a Fase 4; o projeto nao inclui mais
+# Controls em lugar nenhum, entao aquele teste passou a confirmar algo
+# irrelevante. Canvas\Canvas.mqh e a dependencia real: CanvasRenderer.mqh o
+# inclui, e sem ele nenhum alvo do EA compila.
+$requiredInclude = Join-Path $mql5Root 'Include\Canvas\Canvas.mqh'
 Resolve-RequiredFile -Path $requiredInclude -Description 'Include padrao do MT5' | Out-Null
 
 $editorItem = Get-Item -LiteralPath $editorPath

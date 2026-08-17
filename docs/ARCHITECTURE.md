@@ -19,14 +19,10 @@ O nome do arquivo deve ajudar alguem novo no projeto a responder duas perguntas 
 
 Exemplos atuais:
 
-- `UIPanelProfileListView`: UI / Perfis / renderizacao da lista, status e botoes da lista.
-- `UIPanelProfileClicks`: UI / Perfis / roteamento de cliques e feedback de acoes bloqueadas.
-- `UIPanelProfileBuild`: UI / Perfis / construcao/layout dos controles da aba.
-- `UIPanelProtectionValidation`: UI / Protecao / validacao visual e leitura do draft.
-- `UIPanelProtectionBuild`: UI / Protecao / construcao/layout dos controles.
-- `UIPanelSignalEvents`: UI / Estrategias e filtros / sync e eventos dos paineis de sinal.
-- `UIPanelSignalOverview`: UI / Estrategias e filtros / resumo visual.
-- `UIPanelInitialState`: UI / Painel / estado inicial do orquestrador.
+- `CanvasRendererChrome`: UI / Canvas / cabecalho, abas, trilho e camada de acesso.
+- `CanvasRendererValidate`: UI / Canvas / validacao por tela e cache do veredito.
+- `CanvasRendererEdits`: UI / Canvas / sincronizacao dos campos nativos por diferenca.
+- `ChartIndicatorVisualizer`: UI / Grafico / linhas dos indicadores no chart.
 - `ProtectionModuleBase`: Protecao runtime / estado e reload comuns dos modulos.
 - `ProfileNameUtils`: Core / regra compartilhada para nomes de perfil.
 
@@ -222,74 +218,66 @@ A GUI e parte do projeto porque concentra operacao em grafico, perfis e validaco
 
 A UI nao deve executar trade diretamente. Ela monta comandos e envia para `CFusionApplication`.
 
-`CFusionPanel` continua sendo o orquestrador da janela, eventos globais e snapshot. Blocos de UI que ja tem responsabilidade propria ficam em includes dedicados:
+> ⚠️ **Esta secao foi reescrita na Fase 4 da migracao da GUI (2026-08-16).** Ate ali ela descrevia `CFusionPanel` e os ~60 includes `UIPanel*` do painel classico, construido sobre a biblioteca `Controls` do MT5. **Aquele painel foi removido**; o que sobrevive daquele desenho esta registrado no fim da secao, porque parte das regras continua valendo por motivo proprio. O historico completo esta em `GUI_2000_PLANO.md` e `GUI_2000_FASE4.md`.
 
-- `UIPanelTypes.mqh`: dimensoes, enums e constantes da UI.
-- `UIPanelHeader.mqh`: titulo, perfil carregado e botoes globais do topo.
-- `UIPanelInitialState.mqh`: estado inicial do painel, snapshot vazio e flags de construcao.
-- `UIPanelCommandQueue.mqh`: fila interna de comandos que a UI entrega para a aplicacao.
-- `UIPanelControlHelpers.mqh`: criacao de controles, hit groups e helpers basicos de visibilidade/edicao.
-- `UIPanelContentLifecycle.mqh`: criacao lazy/controlada das abas principais e conteudo interno.
-- `UIPanelVisibility.mqh`: visibilidade de abas, refresh visual e atualizacao da aba ativa.
-- `UIPanelNavigation.mqh`: roteamento de cliques de abas principais e subtabs.
-- `UIPanelAccessState.mqh`: modelo de permissoes da GUI derivado do snapshot atual.
-- `UIPanelTabStatus.mqh`: status compartilhado de abas e marcadores de validacao.
-- `UIPanelDeferredEdits.mqh`: tratamento de `ENDEDIT`/`CHANGE` e normalizacao de edits.
-- `UIPanelDraftState.mqh`: draft settings, pending changes e sincronizacao de controles.
-- `UI/Pages/StatusPage.mqh`: componente da aba `STATUS`.
-- `UI/Pages/ResultsPage.mqh`: componente da aba `RESULTS`.
-- `UIPanelSignalTabs.mqh`: estado raiz das abas de estrategias e filtros.
-- `UIPanelSignalShell.mqh`: estrutura visual das abas `STRATS` e `FILTERS`.
-- `UIPanelSignalPanels.mqh`: criacao dos paineis internos de estrategia/filtro.
-- `UIPanelSignalVisibility.mqh`: visibilidade dos paineis internos de sinal.
-- `UIPanelSignalValidation.mqh`: validacao e status locais de `STRATS`/`FILTERS`.
-- `UIPanelSignalEvents.mqh`: sync e roteamento de eventos dos paineis de sinal.
-- `UIPanelSignalOverview.mqh`: resumo visual de estrategias e filtros.
-- `UIPanelProfiles.mqh`: estado raiz da administracao de perfis.
-- `UIPanelProfileBuild.mqh`: construcao/layout da aba `PERFIS`.
-- `UIPanelProfileVisibility.mqh`: visibilidade browse/edit de `PERFIS`.
-- `UIPanelProfileState.mqh`: modo de perfil e status de rodape.
-- `UIPanelProfileActions.mqh`: permissoes de carregar/duplicar/excluir perfil.
-- `UIPanelProfileClicks.mqh`: roteamento de cliques de `PERFIS`.
-- `UIPanelProfileListView.mqh`: renderizacao da lista, botoes e mensagens de `PERFIS`.
-- `UIPanelProfileValidation.mqh`: validacao de nome/magic em `NOVO`/`DUPLICAR`.
-- `UIPanelConfigTabs.mqh`: shell de `CONFIG`, `RISK` e `SYSTEM`.
-- `UIPanelConfigValidation.mqh`: leitura, validacao e commit do draft de configuracao.
-- `UIPanelConfigStatus.mqh`: selecao e aplicacao de status da area `CONFIG`.
-- `UIPanelProtectionTabs.mqh`: estado raiz e click routing da subaba `PROTECT`.
-- `UIPanelProtectionBuild.mqh`: construcao/layout de `CONFIG > PROTECT`.
-- `UIPanelProtectionInputs.mqh`: parsing, normalizacao e helpers de inputs de protecao.
-- `UIPanelProtectionValidation.mqh`: validacao visual e draft de protecao.
-- `UIPanelProtectionVisibility.mqh`: visibilidade interna de `PROTECT`.
-- `UIPanelProtectionSync.mqh`: sync de overview, botoes e controles de protecao.
-- `Platform/FolderLauncher.mqh`: integracao opcional com shell do Windows, mantida fora do core operacional.
+`CFusionCanvasPanel` (`UI/Canvas/CanvasPanel.mqh`) e o orquestrador da janela. Ele nao herda de `CAppDialog`: e uma **composicao** sobre `CFusionCanvasRenderer`, que desenha o painel inteiro num unico bitmap `CCanvas`.
 
-Esse corte usa componentes pequenos, acoplados ao host visual apenas pelo metodo `AddControl`, para preservar o comportamento do `CAppDialog` no MQL5 e reduzir risco durante a refatoracao.
+A divisao de responsabilidades entre os dois e a peca central do desenho:
 
-Mensagens operacionais persistentes devem ficar concentradas em `STATUS`. A aba `RESULTS` deve permanecer voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+- **o renderizador decide o que OFERECER** — desenha, publica as caixas de clique e resolve o estado visual a partir do snapshot;
+- **o painel decide o que ACONTECE** — e o unico lado que alcanca `Persistence` e os registros do terminal, e por isso reconfere cada intencao **no instante do clique**, nao no instante do desenho.
 
-Quando um alerta operacional for importante para a seguranca, a `STATUS` deve ser dona da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
+Entre os dois circulam **intencoes** (`UI/Canvas/CanvasIntents.mqh`), nao comandos: o renderizador publica "o usuario pediu X", e o painel traduz para `SUICommand` apenas depois de reconferir contra o disco. Duas operacoes nunca chegam ao EA — **excluir e duplicar perfil sao operacoes de disco do proprio painel**, como na 1.058.
+
+Modulos de `UI/Canvas/`:
+
+- `CanvasTheme.mqh`, `CanvasLayout.mqh`: cores, geometria e constantes. Sem estado, prefixo `FCV_` em tudo.
+- `CanvasFields.mqh`, `CanvasForm.mqh`: identificadores de campo e o construtor declarativo de formulario (cada tela empilha linhas; a altura do cartao deriva das linhas).
+- `CanvasIntents.mqh`: os seis tipos de intencao que atravessam a fronteira renderizador -> painel.
+- `CanvasRenderer.mqh`: a classe, com os fragmentos abaixo incluidos no corpo — idioma de UI do projeto.
+- `CanvasRendererPrimitives.mqh`: desenho basico e a conversao logico -> pixel (`S()`/`L()`).
+- `CanvasRendererChrome.mqh`: cabecalho, abas, trilho e a **camada de acesso** (quem pode iniciar, salvar, carregar, criar, excluir).
+- `CanvasRendererScreens.mqh`, `CanvasRendererForm.mqh`, `CanvasRendererFields.mqh`: as 21 telas, os controles e o mapeamento campo <-> `SEASettings`.
+- `CanvasRendererEdits.mqh`: sincronizacao dos `OBJ_EDIT` nativos **por diferenca**, nunca apagando em massa.
+- `CanvasRendererInput.mqh`: clique, rolagem, arrasto e foco.
+- `CanvasRendererValidate.mqh`: validacao por tela, com cache invalidado por quadro.
+- `CanvasRendererCommands.mqh`, `CanvasRendererPrefs.mqh`, `CanvasRendererStress.mqh`, `CanvasRendererPerf.mqh`.
+
+Fora de `Canvas/`, `UI/` guarda apenas o que desenha no **grafico**, e nunca foi painel: `ChartIndicatorVisualizer.mqh` (as linhas dos indicadores, sob o prefixo de objeto `Fusion_visual_ma_`) e `IndicatorLegendOverlay.mqh` (a legenda, sob `Fusion_indicator_legend_`). `Platform/FolderLauncher.mqh` segue como integracao opcional com o shell do Windows, fora do core operacional.
+
+#### Regras de objeto de grafico
+
+⚠️ **A limpeza automatica do painel usa exclusivamente o namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`), e nao deve ser alargada. Uma varredura por `Fusion_` apagaria `Fusion_visual_ma_*` e `Fusion_indicator_legend_*`, que sao objetos legitimos e vivos; uma varredura por `EP Fusion` alcancaria anotacoes do usuario. O escopo da exclusao precisa ser auditavel por leitura.
+
+⚠️ **Objeto nativo em foco nao pode ser destruido.** Os campos de texto continuam sendo `OBJ_EDIT` do terminal sobrepostos ao bitmap, e sao sincronizados por diferenca: sai so o que saiu da tela, nasce so o que entrou, o que permanece e **movido**.
+
+#### Regras que sobreviveram ao painel antigo
+
+Continuam valendo, agora por motivo proprio e nao por heranca:
+
+Mensagens operacionais persistentes ficam concentradas em `Status`. A aba `Resultados` permanece voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+
+Quando um alerta operacional for importante para a seguranca, o `Status` e dono da apresentacao desse texto, inclusive em formato multilinha. Isso evita espalhar avisos pela GUI e mantem o mesmo ponto de leitura quando o Fusion bloqueia ou avisa sobre contexto de grafico.
+
+⚠️ **Todo bloqueio precisa de caminho de volta, e botao apagado precisa dizer por que.** Mensagem que instrui uma acao que a interface impede foi o defeito mais reincidente da migracao — apareceu quatro vezes na Fase 2 e mais duas no aceite da Fase 3.
+
+⚠️ **Predicado de acesso e funcao unica, nunca copiado.** Desenho e pulso precisam concordar, e a mesma regra escrita por extenso em dois lugares diverge. Foi assim que `activeProfileEditable` abriu um furo na 2b.
 
 Troca de timeframe do grafico, por si so, nao deve mais ser tratada como erro operacional na UI. Como os timeframes operacionais pertencem aos modulos, o chart pode ser usado apenas para inspecao visual. O estado confirmado e restaurado, mas drafts e pending changes da GUI nunca sao salvos ou aplicados implicitamente; se existiam, `STATUS` avisa claramente que foram descartados. Alertas persistentes tambem permanecem para troca de ativo e ausencia ou invalidade do perfil esperado.
 
-Atualizacoes periodicas da GUI devem alterar dados, textos e estilos, mas nao devem reaplicar `Show/Hide` estrutural em todo timer. Visibilidade de abas deve mudar na criacao do painel, navegacao ou troca explicita de modo.
+No bootstrap da GUI, o painel nasce com um unico pass de hidratacao. O estado completo necessario para criar o painel vem no `SUIPanelSnapshot`, evitando uma segunda carga manual logo apos `CreatePanel()`.
 
-O timer da GUI deve atualizar somente a aba ativa e os controles globais indispensaveis. Abas pesadas, listas de perfis, validacoes de configuracao e sincronizacao de paginas de estrategias ou filtros devem rodar sob demanda ou quando a aba correspondente estiver visivel.
+As paginas de estrategias e filtros usam campos fechados para selecao de timeframe, com valores explicitos do MT5. Isso evita erro de digitacao, simplifica validacao e preserva a coerencia entre GUI, perfil salvo e motor operacional.
 
-No bootstrap da GUI, o painel deve nascer com um unico pass de hidratacao. O estado completo necessario para criar o painel deve vir no `SUIPanelSnapshot`, evitando uma segunda carga manual logo apos `CreatePanel()`. Isso reduz repaint desnecessario e ajuda a preservar a fluidez em trocas de timeframe ou recriacao do EA.
+#### O que a GUI 2.0 tornou obsoleto
 
-Desde a versao `1.046`, a GUI usa pre-criacao controlada de paginas e subpaginas dentro de `CFusionHitGroup`. Esse grupo e um `CWndContainer` logico, sem desenho proprio, que participa do roteamento de mouse somente quando esta visivel. A regra e: controles de paginas diferentes nao devem ser filhos diretos do `CAppDialog`; eles devem ficar dentro do grupo da pagina ou subpagina dona.
+Ate a Fase 4, esta secao descrevia tres regras que existiam para contornar a Standard Library do MT5, e **nenhuma delas se aplica a um painel desenhado em bitmap**:
 
-Esse desenho substitui a criacao lazy dos blocos principais porque evita dois problemas da Standard Library do MT5:
+- **`CFusionHitGroup` e a pre-criacao controlada de paginas** (desde a `1.046`) resolviam que controles escondidos com `Hide()` ainda recebiam `OnMouseEvent()` como filhos diretos do `CAppDialog`, e que controles criados depois de `Run()` podiam exigir rebinding de IDs. O canvas nao tem arvore de controles: quem publica caixa de clique e o proprio desenho, e **controle bloqueado simplesmente nao publica caixa** — nao basta parecer desligado.
+- **Isolar cada aba em grupos independentes por causa dos `CComboBox`** — os dropdowns ficavam presos ao ultimo combo usado. O combo do canvas e desenhado, e o estado dos controles vive indexado por tela (`m_screen*FCV_SLOT_MAX+seq`), o que impede um controle de vazar de uma subaba para outra.
+- **Nao reaplicar `Show/Hide` estrutural em todo timer, e atualizar so a aba ativa.** O canvas redesenha o quadro **inteiro** a cada atualizacao, decisao tomada com medicao na Fase 1: `TextOut` custa ~1 us, o quadro cheio fica em 0,35 ms de media (2,2 ms em VPS), e a margem contra o limiar de interacao e de ~60x. Repintura parcial por regiao suja ficou arquivada como plano B, nao implementado.
 
-- controles criados depois de `CAppDialog::Run()` podem exigir rebinding de IDs e aumentar risco de roteamento incorreto;
-- controles simples escondidos com `Hide()` ainda podem receber `OnMouseEvent()` quando estao como filhos diretos de um container visivel.
-
-O ponto critico para os `CComboBox` foi isolar `STRATS`, `FILTERS`, `CONFIG`, `PERFIS`, `STATUS`, `RESULTS` e tambem suas subpaginas internas em grupos independentes. Assim, uma subaba escondida nao intercepta clique de uma subaba visivel, e os dropdowns do `CComboBox` deixam de ficar presos ao ultimo combo usado.
-
-Para adicionar uma nova estrategia, filtro ou subpagina, o objetivo e encaixar uma nova unidade de painel dentro do grupo logico correspondente, sem voltar a adicionar controles de conteudo diretamente no `CAppDialog`.
-
-As paginas de estrategias e filtros devem preferir campos fechados para selecao de timeframe, usando `ComboBox` com valores explicitos do MT5. Isso evita erro de digitacao, simplifica validacao e preserva a coerencia entre GUI, perfil salvo e motor operacional.
+O que sobrou dessas tres, e vale por si: **quem altera estado exibido marca a tela como suja**. O pulso repinta, o `Render` limpa. Sem isso, dado novo aparece sob desenho velho — que e pior que erro visivel.
 
 ## Prioridade Atual de Arquitetura
 
@@ -297,7 +285,7 @@ A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 co
 
 O foco arquitetural atual e preservar e documentar o conjunto estabilizado antes de abrir uma nova frente:
 
-- preservar o padrao de GUI estabilizado com `CFusionHitGroup`;
+- preservar o padrao de GUI estabilizado na migracao 2.0 (renderizador desenha e oferece; painel reconfere e decide);
 - manter filtros como validadores de sinal, nunca como geradores de entrada;
 - manter `Risk` calculando plano/ajustes e `Execution` enviando/modificando ordens;
 - manter o manual do usuario sincronizado com o codigo e com a GUI;

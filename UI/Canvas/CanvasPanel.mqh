@@ -673,8 +673,11 @@ public:
       //| vez, ate a primeira escolha na aba Layout.                     |
       //+---------------------------------------------------------------+
       //--- O prefixo dos objetos e uma constante nossa (FCV_OBJ_NAMESPACE), e nao
-      //--- um nome vindo do EA: nenhum objeto do grafico comeca por "Fusion2", em
-      //--- nenhuma direcao, e e isso que mantem a limpeza estreita.
+      //--- um nome vindo do EA: nenhum OUTRO objeto do grafico comeca por
+      //--- "Fusion2", e e isso que mantem a limpeza estreita.
+      //--- ⚠ Nao alargar para "Fusion_": esse prefixo pertence aos objetos do
+      //--- CHART, vivos e legitimos — Fusion_visual_ma_* (as medias) e
+      //--- Fusion_indicator_legend_* (a legenda).
       m_created=m_renderer.Create(chartId,FCV_OBJ_NAMESPACE,FUSION_CANVAS_THEME_AUTO,
                                   FUSION_PALETTE_PETROLEO,true,x,y);
       if(m_created)

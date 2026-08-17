@@ -92,9 +92,38 @@ Removido o painel, nao sobra codigo capaz de varrer aquilo.
   trocar o problema de lugar. A auditoria da Fase 3 ja tinha ensinado que
   inventario incompleto vira limpeza ampla, que e o defeito removido no P1.
 
-Uma varredura por `Fusion_` seria tecnicamente estreita (o namespace do canvas e
-`Fusion2.Canvas.`, sem interseccao). Se o caso aparecer na pratica, e por ai que
-se resolve — mas por decisao, e nao por reflexo.
+⚠️⚠️ **CORRECAO (auditoria, mesmo dia): a primeira versao deste documento dizia
+que uma varredura por `Fusion_` seria "tecnicamente estreita, sem interseccao".
+ISSO ERA FALSO E PERIGOSO.** Objetos legitimos e vivos usam esse prefixo:
+
+- `Fusion_visual_ma_*` — as linhas das medias, criadas por
+  `UI/ChartIndicatorVisualizer.mqh`;
+- `Fusion_indicator_legend_*` — a legenda, criada por
+  `UI/IndicatorLegendOverlay.mqh`.
+
+Os dois arquivos **sobreviveram a Fase 4** justamente porque nunca foram painel:
+desenham no grafico. `ObjectsDeleteAll(chart,"Fusion_")` apagaria as medias e a
+legenda de quem estivesse com os indicadores ligados.
+
+**A unica limpeza automatica permitida e pelo namespace exato
+`Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`). Nao alargar.
+
+> **Como o erro entrou, porque vale mais que a correcao.** Eu levantei os
+> prefixos com um `grep` sobre `UI/`, **agrupei por prefixo e joguei fora a
+> atribuicao de arquivo**. `Fusion_visual` e `Fusion_indicator` apareceram na
+> saida, uma ocorrencia cada, e eu os li como mais dois nomes do painel classico
+> no meio de `Fusion_cfg` (100x) e `Fusion_protect` (96x). A evidencia estava na
+> tela; o agrupamento e que destruiu a informacao que decidia.
+>
+> ⚠️ **Contar ocorrencias por prefixo responde "qual e comum", nao "de quem e".**
+> Quando a pergunta e de propriedade, a resposta tem de sair por arquivo.
+>
+> E o pior: isto e **exatamente** o defeito que o P1 da auditoria da Fase 3
+> removeu — uma limpeza ampla apagando o que nao devia. A decisao de nao
+> implementar nada foi o que impediu o dano; a justificativa e que estava errada.
+
+Se o caso das sobras aparecer na pratica, o caminho e um inventario explicito dos
+nomes do painel antigo — nunca um prefixo compartilhado.
 
 ## 4. ⚠️ Reverter mudou de natureza
 

@@ -74,7 +74,10 @@ function Find-Mql5RootForEditor {
             return
         }
         $candidate = Join-Path $_.FullName 'MQL5'
-        if (Test-Path -LiteralPath (Join-Path $candidate 'Include\Controls\Dialog.mqh') -PathType Leaf) {
+        # Confirma que a pasta casada por origin.txt e mesmo uma raiz MQL5 com a
+        # biblioteca padrao. Marcador trocado na Fase 4: era Controls\Dialog.mqh,
+        # que o projeto deixou de usar junto com o painel classico.
+        if (Test-Path -LiteralPath (Join-Path $candidate 'Include\Canvas\Canvas.mqh') -PathType Leaf) {
             (Resolve-Path -LiteralPath $candidate).Path
         }
     }
