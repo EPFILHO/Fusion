@@ -506,6 +506,26 @@ void ScreenStatus(void)
    Card("SESSAO");
   }
 
+//+------------------------------------------------------------------+
+//| Como se escreve um teto de limite diario.                         |
+//|                                                                   |
+//| TRES estados, e os dois primeiros nao sao a mesma coisa:           |
+//|   OFF        — a protecao de Limites Diarios esta desligada;       |
+//|   sem limite — a protecao esta LIGADA e este campo vale zero.      |
+//|                                                                   |
+//| ⚠ Zero significa "sem teto" no motor, e nao "teto zero": toda     |
+//| checagem de DailyLimitsProtection exige > 0 antes de comparar.     |
+//| Escrever "0.00" aqui leria como um limite impossivel de respeitar. |
+//| E o mesmo criterio da linha de Sequencia, que mostra OFF em vez de |
+//| zero pelo mesmo motivo — zero diria que alguem esta contando.      |
+//+------------------------------------------------------------------+
+string DailyCapText(const double cap)
+  {
+   if(!m_snap.settings.enableDailyLimits) return "OFF";
+   if(cap<=0.0)                           return "sem limite";
+   return DoubleToString(cap,2);
+  }
+
 //--- Lucro colore pelo sinal, igual ao ResultColor da 1.058. O zero fica
 //--- neutro de proposito: pintar zero de verde sugeriria ganho onde nao ha.
 int ProfitSem(const double v)
@@ -537,7 +557,26 @@ void ScreenResults(void)
              pend ? FCV_SEM_WARN : ProfitSem(m_snap.dailyProjectedProfit));
    Card("RESULTADO DO DIA");
 
+   //+------------------------------------------------------------------+
+   //| Limites diarios: o TETO ao lado do que ja foi gasto.               |
+   //|                                                                   |
+   //| Nasceu de o usuario operar com Max Trades = 10 e nao achar o 10 em |
+   //| lugar nenhum do painel — o contador dizia "9" sem dizer 9 de que.  |
+   //|                                                                   |
+   //| TRES estados por campo, e a distincao entre os dois primeiros e    |
+   //| real: `OFF` e a protecao inteira desligada; `sem limite` e a       |
+   //| protecao LIGADA com aquele campo em zero, que o motor trata como   |
+   //| "sem teto" (cada checagem exige > 0). Dizer OFF nos dois casos     |
+   //| esconderia que as outras duas regras estao valendo.                |
+   //| E o mesmo idioma que a linha de Sequencia logo abaixo ja usa.      |
+   //+------------------------------------------------------------------+
+   bool dayOn = m_snap.settings.enableDailyLimits;
    string trades=IntegerToString(m_snap.dailyTradeCount);
+   //--- ⚠ So o Max Trades vai INLINE, e so ele pode ir: e a unica das tres
+   //--- regras com uma comparacao unica no motor (dailyTradeCount >= maxTrades).
+   //--- Ver a nota de rodape para o porque das outras duas ficarem soltas.
+   if(dayOn && m_snap.settings.maxDailyTrades>0)
+      trades+="/"+IntegerToString(m_snap.settings.maxDailyTrades);
    if(m_snap.dailyOutcomeCountsKnown)
      {
       trades+=StringFormat(" (%d Loss / %d Win",m_snap.dailyLossCount,m_snap.dailyWinCount);
@@ -557,7 +596,21 @@ void ScreenResults(void)
    //--- "Sequencias" — o mesmo conceito com dois nomes na mesma interface.
    //--- Loss/Win ficam, porque e assim que os cartoes se chamam e e assim que o
    //--- proprio valor abaixo se le.
+   //--- O TETO sozinho, e nao "atual / teto". Nao ha comparacao afirmada aqui
+   //--- de proposito: os valores correntes estao no cartao acima, e colar o
+   //--- limite numa linha de P/L especifica faria a tela mentir em metade dos
+   //--- casos (ver a nota de rodape).
+   RowStatic("Max Perda", DailyCapText(m_snap.settings.maxDailyLoss));
+   RowStatic("Max Ganho", DailyCapText(m_snap.settings.maxDailyGain));
    RowStatic("Sequencia Loss/Win Atual","Loss "+ls+" | Win "+ws);
+   //--- ⚠ A nota existe porque o motor usa DUAS referencias para os mesmos
+   //--- dois limites: CanOpen() barra entrada nova comparando com o P/L
+   //--- FECHADO, e ShouldForceClose() encerra posicao aberta comparando com o
+   //--- PROJETADO (fechado + flutuante). Sem dizer isso, o usuario compara o
+   //--- teto com a linha errada — e com posicao aberta e o projetado que pode
+   //--- encerrar o trade dele.
+   if(dayOn)
+      RowNote("Entrada usa o P/L fechado; fechamento de posicao usa o projetado.");
    Card("CONTAGEM");
 
    //--- Sem base de drawdown os numeros nao significam nada ainda: a 1.058
