@@ -218,35 +218,35 @@ Bollinger podem cair em **subjanela**, e timeframe divergente do grafico produz
 "nao apareceu" que se confunde com defeito. A estrategia de Medias desenha na
 janela principal e e a unica combinacao sem ambiguidade.
 
-- [ ] **0a.** `Indicadores no Grafico` **ligado** (aba `Layout`);
-- [ ] **0b.** estrategia de **Medias ligada**;
-- [ ] **0c.** MA **rapida** e MA **lenta** no **mesmo timeframe do grafico**;
-- [ ] **0d.** **salvar o perfil**, para o estado sobreviver a reanexacao.
+- [x] **0a.** `Indicadores no Grafico` **ligado** (aba `Layout`);
+- [x] **0b.** estrategia de **Medias ligada**;
+- [x] **0c.** MA **rapida** e MA **lenta** no **mesmo timeframe do grafico**;
+- [x] **0d.** **salvar o perfil**, para o estado sobreviver a reanexacao.
 
 **O teste:**
 
-- [ ] **1.** No grafico, criar uma linha horizontal e renomea-la para
+- [x] **1.** No grafico, criar uma linha horizontal e renomea-la para
   **`EP Fusion MinhaLinha`**. ⚠️ **Este passo e o teste, nao preparacao.** O nome
   comeca por "EP Fusion" de proposito: era o prefixo que a **primeira** versao da
   limpeza do canvas varria, e apagar anotacao do usuario foi o P1 da auditoria da
   Fase 3. Se a linha desaparecer, a limpeza voltou a ser ampla.
-- [ ] **2.** Copiar o `Fusion.ex5` novo para `<terminal>\MQL5\Experts\`, atualizar
+- [x] **2.** Copiar o `Fusion.ex5` novo para `<terminal>\MQL5\Experts\`, atualizar
   o Navegador, e anexar **esse** EA a um grafico com `inp_ShowPanel = true`.
-- [ ] **3.** No log do terminal, confirmar `Painel: canvas (GUI 2.0)`. Dizendo
+- [x] **3.** No log do terminal, confirmar `Painel: canvas (GUI 2.0)`. Dizendo
   outra coisa, o `.ex5` que subiu nao e o deste build — **parar aqui**.
-- [ ] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
+- [x] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
   fica, conforme a regra da tela — o que importa e o campo responder).
-- [ ] **5.** **Aguardar alguns segundos** — a construcao dos indicadores nao e
+- [x] **5.** **Aguardar alguns segundos** — a construcao dos indicadores nao e
   sincrona com a do painel, e conferir antes da hora produz falso negativo. Depois,
   **antes de remover**, confirmar que existem as tres coisas: as **duas linhas de
   media** no grafico, a **legenda das medias**, e em **`Ctrl+I`** o indicador
   **`Fusion Visual MA <chartId>`**.
-- [ ] **6.** Remover o EA do grafico.
-- [ ] **7.** Em **`Ctrl+I`**, confirmar que **nenhum `Fusion Visual ...` sobrou**.
-- [ ] **8.** Em **`Ctrl+B`**, confirmar que **nao sobrou objeto comecando por
+- [x] **6.** Remover o EA do grafico.
+- [x] **7.** Em **`Ctrl+I`**, confirmar que **nenhum `Fusion Visual ...` sobrou**.
+- [x] **8.** Em **`Ctrl+B`**, confirmar que **nao sobrou objeto comecando por
   `Fusion2.Canvas.`** (o painel) **nem por `Fusion_indicator_legend_`** (a
   legenda).
-- [ ] **9.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
+- [x] **9.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
 
 ⚠️ **Os passos 7 e 8 perguntam por sobras NOMEADAS, e nao se o grafico ficou
 vazio.** Um grafico normal tem objetos do usuario, e exigir "nenhum objeto"
@@ -273,7 +273,7 @@ correto e `OPERANDO`, por precedencia.
 ⚠️ **R4 exige o EA iniciado e SEM posicao aberta.** R3 e justamente o caso com
 posicao.
 
-- [ ] **R1. DD armado** — sequencia:
+- [x] **R1. DD armado** — sequencia:
   1. bater a meta do dia com `ATIVAR DD`, operando normalmente;
   2. **esperar a posicao fechar** e a reconciliacao terminar;
   3. **so entao conferir:** distintivo **`RODANDO`** (verde) e faixa
@@ -282,7 +282,7 @@ posicao.
 
   ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
   entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
-- [ ] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
+- [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
   1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
      tocar o piso**;
   2. o motor pede o fechamento na hora

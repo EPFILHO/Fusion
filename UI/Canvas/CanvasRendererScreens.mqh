@@ -587,7 +587,17 @@ void ScreenResults(void)
              hasBase ? StringFormat("%.2f / %.2f",m_snap.drawdownPeakProfit,m_snap.drawdownFloorProfit)
                      : "--");
    //--- Folga zerada ou negativa e o aviso de que o bloqueio esta na porta.
-   RowStatic("Folga DD",
+   //---
+   //--- ⚠ O ROTULO MUDA DEPOIS DO GATILHO, e nao e cosmetico: "Folga DD"
+   //--- le-se como "quanto ainda falta para bloquear", e depois de ATINGIDO o
+   //--- bloqueio ja aconteceu — a linha contradiria o Estado DD tres linhas acima.
+   //--- Passa a "Folga atual", que e o que o numero significa dali em diante: a
+   //--- distancia corrente ate o piso, sem promessa nenhuma.
+   //---
+   //--- Rotulo movel herdado da 1.058, e a MESMA regra de Gestao > Protecao >
+   //--- Drawdown. Estava so la: as duas telas mostravam o mesmo numero com nomes
+   //--- diferentes, e foi o usuario quem viu, comparando as duas.
+   RowStatic(m_snap.drawdownLimitReached ? "Folga atual" : "Folga DD",
              hasBase ? DoubleToString(m_snap.drawdownBufferProfit,2) : "--",
              (hasBase && m_snap.drawdownBufferProfit<=0.0) ? FCV_SEM_WARN : FCV_SEM_NEUTRAL);
    Card("DRAWDOWN");
