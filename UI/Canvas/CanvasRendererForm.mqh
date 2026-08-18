@@ -613,7 +613,57 @@ void DrawRow(const int i,const int ry,const int rh)
          //--- de cada lado, iguais, em vez de "8 unidades logicas" que viram 8
          //--- ou 9 conforme o resto.
          int knob=dr-2;
-         DiscDev(on ? dx2-dr-1 : dx1+dr+1,dcy,knob,!en ? m_t.fieldDim : m_t.ground);
+         int dcx=on ? dx2-dr-1 : dx1+dr+1;
+         uint knobClr=!en ? m_t.fieldDim : m_t.ground;
+         DiscDev(dcx,dcy,knob,knobClr);
+         //+---------------------------------------------------------+
+         //| Marcador I/O no BOTAO — o estado sem depender de cor.     |
+         //|                                                          |
+         //| Sem ele o estado tinha um canal so: a POSICAO do botao,  |
+         //| porque ToggleTrack devolve m_t.disabled para ligado e     |
+         //| desligado quando o controle esta bloqueado. Ou seja, na  |
+         //| tela travada os dois toggles ficavam da MESMA cor e a    |
+         //| unica diferenca era a bolinha estar num lado ou noutro.  |
+         //|                                                          |
+         //| ⚠ A marca vai no BOTAO, e nao duas fixas nas pontas.     |
+         //| Com "O" a esquerda e "I" a direita fixos, o botao cobre   |
+         //| uma delas — e a que sobra visivel e sempre a do lado     |
+         //| VAZIO, ou seja, o OPOSTO do estado. Ligado mostraria "O". |
+         //| No botao a posicao sai de graca e correta: botao a       |
+         //| esquerda quando desligado leva o "O" para a esquerda, e  |
+         //| a direita quando ligado leva o "I" para a direita.       |
+         //|                                                          |
+         //| ⚠ DESENHADA, nao escrita. O botao tem 16 a 20 px de      |
+         //| diametro conforme a escala; glifo de fonte nesse tamanho |
+         //| vira mancha. Barra e anel saem nitidos porque sao pixel  |
+         //| de dispositivo — mesmo motivo de ChevronDev e DiscDev.   |
+         //|                                                          |
+         //| Cor: o trilho puxado 30% para o texto. Puxar para o      |
+         //| TEXTO, e nao um tom fixo, e o que faz a marca ganhar     |
+         //| contraste nos dois temas — no claro escurece, no escuro  |
+         //| clareia, e nos dois ela se afasta da bolinha.            |
+         //+---------------------------------------------------------+
+         uint markClr=Blend(ToggleTrack(on,en),m_t.fg,0.30);
+         if(on)
+           {
+            //--- Barra vertical: 2 px de largura ate a escala crescer, e altura
+            //--- igual ao raio (metade do diametro do botao).
+            int bw=knob/4; if(bw<2) bw=2;
+            int bh=knob;
+            RectDev(dcx-bw/2,dcy-bh/2,dcx-bw/2+bw-1,dcy-bh/2+bh-1,markClr);
+           }
+         else
+           {
+            //--- Anel: disco cheio e o furo na cor do botao. Nao ha primitiva de
+            //--- circulo vazado em pixel de dispositivo, e dois DiscDev
+            //--- concentricos dao o mesmo resultado com a mesma nitidez.
+            //--- A parede fica em 2 px, que e o que sustenta o anel legivel no
+            //--- menor tamanho.
+            int ro=(knob*3+2)/5; if(ro<4) ro=4;
+            int ri=ro-2;         if(ri<2) ri=2;
+            DiscDev(dcx,dcy,ro,markClr);
+            DiscDev(dcx,dcy,ri,knobClr);
+           }
          //--- Controle bloqueado nao publica caixa de clique. Nao basta parecer
          //--- desligado: ele nao pode responder.
          if(!en || m_toggleCount>=FCV_CTRL_MAX) break;
