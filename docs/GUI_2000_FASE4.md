@@ -273,7 +273,7 @@ correto e `OPERANDO`, por precedencia.
 ⚠️ **R4 exige o EA iniciado e SEM posicao aberta.** R3 e justamente o caso com
 posicao.
 
-- [x] **R1. DD armado** — sequencia:
+- [ ] **R1. DD armado** — sequencia:
   1. bater a meta do dia com `ATIVAR DD`, operando normalmente;
   2. **esperar a posicao fechar** e a reconciliacao terminar;
   3. **so entao conferir:** distintivo **`RODANDO`** (verde) e faixa
@@ -282,6 +282,21 @@ posicao.
 
   ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
   entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
+
+  > ⚠ **PENDENTE — e NAO depende de um dia bom.** Conferido em
+  > `DailyLimitsProtection::UsesDrawdownActivation()`: o DD arma quando o P/L
+  > **FECHADO** alcanca `maxDailyGain`, e a funcao exige as quatro coisas juntas
+  > — `Acao Ganho = ATIVAR DD`, `Drawdown` ligado, `Max DD > 0` e
+  > `Max Ganho > 0`. Com `Max Ganho` no menor valor aceito, **a primeira
+  > operacao que fecha positiva arma a protecao**, e o passo fica ao alcance em
+  > minutos em vez de esperar um pregao favoravel. E a mesma receita que
+  > `GUI_2000_FASE3_PENDENTES.md` escreveu para o `H4`.
+  >
+  > ⚠ `Max Ganho = 0` mata o ramo inteiro (a funcao exige `> 0`), entao a
+  > configuracao com "sem limite" nunca arma o DD por esta via.
+  >
+  > Fecha junto com a metade que falta do **R5**: com o DD armado, apertar PAUSAR
+  > e conferir que a faixa `DD ATIVO` permanece.
 - [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
   1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
      tocar o piso**;
