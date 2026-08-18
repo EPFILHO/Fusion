@@ -320,16 +320,36 @@ posicao.
   > `SEM ENTRADAS` e faixa `NOTICIAS — Janela de news 1 ativa.` — ou seja, a
   > precedencia foi conferida nos DOIS sentidos, e nao so no lado com posicao.
   > Ate aqui esse comportamento so tinha argumento de codigo.
-- [ ] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
+- [x] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
   fora da janela, ou janela de noticia, ou pausa de sequencia: distintivo
   `SEM ENTRADAS` com a causa certa na faixa **e a liberacao acontecendo sozinha**
   quando a condicao termina — sem precisar de clique. ⚠️ Este e o passo que pega
   restricao que nao se desarma.
-- [ ] **R5. EA pausado.** Com qualquer restricao valendo, PAUSAR o EA: o
+
+  **EXECUTADO E APROVADO EM 2026-08-18.** Janela de noticia 1 configurada
+  14:30–17:00, modo `Bloquear`. As 17:03 o distintivo tinha voltado sozinho a
+  `RODANDO` e a faixa estava vazia, **sem clique nenhum**.
+
+  > ⚠ **O que torna a evidencia forte:** na mesma captura a janela continua
+  > **ligada**, com os mesmos 14:30–17:00 e os campos so-leitura porque o EA esta
+  > rodando. Ou seja, nada foi desligado — quem liberou foi o **relogio**. Se a
+  > liberacao dependesse de interacao, este e o passo que teria mostrado.
+- [x] **R5. EA pausado.** Com qualquer restricao valendo, PAUSAR o EA: o
   distintivo tem de dizer **`PAUSADO`**, e nao `SEM ENTRADAS` — parado, ninguem
   espera entrada. A faixa de **DD armado**, essa, **continua aparecendo**, de
   proposito: e o estado em que o usuario vai a aba Perfis e leva a recusa.
 
+  **EXECUTADO EM 2026-08-18**, com a janela de noticia ativa: distintivo
+  `PAUSADO` (ambar), faixa vazia, e o `Alerta: NOTICIAS` seguindo visivel dentro
+  do `Status`. A restricao nao sumiu da tela; ela deixou de ocupar o cabecalho,
+  que e o combinado.
+
+  > ⚠ **COBERTURA PARCIAL, registrada de proposito.** A segunda metade do passo
+  > — a faixa de **DD armado** continuar aparecendo com o EA parado — **nao foi
+  > exercitada**, porque a restricao encenada foi de noticia e nao havia DD armado
+  > no momento. Ela e a metade que mais importa (e o estado do `H4`), e sai de
+  > graca junto com o **R1**: com o DD armado, basta apertar PAUSAR e conferir que
+  > a faixa `DD ATIVO` permanece.
 > ⚠️ **A primeira versao do R3 estava ERRADA, e ficou registrado porque o erro se
 > repete.** Ela mandava usar DD atingido com posicao aberta e afirmava que "a
 > causa desce para a faixa" — as duas coisas contrariam o codigo, e eu as escrevi
