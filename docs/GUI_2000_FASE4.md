@@ -291,7 +291,7 @@ posicao.
   4. **so entao conferir:** distintivo **`SEM ENTRADAS`** em ambar, faixa
      **`DRAWDOWN — ...`** e o `Status` com a mesma frase — os dois **nao podem
      discordar**.
-- [ ] **R3. Restricao COM posicao aberta.** Encenar com **filtro de sessao ligado,
+- [x] **R3. Restricao COM posicao aberta.** Encenar com **filtro de sessao ligado,
   `Fechar no fim` DESLIGADO, e o horario fora da janela** — ou com uma janela
   de noticia configurada so para bloquear entradas —, mantendo uma posicao em
   gerenciamento. **Esperado:** distintivo **`OPERANDO`**; a faixa **continua
@@ -309,6 +309,17 @@ posicao.
   > fechamento que o **R2** aproveita, em vez de tentar evita-lo. Sessao com
   > `Fechar no fim` desligado nao fecha posicao — conferido em
   > `SessionProtection::ShouldForceClose`, que sai cedo sem essa chave.
+
+  **EXECUTADO E APROVADO EM 2026-08-18**, com a variante de **noticia** (Janela 1,
+  modo `Bloquear` — "Impede novas entradas durante a janela"). Os quatro itens
+  bateram: distintivo `OPERANDO`, faixa em `POSICAO ABERTA — ...`, marcador ambar
+  no `Status` e `Alerta: NOTICIAS` com "Janela de news 1 ativa." dentro dele.
+
+  > ⚠ **O usuario fechou a operacao logo depois e provou de brinde o que o passo
+  > nao pedia: a TRANSICAO.** Sem posicao, o mesmo estado virou distintivo
+  > `SEM ENTRADAS` e faixa `NOTICIAS — Janela de news 1 ativa.` — ou seja, a
+  > precedencia foi conferida nos DOIS sentidos, e nao so no lado com posicao.
+  > Ate aqui esse comportamento so tinha argumento de codigo.
 - [ ] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
   fora da janela, ou janela de noticia, ou pausa de sequencia: distintivo
   `SEM ENTRADAS` com a causa certa na faixa **e a liberacao acontecendo sozinha**
