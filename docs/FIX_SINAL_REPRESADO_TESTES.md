@@ -89,7 +89,7 @@ o evento pode ser consumido pelo priming **sem gerar a palavra `quarentena`**. S
 cruzamento, marque **inconclusivo** e repita oportunamente. Forcar a queda rende mais se voce ja vir
 o preco perto de um cruzamento.
 
-- [ ] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
+- [x] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
   rede ou o Wi-Fi), aguarde, reconecte.
 
   Esperado sempre: `WARN ... CONNECTION ... Conexao com servidor perdida.`, na volta
@@ -104,7 +104,7 @@ o preco perto de um cruzamento.
 
   Sem cruzamento nenhum no periodo: **inconclusivo**, repetir.
 
-- [ ] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
+- [x] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
   conectado. Ele deve entrar normalmente: `INFO ... STRAT_MA ... NEXT_CANDLE ... => BUY` (ou `SELL`)
   seguido da ordem. Se **nao** entrar, a quarentena nao desarmou — anote o horario e pare.
 
@@ -175,3 +175,65 @@ posicao interrompido. Habilite imediatamente.`
 
 Passar para **M1**. Em M5 a queda precisa de 5+ minutos alinhados com um cruzamento; em M1 uma queda
 de 2–3 minutos ja atravessa varios fechamentos e, com medias curtas, o cruzamento aparece sozinho.
+
+---
+
+## Registro de execucao — Teste 2, 2026-08-19, `BTCUSD` M1, conta demo
+
+Binario `b48e5da`, Magic 987, sem posicao aberta, EA iniciado as 17:25:25. Horarios do log sao locais;
+os horarios DENTRO das mensagens sao de servidor (+6h).
+
+### O sinal represado foi barrado — cenario B, com prova direta
+
+Queda 17:26:40.989 -> 17:27:18.974 (38 s), atravessando o fechamento do candle das 23:26.
+
+```
+17:27:18.974  [AUTOTRADE] Trading habilitado novamente. Aguardando sinal formado apos a liberacao.
+17:27:18.974  [SIGNAL]    Sinais descartados durante bloqueio: Permissao de trading restaurada.
+17:27:19.519  [SIGNAL]    Sinal bloqueado pela quarentena - MA Cross. Candle do sinal 23:26:00, barreira 23:26:00.
+```
+
+⚠️⚠️ **A barreira pegou um sinal que o priming NAO consumiu.** Meio segundo depois do descarte, a MA
+apresentou o cruzamento do candle das 23:26 — aberto quando a conexao caiu e fechado durante a queda.
+Sem a barreira, `crossBarTime` (23:26) seria diferente do `m_lastCrossTime` gravado pelo priming
+(23:25), o modo `Candle seguinte` retornaria o sinal e **uma ordem teria nascido as 17:27:19.519**.
+
+E a prova em execucao de que consumir o `[1]` vigente nao basta — o segundo achado da auditoria.
+Repare que **candle do sinal e barreira sao iguais** (23:26:00): quem barrou foi o `>` estrito. Com
+`>=` teria entrado.
+
+Nenhuma ordem em nenhuma das quatro transicoes; a linha de quarentena nao repetiu (dedup). As linhas
+de descarte as 17:27:28 e 17:28:28 sao o throttle de 60 s ja existente em
+`ShouldLogDiscardedSignalDebug`, nao sao por tick. As 17:27:34, com a conexao voltando e o AutoTrading
+ainda desligado, o guard corretamente **nao** anunciou liberacao.
+
+### O sinal novo entrou
+
+Quarentena rearmada as 17:28:37. Depois de dois ciclos PAUSAR/INICIAR (17:29:02/17:30:09 e
+17:30:16/17:32:21, todos normais):
+
+```
+17:33:58.999  [STRAT_MA] NEXT_CANDLE fast[2]=68700.28346 fast[1]=68745.44782 slow[2]=68708.35000 slow[1]=68720.60333 => BUY
+17:33:59.226  [EXEC]     Entry sent by MA Cross (BUY)
+```
+
+Inversao de sinal entre `[2]` e `[1]`, cruzamento legitimo, candle muito posterior a barreira. **A
+quarentena desarmou sozinha.**
+
+### Fresta observada, para decisao da auditoria
+
+A barreira foi armada as 17:27:18.974 — servidor **23:27:18** — e capturou **23:26:00** como candle
+corrente: a serie ainda nao tinha criado o candle das 23:27, porque nenhum tick havia chegado nesse
+minuto. A barreira ficou **um candle mais velha** que o candle realmente em formacao.
+
+Aqui nao houve consequencia (o sinal era do proprio 23:26). Mas um cruzamento no candle das 23:27
+passaria (`23:27 > 23:26`), e esse candle comecou 18 s **antes** de a permissao voltar — o contrato
+diz "candle cuja formacao comecou depois da restauracao". Estreito, porem **nao teorico: ocorreu na
+primeira tentativa**, e erra para o lado menos conservador. Nenhuma alteracao de motor feita: a
+auditoria proibiu nesta rodada.
+
+### Observacao menor
+
+O disparo veio as 23:33:58, quase no fim do candle. E o comportamento pre-existente do `Candle
+seguinte` (aceita o cruzamento no primeiro tick recebido em qualquer momento do candle corrente),
+citado no diagnostico original e **nao alterado** por esta correcao.
