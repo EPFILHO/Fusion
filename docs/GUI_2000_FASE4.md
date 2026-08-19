@@ -394,12 +394,22 @@ posicao.
   do `Status`. A restricao nao sumiu da tela; ela deixou de ocupar o cabecalho,
   que e o combinado.
 
-  > ⚠ **COBERTURA PARCIAL, registrada de proposito.** A segunda metade do passo
-  > — a faixa de **DD armado** continuar aparecendo com o EA parado — **nao foi
-  > exercitada**, porque a restricao encenada foi de noticia e nao havia DD armado
-  > no momento. Ela e a metade que mais importa (e o estado do `H4`), e sai de
-  > graca junto com o **R1**: com o DD armado, basta apertar PAUSAR e conferir que
-  > a faixa `DD ATIVO` permanece.
+  > ⚠ **AS DUAS METADES, e elas foram em dias diferentes.** O passo cobre
+  > duas afirmacoes distintas, e cada uma exigiu um estado que o mercado produz:
+  >
+  > | metade | encenada com | quando |
+  > |---|---|---|
+  > | distintivo `PAUSADO`, e nao `SEM ENTRADAS` | janela de noticia | 2026-08-18 |
+  > | a faixa de **DD armado** PERMANECE com o EA parado | DD armado em US100Cash | 2026-08-19 |
+  >
+  > A segunda e a que mais importa: e o estado do **`H4`** — o usuario parado, indo
+  > a aba Perfis, levando a recusa no CARREGAR. Ate 2026-08-19 a unica pista vinha
+  > DEPOIS do clique; agora a faixa avisa antes, e foi visto em execucao.
+  >
+  > ⚠ Ela tambem confirma o conserto de `f5788be` no outro sentido: em 18/08 a
+  > faixa aparecia com o DD **atingido** e o EA parado; aqui aparece com o DD
+  > apenas **armado**. Os dois ramos de `drawdownConfigLocked` estao vistos.
+
 > ⚠️ **A primeira versao do R3 estava ERRADA, e ficou registrado porque o erro se
 > repete.** Ela mandava usar DD atingido com posicao aberta e afirmava que "a
 > causa desce para a faixa" — as duas coisas contrariam o codigo, e eu as escrevi
