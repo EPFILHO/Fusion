@@ -89,7 +89,7 @@ o evento pode ser consumido pelo priming **sem gerar a palavra `quarentena`**. S
 cruzamento, marque **inconclusivo** e repita oportunamente. Forcar a queda rende mais se voce ja vir
 o preco perto de um cruzamento.
 
-- [x] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
+- [ ] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
   rede ou o Wi-Fi), aguarde, reconecte.
 
   Esperado sempre: `WARN ... CONNECTION ... Conexao com servidor perdida.`, na volta
@@ -104,7 +104,7 @@ o preco perto de um cruzamento.
 
   Sem cruzamento nenhum no periodo: **inconclusivo**, repetir.
 
-- [x] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
+- [ ] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
   conectado. Ele deve entrar normalmente: `INFO ... STRAT_MA ... NEXT_CANDLE ... => BUY` (ou `SELL`)
   seguido da ordem. Se **nao** entrar, a quarentena nao desarmou — anote o horario e pare.
 
@@ -237,3 +237,21 @@ auditoria proibiu nesta rodada.
 O disparo veio as 23:33:58, quase no fim do candle. E o comportamento pre-existente do `Candle
 seguinte` (aceita o cruzamento no primeiro tick recebido em qualquer momento do candle corrente),
 citado no diagnostico original e **nao alterado** por esta correcao.
+
+---
+
+## ⚠️ Teste 2 INVALIDADO pela correcao do P1 — repetir com o binario novo
+
+A fresta registrada acima virou achado P1 da auditoria e foi corrigida: a captura da barreira saiu de
+`SuspendEntriesUntilFreshCandle()` e ficou **so** em `RefreshFreshCandleBarrier()`, debaixo de um
+tick. A barreira nasce desconhecida, e desconhecida bloqueia.
+
+**A segunda metade do Teste 2 (sinal novo entrando) precisa ser refeita com o binario corrigido** —
+aprovar a recuperacao de uma implementacao com janela conhecida nao vale como aceite. As duas caixas
+do Teste 2 voltam a valer como **a repetir**; o registro da execucao de 2026-08-19 fica como historico
+do que a versao anterior fazia.
+
+O que muda na observacao: a barreira passa a ser captada no **primeiro tick apos a liberacao**, entao
+o horario que aparece na linha `Sinal bloqueado pela quarentena` deve ser o candle **corrente de
+verdade** naquele instante, nao o anterior. Compare com o horario de servidor da linha de
+`AUTOTRADE`: os dois devem cair no mesmo candle.

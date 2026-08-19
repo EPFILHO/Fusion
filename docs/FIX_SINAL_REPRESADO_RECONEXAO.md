@@ -39,10 +39,19 @@ O ciclo agora e:
 
 | momento | quarentena | horario | entradas |
 |---|---|---|---|
-| transicao bloqueado -> liberado | **ativa**, incondicionalmente | tenta captar `iTime(tf,0)` | bloqueadas |
-| serie ainda muda | ativa | desconhecido | **bloqueadas** (`FreshCandleBarrierBlocks` devolve `true` sem horario) |
-| serie responde | ativa | captado nesse instante | bloqueadas ate um candle posterior |
+| transicao bloqueado -> liberado | **ativa**, incondicionalmente | **desconhecido — nao se captura aqui** | bloqueadas |
+| tick seguinte, serie ainda muda | ativa | desconhecido | **bloqueadas** (`FreshCandleBarrierBlocks` devolve `true` sem horario) |
+| tick com serie | ativa | captado nesse tick | bloqueadas ate um candle posterior |
 | sinal de candle posterior | **desarma** | zerado | liberadas |
+
+⚠️ **A captura nunca acontece na suspensao, so debaixo de um tick.** A transicao pode ser percebida
+pelo **timer**, e nesse instante nenhum tick chegou ainda no candle corrente: a serie nao criou esse
+candle e `iTime(tf,0)` devolve o **anterior**. Como `CaptureFreshCandleBarrier()` retorna cedo quando
+ja ha valor, essa barreira velha ficava congelada e um candle iniciado **antes** da liberacao virava
+elegivel. Aconteceu no primeiro teste real (2026-08-19): permissao restaurada as `23:27:18` de
+servidor, barreira captada como `23:26:00`. Por isso `SuspendEntriesUntilFreshCandle()` apenas arma, e
+o unico ponto de captura e `RefreshFreshCandleBarrier()`, chamado por
+`SignalManager::GetEntryDecision()` — debaixo de um tick, com a serie ja atualizada por ele.
 
 A recuperacao e automatica e **sem prazo**: nao existe contador, timeout nem tentativa limitada. Se a
 serie so responder alguns candles depois, a referencia passa a ser o candle corrente **daquele**
@@ -55,11 +64,10 @@ acabaria sendo captada no **primeiro sinal legitimo**, que seria descartado por 
 referencia: a seguranca continuaria fechada, mas ao custo de uma entrada boa. A captura vive no
 manager, num ponto so; as tres estrategias apenas consultam o bloqueio.
 
-Com **posicao aberta** a captura inicial **e tentada normalmente** — `SuspendEntriesUntilFreshCandle()`
-chama `CaptureFreshCandleBarrier()` sem olhar posicao. O que nao acontece e a **nova tentativa
-periodica**: sem avaliacao de entrada, uma captura inicial que tenha falhado so sera repetida na
-primeira avaliacao depois do fechamento, usando o candle corrente daquele momento. Nao ha risco
-associado: entradas estao bloqueadas enquanto a posicao existir.
+Com **posicao aberta** a quarentena arma normalmente, mas **nenhuma captura acontece**: nao ha
+avaliacao de entrada enquanto a posicao existir. A barreira e captada na primeira avaliacao depois do
+fechamento, usando o candle corrente daquele momento. Nao ha risco associado — entradas estao
+bloqueadas o tempo todo — e o efeito e ser mais conservador, nunca menos.
 
 ## Onde a regra vive
 

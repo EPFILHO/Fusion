@@ -63,10 +63,21 @@ protected:
                                   barrier));
      }
 
-   //--- Devolve true quando ha horario utilizavel. Captura tardia e proposital:
-   //--- se a serie so responder alguns candles depois, a referencia passa a ser o
-   //--- candle corrente daquele momento e ainda se exige um posterior. Fica mais
-   //--- conservador que o necessario, nunca mais permissivo.
+   //--- Devolve true quando ha horario utilizavel.
+   //---
+   //--- ⚠️ SO PODE SER CHAMADA A PARTIR DE UMA AVALIACAO DE ENTRADA, isto e,
+   //--- debaixo de um tick. Chamar no momento da suspensao era um defeito real,
+   //--- pego no primeiro teste: quando a transicao e percebida pelo TIMER, ainda
+   //--- nao chegou tick nenhum no candle corrente, a serie nao criou esse candle e
+   //--- iTime(0) devolve o ANTERIOR. O valor entrava congelado (a funcao retorna
+   //--- cedo com barreira ja preenchida) e um candle iniciado ANTES da liberacao
+   //--- passava a ser elegivel. Observado em 2026-08-19: permissao restaurada as
+   //--- 23:27:18 de servidor, barreira captada como 23:26:00.
+   //---
+   //--- Captura tardia continua proposital: se a serie so responder alguns candles
+   //--- depois, a referencia passa a ser o candle corrente daquele momento e ainda
+   //--- se exige um posterior. Mais conservador que o necessario, nunca mais
+   //--- permissivo.
    bool              CaptureFreshCandleBarrier(void)
      {
       if(m_freshCandleBarrier > 0)
@@ -146,20 +157,29 @@ public:
    //--- barreira que so existisse enquanto houvesse horario simplesmente nao
    //--- existiria ali. A quarentena arma incondicionalmente; o horario e captado
    //--- quando a serie permitir.
+   //---
+   //--- ⚠️ AQUI NAO SE CAPTURA NADA. A transicao pode ser percebida pelo timer, e
+   //--- nesse instante a serie ainda esta no candle anterior - capturar aqui
+   //--- congelava uma barreira velha demais e deixava passar um candle iniciado
+   //--- antes da liberacao. A barreira nasce desconhecida, e desconhecida bloqueia.
    virtual void      SuspendEntriesUntilFreshCandle(void)
      {
       m_freshCandleQuarantine  = true;
       m_freshCandleBarrier     = 0;
       m_freshCandleBlockLogged = false;
       m_freshCandleLoggedBar   = 0;
-      CaptureFreshCandleBarrier();
      }
 
-   //--- Chamado a cada avaliacao normal de entrada, com ou sem sinal candidato.
-   //--- E o que impede que a quarentena sem horario atravesse horas e acabe
-   //--- capturando a referencia no primeiro sinal legitimo - que seria entao
-   //--- descartado por servir de referencia. Sem sinal para conferir, aqui so se
-   //--- capta; quem bloqueia continua sendo FreshCandleBarrierBlocks.
+   //--- **Unico** ponto de captura da barreira, e por isso ele importa: e chamado
+   //--- por SignalManager::GetEntryDecision(), ou seja, debaixo de um tick, com a
+   //--- serie ja atualizada por esse tick. O candle corrente lido aqui e o de
+   //--- verdade, nao o que sobrou do ultimo tick antes da queda.
+   //---
+   //--- Roda a cada avaliacao normal de entrada, com ou sem sinal candidato: e o
+   //--- que impede que a quarentena sem horario atravesse horas e acabe capturando
+   //--- a referencia no primeiro sinal legitimo - que seria entao descartado por
+   //--- servir de referencia. Aqui so se capta; quem bloqueia e
+   //--- FreshCandleBarrierBlocks.
    void              RefreshFreshCandleBarrier(void)
      {
       if(!m_freshCandleQuarantine)
@@ -170,14 +190,18 @@ public:
    //--- signalBarTime e a abertura do candle que formou o sinal (sempre o [1]).
    //--- Enquanto a quarentena estiver ativa sem horario confiavel, TUDO e
    //--- bloqueado - falha fechado de verdade. A recuperacao e automatica e sem
-   //--- prazo: no primeiro instante em que a serie responde, o candle corrente
-   //--- vira a referencia e a exigencia volta a ser um candle posterior a ele.
+   //--- prazo: no primeiro tick que trouxer serie, o candle corrente vira a
+   //--- referencia e a exigencia volta a ser um candle posterior a ele.
+   //---
+   //--- Aqui NAO se captura: quem chega neste ponto veio de GetEntryDecision(),
+   //--- que ja passou por RefreshFreshCandleBarrier() no mesmo tick. Barreira
+   //--- desconhecida neste ponto significa serie que nao respondeu - bloqueia.
    bool              FreshCandleBarrierBlocks(const datetime signalBarTime)
      {
       if(!m_freshCandleQuarantine)
          return false;
 
-      if(!CaptureFreshCandleBarrier() || signalBarTime <= 0)
+      if(m_freshCandleBarrier <= 0 || signalBarTime <= 0)
         {
          LogFreshCandleBlock(signalBarTime);
          return true;
