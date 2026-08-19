@@ -55,9 +55,11 @@ acabaria sendo captada no **primeiro sinal legitimo**, que seria descartado por 
 referencia: a seguranca continuaria fechada, mas ao custo de uma entrada boa. A captura vive no
 manager, num ponto so; as tres estrategias apenas consultam o bloqueio.
 
-Com **posicao aberta** nao ha avaliacao de entrada e a captura nao acontece — nem precisa: entradas
-estao bloqueadas de todo jeito. Ela ocorre na primeira avaliacao depois do fechamento, usando o
-candle corrente daquele momento.
+Com **posicao aberta** a captura inicial **e tentada normalmente** — `SuspendEntriesUntilFreshCandle()`
+chama `CaptureFreshCandleBarrier()` sem olhar posicao. O que nao acontece e a **nova tentativa
+periodica**: sem avaliacao de entrada, uma captura inicial que tenha falhado so sera repetida na
+primeira avaliacao depois do fechamento, usando o candle corrente daquele momento. Nao ha risco
+associado: entradas estao bloqueadas enquanto a posicao existir.
 
 ## Onde a regra vive
 
@@ -102,6 +104,17 @@ diz `barreira ainda desconhecida (serie indisponivel)`.
 Sem ela, uma recusa e apenas uma **ausencia de ordem**, e o aceite dependeria de deduzir pelo grafico
 que algo foi barrado. E instrumentacao permanente: a mesma linha serve para diagnosticar reconexoes
 futuras.
+
+⚠️ **Ela nao cobre as duas camadas da protecao.** Sao dois cenarios distintos e so o segundo imprime
+a palavra `quarentena`:
+
+| cenario | quem barra | o que aparece no log |
+|---|---|---|
+| cruzamento **ja fechado** durante a queda (esta em `[1]` na volta) | `PrimeEntryStates()`, que consome o `[1]` antes de a estrategia consultar a barreira | so `Sinais descartados durante bloqueio: Permissao de trading restaurada.` — **sem** linha de quarentena |
+| candle **aberto** na liberacao, que fecha depois | a barreira, na deteccao do sinal | `Sinal bloqueado pela quarentena - ...` |
+
+O defeito relatado pelo usuario e tipicamente o **primeiro**. Procurar so por `quarentena` pode nao
+registrar justamente esse caso, ainda que a correcao tenha funcionado.
 
 ## Casos: o que esta provado
 
