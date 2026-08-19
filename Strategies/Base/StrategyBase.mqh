@@ -111,6 +111,18 @@ public:
       CaptureFreshCandleBarrier();
      }
 
+   //--- Chamado a cada avaliacao normal de entrada, com ou sem sinal candidato.
+   //--- E o que impede que a quarentena sem horario atravesse horas e acabe
+   //--- capturando a referencia no primeiro sinal legitimo - que seria entao
+   //--- descartado por servir de referencia. Sem sinal para conferir, aqui so se
+   //--- capta; quem bloqueia continua sendo FreshCandleBarrierBlocks.
+   void              RefreshFreshCandleBarrier(void)
+     {
+      if(!m_freshCandleQuarantine)
+         return;
+      CaptureFreshCandleBarrier();
+     }
+
    //--- signalBarTime e a abertura do candle que formou o sinal (sempre o [1]).
    //--- Enquanto a quarentena estiver ativa sem horario confiavel, TUDO e
    //--- bloqueado - falha fechado de verdade. A recuperacao e automatica e sem

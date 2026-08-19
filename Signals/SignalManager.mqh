@@ -154,6 +154,14 @@ public:
          if(m_strategies[i] == NULL || !m_strategies[i].Enabled())
             continue;
 
+         //--- Ponto unico da captura tardia da barreira. Se a serie estava muda na
+         //--- reconexao, e so aqui que ela e reencontrada - avaliacao normal de
+         //--- entrada, exista sinal ou nao. Deixar a captura para dentro das
+         //--- estrategias significava captar no primeiro sinal candidato, que
+         //--- entao servia de referencia e era descartado: um sinal legitimo
+         //--- perdido, possivelmente horas depois da reconexao.
+         m_strategies[i].RefreshFreshCandleBarrier();
+
          ENUM_SIGNAL_TYPE signal = m_strategies[i].GetEntrySignal();
          if(signal == SIGNAL_NONE)
             continue;

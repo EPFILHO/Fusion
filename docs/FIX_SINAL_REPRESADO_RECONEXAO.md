@@ -48,6 +48,17 @@ A recuperacao e automatica e **sem prazo**: nao existe contador, timeout nem ten
 serie so responder alguns candles depois, a referencia passa a ser o candle corrente **daquele**
 momento e ainda se exige um posterior — mais conservador que o necessario, nunca mais permissivo.
 
+**A captura tardia e tentada a cada avaliacao normal de entrada, exista sinal candidato ou nao**
+(`SignalManager::GetEntryDecision()` chama `RefreshFreshCandleBarrier()` antes de `GetEntrySignal()`).
+Sem isso — segundo achado da auditoria — a quarentena sem horario atravessaria horas e a referencia
+acabaria sendo captada no **primeiro sinal legitimo**, que seria descartado por ter servido de
+referencia: a seguranca continuaria fechada, mas ao custo de uma entrada boa. A captura vive no
+manager, num ponto so; as tres estrategias apenas consultam o bloqueio.
+
+Com **posicao aberta** nao ha avaliacao de entrada e a captura nao acontece — nem precisa: entradas
+estao bloqueadas de todo jeito. Ela ocorre na primeira avaliacao depois do fechamento, usando o
+candle corrente daquele momento.
+
 ## Onde a regra vive
 
 Fonte unica: `RefreshTradePermissionState()`. **Os seis chamadores** passam por ela e nenhum precisou
