@@ -1,10 +1,9 @@
 # Roteiro de teste — sinal represado apos restauracao da permissao
 
-Branch `fix/stale-signal-reconnect`. Marque cada caixa **so depois de rodar**. O que nao rodar fica
-desmarcado, com o motivo.
+Branch `fix/stale-signal-reconnect`. Tres testes dirigidos. Marque cada caixa **so depois de rodar**;
+o que nao rodar fica desmarcado, com o motivo.
 
-**Conta DEMO e lote minimo.** O Bloco B exige derrubar a rede da maquina; nao faca isso com posicao
-real aberta.
+**Conta DEMO e lote minimo.**
 
 ---
 
@@ -18,116 +17,102 @@ real aberta.
   .\build-linked.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' -KeepLink
   ```
 
-  Esperado: `0 errors, 0 warnings` nos quatro alvos.
-
-- [ ] **P2 — Achar o EA no MT5.** Navigator > Expert Advisors > botao direito > *Atualizar*. O EA
-  aparece em `FusionBuild\Fusion-2.000\Fusion`.
+- [ ] **P2 — Achar o EA.** Navigator > Expert Advisors > botao direito > *Atualizar*. Ele aparece em
+  `FusionBuild\Fusion-2.000\Fusion`.
 
 - [ ] **P3 — Conferir o binario ANTES de interpretar qualquer teste.** Ao anexar, o log deve trazer
-  `Painel: canvas (GUI 2.0)`. Confira tambem a data/hora de `Fusion.ex5` na pasta do projeto: tem de
-  ser a da compilacao de agora. *(Um `.ex5` desatualizado ja invalidou uma rodada inteira.)*
+  `Painel: canvas (GUI 2.0)`, e a data/hora de `Fusion.ex5` na pasta do projeto tem de ser a da
+  compilacao de agora. *(Um `.ex5` desatualizado ja invalidou uma rodada inteira.)*
 
-- [ ] **P4 — Ligar o debug.** Nas propriedades do EA (F7), `Ativar logs detalhados de debug` = `true`.
-  Sem isso a linha que prova o consumo dos sinais nao aparece.
+- [ ] **P4 — Ligar o debug.** Propriedades do EA (F7) > `Ativar logs detalhados de debug` = `true`.
+  **Sem isso a linha que prova o bloqueio nao e impressa** e o teste volta a depender de deducao.
 
-- [ ] **P5 — Configuracao que produz cruzamento rapido.** Grafico **M1**; so **MA Cross** ligada (RSI e
-  Bollinger desligadas, para nao misturar origem de sinal); modo de entrada `Candle seguinte`; medias
-  curtas (ex.: rapida 3, lenta 8); **nenhum filtro e nenhuma protecao que bloqueie** — com o
-  `CanOpen()` bloqueando, a avaliacao de entrada nem roda e o teste nao prova nada. Simbolo liquido e
-  em pregao.
+- [ ] **P5 — Configuracao.** Grafico **M1**, so **MA Cross** ligada (RSI e Bollinger desligadas),
+  modo `Candle seguinte`, medias curtas (ex.: 3 e 8). **Nenhum filtro e nenhuma protecao que
+  bloqueie** — com o `CanOpen()` bloqueando, a avaliacao de entrada nem roda e o teste nao prova nada.
 
-**Onde olhar:** aba **Experts** do MT5 (nao a aba Journal). As linhas citadas abaixo sao trechos; o
-prefixo do Fusion vem antes.
+**Onde olhar:** aba **Experts** do MT5 (nao a Journal).
 
 ---
 
-## Bloco A — AutoTrading desligado e religado
+## As tres linhas que interessam
 
-Exercita a **transicao** e a **barreira**. ⚠️ **Nao reproduz o defeito original**: os ticks continuam
-chegando e o EA vai consumindo os sinais a cada um. Serve para provar que a barreira segura, nao que
-o represamento acabou.
+| quando | linha |
+|---|---|
+| permissao volta | `INFO ... AUTOTRADE ... Trading habilitado novamente. Aguardando sinal formado apos a liberacao.` |
+| estado consumido | `DEBUG ... SIGNAL ... Sinais descartados durante bloqueio: Permissao de trading restaurada.` |
+| **sinal recusado** | `DEBUG ... SIGNAL ... Sinal bloqueado pela quarentena - MA Cross. Candle do sinal 2026.08.19 16:03:00, barreira 2026.08.19 16:05:00.` |
 
-- [ ] **A1 — Transicao percebida.** Com o EA iniciado e sem posicao, desligue o AutoTrading (botao da
-  barra do MT5). Espere ~1 minuto. Religue.
+A terceira e a evidencia direta do aceite: **uma linha por candle de sinal, por estrategia**, nunca
+por tick. Compare os dois horarios — o candle do sinal e igual ou anterior ao da barreira, e e por
+isso que ele foi recusado.
 
-  Esperado, na ordem:
-  - `WARN ... AUTOTRADE ... AutoTrading desabilitado no MT5. Habilite para iniciar.`
-  - ao religar: `INFO ... AUTOTRADE ... Trading habilitado novamente. Aguardando sinal formado apos a liberacao.`
-  - logo depois: `DEBUG ... SIGNAL ... Sinais descartados durante bloqueio: Permissao de trading restaurada.`
-
-  A segunda linha e a **unica** vez que ela aparece por transicao — se repetir a cada segundo, o
-  requisito de nao poluir o log falhou.
-
-- [ ] **A2 — Nenhuma ordem no candle da liberacao.** Religue o AutoTrading **no meio de um candle M1**
-  em que o indicador visual mostre um cruzamento recente. Nenhuma ordem pode nascer nesse candle,
-  mesmo que o cruzamento esteja visivel no grafico.
-
-  Evidencia: **ausencia** de `INFO ... STRAT_MA ... NEXT_CANDLE ...` e ausencia de linha `TRADE`
-  enquanto aquele candle estiver aberto. *(Um cruzamento barrado nao gera linha propria — a prova e
-  o cruzamento visivel no grafico sem log e sem ordem.)*
-
-- [ ] **A3 — Sinal genuinamente novo entra.** Continue observando. No primeiro cruzamento formado num
-  candle **iniciado depois** da liberacao, o EA deve abrir normalmente.
-
-  Esperado: `INFO ... STRAT_MA ... NEXT_CANDLE fast[2]=... => BUY` (ou `SELL`) seguido da ordem.
-  Anote o horario do candle: ele tem de ser posterior ao candle em que voce religou.
-
-- [ ] **A4 — Com posicao aberta, o gerenciamento retoma.** Com uma posicao aberta, desligue o
-  AutoTrading, espere ~1 minuto, religue.
-
-  Esperado: aviso com o texto de posicao (`... Gerenciamento da posicao interrompido. Habilite
-  imediatamente.`); ao religar, o gerenciamento volta e **nada de SL/TP/trailing/breakeven/parcial e
-  perdido** — a posicao continua com os mesmos niveis e o painel Resultados segue coerente.
-
-- [ ] **A5 — PAUSAR/INICIAR intactos.** Sem mexer em AutoTrading: PAUSAR, esperar um candle, INICIAR.
-  O comportamento tem de ser o de sempre — o EA aguarda um sinal novo, sem nenhuma mensagem nova.
-
-- [ ] **A6 — Operacao normal.** Deixe rodando alguns candles sem tocar em nada. `Candle seguinte`
-  entra no cruzamento; troque para `Segundo candle` e confirme que espera um candle antes de entrar.
-  Com a barreira desarmada, nada muda em relacao ao comportamento conhecido.
+Procure por `quarentena` no filtro da aba Experts.
 
 ---
 
-## Bloco B — desconexao real
+## Teste 1 — AutoTrading desligado e religado
 
-Este e o **unico** bloco que reproduz o defeito original: sem ticks, o estado das estrategias congela
-no instante da queda.
+Determinstico, leva um minuto. Prova a **transicao**; nao prova o represamento (os ticks continuam
+chegando durante o bloqueio, e o EA vai consumindo os sinais a cada um).
 
-- [ ] **B1 — Cruzamento formado no escuro NAO entra.** Com o EA iniciado, **sem posicao aberta**,
-  desative o adaptador de rede (ou desligue o Wi-Fi) por **3 a 5 minutos** — tempo suficiente para o
-  M1 formar candles e cruzar. Reative a rede e deixe o MT5 reconectar.
+- [ ] Com o EA iniciado e sem posicao, desligue o AutoTrading. Espere ~1 minuto. Religue.
 
-  Esperado:
-  - `WARN ... CONNECTION ... Conexao com servidor perdida. Entradas bloqueadas.`
-  - na volta: `INFO ... CONNECTION ... Conexao com servidor restaurada. Verificando permissoes de trading.`
-  - `INFO ... AUTOTRADE ... Trading habilitado novamente. Aguardando sinal formado apos a liberacao.`
-  - **nenhuma ordem** no primeiro tick, mesmo com o grafico mostrando o cruzamento que se formou
-    durante a queda.
+  Esperado: o aviso de bloqueio, depois a linha `Trading habilitado novamente...` **uma unica vez**, e
+  em seguida `Sinais descartados durante bloqueio: Permissao de trading restaurada.` Se a linha da
+  liberacao repetir a cada segundo, o requisito de nao poluir o log falhou.
 
-  ⚠️ **Este e o caso que motivou todo o trabalho.** Antes da correcao, a ordem nascia aqui.
+---
 
-- [ ] **B2 — Recuperacao.** Continue observando ate o proximo cruzamento formado com o EA ja
-  conectado. Ele deve entrar normalmente. Se **nao** entrar, a quarentena nao desarmou — anote o
-  horario e pare o teste.
+## Teste 2 — desconexao sem posicao aberta
 
-- [ ] **B3 — Repetir com posicao aberta.** Com uma posicao aberta, repita a queda de rede por ~2
-  minutos. Na volta: gerenciamento retoma, nenhum estado de saida se perde, e nenhuma **entrada** nova
-  nasce do periodo sem ticks.
+O caso que motivou o trabalho.
+
+⚠️ **Uma queda curta pode nao provar nada.** O teste so e conclusivo se um **cruzamento se formar
+durante a desconexao** — e isso nao se controla pelo relogio. Nao existe duracao que garanta
+cruzamento. Se voltar sem cruzamento no periodo, o teste e **inconclusivo** e precisa ser repetido.
+
+**Por isso o caminho recomendado e observar no uso normal:** deixe o EA operando no dia a dia e, na
+primeira queda de conexao que coincidir com um cruzamento, a evidencia fica gravada sozinha. Procure
+`quarentena` no Experts de tempos em tempos. Forcar a queda so vale a pena se voce vir o preco perto
+de um cruzamento.
+
+- [ ] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
+  rede ou o Wi-Fi), aguarde, reconecte.
+
+  Esperado: `WARN ... CONNECTION ... Conexao com servidor perdida.`, na volta
+  `INFO ... CONNECTION ... Conexao com servidor restaurada...`, a linha de `AUTOTRADE`, e
+  **`Sinal bloqueado pela quarentena - MA Cross`** com o candle do sinal anterior ou igual a barreira.
+  Nenhuma ordem nesse momento.
+
+  Se nao houver linha de quarentena e o grafico nao mostrar cruzamento no periodo: **inconclusivo**,
+  repetir.
+
+- [ ] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
+  conectado. Ele deve entrar normalmente: `INFO ... STRAT_MA ... NEXT_CANDLE ... => BUY` (ou `SELL`)
+  seguido da ordem. Se **nao** entrar, a quarentena nao desarmou — anote o horario e pare.
+
+---
+
+## Teste 3 — desconexao com posicao aberta
+
+- [ ] Com uma posicao aberta, repita a queda de rede. Na volta: o gerenciamento retoma (SL/TP,
+  trailing, breakeven e parcial seguem coerentes, nada zerado no painel Resultados) e **nenhuma
+  entrada nova** nasce do periodo sem ticks.
+
+---
+
+## Regressao, depois
+
+Nao precisa ser na mesma sessao. Depois que os tres acima fecharem:
+
+- [ ] PAUSAR/INICIAR continuam consumindo o estado vigente como antes;
+- [ ] operacao normal sem desconexao mantem `Candle seguinte` e `Segundo candle`;
+- [ ] RSI e Bollinger ligadas nao reapresentam sinais acumulados.
 
 ---
 
 ## O que registrar
 
-Para cada caixa marcada, guarde:
-
-1. **trecho do log** da aba Experts, com horario;
-2. **captura do grafico** no momento — o cruzamento barrado so se prova visualmente;
-3. horario de abertura do candle da liberacao e do candle que finalmente entrou.
-
-## Limitacao conhecida de observabilidade
-
-Quando a barreira barra um sinal, **nao ha linha de log propria**. A prova e indireta: cruzamento
-visivel no grafico, sem `STRAT_MA` e sem ordem. Se isso tornar o aceite dificil de defender, existe a
-opcao de instrumentar — uma linha `DEBUG` no bloqueio, limitada a uma por candle por estrategia (o
-sinal ja e consumido, entao nao repetiria por tick). **Nao foi feito**: e mudanca de codigo depois da
-auditoria aprovada, e a decisao e do usuario.
+Para cada caixa marcada: **trecho do log** com horario e, no Teste 2, a **captura do grafico** com o
+cruzamento. Anote o horario de abertura do candle da liberacao e o do candle que finalmente entrou.

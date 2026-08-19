@@ -86,6 +86,23 @@ esperam candles diferentes**, e nao o mesmo relogio.
 saida, pending reverse, reconciliacao, trailing, breakeven ou TP parcial. `SuspendEntriesUntilFreshCandle()`
 toca somente o campo da barreira.
 
+## Observabilidade
+
+Uma recusa da quarentena imprime, com `Ativar logs detalhados de debug` ligado:
+
+```
+DEBUG | SIGNAL | Sinal bloqueado pela quarentena - MA Cross. Candle do sinal 2026.08.19 16:03:00, barreira 2026.08.19 16:05:00.
+```
+
+**Uma linha por candle de sinal, por estrategia** (`m_freshCandleBlockLogged` + `m_freshCandleLoggedBar`),
+nunca por tick. Os chamadores ja consomem o sinal e por si so nao repetiriam; a deduplicacao garante o
+limite mesmo se um caminho futuro reavaliar o mesmo candle. Com a barreira ainda sem horario, a linha
+diz `barreira ainda desconhecida (serie indisponivel)`.
+
+Sem ela, uma recusa e apenas uma **ausencia de ordem**, e o aceite dependeria de deduzir pelo grafico
+que algo foi barrado. E instrumentacao permanente: a mesma linha serve para diagnosticar reconexoes
+futuras.
+
 ## Casos: o que esta provado
 
 Provado **por leitura de codigo** e pelo build; **nada foi executado no MT5 nesta rodada**.

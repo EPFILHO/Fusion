@@ -24,6 +24,44 @@ protected:
    //--- depois desse. Zero aqui significa "ainda nao sei", NAO "pode entrar" -
    //--- quem responde isso e m_freshCandleQuarantine.
    datetime         m_freshCandleBarrier;
+   //--- Deduplicacao do log de recusa: uma linha por candle de sinal, por
+   //--- estrategia. Os chamadores ja consomem o sinal, entao na pratica nao
+   //--- repetiria por tick; isto garante o limite mesmo se algum caminho futuro
+   //--- reavaliar o mesmo candle.
+   bool             m_freshCandleBlockLogged;
+   datetime         m_freshCandleLoggedBar;
+
+   string            FormatBarTime(const datetime value) const
+     {
+      if(value <= 0)
+         return "horario indisponivel";
+      return TimeToString(value, TIME_DATE | TIME_SECONDS);
+     }
+
+   //--- Instrumentacao permanente, so com "logs detalhados de debug" ligados.
+   //--- Sem ela, uma recusa da quarentena e uma AUSENCIA de ordem: o operador
+   //--- teria de deduzir pelo grafico que algo foi barrado, e um aceite nao se
+   //--- sustenta em deducao. Diz qual estrategia, o candle do sinal e a barreira.
+   void              LogFreshCandleBlock(const datetime signalBarTime)
+     {
+      if(m_logger == NULL)
+         return;
+      if(m_freshCandleBlockLogged && signalBarTime == m_freshCandleLoggedBar)
+         return;
+
+      m_freshCandleBlockLogged = true;
+      m_freshCandleLoggedBar   = signalBarTime;
+
+      string barrier = (m_freshCandleBarrier > 0)
+                       ? FormatBarTime(m_freshCandleBarrier)
+                       : "ainda desconhecida (serie indisponivel)";
+
+      m_logger.Debug("SIGNAL",
+                     StringFormat("Sinal bloqueado pela quarentena - %s. Candle do sinal %s, barreira %s.",
+                                  m_name,
+                                  FormatBarTime(signalBarTime),
+                                  barrier));
+     }
 
    //--- Devolve true quando ha horario utilizavel. Captura tardia e proposital:
    //--- se a serie so responder alguns candles depois, a referencia passa a ser o
@@ -63,8 +101,10 @@ public:
       m_priority    = priority;
       m_enabled     = true;
       m_initialized = false;
-      m_freshCandleQuarantine = false;
-      m_freshCandleBarrier    = 0;
+      m_freshCandleQuarantine  = false;
+      m_freshCandleBarrier     = 0;
+      m_freshCandleBlockLogged = false;
+      m_freshCandleLoggedBar   = 0;
      }
 
    virtual          ~CStrategyBase(void) {}
@@ -82,8 +122,10 @@ public:
    virtual void      Shutdown(void)
      {
       m_initialized = false;
-      m_freshCandleQuarantine = false;
-      m_freshCandleBarrier    = 0;
+      m_freshCandleQuarantine  = false;
+      m_freshCandleBarrier     = 0;
+      m_freshCandleBlockLogged = false;
+      m_freshCandleLoggedBar   = 0;
      }
 
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) = 0;
@@ -106,8 +148,10 @@ public:
    //--- quando a serie permitir.
    virtual void      SuspendEntriesUntilFreshCandle(void)
      {
-      m_freshCandleQuarantine = true;
-      m_freshCandleBarrier    = 0;
+      m_freshCandleQuarantine  = true;
+      m_freshCandleBarrier     = 0;
+      m_freshCandleBlockLogged = false;
+      m_freshCandleLoggedBar   = 0;
       CaptureFreshCandleBarrier();
      }
 
@@ -132,16 +176,23 @@ public:
      {
       if(!m_freshCandleQuarantine)
          return false;
-      if(!CaptureFreshCandleBarrier())
+
+      if(!CaptureFreshCandleBarrier() || signalBarTime <= 0)
+        {
+         LogFreshCandleBlock(signalBarTime);
          return true;
-      if(signalBarTime <= 0)
-         return true;
+        }
+
       if(signalBarTime > m_freshCandleBarrier)
         {
-         m_freshCandleQuarantine = false;
-         m_freshCandleBarrier    = 0;
+         m_freshCandleQuarantine  = false;
+         m_freshCandleBarrier     = 0;
+         m_freshCandleBlockLogged = false;
+         m_freshCandleLoggedBar   = 0;
          return false;
         }
+
+      LogFreshCandleBlock(signalBarTime);
       return true;
      }
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) = 0;
