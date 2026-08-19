@@ -168,8 +168,12 @@ public:
       bool wasBlocked = m_blocked;
       if(PermissionsAllowed(reason))
         {
+         //--- Nao diz mais "EA pronto para operar": desde a quarentena de candle
+         //--- (RefreshTradePermissionState -> SuspendEntriesUntilFreshCandle) a
+         //--- permissao voltar NAO significa que a proxima entrada passa. O guard
+         //--- so afirma o que ele mesmo sabe - a permissao - e anuncia a espera.
          if(wasBlocked && m_logger != NULL)
-            m_logger.Info("AUTOTRADE", "Trading habilitado novamente. EA pronto para operar.");
+            m_logger.Info("AUTOTRADE", "Trading habilitado novamente. Aguardando sinal formado apos a liberacao.");
          Reset();
          return true;
         }
