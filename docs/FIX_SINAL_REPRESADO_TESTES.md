@@ -251,7 +251,22 @@ aprovar a recuperacao de uma implementacao com janela conhecida nao vale como ac
 do Teste 2 voltam a valer como **a repetir**; o registro da execucao de 2026-08-19 fica como historico
 do que a versao anterior fazia.
 
-O que muda na observacao: a barreira passa a ser captada no **primeiro tick apos a liberacao**, entao
-o horario que aparece na linha `Sinal bloqueado pela quarentena` deve ser o candle **corrente de
-verdade** naquele instante, nao o anterior. Compare com o horario de servidor da linha de
-`AUTOTRADE`: os dois devem cair no mesmo candle.
+O que muda na observacao: a barreira passa a ser captada no **primeiro tick que alcancar a avaliacao
+normal de entrada**, entao o horario que aparece na linha `Sinal bloqueado pela quarentena` e o candle
+corrente **daquele** momento, nunca um candle velho herdado do ultimo tick antes da queda.
+
+**Criterio de conferencia — a barreira tem de ser igual ou POSTERIOR ao candle da restauracao, nunca
+anterior.** Compare com o horario de servidor da linha de `AUTOTRADE`:
+
+| barreira | veredito |
+|---|---|
+| **anterior** ao candle da restauracao | **defeito** — e o P1 que motivou o `b699a60` (visto em 19/08: restauracao `23:27:18`, barreira `23:26:00`) |
+| **no mesmo** candle | correto, caso comum |
+| num candle **posterior** | tambem correto e seguro |
+
+O terceiro caso acontece quando o primeiro tick que alcanca a avaliacao chega depois da virada:
+restauracao as `23:27:59`, tick util as `23:28:01`, barreira `23:28`. Mais conservador, nao menos.
+
+⚠️ "Primeiro tick" nunca significa "o proximo tick do simbolo": significa **o primeiro que chega ate
+`GetEntryDecision()`**. Com posicao aberta, EA pausado ou protecao bloqueando, a avaliacao nem roda e a
+captura espera — de proposito.

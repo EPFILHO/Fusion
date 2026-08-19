@@ -190,8 +190,11 @@ public:
    //--- signalBarTime e a abertura do candle que formou o sinal (sempre o [1]).
    //--- Enquanto a quarentena estiver ativa sem horario confiavel, TUDO e
    //--- bloqueado - falha fechado de verdade. A recuperacao e automatica e sem
-   //--- prazo: no primeiro tick que trouxer serie, o candle corrente vira a
-   //--- referencia e a exigencia volta a ser um candle posterior a ele.
+   //--- prazo: no primeiro tick que alcancar a avaliacao normal de entrada com a
+   //--- serie respondendo, o candle corrente daquele momento vira a referencia e a
+   //--- exigencia volta a ser um candle posterior a ele. Essa referencia pode cair
+   //--- no mesmo candle da restauracao ou num posterior - o que ela nunca pode ser
+   //--- e ANTERIOR, que era o defeito.
    //---
    //--- Aqui NAO se captura: quem chega neste ponto veio de GetEntryDecision(),
    //--- que ja passou por RefreshFreshCandleBarrier() no mesmo tick. Barreira

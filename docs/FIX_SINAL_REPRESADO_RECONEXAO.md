@@ -69,6 +69,17 @@ avaliacao de entrada enquanto a posicao existir. A barreira e captada na primeir
 fechamento, usando o candle corrente daquele momento. Nao ha risco associado — entradas estao
 bloqueadas o tempo todo — e o efeito e ser mais conservador, nunca menos.
 
+### Onde a barreira pode cair
+
+**Igual ou posterior ao candle da restauracao, nunca anterior.** Anterior significa leitura velha de
+serie, que foi o P1: um candle iniciado antes da liberacao viraria elegivel. Posterior e legitimo e
+seguro — basta que o primeiro tick a alcancar `GetEntryDecision()` chegue depois da virada do candle
+(restauracao `23:27:59`, tick util `23:28:01`, barreira `23:28`).
+
+⚠️ Em todo este documento, **"primeiro tick" significa o primeiro tick que alcanca a avaliacao normal
+de entrada**, nao o proximo tick do simbolo. Com posicao aberta, EA pausado ou protecao bloqueando, a
+avaliacao nao roda e a captura espera.
+
 ## Onde a regra vive
 
 Fonte unica: `RefreshTradePermissionState()`. **Os seis chamadores** passam por ela e nenhum precisou
