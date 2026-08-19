@@ -322,16 +322,22 @@ posicao.
   > coloca o DD armado **debaixo de uma posicao aberta**, onde o distintivo diz
   > `OPERANDO` e nao `RODANDO`.
   >
-  > **RECEITA QUE PRODUZ A JANELA:** `Max DD` **largo** (100 ou mais), para o piso
-  > nascer longe do pico e a operacao fechar por TP/SL/sinal **antes** de encostar
-  > nele. Aí o DD fica so ARMADO com a posicao ja fechada, que e o estado do passo.
+  > **RECEITA QUE PRODUZ A JANELA:** `Max DD` grande o bastante **para aquele
+  > ativo** para a posicao fechar por TP/SL/sinal **antes** de o piso ser tocado.
+  > Aí o DD fica so ARMADO com a posicao ja fechada, que e o estado do passo.
+  >
+  > ⚠ **Sem numero, de proposito.** Uma versao anterior desta linha dizia
+  > "`Max DD` largo (100 ou mais)" — um valor tirado do WIN, que nao generaliza e
+  > que contradizia o paragrafo acima nesta mesma nota. Quem fechou o R1 foi
+  > `Max DD 0.50` no US100Cash: o que decide nao e a grandeza do numero, e a
+  > relacao dele com a oscilacao normal do instrumento.
   >
   > ⚠ `Max Ganho = 0` mata o ramo inteiro (a config exige `> 0`), entao "sem
   > limite" nunca arma o DD por esta via.
   >
-  > A metade que falta do **R5** sai da MESMA janela: com o DD **armado**, apertar
-  > PAUSAR e conferir que a faixa `DD ATIVO` permanece. Os dois saem da mesma
-  > janela, sem operacao extra.
+  > **E foi assim que a metade restante do R5 fechou**, na mesma janela e sem
+  > operacao extra: com o DD **armado**, apertar PAUSAR e conferir que a faixa
+  > `DD ATIVO` permanece. Executado em 2026-08-19.
 - [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
   1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
      tocar o piso**;
