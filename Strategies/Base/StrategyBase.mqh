@@ -16,6 +16,10 @@ protected:
    int              m_priority;
    bool             m_enabled;
    bool             m_initialized;
+   //--- Hora de abertura do candle que JA estava em formacao quando as entradas
+   //--- foram suspensas. Um sinal so e elegivel se o candle que o formou comecou
+   //--- depois desse; zero significa barreira desarmada.
+   datetime         m_freshCandleBarrier;
 
    void              ReleaseIndicatorHandle(int &handle)
      {
@@ -36,6 +40,7 @@ public:
       m_priority    = priority;
       m_enabled     = true;
       m_initialized = false;
+      m_freshCandleBarrier = 0;
      }
 
    virtual          ~CStrategyBase(void) {}
@@ -51,10 +56,44 @@ public:
    virtual void      Shutdown(void)
      {
       m_initialized = false;
+      m_freshCandleBarrier = 0;
      }
 
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) = 0;
    virtual void      PrimeEntryState(void) {}
+
+   //--- Consumir o estado vigente nao basta quando a permissao de trading volta no
+   //--- meio de um candle: esse candle vira [1] no fechamento e comecou a se formar
+   //--- durante o bloqueio, sem o EA acompanhando. A barreira exige que o primeiro
+   //--- sinal elegivel venha de um candle iniciado DEPOIS da suspensao. Cada
+   //--- estrategia arma no proprio ReferenceTimeframe(), entao timeframes
+   //--- diferentes esperam candles diferentes. So entrada: nenhum caminho de saida
+   //--- le esta barreira.
+   virtual void      SuspendEntriesUntilFreshCandle(void)
+     {
+      if(!m_initialized || m_symbol == "")
+         return;
+
+      datetime openBar = iTime(m_symbol, ReferenceTimeframe(), 0);
+      if(openBar > 0)
+         m_freshCandleBarrier = openBar;
+     }
+
+   //--- signalBarTime e a abertura do candle que formou o sinal (sempre o [1]).
+   //--- Sem hora confiavel a barreira falha fechado, como o resto do EA.
+   bool              FreshCandleBarrierBlocks(const datetime signalBarTime)
+     {
+      if(m_freshCandleBarrier <= 0)
+         return false;
+      if(signalBarTime <= 0)
+         return true;
+      if(signalBarTime > m_freshCandleBarrier)
+        {
+         m_freshCandleBarrier = 0;
+         return false;
+        }
+      return true;
+     }
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) = 0;
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) = 0;
    virtual ENUM_EXIT_MODE ExitMode(void) const { return EXIT_TP_SL; }

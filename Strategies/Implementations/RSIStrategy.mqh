@@ -218,6 +218,15 @@ public:
       if(signalBarTime == m_lastSignalBarTime)
          return SIGNAL_NONE;
 
+      //--- Candle iniciado antes da liberacao da permissao nao vale como entrada,
+      //--- mesmo que o sinal seja de um [1] ainda nao visto. Consome o candle para
+      //--- nao reavaliar a cada tick.
+      if(FreshCandleBarrierBlocks(signalBarTime))
+        {
+         m_lastSignalBarTime = signalBarTime;
+         return SIGNAL_NONE;
+        }
+
       m_lastSignalBarTime = signalBarTime;
       return signal;
      }

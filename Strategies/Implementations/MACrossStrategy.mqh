@@ -297,6 +297,20 @@ public:
 
       if(crossSignal != SIGNAL_NONE && crossBarTime != m_lastCrossTime)
         {
+         //--- A barreira e conferida na DETECCAO do cruzamento, nao no disparo: o
+         //--- candle que importa e o que formou o sinal. Com `Segundo candle` isso
+         //--- impede que um cruzamento nascido no escuro fique armado para disparar
+         //--- depois. O cruzamento e consumido (m_lastCrossTime) para nao ser
+         //--- reavaliado a cada tick do mesmo candle.
+         if(FreshCandleBarrierBlocks(crossBarTime))
+           {
+            m_lastCrossTime = crossBarTime;
+            m_lastCrossSignal = SIGNAL_NONE;
+            m_candlesAfterCross = 0;
+            m_lastCheckBarTime = iTime(m_symbol, m_fastTimeframe, 0);
+            return SIGNAL_NONE;
+           }
+
          m_lastCrossTime = crossBarTime;
          m_lastCrossSignal = crossSignal;
          m_candlesAfterCross = 0;
@@ -324,6 +338,18 @@ public:
 
          if(m_candlesAfterCross >= 1)
            {
+            //--- Rede de seguranca do disparo: um cruzamento armado ANTES da suspensao
+            //--- normalmente e apagado pelo priming, mas o priming nao roda com posicao
+            //--- aberta nem com o EA pausado. Aqui o invariante vale sozinho, sem
+            //--- depender de quem chamou o que. Zera so o sinal armado e preserva
+            //--- m_lastCrossTime, que ja identifica este cruzamento como consumido.
+            if(FreshCandleBarrierBlocks(m_lastCrossTime))
+              {
+               m_lastCrossSignal = SIGNAL_NONE;
+               m_candlesAfterCross = 0;
+               return SIGNAL_NONE;
+              }
+
             ENUM_SIGNAL_TYPE signal = m_lastCrossSignal;
             LogCrossSnapshot("E2C_FIRE", signal, fastBuffer, slowBuffer);
             ResetEntryTracking();

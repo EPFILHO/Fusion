@@ -128,6 +128,17 @@ public:
             m_strategies[i].PrimeEntryState();
      }
 
+   //--- Diferente de PrimeEntryStates, arma tambem quem esta desligado: uma
+   //--- estrategia reativada logo depois da restauracao entraria com um [1]
+   //--- formado no escuro. A propria Reload devolve o estado quando o usuario
+   //--- muda parametros.
+   void              SuspendEntriesUntilFreshCandle(void)
+     {
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+         if(m_strategies[i] != NULL)
+            m_strategies[i].SuspendEntriesUntilFreshCandle();
+     }
+
    bool              GetEntryDecision(SSignalDecision &decision)
      {
       ResetSignalDecision(decision);

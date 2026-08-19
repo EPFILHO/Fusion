@@ -62,7 +62,24 @@
       if(m_tradePermissionGuard.Refresh(m_positionState.hasPosition))
         {
          if(wasBlocked)
+           {
             m_runtimeNotice = m_protectionNoticeActive ? m_protectionNoticeReason : "";
+            //--- Fronteira unica da transicao bloqueado->liberado. Sem ticks durante o
+            //--- bloqueio, DiscardBlockedEntrySignals nunca rodou e o estado das
+            //--- estrategias ficou parado no momento da queda: o primeiro tick de volta
+            //--- encontrava um cruzamento formado no escuro e abria ordem atrasada.
+            //--- Aqui, os seis chamadores desta funcao (Initialize, OnTick, OnTimer,
+            //--- TryPlaceEntryDecision, ManageOpenPosition e o comando INICIAR) passam
+            //--- pelo mesmo ponto, entao a regra nao precisa ser repetida em nenhum
+            //--- deles.
+            //---
+            //--- A barreira e armada mesmo com posicao aberta e mesmo com o EA pausado:
+            //--- ela so restringe ENTRADA, e o estado de saida nao e tocado. Priming e
+            //--- barreira sao coisas distintas - o priming consome o [1] atual, a
+            //--- barreira recusa tambem o candle que ja estava aberto na liberacao.
+            m_signalManager.SuspendEntriesUntilFreshCandle();
+            DiscardBlockedEntrySignals("Permissao de trading restaurada.");
+           }
          return true;
         }
 
