@@ -283,20 +283,37 @@ posicao.
   ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
   entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
 
-  > ⚠ **PENDENTE — e NAO depende de um dia bom.** Conferido em
-  > `DailyLimitsProtection::UsesDrawdownActivation()`: o DD arma quando o P/L
-  > **FECHADO** alcanca `maxDailyGain`, e a funcao exige as quatro coisas juntas
-  > — `Acao Ganho = ATIVAR DD`, `Drawdown` ligado, `Max DD > 0` e
-  > `Max Ganho > 0`. Com `Max Ganho` no menor valor aceito, **a primeira
-  > operacao que fecha positiva arma a protecao**, e o passo fica ao alcance em
-  > minutos em vez de esperar um pregao favoravel. E a mesma receita que
-  > `GUI_2000_FASE3_PENDENTES.md` escreveu para o `H4`.
+  > ⚠⚠ **PENDENTE — e o que falta NAO e um dia bom, e FOLGA ENTRE A META E O
+  > `Max DD`.** Tentativa de 2026-08-18: `Max Ganho 50`, `Max DD 25`. O DD armou,
+  > o pico foi a 66, o piso (66−25 = 41) foi tocado e a protecao ATINGIU — tudo
+  > **dentro da mesma posicao**. Quando ela fechou (+42), o estado ja era
+  > `ATINGIDO`. O momento que o R1 confere **nunca existiu**.
   >
-  > ⚠ `Max Ganho = 0` mata o ramo inteiro (a funcao exige `> 0`), entao a
-  > configuracao com "sem limite" nunca arma o DD por esta via.
+  > **O DD ARMA POR DOIS CAMINHOS**, e e isso que faz a janela do R1 sumir:
   >
-  > Fecha junto com a metade que falta do **R5**: com o DD armado, apertar PAUSAR
-  > e conferir que a faixa `DD ATIVO` permanece.
+  > | onde | contra o que compara | quando |
+  > |---|---|---|
+  > | `CanOpen()` | P/L **FECHADO** | entre operacoes |
+  > | `ShouldForceClose()` | P/L **PROJETADO** (fechado + flutuante) | **com posicao aberta** |
+  >
+  > ⚠ `UsesDrawdownActivation()` **nao e o gatilho** — e so o porteiro da
+  > CONFIGURACAO, e exige as quatro coisas juntas: `Acao Ganho = ATIVAR DD`,
+  > `Drawdown` ligado, `Max DD > 0` e `Max Ganho > 0`. Uma versao anterior desta
+  > nota dizia que o DD arma "quando o P/L fechado alcanca a meta", omitindo o
+  > segundo caminho; foi por ele que a protecao armou no dia 18, e e ele que
+  > coloca o DD armado **debaixo de uma posicao aberta**, onde o distintivo diz
+  > `OPERANDO` e nao `RODANDO`.
+  >
+  > **RECEITA QUE PRODUZ A JANELA:** `Max DD` **largo** (100 ou mais), para o piso
+  > nascer longe do pico e a operacao fechar por TP/SL/sinal **antes** de encostar
+  > nele. Aí o DD fica so ARMADO com a posicao ja fechada, que e o estado do passo.
+  >
+  > ⚠ `Max Ganho = 0` mata o ramo inteiro (a config exige `> 0`), entao "sem
+  > limite" nunca arma o DD por esta via.
+  >
+  > Fecha junto com a metade que falta do **R5**: com o DD **armado**, apertar
+  > PAUSAR e conferir que a faixa `DD ATIVO` permanece. Os dois saem da mesma
+  > janela, sem operacao extra.
 - [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
   1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
      tocar o piso**;
