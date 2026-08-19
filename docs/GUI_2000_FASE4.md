@@ -273,18 +273,36 @@ correto e `OPERANDO`, por precedencia.
 ⚠️ **R4 exige o EA iniciado e SEM posicao aberta.** R3 e justamente o caso com
 posicao.
 
-- [ ] **R1. DD armado** — sequencia:
+- [x] **R1. DD armado** — sequencia:
   1. bater a meta do dia com `ATIVAR DD`, operando normalmente;
   2. **esperar a posicao fechar** e a reconciliacao terminar;
   3. **so entao conferir:** distintivo **`RODANDO`** (verde) e faixa
      **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
      carregado`** em ambar.
-
   ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
   entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
 
-  > ⚠⚠ **PENDENTE — e o que falta NAO e um dia bom, e FOLGA ENTRE A META E O
-  > `Max DD`.** Tentativa de 2026-08-18: `Max Ganho 50`, `Max DD 25`. O DD armou,
+
+  **EXECUTADO E APROVADO EM 2026-08-19.** Distintivo **`RODANDO`** em verde e
+  faixa **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
+  carregado`** em ambar, com `Estado DD = ATIVO` e sem posicao aberta. Era o
+  ultimo estado do painel que nunca tinha sido visto em execucao.
+
+  > ⚠ **O usuario resolveu o problema do "dia bom" trocando de ATIVO, e nao
+  > esperando o mercado.** Rodou em `US100Cash` com `Max Ganho 1.00` e
+  > `Max DD 0.50`: pico 1,23, piso 0,73. Numa escala dessas a meta bate na
+  > primeira operacao e a folga ate o piso e enorme em termos relativos, entao a
+  > posicao fecha muito antes de o preco voltar la. **A receita geral, portanto,
+  > nao e "Max DD 100" — e "Max DD grande o bastante para a operacao fechar antes
+  > de o piso ser tocado", e o tamanho disso depende do ativo.**
+  >
+  > De quebra, a captura confirma o rotulo movel da folga nos DOIS sentidos: aqui
+  > ele diz **`Folga DD`** (armado), e nas capturas do dia 18 dizia
+  > **`Folga atual`** (atingido).
+
+  > ⚠⚠ **POR QUE A PRIMEIRA TENTATIVA NAO PRODUZIU A JANELA — o que faltava nao
+  > era um dia bom, e FOLGA ENTRE A META E O `Max DD`.** Tentativa de 2026-08-18:
+  > `Max Ganho 50`, `Max DD 25`. O DD armou,
   > o pico foi a 66, o piso (66−25 = 41) foi tocado e a protecao ATINGIU — tudo
   > **dentro da mesma posicao**. Quando ela fechou (+42), o estado ja era
   > `ATINGIDO`. O momento que o R1 confere **nunca existiu**.
@@ -311,7 +329,7 @@ posicao.
   > ⚠ `Max Ganho = 0` mata o ramo inteiro (a config exige `> 0`), entao "sem
   > limite" nunca arma o DD por esta via.
   >
-  > Fecha junto com a metade que falta do **R5**: com o DD **armado**, apertar
+  > A metade que falta do **R5** sai da MESMA janela: com o DD **armado**, apertar
   > PAUSAR e conferir que a faixa `DD ATIVO` permanece. Os dois saem da mesma
   > janela, sem operacao extra.
 - [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
