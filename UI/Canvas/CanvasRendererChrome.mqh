@@ -866,16 +866,6 @@ SEntryRestriction ResolveEntryRestriction(void)
    return r;
   }
 
-//--- DD ARMADO: informacao, e nao restricao. Fica fora do resolvedor acima de
-//--- proposito, e a faixa so a mostra quando nao ha nada mais forte a dizer.
-//--- As duas consequencias sao reais e hoje so aparecem quando o usuario
-//--- esbarra nelas: os parametros de DD ficam so-leitura, e o CARREGAR recusa
-//--- perfil com regra de DD diferente (o passo H4 do aceite da Fase 3).
-bool DrawdownArmedOnly(void)
-  {
-   return (m_snap.drawdownProtectionActive && !m_snap.drawdownLimitReached);
-  }
-
 SHeaderAction ResolveHeaderActionState(void)
   {
    SHeaderAction s=ResolveHeaderActionLadder();
@@ -902,20 +892,33 @@ SHeaderAction ResolveHeaderActionState(void)
          s.bandSem=FCV_SEM_WARN;
         }
       //+---------------------------------------------------------------+
-      //| DD ARMADO: informacao de baixa prioridade, e SEM condicao de   |
-      //| `started`.                                                     |
+      //| CONFIGURACAO DE DD PROTEGIDA: informacao de baixa prioridade,   |
+      //| e SEM condicao de `started`.                                   |
       //|                                                                |
       //| Parado e justamente quando ela mais serve: e o estado em que o |
       //| usuario vai a aba Perfis e leva uma recusa no CARREGAR. Foi o  |
       //| que o passo H4 do aceite da Fase 3 exercitou, e ate aqui a     |
       //| unica pista vinha DEPOIS do clique.                            |
       //|                                                                |
-      //| Nao diz "sem entradas" em lugar nenhum, de proposito: com o DD |
-      //| apenas armado elas continuam permitidas ate o piso.            |
+      //| ⚠⚠ LE O PREDICADO DO MOTOR, e nao um inventado aqui. A      |
+      //| primeira versao perguntava "DD armado E NAO atingido" — e ia   |
+      //| calar exatamente no estado mais forte. Quem recusa a carga e    |
+      //| ProfileLoadBlockedByActiveDrawdown, que chama                   |
+      //| IsDrawdownConfigLocked; e IsConfigLocked devolve true nos DOIS  |
+      //| casos, m_limitReached E m_protectionActive. O usuario achou     |
+      //| isto em tela: pausado com o DD ATINGIDO, a faixa sumia, e a     |
+      //| recusa do CARREGAR continuava valendo sem nenhum aviso.         |
+      //|                                                                |
+      //| ⚠ O ESTADO muda a palavra, e a CONSEQUENCIA nao. "Sem entradas"|
+      //| nao aparece aqui em nenhum dos dois: com o DD armado elas      |
+      //| seguem permitidas ate o piso, e com ele atingido quem ja disse |
+      //| isso foi o ramo da restricao, acima — este so alcanca o EA     |
+      //| parado, onde ninguem espera entrada.                            |
       //+---------------------------------------------------------------+
-      else if(DrawdownArmedOnly())
+      else if(m_snap.drawdownConfigLocked)
         {
-         s.band="DD ATIVO — parametros protegidos; perfil incompativel nao pode ser carregado";
+         s.band=(m_snap.drawdownLimitReached ? "DD ATINGIDO" : "DD ATIVO");
+         s.band+=" — parametros protegidos; perfil incompativel nao pode ser carregado";
          s.bandSem=FCV_SEM_WARN;
         }
      }
