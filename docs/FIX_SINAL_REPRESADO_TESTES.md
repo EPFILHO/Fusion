@@ -112,7 +112,7 @@ o preco perto de um cruzamento.
 
 ## Teste 3 — desconexao com posicao aberta
 
-- [ ] Com uma posicao aberta, repita a queda de rede. Na volta: o gerenciamento retoma (SL/TP,
+- [x] Com uma posicao aberta, repita a queda de rede. Na volta: o gerenciamento retoma (SL/TP,
   trailing, breakeven e parcial seguem coerentes, nada zerado no painel Resultados) e **nenhuma
   entrada nova** nasce do periodo sem ticks.
 
@@ -132,3 +132,46 @@ Nao precisa ser na mesma sessao. Depois que os tres acima fecharem:
 
 Para cada caixa marcada: **trecho do log** com horario e, no Teste 2, a **captura do grafico** com o
 cruzamento. Anote o horario de abertura do candle da liberacao e o do candle que finalmente entrou.
+
+---
+
+## Registro de execucao — 2026-08-19, conta demo
+
+Binario: `b48e5da`. `WINV26`, M5, posicao aberta (Magic 202). Debug ligado a partir de 17:12:46
+(`[DEBUG][INIT] Restore=0ms...` presente); antes disso estava desligado.
+
+### Fechado
+
+**Teste 3 — desconexao com posicao aberta.** Queda 17:13:28 -> 17:14:14 (46 s), EA iniciado as
+17:12:50.
+
+- transicao percebida **uma unica vez**: `[AUTOTRADE] Trading habilitado novamente. Aguardando sinal
+  formado apos a liberacao.` as 17:14:14.239;
+- gerenciamento retomou em **34 ms**: `[RISK] Trailing stop updated SL 170785 -> 170805` as
+  17:14:14.273;
+- o SL partiu de **170785**, onde tinha parado as 17:10:40 — atravessou a queda **e** o reinicio do EA
+  das 17:12:46 sem perder estado de saida.
+
+⚠️ A outra metade do criterio ("nenhuma entrada represada") e **vacua com posicao aberta**: entradas
+estao bloqueadas de todo jeito. O Teste 3 nao substitui o Teste 2.
+
+**Quatro transicoes, uma linha cada** (17:11:48, 17:12:04, 17:14:14, 17:14:37). Nenhuma repeticao por
+timer ou tick — requisito de nao poluir o log conferido em execucao.
+
+**Ramo de aviso com posicao** conferido de brinde: `AutoTrading desabilitado no MT5. Gerenciamento da
+posicao interrompido. Habilite imediatamente.`
+
+### Em aberto
+
+- **Teste 1** — as transicoes de AutoTrading foram vistas, mas a linha `Sinais descartados durante
+  bloqueio` **nao apareceu, e nao podia**: `DiscardBlockedEntrySignals()` exige `m_started &&
+  !hasPosition`. O criterio so e observavel **sem posicao aberta**.
+- **Teste 2** — nao executado.
+- **Nenhuma barreira foi exercitada em nenhuma das quatro transicoes.** As duas quedas cairam inteiras
+  dentro do candle M5 das 17:10 (17:11:05–17:11:48 e 17:13:28–17:14:14), sem atravessar fechamento.
+  Sem candle fechando, nenhum sinal se forma e nada e barrado — nem no cenario A nem no B.
+
+### Ajuste combinado
+
+Passar para **M1**. Em M5 a queda precisa de 5+ minutos alinhados com um cruzamento; em M1 uma queda
+de 2–3 minutos ja atravessa varios fechamentos e, com medias curtas, o cruzamento aparece sozinho.
