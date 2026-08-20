@@ -316,13 +316,6 @@ Em `21:58:22` e `21:58:36` as transicoes foram anunciadas, mas sem a linha
 `Sinais descartados durante bloqueio`. Nao e falha: o `ShouldLogDiscardedSignalDebug` suprime o mesmo
 motivo dentro de 60 s. O priming roda de qualquer forma — a supressao e so do log.
 
-### O que ainda nao foi visto neste binario
-
-- [x] **Entrada apos uma quarentena armada por DESCONEXAO.** O disarm foi provado as 21:49:00
-  (`NEXT_CANDLE => SELL` + ordem) sobre uma quarentena armada as 21:46:09 por **AutoTrading**. O
-  caminho de desarme e identico nos dois casos, mas a sequencia desconexao -> entrada nova ainda nao
-  aparece num log so. Basta deixar rodando ate o proximo cruzamento.
-
 ### Ciclo completo num log so — 21:58 a 22:01
 
 O que faltava: quarentena armada por **desconexao**, sinal represado recusado e entrada nova, em
