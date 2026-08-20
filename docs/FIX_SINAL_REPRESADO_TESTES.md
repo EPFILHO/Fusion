@@ -67,7 +67,7 @@ cruzamento no grafico sem ordem. A palavra `quarentena` e util como monitorament
 Determinstico, leva um minuto. Prova a **transicao**; nao prova o represamento (os ticks continuam
 chegando durante o bloqueio, e o EA vai consumindo os sinais a cada um).
 
-- [ ] Com o EA iniciado e sem posicao, desligue o AutoTrading. Espere ~1 minuto. Religue.
+- [x] Com o EA iniciado e sem posicao, desligue o AutoTrading. Espere ~1 minuto. Religue.
 
   Esperado: o aviso de bloqueio, depois a linha `Trading habilitado novamente...` **uma unica vez**, e
   em seguida `Sinais descartados durante bloqueio: Permissao de trading restaurada.` Se a linha da
@@ -89,7 +89,7 @@ o evento pode ser consumido pelo priming **sem gerar a palavra `quarentena`**. S
 cruzamento, marque **inconclusivo** e repita oportunamente. Forcar a queda rende mais se voce ja vir
 o preco perto de um cruzamento.
 
-- [ ] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
+- [x] **Sinal formado na queda foi barrado.** Sem posicao aberta, desconecte (desative o adaptador de
   rede ou o Wi-Fi), aguarde, reconecte.
 
   Esperado sempre: `WARN ... CONNECTION ... Conexao com servidor perdida.`, na volta
@@ -270,3 +270,55 @@ restauracao as `23:27:59`, tick util as `23:28:01`, barreira `23:28`. Mais conse
 ⚠️ "Primeiro tick" nunca significa "o proximo tick do simbolo": significa **o primeiro que chega ate
 `GetEntryDecision()`**. Com posicao aberta, EA pausado ou protecao bloqueando, a avaliacao nem roda e a
 captura espera — de proposito.
+
+---
+
+## Registro de execucao — binario corrigido, 2026-08-19 noite, `BTCUSD` M1, demo
+
+`Fusion.ex5` de 20:06:33 (arvore em `dfa04cd`, comportamento identico a `b699a60`), EA anexado as
+20:47:17. Horarios de log sao locais; os de dentro das mensagens sao de servidor (**+6h**).
+
+### Teste 1 — FECHADO
+
+```
+21:46:09.803  [AUTOTRADE] Trading habilitado novamente. Aguardando sinal formado apos a liberacao.
+21:46:09.803  [SIGNAL]    Sinais descartados durante bloqueio: Permissao de trading restaurada.
+```
+
+A segunda linha era o criterio que faltava — exige `!hasPosition`, e nas tentativas de 17h havia
+posicao aberta.
+
+### Teste 2 — o P1 corrigido, provado por comparacao
+
+Queda **21:54:58 -> 21:57:42** (2 min 44 s), sem posicao (fechada as 21:52:50, P/L +0.35),
+atravessando o fechamento dos candles `03:55` e `03:56` de servidor.
+
+```
+21:57:42.689  [CONNECTION] Conexao com servidor restaurada.
+21:57:42.689  [AUTOTRADE]  Trading habilitado novamente. Aguardando sinal formado apos a liberacao.
+21:57:42.689  [SIGNAL]     Sinais descartados durante bloqueio: Permissao de trading restaurada.
+21:57:42.953  [SIGNAL]     Sinal bloqueado pela quarentena - MA Cross. Candle do sinal 03:56:00, barreira 03:57:00.
+```
+
+| | restauracao (servidor) | barreira | veredito |
+|---|---|---|---|
+| binario anterior, 19/08 tarde | `23:27:18` | `23:26:00` — **um candle ANTES** | P1: candle iniciado antes da liberacao viraria elegivel |
+| binario corrigido, 19/08 noite | `03:57:42` | `03:57:00` — **o proprio candle** | correto |
+
+⚑ **Mesmo simbolo, mesmo timeframe, mesma manobra.** A barreira deixou de herdar o candle velho da
+serie parada e passou a nascer do primeiro tick que alcanca a avaliacao de entrada. O sinal barrado
+veio do candle `03:56`, que se formou e fechou **inteiro dentro da queda** — represamento classico,
+recusado.
+
+### Nota sobre linhas ausentes nas quedas curtas
+
+Em `21:58:22` e `21:58:36` as transicoes foram anunciadas, mas sem a linha
+`Sinais descartados durante bloqueio`. Nao e falha: o `ShouldLogDiscardedSignalDebug` suprime o mesmo
+motivo dentro de 60 s. O priming roda de qualquer forma — a supressao e so do log.
+
+### O que ainda nao foi visto neste binario
+
+- [ ] **Entrada apos uma quarentena armada por DESCONEXAO.** O disarm foi provado as 21:49:00
+  (`NEXT_CANDLE => SELL` + ordem) sobre uma quarentena armada as 21:46:09 por **AutoTrading**. O
+  caminho de desarme e identico nos dois casos, mas a sequencia desconexao -> entrada nova ainda nao
+  aparece num log so. Basta deixar rodando ate o proximo cruzamento.
