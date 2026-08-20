@@ -3,6 +3,39 @@
 
 #include "../Base/StrategyBase.mqh"
 
+//+------------------------------------------------------------------+
+//| Configuracao que os handles VIVOS realmente representam.          |
+//|                                                                    |
+//| ⚠ Existe porque "configuracao solicitada" e "configuracao ativa"  |
+//| deixaram de ser a mesma coisa. Quando um reload traz configuracao |
+//| invalida, os campos m_fast*/m_slow* passam a descrever o que o    |
+//| usuario pediu, enquanto os handles seguem sendo os da ultima      |
+//| configuracao valida — a mesma sob a qual uma posicao aberta foi   |
+//| montada, e que a saida por cruzamento precisa continuar usando.   |
+//|                                                                    |
+//| Ler buffer de um handle M1/M5 interpretando-o como H4/M1 calcula  |
+//| shift errado, inventa cruzamento e pode FECHAR OU REVERTER uma    |
+//| posicao sem motivo. Por isso todo o caminho de leitura de buffer  |
+//| — LoadBuffers, LastClosedSlowShiftAt, DetectCross — le daqui, e   |
+//| nao dos campos solicitados.                                       |
+//|                                                                    |
+//| Com configuracao valida os dois conjuntos sao identicos: este     |
+//| struct e atualizado no mesmo instante em que os handles nascem.   |
+//+------------------------------------------------------------------+
+struct SMACrossActiveConfig
+  {
+   bool               ready;              // ha par de handles valido
+   int                fastPeriod;
+   int                slowPeriod;
+   int                minDistancePoints;
+   ENUM_TIMEFRAMES    fastTimeframe;
+   ENUM_TIMEFRAMES    slowTimeframe;
+   ENUM_MA_METHOD     fastMethod;
+   ENUM_MA_METHOD     slowMethod;
+   ENUM_APPLIED_PRICE fastPrice;
+   ENUM_APPLIED_PRICE slowPrice;
+  };
+
 class CMACrossStrategy : public CStrategyBase
   {
 private:
@@ -23,11 +56,132 @@ private:
    ENUM_SIGNAL_TYPE    m_lastCrossSignal;
    int                 m_candlesAfterCross;
    datetime            m_lastCheckBarTime;
+   //--- Espelho do predicado central (FusionMACrossConfigState). Guardado no
+   //--- Reload porque e la que a configuracao chega; GetEntrySignal e
+   //--- Initialize apenas o consultam. m_configLoggedState evita repetir a
+   //--- mesma queixa a cada reload que nao mudou nada — e nunca ha log por
+   //--- tick, porque nada disso e reavaliado no caminho do tick.
+   ENUM_MA_CROSS_CONFIG m_configState;
+   ENUM_MA_CROSS_CONFIG m_configLoggedState;
+   //--- O que os handles vivos representam. Ver o comentario do struct.
+   SMACrossActiveConfig m_active;
+
+   void              ClearActiveConfig(void)
+     {
+      m_active.ready             = false;
+      m_active.fastPeriod        = 0;
+      m_active.slowPeriod        = 0;
+      m_active.minDistancePoints = 0;
+      m_active.fastTimeframe     = FUSION_DEFAULT_TIMEFRAME;
+      m_active.slowTimeframe     = FUSION_DEFAULT_TIMEFRAME;
+      m_active.fastMethod        = MODE_EMA;
+      m_active.slowMethod        = MODE_EMA;
+      m_active.fastPrice         = PRICE_CLOSE;
+      m_active.slowPrice         = PRICE_CLOSE;
+     }
+
+   //--- O par ativo descreve exatamente o que o usuario pediu?
+   //---
+   //--- ⚠ Pode nao descrever mesmo com configuracao SEMANTICAMENTE valida: basta
+   //--- o iMA() falhar ao criar o par novo. Ai a troca atomica preserva o par
+   //--- antigo (correto, a saida depende dele), mas os campos solicitados ja
+   //--- foram atualizados e o ApplySettings ja publicou a configuracao nova, sem
+   //--- rollback. Sem esta conferencia, as entradas voltariam a ser avaliadas com
+   //--- BUFFER velho e RELOGIO novo — o mesmo defeito que a separacao veio matar,
+   //--- so que no caminho de entrada.
+   bool              ActiveMatchesRequested(void) const
+     {
+      return (m_active.ready &&
+              m_active.fastPeriod        == m_fastPeriod &&
+              m_active.slowPeriod        == m_slowPeriod &&
+              m_active.minDistancePoints == m_minDistancePoints &&
+              m_active.fastTimeframe     == m_fastTimeframe &&
+              m_active.slowTimeframe     == m_slowTimeframe &&
+              m_active.fastMethod        == m_fastMethod &&
+              m_active.slowMethod        == m_slowMethod &&
+              m_active.fastPrice         == m_fastPrice &&
+              m_active.slowPrice         == m_slowPrice);
+     }
+
+   //--- Unica porta das ENTRADAS. Saida nao passa por aqui: ela pode e deve
+   //--- continuar usando o par ativo antigo enquanto ele existir.
+   bool              EntriesOperational(void) const
+     {
+      return (m_enabled && m_initialized &&
+              m_configState == MA_CROSS_CONFIG_OK &&
+              ActiveMatchesRequested());
+     }
+
+   string            ConfigStateText(const ENUM_MA_CROSS_CONFIG state) const
+     {
+      switch(state)
+        {
+         case MA_CROSS_CONFIG_IDENTICAL:
+            return "MA Rapida e MA Lenta sao a mesma curva (periodo, timeframe, metodo e preco iguais).";
+         case MA_CROSS_CONFIG_FAST_LONGER:
+            return "horizonte da MA Rapida e maior que o da MA Lenta (periodo x timeframe).";
+         case MA_CROSS_CONFIG_HORIZON_INVALID:
+            return "periodo ou timeframe nao produzem horizonte valido.";
+         case MA_CROSS_CONFIG_PERIOD_RANGE:
+            return "periodo fora da faixa de 1 a 1000.";
+        }
+      return "";
+     }
+
+   //--- Uma linha por transicao de estado invalido, no Initialize ou no Reload.
+   //--- Nao derruba o EA: a MA Cross para de ENTRAR, e todo o resto - painel,
+   //--- gerenciamento da posicao aberta, protecoes e as outras estrategias -
+   //--- segue funcionando.
+   //---
+   //--- ⚠ A recuperacao NAO e anunciada aqui. Ela sai em CreateHandlesAndReport(),
+   //--- depois de os handles existirem de fato: dizer "operacional novamente" e
+   //--- so entao tentar criar handle e afirmar no log algo que ainda pode falhar.
+   //---
+   //--- ⚠ E o que se diz sobre a SAIDA depende de haver par ativo. Num boot ja
+   //--- invalido nunca houve handle nesta instancia, e prometer que a saida por
+   //--- cruzamento continua avaliada seria mentira — justamente para quem esta
+   //--- lendo o log com uma posicao aberta na tela.
+   void              ReportConfigInvalid(void)
+     {
+      if(m_configState == MA_CROSS_CONFIG_OK)
+         return;
+      if(m_configState == m_configLoggedState)
+         return;
+      m_configLoggedState = m_configState;
+
+      if(m_logger == NULL)
+         return;
+
+      string exitNote = m_active.ready
+                        ? " Uma posicao aberta continua com a saida por cruzamento avaliada pelas medias com que foi aberta."
+                        : " Nao ha par de medias ativo: a saida por cruzamento fica indisponivel ate a correcao (SL, TP, trailing, breakeven e parcial seguem).";
+
+      m_logger.Error("STRAT_MA",
+                     "Entradas da MA Cross suspensas por configuracao invalida: " + ConfigStateText(m_configState) +
+                     " O restante do EA segue normal." + exitNote);
+     }
+
+   //--- Fecha o ciclo: so aqui o estado logado volta a OK, e so com os dois
+   //--- handles ja criados.
+   bool              CreateHandlesAndReport(void)
+     {
+      if(!CreateHandles())
+         return false;
+
+      if(m_configLoggedState != MA_CROSS_CONFIG_OK)
+        {
+         m_configLoggedState = MA_CROSS_CONFIG_OK;
+         if(m_logger != NULL)
+            m_logger.Info("STRAT_MA", "Configuracao das medias corrigida e handles recriados. MA Cross operacional novamente.");
+        }
+      return true;
+     }
 
    void              ReleaseHandles(void)
      {
       ReleaseIndicatorHandle(m_fastHandle);
       ReleaseIndicatorHandle(m_slowHandle);
+      ClearActiveConfig();
      }
 
    void              ResetEntryTracking(void)
@@ -38,10 +192,14 @@ private:
       m_lastCheckBarTime  = 0;
      }
 
+   //--- ⚠ TROCA ATOMICA. A versao anterior comecava liberando o par vivo: se a
+   //--- criacao do novo falhasse no meio, o EA ficava sem par nenhum e a saida
+   //--- por cruzamento de uma posicao aberta ia junto. Agora o par antigo so
+   //--- morre depois de os DOIS novos existirem, e handles e metadados sao
+   //--- publicados no mesmo instante — nunca ha um par ativo descrito por
+   //--- metadado que nao e o dele.
    bool              CreateHandles(void)
      {
-      ReleaseHandles();
-
       if((int)m_fastTimeframe <= 0 || (int)m_slowTimeframe <= 0)
         {
          if(m_logger != NULL)
@@ -49,15 +207,33 @@ private:
          return false;
         }
 
-      m_fastHandle = iMA(m_symbol, m_fastTimeframe, m_fastPeriod, 0, m_fastMethod, m_fastPrice);
-      m_slowHandle = iMA(m_symbol, m_slowTimeframe, m_slowPeriod, 0, m_slowMethod, m_slowPrice);
+      int newFastHandle = iMA(m_symbol, m_fastTimeframe, m_fastPeriod, 0, m_fastMethod, m_fastPrice);
+      int newSlowHandle = iMA(m_symbol, m_slowTimeframe, m_slowPeriod, 0, m_slowMethod, m_slowPrice);
 
-      if(m_fastHandle == INVALID_HANDLE || m_slowHandle == INVALID_HANDLE)
+      if(newFastHandle == INVALID_HANDLE || newSlowHandle == INVALID_HANDLE)
         {
+         //--- Desfaz o que chegou a nascer e devolve o par anterior intacto.
+         ReleaseIndicatorHandle(newFastHandle);
+         ReleaseIndicatorHandle(newSlowHandle);
          if(m_logger != NULL)
             m_logger.Error("STRAT_MA", "Failed to create MA handles");
          return false;
         }
+
+      ReleaseHandles();
+      m_fastHandle = newFastHandle;
+      m_slowHandle = newSlowHandle;
+
+      m_active.ready             = true;
+      m_active.fastPeriod        = m_fastPeriod;
+      m_active.slowPeriod        = m_slowPeriod;
+      m_active.minDistancePoints = m_minDistancePoints;
+      m_active.fastTimeframe     = m_fastTimeframe;
+      m_active.slowTimeframe     = m_slowTimeframe;
+      m_active.fastMethod        = m_fastMethod;
+      m_active.slowMethod        = m_slowMethod;
+      m_active.fastPrice         = m_fastPrice;
+      m_active.slowPrice         = m_slowPrice;
 
       ResetEntryTracking();
       return true;
@@ -69,11 +245,11 @@ private:
       if(cutoffTime <= 0)
          return false;
 
-      int correspondingShift = iBarShift(m_symbol, m_slowTimeframe, cutoffTime, false);
+      int correspondingShift = iBarShift(m_symbol, m_active.slowTimeframe, cutoffTime, false);
       if(correspondingShift < 0)
          return false;
 
-      datetime correspondingOpen = iTime(m_symbol, m_slowTimeframe, correspondingShift);
+      datetime correspondingOpen = iTime(m_symbol, m_active.slowTimeframe, correspondingShift);
       if(correspondingOpen <= 0)
          return false;
 
@@ -81,7 +257,7 @@ private:
          shift = 1;
       else
         {
-         datetime newerOpen = iTime(m_symbol, m_slowTimeframe, correspondingShift - 1);
+         datetime newerOpen = iTime(m_symbol, m_active.slowTimeframe, correspondingShift - 1);
          if(newerOpen <= 0)
             return false;
 
@@ -92,7 +268,7 @@ private:
 
       if(shift <= 0)
          return false;
-      return (iTime(m_symbol, m_slowTimeframe, shift) > 0);
+      return (iTime(m_symbol, m_active.slowTimeframe, shift) > 0);
      }
 
    bool              CopyIndicatorValue(const int handle,const int shift,double &value) const
@@ -112,6 +288,10 @@ private:
 
    bool              LoadBuffers(double &fastBuffer[],double &slowBuffer[])
      {
+      //--- Sem par ativo nao se le nada. Vale para entrada e para saida.
+      if(!m_active.ready)
+         return false;
+
       ArrayResize(fastBuffer, 3);
       ArrayResize(slowBuffer, 3);
       ArraySetAsSeries(fastBuffer, true);
@@ -120,14 +300,14 @@ private:
       if(CopyBuffer(m_fastHandle, 0, 0, 3, fastBuffer) < 3)
          return false;
 
-      if(m_fastTimeframe == m_slowTimeframe)
+      if(m_active.fastTimeframe == m_active.slowTimeframe)
          return (CopyBuffer(m_slowHandle, 0, 0, 3, slowBuffer) >= 3);
 
       ArrayInitialize(slowBuffer, 0.0);
 
       // A closed fast bar ends when the next newer fast bar opens.
-      datetime fastCloseTime1 = iTime(m_symbol, m_fastTimeframe, 0);
-      datetime fastCloseTime2 = iTime(m_symbol, m_fastTimeframe, 1);
+      datetime fastCloseTime1 = iTime(m_symbol, m_active.fastTimeframe, 0);
+      datetime fastCloseTime2 = iTime(m_symbol, m_active.fastTimeframe, 1);
       if(fastCloseTime1 <= 0 || fastCloseTime2 <= 0)
          return false;
 
@@ -166,14 +346,14 @@ private:
 
    bool              HasMinimumDistance(const double diff) const
      {
-      if(m_minDistancePoints <= 0)
+      if(m_active.minDistancePoints <= 0)
          return true;
 
       double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
       if(point <= 0.0)
          return true;
 
-      return ((MathAbs(diff) / point) >= m_minDistancePoints);
+      return ((MathAbs(diff) / point) >= m_active.minDistancePoints);
      }
 
    ENUM_SIGNAL_TYPE  DetectCross(const double &fastBuffer[],const double &slowBuffer[]) const
@@ -206,6 +386,9 @@ public:
       m_slowPrice         = PRICE_CLOSE;
       m_entryMode         = ENTRY_NEXT_CANDLE;
       m_exitMode          = EXIT_OPPOSITE_SIGNAL;
+      m_configState       = MA_CROSS_CONFIG_OK;
+      m_configLoggedState = MA_CROSS_CONFIG_OK;
+      ClearActiveConfig();
       ResetEntryTracking();
      }
 
@@ -218,6 +401,9 @@ public:
 
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) override
      {
+      //--- Antes de qualquer campo mudar: as entradas estavam liberadas?
+      bool wasOperational = EntriesOperational();
+
       bool coldChanged = (m_fastPeriod != settings.maFastPeriod ||
                           m_slowPeriod != settings.maSlowPeriod ||
                           m_minDistancePoints != settings.maMinDistancePoints ||
@@ -247,8 +433,12 @@ public:
       if(entryChanged)
          ResetEntryTracking();
 
+      m_configState = FusionMACrossConfigState(settings);
+
       if(!m_initialized)
          return true;
+
+      ReportConfigInvalid();
 
       if(!m_enabled)
         {
@@ -257,19 +447,80 @@ public:
          return true;
         }
 
-      if(scope == RELOAD_COLD || scope == RELOAD_WARM || coldChanged || m_fastHandle == INVALID_HANDLE || m_slowHandle == INVALID_HANDLE)
-         return CreateHandles();
+      //--- ⚠ Devolve TRUE de proposito. SignalManager::Initialize e o ReloadAll
+      //--- tratam false como falha de carga, e essa falha sobe ate
+      //--- EAApplication::Initialize(), que aborta o EA inteiro. Configuracao de
+      //--- media invalida nao pode derrubar painel, gerenciamento de posicao,
+      //--- protecoes nem as outras estrategias: e falha FECHADA para as
+      //--- ENTRADAS da MA Cross, so isso.
+      //---
+      //--- ⚠⚠ E por isso que os handles NAO sao liberados aqui. Uma posicao pode
+      //--- ter sido aberta com a configuracao anterior, que era valida, e a saida
+      //--- por sinal contrario / reversao depende desses handles: descarta-los
+      //--- deixaria a posicao sem a saida que a governava, com SL e trailing
+      //--- apenas. Os handles vivos seguem sendo os da ULTIMA configuracao
+      //--- VALIDA - que e exatamente sob a qual a posicao foi aberta - enquanto
+      //--- os campos ja refletem a configuracao nova. Quem separa os dois mundos e
+      //--- EntriesOperational(): a saida usa o par ativo, a entrada exige que o
+      //--- par ativo seja identico ao solicitado.
+      //---
+      //--- Resta um caso sem solucao possivel aqui: EA reiniciado JA com
+      //--- configuracao invalida e posicao restaurada do chart state. Nunca houve
+      //--- handle nesta instancia, e criar um a partir de configuracao invalida e
+      //--- o que este item proibe. Ai a saida por cruzamento nao roda ate a
+      //--- correcao.
+      if(m_configState != MA_CROSS_CONFIG_OK)
+        {
+         ResetEntryTracking();
+         return true;
+        }
 
-      return true;
+      //--- ⚠ `!ActiveMatchesRequested()` e o que garante NOVA TENTATIVA. Sem ele,
+      //--- uma configuracao valida B que falhou no iMA() ficava suspensa para
+      //--- sempre: `coldChanged` e falso (os campos solicitados JA estao em B) e
+      //--- os handles nao estao invalidos (o par A foi preservado de proposito),
+      //--- entao nada era recriado e o reload devolvia sucesso sem ter aplicado
+      //--- B. Seguro — nenhuma entrada passava — mas parado.
+      bool created = true;
+      if(scope == RELOAD_COLD || scope == RELOAD_WARM || coldChanged ||
+         !ActiveMatchesRequested() ||
+         m_fastHandle == INVALID_HANDLE || m_slowHandle == INVALID_HANDLE)
+         created = CreateHandlesAndReport();
+
+      //--- Reativacao: as entradas estavam suspensas e voltaram agora. O estado
+      //--- vigente e consumido para que um cruzamento formado ENQUANTO a
+      //--- estrategia estava fora do ar nao vire entrada no primeiro tick. Nao
+      //--- vale para o caminho normal (operacional -> operacional), que segue
+      //--- como sempre foi.
+      if(!wasOperational && EntriesOperational())
+         PrimeEntryState();
+
+      return created;
      }
 
    virtual bool      Initialize(CLogger *logger,const string symbol) override
      {
       if(!CStrategyBase::Initialize(logger, symbol))
          return false;
+
+      //--- O Reload roda ANTES deste Initialize (SignalManager::Initialize), entao
+      //--- m_configState ja esta preenchido. Aqui e onde o logger passa a existir,
+      //--- e por isso o aviso da configuracao invalida sai deste ponto no boot.
+      ReportConfigInvalid();
+
       if(!m_enabled)
          return true;
-      return CreateHandles();
+      if(m_configState != MA_CROSS_CONFIG_OK)
+         return true;
+      return CreateHandlesAndReport();
+     }
+
+   //--- Relogio de referencia da estrategia (quarentena de sinais e bloqueio de
+   //--- reentrada no mesmo candle). Segue o par ATIVO: enquanto ele existir, e
+   //--- ele que descreve os candles que a estrategia realmente enxerga.
+   virtual ENUM_TIMEFRAMES ReferenceTimeframe(void) const override
+     {
+      return (m_active.ready ? m_active.fastTimeframe : m_timeframe);
      }
 
    virtual void      PrimeEntryState(void) override
@@ -278,13 +529,17 @@ public:
       if(!m_enabled || !m_initialized)
          return;
 
-      m_lastCrossTime = iTime(m_symbol, m_fastTimeframe, 1);
-      m_lastCheckBarTime = iTime(m_symbol, m_fastTimeframe, 0);
+      m_lastCrossTime = iTime(m_symbol, m_active.fastTimeframe, 1);
+      m_lastCheckBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
      }
 
    virtual ENUM_SIGNAL_TYPE GetEntrySignal(void) override
      {
-      if(!m_enabled || !m_initialized)
+      //--- Porta unica das entradas: configuracao valida E par ativo idêntico ao
+      //--- solicitado. Nao basta olhar m_configState — com configuracao valida e
+      //--- iMA() falhando, o par ativo continua sendo o antigo. Nao se loga nada
+      //--- aqui: isto roda por tick.
+      if(!EntriesOperational())
          return SIGNAL_NONE;
 
       double fastBuffer[];
@@ -293,7 +548,7 @@ public:
          return SIGNAL_NONE;
 
       ENUM_SIGNAL_TYPE crossSignal = DetectCross(fastBuffer, slowBuffer);
-      datetime crossBarTime = iTime(m_symbol, m_fastTimeframe, 1);
+      datetime crossBarTime = iTime(m_symbol, m_active.fastTimeframe, 1);
 
       if(crossSignal != SIGNAL_NONE && crossBarTime != m_lastCrossTime)
         {
@@ -307,14 +562,14 @@ public:
             m_lastCrossTime = crossBarTime;
             m_lastCrossSignal = SIGNAL_NONE;
             m_candlesAfterCross = 0;
-            m_lastCheckBarTime = iTime(m_symbol, m_fastTimeframe, 0);
+            m_lastCheckBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
             return SIGNAL_NONE;
            }
 
          m_lastCrossTime = crossBarTime;
          m_lastCrossSignal = crossSignal;
          m_candlesAfterCross = 0;
-         m_lastCheckBarTime = iTime(m_symbol, m_fastTimeframe, 0);
+         m_lastCheckBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
 
          if(m_entryMode == ENTRY_NEXT_CANDLE)
            {
@@ -329,7 +584,7 @@ public:
 
       if(m_entryMode == ENTRY_2ND_CANDLE && m_lastCrossSignal != SIGNAL_NONE)
         {
-         datetime currentBarTime = iTime(m_symbol, m_fastTimeframe, 0);
+         datetime currentBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
          if(currentBarTime != m_lastCheckBarTime)
            {
             m_lastCheckBarTime = currentBarTime;

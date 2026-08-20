@@ -110,7 +110,7 @@ int FieldTextKind(const int fid)
 //+------------------------------------------------------------------+
 bool VRange(const int v,const int lo,const int hi) { return (v>=lo && v<=hi); }
 //--- Periodo de indicador: 1..1000 em todos os paineis.
-bool VPeriod(const int v)   { return VRange(v,1,1000); }
+bool VPeriod(const int v)   { return VRange(v,FUSION_INDICATOR_PERIOD_MIN,FUSION_INDICATOR_PERIOD_MAX); }
 //--- Prioridade de estrategia: 0..1000.
 bool VPriority(const int v) { return VRange(v,0,1000); }
 //--- Distancia em pontos: 0..100000.
@@ -128,10 +128,14 @@ bool VDeviation(const double v) { return (v>0.0 && v<=10.0); }
 bool VHasStrategy(void)
   { return (m_draft.useMACross || m_draft.useRSI || m_draft.useBollinger); }
 
-bool VMaOrder(void)
+//--- MA Cross: a decisao mora em FusionMACrossConfigState (Core/Types.mqh), e o
+//--- motor le do mesmo lugar. Aqui so se calam os erros de FAIXA, que tem
+//--- mensagem propria e prioridade — pintar a relacao por cima de um periodo
+//--- fora de faixa esconderia a causa real.
+bool VMaCrossConfig(void)
   {
    if(!VPeriod(m_draft.maFastPeriod) || !VPeriod(m_draft.maSlowPeriod)) return true;
-   return (m_draft.maFastPeriod < m_draft.maSlowPeriod);
+   return FusionMACrossConfigValid(m_draft);
   }
 
 //--- RSI: quais niveis o modo escolhido realmente usa. Fora deles a 1.058 nao
@@ -553,8 +557,18 @@ bool FieldValid(const int fid)
      {
       //--- Estrategias > Medias
       case FCV_FLD_MA_PRIORITY:    return VPriority(m_draft.maCrossPriority);
-      case FCV_FLD_MA_FAST_PERIOD: return (VPeriod(m_draft.maFastPeriod) && VMaOrder());
-      case FCV_FLD_MA_SLOW_PERIOD: return (VPeriod(m_draft.maSlowPeriod) && VMaOrder());
+      case FCV_FLD_MA_FAST_PERIOD: return (VPeriod(m_draft.maFastPeriod) && VMaCrossConfig());
+      case FCV_FLD_MA_SLOW_PERIOD: return (VPeriod(m_draft.maSlowPeriod) && VMaCrossConfig());
+      //--- Os oito campos participam da mesma relacao, entao os oito pintam
+      //--- quando ela quebra: a correcao pode ser em qualquer um deles, e
+      //--- marcar so os periodos apontaria para o lugar errado quando o
+      //--- problema esta no timeframe, no metodo ou no preco.
+      case FCV_FLD_MA_FAST_TF:
+      case FCV_FLD_MA_FAST_METHOD:
+      case FCV_FLD_MA_FAST_PRICE:
+      case FCV_FLD_MA_SLOW_TF:
+      case FCV_FLD_MA_SLOW_METHOD:
+      case FCV_FLD_MA_SLOW_PRICE:  return VMaCrossConfig();
       case FCV_FLD_MA_MIN_DIST:    return VPoints(m_draft.maMinDistancePoints);
 
       //--- Estrategias > RSI. Nivel fora de uso nao e cobrado: a 1.058 so
@@ -681,8 +695,19 @@ string ScreenErrorMA(void)
       return "MA Rapida: use periodo de 1 a 1000.";
    if(!VPeriod(m_draft.maSlowPeriod))
       return "MA Lenta: use periodo de 1 a 1000.";
-   if(!VMaOrder())
-      return "MA Rapida deve ser menor que MA Lenta.";
+   //--- Uma causa, uma mensagem. A antiga ("MA Rapida deve ser menor que MA
+   //--- Lenta") dizia ao usuario para consertar o periodo mesmo quando o
+   //--- problema era o timeframe, e ensinava a regra errada.
+   ENUM_MA_CROSS_CONFIG maState = FusionMACrossConfigState(m_draft);
+   if(maState == MA_CROSS_CONFIG_IDENTICAL)
+      return "MA Rapida e MA Lenta precisam diferir em periodo, timeframe, metodo ou preco.";
+   if(maState == MA_CROSS_CONFIG_FAST_LONGER)
+      return "Horizonte da MA Rapida nao pode ser maior que o da MA Lenta (periodo x TF).";
+   //--- PERIOD_RANGE nao chega aqui: os dois VPeriod acima ja devolveram a
+   //--- mensagem de faixa, que tem prioridade. A guarda generica fica porque o
+   //--- predicado e compartilhado e pode ganhar estados novos.
+   if(maState != MA_CROSS_CONFIG_OK)
+      return "MA Cross: periodo ou timeframe das medias nao produzem horizonte valido.";
    if(!VPoints(m_draft.maMinDistancePoints))
       return "MA Dist. Min: use 0 a 100000 pontos.";
    return "";

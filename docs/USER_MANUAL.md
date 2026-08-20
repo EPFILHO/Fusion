@@ -194,7 +194,7 @@ Regras em candles fechados:
 
 `Candle seguinte` libera o sinal no primeiro candle após o cruzamento confirmado. `2º Candle (E2C)` aguarda mais um candle operacional antes de liberar o mesmo sentido.
 
-A média rápida deve ter período menor que a lenta, ambos entre `1` e `1000`. Quando os timeframes diferem, a MA rápida é o relógio da estratégia e cada valor da lenta é alinhado à última barra lenta que já estava fechada no fechamento da barra rápida correspondente.
+A validade da configuração das duas médias é decidida pelo **horizonte efetivo** de cada uma (`período × duração do timeframe`), não pelo período isolado. A MA rápida deve ter horizonte menor que o da lenta. Horizontes iguais são aceitos desde que as curvas difiram em pelo menos um campo — período, timeframe, método ou preço aplicado; por exemplo, `SMA 9` contra `EMA 9` no mesmo timeframe, ou `EMA 10 M1` contra `EMA 5 M2`. É rejeitada apenas a configuração em que os quatro campos coincidem, porque aí as duas curvas são a mesma linha e não existe cruzamento possível. Os períodos continuam entre `1` e `1000`. Quando os timeframes diferem, a MA rápida é o relógio da estratégia e cada valor da lenta é alinhado à última barra lenta que já estava fechada no fechamento da barra rápida correspondente.
 
 ### 7.3. RSI
 

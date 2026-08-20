@@ -317,6 +317,16 @@ struct SEASettings
    bool                     isTester;
   };
 
+//--- Faixa normativa de periodo de indicador, uma so para a tela e para o
+//--- motor. O VPeriod da GUI le daqui.
+#define FUSION_INDICATOR_PERIOD_MIN 1
+#define FUSION_INDICATOR_PERIOD_MAX 1000
+
+bool FusionIndicatorPeriodInRange(const int period)
+  {
+   return (period >= FUSION_INDICATOR_PERIOD_MIN && period <= FUSION_INDICATOR_PERIOD_MAX);
+  }
+
 long FusionMAHorizonSeconds(const int period,const ENUM_TIMEFRAMES timeframe)
   {
    int timeframeSeconds = PeriodSeconds(timeframe);
@@ -325,6 +335,10 @@ long FusionMAHorizonSeconds(const int period,const ENUM_TIMEFRAMES timeframe)
    return ((long)period * (long)timeframeSeconds);
   }
 
+//--- ⚠ Regra do TREND FILTER, nao da MA Cross. Aqui a ordem e ESTRITA: a MA1 e a
+//--- barreira longa e a MA2 a curta, e horizontes iguais nao servem porque as
+//--- duas barreiras coincidiriam. A MA Cross tem outra semantica e outro
+//--- predicado (FusionMACrossConfigState, abaixo) - nao unifique os dois.
 bool FusionTrendMAOrderValid(const SEASettings &settings)
   {
    if(!settings.trendMA1Enabled || !settings.trendMA2Enabled)
@@ -333,6 +347,70 @@ bool FusionTrendMAOrderValid(const SEASettings &settings)
    long ma1Horizon = FusionMAHorizonSeconds(settings.trendMAPeriod, settings.trendMATimeframe);
    long ma2Horizon = FusionMAHorizonSeconds(settings.trendSellMAPeriod, settings.trendSellMATimeframe);
    return (ma1Horizon > 0 && ma2Horizon > 0 && ma1Horizon > ma2Horizon);
+  }
+
+//+------------------------------------------------------------------+
+//| Validade da configuracao das medias da estrategia MA Cross.       |
+//|                                                                    |
+//| FONTE UNICA: a GUI e o motor leem daqui. Nao replique a compara-  |
+//| cao em outro arquivo — a regra antiga vivia so na tela, era       |
+//| `maFastPeriod < maSlowPeriod`, e errava dos dois lados:           |
+//|   · recusava SMA 9 contra EMA 9, que sao curvas diferentes e uma  |
+//|     configuracao legitima;                                        |
+//|   · aceitava EMA 9 H4 como "rapida" contra EMA 21 M1 como         |
+//|     "lenta", em que a rapida tem horizonte 96x maior.             |
+//|                                                                    |
+//| O que decide e o HORIZONTE (periodo x duracao do timeframe), nao  |
+//| o periodo cru. Horizontes IGUAIS sao validos desde que as curvas  |
+//| difiram em algum campo: EMA 10 M1 e EMA 5 M2 cobrem o mesmo tempo |
+//| por caminhos diferentes e cruzam de verdade. So e invalido quando |
+//| os quatro campos coincidem — ai as duas curvas sao a MESMA linha  |
+//| e nao existe cruzamento possivel.                                 |
+//+------------------------------------------------------------------+
+enum ENUM_MA_CROSS_CONFIG
+  {
+   MA_CROSS_CONFIG_OK = 0,           // valida
+   MA_CROSS_CONFIG_PERIOD_RANGE,     // periodo fora de 1..1000
+   MA_CROSS_CONFIG_HORIZON_INVALID,  // periodo ou timeframe nao dao horizonte
+   MA_CROSS_CONFIG_IDENTICAL,        // as duas curvas sao a mesma linha
+   MA_CROSS_CONFIG_FAST_LONGER       // rapida com horizonte maior que a lenta
+  };
+
+ENUM_MA_CROSS_CONFIG FusionMACrossConfigState(const SEASettings &settings)
+  {
+   //--- A faixa normativa tambem mora aqui, e nao so no VPeriod da tela. Sem
+   //--- isto, um periodo 1001 vindo do F7 ou de um perfil antigo produzia
+   //--- horizonte positivo, passava por valido e chegava ao iMA - a tela
+   //--- recusava e o motor aceitava, que e a assimetria que este item veio
+   //--- fechar.
+   if(!FusionIndicatorPeriodInRange(settings.maFastPeriod) ||
+      !FusionIndicatorPeriodInRange(settings.maSlowPeriod))
+      return MA_CROSS_CONFIG_PERIOD_RANGE;
+
+   long fastHorizon = FusionMAHorizonSeconds(settings.maFastPeriod, settings.maFastTimeframe);
+   long slowHorizon = FusionMAHorizonSeconds(settings.maSlowPeriod, settings.maSlowTimeframe);
+
+   //--- Falha fechada: sem horizonte calculavel nao ha como afirmar a ordem.
+   if(fastHorizon <= 0 || slowHorizon <= 0)
+      return MA_CROSS_CONFIG_HORIZON_INVALID;
+
+   if(fastHorizon > slowHorizon)
+      return MA_CROSS_CONFIG_FAST_LONGER;
+
+   //--- Identidade e conferida nos QUATRO campos, nao pelo horizonte: dois
+   //--- horizontes iguais podem vir de curvas bem diferentes.
+   if(settings.maFastPeriod    == settings.maSlowPeriod &&
+      settings.maFastTimeframe == settings.maSlowTimeframe &&
+      settings.maFastMethod    == settings.maSlowMethod &&
+      settings.maFastPrice     == settings.maSlowPrice)
+      return MA_CROSS_CONFIG_IDENTICAL;
+
+   return MA_CROSS_CONFIG_OK;
+  }
+
+bool FusionMACrossConfigValid(const SEASettings &settings)
+  {
+   return (FusionMACrossConfigState(settings) == MA_CROSS_CONFIG_OK);
   }
 
 bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const SEASettings &candidateSettings)
