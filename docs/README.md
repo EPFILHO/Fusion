@@ -24,9 +24,8 @@ A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudan�
 - `GUI_2000_FASE3_PENDENTES.md`: fechamento da Fase 3.
 - `GUI_2000_FASE4.md`: fechamento da Fase 4 — a remoção do painel clássico, e as pendências que atravessaram.
 
-⚠️ **`USER_MANUAL.md` ainda descreve a GUI da 1.057, que o EA não constrói mais.** A organização das abas mudou na migração (a aba `CONFIG` deixou de existir; `Gestão` e `Layout` nasceram; o `Magic Number` foi para `Perfis`). O manual **precisa ser reescrito antes de a 2.000 ser apresentada como pronta para usuário**; enquanto o uso é interno, vale como referência do motor e das configurações, não da tela. O raciocínio de cada divergência está na seção 6 do `GUI_2000_PLANO.md`.
-
-- `DOCUMENTATION_AUDIT_1057.md`: escopo e resultado da revisão documental da 1.057.
+- `USER_MANUAL.md`: **Manual do Usuário 2.000** — atualizado para a GUI 2.0. Descreve instalação, primeiro uso, cabeçalho e estados, as sete abas, estratégias, filtros, gestão, perfis, indicadores visuais, diagnóstico e a referência completa dos `input`. É a fonte de uso do produto.
+- `DOCUMENTATION_AUDIT_1057.md`: escopo e resultado da revisão documental da 1.057. Documento histórico.
 
 ## Histórico de desenvolvimento
 
@@ -44,7 +43,7 @@ Em caso de dúvida sobre o produto atual, a ordem de autoridade é:
 1. código da versão 2.000;
 2. `ARCHITECTURE.md`, `DECISIONS.md` e `GUI_2000_PLANO.md`;
 3. `CHANGELOG.md` na raiz;
-4. `USER_MANUAL.md` — para motor e configurações, **não** para a tela, enquanto não for reescrito para a 2.0;
+4. `USER_MANUAL.md` — fonte atual para uso do produto, tela inclusive;
 5. documentos históricos.
 
 ⚠️ **A regra que vale acima de todas: o código é a primeira autoridade, e texto que eu escrevo de cabeça sobre comportamento erra com frequência alta.** Rótulo, dica e nota explicativa saem do módulo correspondente, nunca da memória de quem escreve — é a lição mais reincidente da migração da GUI, e erro nesse tipo de texto é invisível para quem não conhece o sistema.

@@ -46,8 +46,9 @@ A GUI e parte central do projeto porque concentra operacao visual, perfis e vali
 
 Hoje ela permite:
 
-- iniciar ou pausar o EA quando nao ha posicao aberta;
-- bloquear edicao enquanto o EA esta rodando ou gerenciando posicao;
+- pausar o EA quando nao ha posicao aberta nem reconciliacao pendente;
+- **iniciar tambem com posicao aberta**, para rearmar novas entradas sem esperar a operacao fechar — armar o EA nao altera configuracao, entao nao depende da trava de edicao;
+- bloquear edicao enquanto o EA esta rodando ou gerenciando posicao, exceto a aparencia do painel em `Layout`, que nao pertence ao perfil;
 - salvar e carregar perfis;
 - criar perfis novos;
 - duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
@@ -56,17 +57,17 @@ Hoje ela permite:
 - manter avisos operacionais persistentes na aba `Status`;
 - refletir bloqueios de protecao ativos no `Status`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
 
-⚠️ **A GUI que o EA constroi hoje e a 2.0, desenhada em `CCanvas`** — a Fase 4 da migracao removeu o painel classico, que era baseado na biblioteca `Controls`. A organizacao das abas mudou nessa troca: o nivel 1 agora e `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`, e a antiga aba `CONFIG` deixou de existir (Risco e Protecao foram para `Gestao`; aparencia, para `Layout`; `Magic Number`, para `Perfis`). O [Manual do Usuario](docs/USER_MANUAL.md) ainda descreve a GUI da 1.057 e **nao foi atualizado para a 2.0** — o raciocinio de cada divergencia esta na secao 6 de [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md).
+**A GUI do EA e a 2.0, desenhada em `CCanvas`.** O painel classico da linha 1.x, baseado na biblioteca `Controls`, nao existe mais. O nivel 1 da navegacao e `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`: Risco e Protecao ficam em `Gestao`, indicadores e aparencia em `Layout`, `Magic Number` em `Perfis` e `Resolver Conflito` em `Estrategias > Geral`. O raciocinio de cada mudanca de organizacao esta na secao 6 de [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md).
 
 ## Manual do Usuario
 
-O [Manual do Usuario](docs/USER_MANUAL.md) descreve instalacao, primeiro uso, todas as abas da GUI, estrategias, filtros, risco, protecoes, perfis, indicadores visuais e a referencia completa dos `input` do Strategy Tester.
+O [Manual do Usuario 2.000](docs/USER_MANUAL.md) descreve instalacao, primeiro uso, todas as abas da GUI 2.0, estrategias, filtros, risco, protecoes, perfis, indicadores visuais e a referencia completa dos `input`.
 
-O manual documenta somente o comportamento efetivamente presente na versao 1.057. Planos, checkpoints e handoffs com numero de versao permanecem no repositorio como historico tecnico e nao devem ser interpretados como funcionalidades atuais ou instrucoes de uso.
+O manual documenta somente o comportamento efetivamente presente na versao 2.000. Planos, checkpoints e handoffs com numero de versao permanecem no repositorio como historico tecnico e nao devem ser interpretados como funcionalidades atuais ou instrucoes de uso.
 
 ## Documentacao Tecnica
 
-- [Manual do Usuario 1.057](docs/USER_MANUAL.md)
+- [Manual do Usuario 2.000](docs/USER_MANUAL.md)
 - [Indice da Documentacao](docs/README.md)
 - [Auditoria da Documentacao 1.057](docs/DOCUMENTATION_AUDIT_1057.md)
 - [Arquitetura](docs/ARCHITECTURE.md)

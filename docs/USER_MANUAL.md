@@ -1,8 +1,12 @@
-# Manual do Usuário - EP Fusion 1.057
+# Manual do Usuário - EP Fusion 2.000 (GUI 2.0)
 
 ## 1. Escopo
 
-Este manual descreve o comportamento efetivamente implementado no EP Fusion 1.057. Ele cobre a GUI, os perfis e os parâmetros disponíveis nos `input` do MetaTrader 5.
+Este manual descreve o comportamento efetivamente implementado no EP Fusion 2.000, cuja interface é a **GUI 2.0**, desenhada em canvas. Ele cobre a interface, os perfis e os parâmetros disponíveis nos `input` do MetaTrader 5.
+
+A GUI 2.0 substituiu por completo o painel clássico das versões 1.x. A navegação passou a ser `Status · Resultados · Estratégias · Filtros · Gestão · Perfis · Layout`. Nomes antigos como `CONFIG`, `STRATS`, `FILTERS` ou `RISK` não existem mais; quando aparecem neste manual, é sempre identificados como nomenclatura histórica.
+
+O motor operacional — estratégias, filtros, risco, proteções, execução e persistência — é o da 1.058, com as correções listadas no `CHANGELOG.md`.
 
 O Fusion é um Expert Advisor. Ele automatiza regras, mas não garante resultado, não avalia se o lote é financeiramente adequado para a conta e não substitui testes em conta demo. Os valores em pontos, volume e dinheiro têm impactos muito diferentes conforme ativo, corretora, contrato e alavancagem.
 
@@ -29,11 +33,16 @@ Para compilar o código-fonte, use o repositório completo e o `build.ps1`, conf
 - O Fusion não deve compartilhar perfil ou Magic Number com outra instância.
 - Em conta netting/exchange, uma posição estrangeira no mesmo ativo pode bloquear a operação para evitar interferência.
 
-### 3.2. Timeframe operacional
+### 3.2. Timeframe visual e timeframes operacionais
 
-O timeframe do gráfico é visual. Cada estratégia e filtro possui seu próprio timeframe operacional salvo no perfil.
+São duas coisas diferentes, e confundi-las é a origem da maioria das dúvidas:
 
-Trocar apenas o timeframe do gráfico não altera os cálculos dos módulos. Indicadores visuais configurados em outro timeframe deixam de ser desenhados naquele gráfico, mas o motor continua usando o timeframe salvo.
+- o **timeframe do gráfico** é visual. Ele decide o que você enxerga e quais curvas o Fusion desenha;
+- cada **estratégia e filtro** tem o **seu** timeframe operacional, salvo no perfil. É ele que o motor usa para calcular.
+
+Trocar o timeframe do gráfico **não altera** nenhum cálculo. Uma curva configurada em outro timeframe deixa de ser desenhada naquele gráfico, mas o módulo continua trabalhando no timeframe salvo. O cabeçalho mostra o timeframe do gráfico ao lado do ativo; os timeframes operacionais aparecem em cada estratégia e filtro.
+
+O que acontece ao trocar o timeframe do gráfico está detalhado na seção 15.
 
 ### 3.3. Candle fechado
 
@@ -54,7 +63,7 @@ Sinais detectados durante bloqueio por proteção, permissão, direção, filtro
 ## 4. Primeiro uso recomendado
 
 1. Anexe o EA em conta demo e confirme o símbolo do gráfico.
-2. Abra `PERFIS` e confirme o perfil carregado.
+2. Abra `Perfis` e confirme o perfil carregado.
 3. Com o EA pausado e sem posição, configure risco, estratégias, filtros e proteções.
 4. Mantenha pelo menos uma estratégia ativa.
 5. Corrija todas as abas ou subabas marcadas em vermelho.
@@ -62,27 +71,53 @@ Sinais detectados durante bloqueio por proteção, permissão, direção, filtro
 7. Confira lote, SL, TP, Magic, direção global e janela de sessão.
 8. Habilite a negociação algorítmica.
 9. Clique em `INICIAR`.
-10. Acompanhe bloqueios e avisos pela aba `STATUS`.
+10. Acompanhe bloqueios e avisos pela aba `Status`.
 
 O perfil inicial criado a partir dos `input` usa lote `0.10`. Esse valor não é universalmente seguro. Antes de iniciar, adapte o lote ao ativo e à conta; o mesmo volume pode representar exposições muito diferentes em WIN, XAUUSD, XAGUSD, índices, Forex ou cripto.
 
-## 5. Cabeçalho da GUI
+## 5. Cabeçalho da GUI 2.0
+
+O cabeçalho fica acima das abas e é o mesmo em todas elas. Ele reúne o ativo, o timeframe do gráfico, o perfil em uso, o distintivo de estado e os três botões globais.
 
 | Controle | Função |
 |---|---|
 | `INICIAR` | Libera novas entradas quando a configuração e o contexto permitem. Fica disponível também com posição aberta, para rearmar o EA sem esperar a operação fechar. |
 | `PAUSAR` | Interrompe novas entradas. Só fica disponível sem posição ou reconciliação pendente. |
-| `OPERANDO` | Indica posição em gerenciamento; não permite pausar naquele momento. |
-| `BLOQUEADO` | Indica bloqueio estrutural ou de contexto. Consulte `STATUS`. |
 | `SALVAR` | Valida e grava as alterações do perfil carregado. |
 | `CANCELAR` | Descarta o rascunho e restaura a última configuração confirmada. No editor de novo perfil, cancela aquele fluxo. |
-| `Perfil carregado` | Mostra o perfil associado ao gráfico. Se aparecer `nome (sem arquivo)` em amarelo, veja a seção 5.3. |
+| Nome do perfil | Mostra o perfil associado ao gráfico. Se aparecer `nome (sem arquivo)` em amarelo, veja a seção 5.5. |
 
-A configuração só pode ser editada com o Fusion pausado e sem posição gerenciada. Alterações não salvas são um rascunho; trocar o timeframe do gráfico descarta esse rascunho e preserva apenas o estado confirmado.
+### 5.1. Distintivo de estado e faixas de aviso
+
+O distintivo à direita resume, em uma palavra, o que o EA está fazendo:
+
+| Distintivo | Significado |
+|---|---|
+| `OPERANDO` | Armado, com posição em gerenciamento. |
+| `RODANDO` | Armado, sem posição, aguardando sinal. |
+| `PAUSADO` | Novas entradas suspensas. Posição aberta continua gerenciada. |
+| `BLOQUEADO` | Bloqueio estrutural ou de contexto. Consulte `Status`. |
+| `IMPEDIDO` | Sem permissão de negociação no MT5 ou na conta. |
+| `SEM ENTRADAS` | Alguma proteção está impedindo entradas. |
+| `CONFIGURACAO INVALIDA` | Há erro de configuração a corrigir antes de iniciar. |
+| `SESSAO`, `NOTICIAS`, `LIMITE DIARIO`, `DRAWDOWN`, `SEQUENCIA`, `DD ATIVO`, `DD ATINGIDO` | Qual proteção está em curso. |
+
+Abaixo do cabeçalho aparecem faixas que explicam o estado quando ele não é óbvio:
+
+- `POSICAO ABERTA — a saida e pela estrategia ou pela protecao`: o EA está armado e a operação em curso sairá pela regra da estratégia dona ou por uma proteção;
+- `POSICAO EM GERENCIAMENTO — clique INICIAR para liberar novas entradas futuras`: o EA está pausado, mas a posição continua administrada;
+- `TRADING INDISPONIVEL` e `TRADING INDISPONIVEL COM POSICAO ABERTA`: falta permissão de negociação;
+- na aba `Status`, o campo `Alerta` mostra `Sem alertas` ou o motivo do momento, por exemplo `ENTRADAS SUSPENSAS`.
+
+### 5.2. Quando a configuração pode ser editada
+
+A configuração só pode ser editada com o Fusion **pausado e sem posição gerenciada**. Alterações não salvas são um rascunho; trocar o timeframe do gráfico descarta esse rascunho e preserva apenas o estado confirmado.
 
 `INICIAR` continua disponível com posição aberta. Editar configuração e rearmar o EA são coisas diferentes: a edição fica travada durante a operação, mas autorizar novas entradas não altera nada da configuração e por isso não depende dessa trava.
 
-### 5.1. Retomada após fechar o MetaTrader
+As preferências de **aparência** do painel (paleta, tema e tamanho do texto, na aba `Layout`) são exceção: valem para todos os gráficos, são aplicadas no ato e continuam disponíveis mesmo com a configuração bloqueada, porque não pertencem ao perfil.
+
+### 5.3. Retomada após fechar o MetaTrader
 
 Se você fechar o MetaTrader com o Fusion operando, ao reabrir ele volta como `INICIAR`, não como `OPERANDO`. Isso é intencional.
 
@@ -94,36 +129,36 @@ Ao clicar `INICIAR`, o Fusion revalida permissão de negociação, conflito de p
 
 Trocar o timeframe do gráfico é o único caso que preserva o estado operacional automaticamente, porque acontece dentro de uma sessão em andamento e leva segundos.
 
-### 5.2. Qual perfil o gráfico usa ao reiniciar
+### 5.4. Qual perfil o gráfico usa ao reiniciar
 
 Cada gráfico lembra qual perfil estava usando. Esse vínculo é preservado mesmo quando o estado operacional salvo é descartado — por exemplo após uma troca de conta, que faz o MetaTrader reiniciar o EA e desligar a negociação algorítmica.
 
 O motivo é direto: perfis diferentes têm lote e Magic Number diferentes. Um perfil com lote `0.06` e outro com `6.00` são a mesma operação com cem vezes o risco. O Fusion nunca troca de perfil por conta própria.
 
-O estado salvo do gráfico guarda uma cópia completa da configuração, e não apenas o nome do perfil. Por isso o EA continua com os valores certos mesmo que o arquivo do perfil seja apagado — veja a seção 5.3.
+O estado salvo do gráfico guarda uma cópia completa da configuração, e não apenas o nome do perfil. Por isso o EA continua com os valores certos mesmo que o arquivo do perfil seja apagado — veja a seção 5.5.
 
-O bloqueio acontece num caso específico: quando o estado salvo **não pode ser aplicado** (arquivo corrompido, ou descartado por contexto) **e** o perfil que ele nomeia também não pode ser carregado. Aí o EA não tem de onde tirar a configuração correta e entra em `BLOQUEADO`, em vez de assumir outro perfil. Escolher um perfil na aba `PERFIS` libera a operação.
+O bloqueio acontece num caso específico: quando o estado salvo **não pode ser aplicado** (arquivo corrompido, ou descartado por contexto) **e** o perfil que ele nomeia também não pode ser carregado. Aí o EA não tem de onde tirar a configuração correta e entra em `BLOQUEADO`, em vez de assumir outro perfil. Escolher um perfil na aba `Perfis` libera a operação.
 
 O input `Perfil carregado/criado na inicializacao` define apenas o ponto de partida de um gráfico que ainda não tem estado próprio. Ele não substitui o perfil que o gráfico já estava usando.
 
 Toda decisão de perfil na inicialização é registrada no log com `[PROFILE]`, incluindo o Magic e o lote ativos. Se algo diferente de uma restauração direta acontecer, a linha sai como aviso. Carregar um perfil pelo painel também é registrado. Confira essas linhas sempre que o gráfico reiniciar em circunstâncias fora do comum.
 
-### 5.3. Perfil sem arquivo em disco
+### 5.5. Perfil sem arquivo em disco
 
-Se o arquivo `.cfg` do perfil ativo for apagado ou renomeado enquanto o EA roda, o cabeçalho passa a mostrar `nome (sem arquivo)` em amarelo e a aba `STATUS` exibe `PERFIL SEM ARQUIVO`.
+Se o arquivo `.cfg` do perfil ativo for apagado ou renomeado enquanto o EA roda, o cabeçalho passa a mostrar `nome (sem arquivo)` em amarelo e a aba `Status` exibe `PERFIL SEM ARQUIVO`.
 
 Isso **não** é um erro operacional. O EA continua com a configuração correta, porque ela vem do estado salvo do gráfico, não do arquivo. O arquivo é o molde usado para carregar o perfil em outros gráficos; o estado do gráfico é o registro do que este gráfico está usando.
 
 Duas saídas, conforme a intenção:
 
 - clique `SALVAR` para recriar o arquivo a partir da configuração em uso;
-- ou carregue outro perfil na aba `PERFIS`, se a intenção era mesmo trocar.
+- ou carregue outro perfil na aba `Perfis`, se a intenção era mesmo trocar.
 
 O aviso existe porque, sem ele, o cabeçalho mostraria um perfil que não aparece na lista de perfis, sem nenhuma explicação.
 
 ## 6. Abas de acompanhamento
 
-### 6.1. STATUS
+### 6.1. Status
 
 Mostra:
 
@@ -134,9 +169,9 @@ Mostra:
 - modo de conflito;
 - aviso prioritário de contexto, permissão, risco, proteção, perfil, reversão ou entrada bloqueada.
 
-`STATUS` é a referência principal para entender por que o EA não iniciou ou não abriu uma operação.
+`Status` é a referência principal para entender por que o EA não iniciou ou não abriu uma operação.
 
-### 6.2. RESULTS
+### 6.2. Resultados
 
 Mostra os resultados do dia operacional:
 
@@ -151,7 +186,11 @@ Os valores são P/L bruto de preço, construídos com `DEAL_PROFIT` e `POSITION_
 
 Durante reconciliação de parcial, o valor fechado confirmado permanece visível e o projetado informa `RECONCILIANDO PARCIAL`.
 
-## 7. STRATS - estratégias
+## 7. Estratégias
+
+A aba `Estratégias` tem quatro subabas: **`Geral`**, **`Médias`**, **`IFR / RSI`** e **`Bollinger`**.
+
+`Geral` é um panorama somente-leitura de quais estratégias estão ligadas, mais o campo `Resolver Conflito`. Ligar e desligar cada estratégia é feito na subaba dela, junto dos parâmetros — decidir com os parâmetros fora de vista é decidir no escuro.
 
 Pelo menos uma estratégia precisa permanecer ativa. Toda estratégia possui uma prioridade entre `0` e `1000`; números maiores têm precedência quando o resolvedor usa prioridade.
 
@@ -169,7 +208,7 @@ Pelo menos uma estratégia precisa permanecer ativa. Toda estratégia possui uma
 - `Sinal Oposto`: fecha quando a estratégia dona produzir sinal contrário. SL/TP e proteções continuam válidos.
 - `Virar Mão (VM)`: fecha pelo sinal contrário e, depois da confirmação do fechamento, agenda entrada direta no lado oposto.
 
-Na VM, a reversão não passa novamente pelos filtros, resolvedor de entrada nem direção global. Ela ainda exige Fusion iniciado e respeita permissão de trade, conflito netting, proteções globais, risco e execução. A condição aparece em `STATUS`.
+Na VM, a reversão não passa novamente pelos filtros, resolvedor de entrada nem direção global. Ela ainda exige Fusion iniciado e respeita permissão de trade, conflito netting, proteções globais, risco e execução. A condição aparece em `Status`.
 
 ### 7.2. MA Cross
 
@@ -195,6 +234,10 @@ Regras em candles fechados:
 `Candle seguinte` libera o sinal no primeiro candle após o cruzamento confirmado. `2º Candle (E2C)` aguarda mais um candle operacional antes de liberar o mesmo sentido.
 
 A validade da configuração das duas médias é decidida pelo **horizonte efetivo** de cada uma (`período × duração do timeframe`), não pelo período isolado. A MA rápida deve ter horizonte menor que o da lenta. Horizontes iguais são aceitos desde que as curvas difiram em pelo menos um campo — período, timeframe, método ou preço aplicado; por exemplo, `SMA 9` contra `EMA 9` no mesmo timeframe, ou `EMA 10 M1` contra `EMA 5 M2`. É rejeitada apenas a configuração em que os quatro campos coincidem, porque aí as duas curvas são a mesma linha e não existe cruzamento possível. Os períodos continuam entre `1` e `1000`. Quando os timeframes diferem, a MA rápida é o relógio da estratégia e cada valor da lenta é alinhado à última barra lenta que já estava fechada no fechamento da barra rápida correspondente.
+
+**A mesma validação vale na tela e no motor.** A GUI recusa salvar uma configuração inválida, apontando a causa: `MA Rapida e MA Lenta precisam diferir em periodo, timeframe, metodo ou preco` ou `Horizonte da MA Rapida nao pode ser maior que o da MA Lenta (periodo x TF)`. Se mesmo assim uma configuração inválida alcançar o motor — por `input`, por um perfil salvo em versão anterior ou por outro caminho que contorne a tela —, a MA Cross **suspende as próprias entradas** e registra uma linha no log. O EA, o painel, as demais estratégias, os filtros, as proteções e o gerenciamento da posição aberta seguem funcionando normalmente; corrigida a configuração, a estratégia volta sozinha.
+
+> ⚠️ **Exceção a registrar.** Se o EA **iniciar** já com configuração inválida da MA Cross, ele nunca chegou a criar um par de médias ativo, e nesse caso a **saída por cruzamento** fica indisponível até a correção. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuração era válida e só depois ficou inválida, o par que estava em uso é preservado e a saída por cruzamento continua sendo avaliada pelas médias com que a posição foi montada.
 
 ### 7.3. RSI
 
@@ -256,7 +299,9 @@ Quando mais de uma estratégia sinaliza no mesmo ciclo:
 
 Depois da resolução, todos os filtros ativos precisam aprovar a decisão. Em seguida, a direção global permite `Ambas`, `Só Compra` ou `Só Venda`.
 
-## 9. FILTERS - filtros
+## 9. Filtros
+
+A aba `Filtros` tem quatro subabas: **`Geral`**, **`Tendência`**, **`IFR / RSI`** e **`Bollinger`**. Como nas estratégias, `Geral` é panorama e o liga/desliga fica em cada subaba.
 
 Filtros nunca abrem posições. Eles apenas aprovam ou bloqueiam uma entrada já escolhida. Se um filtro ativo não puder obter os dados necessários, a entrada é bloqueada de forma conservadora.
 
@@ -275,7 +320,11 @@ Cada média ativa funciona como barreira completa:
 - SELL exige preço atual estritamente abaixo de todas as médias ON.
 - Preço igual à média bloqueia os dois lados.
 
-Com ambas ON, o horizonte efetivo da MA1 (`período x duração do timeframe`) deve ser estritamente maior que o da MA2. O filtro usa preço atual e valor atual da média, não candle fechado.
+As duas médias são chamadas **`MA1`** e **`MA2`** na tela, na legenda do gráfico e nas mensagens. **`MA1` é a barreira longa e `MA2` a curta.** Com ambas ON, o horizonte efetivo da `MA1` (`período x duração do timeframe`) deve ser **estritamente maior** que o da `MA2` — horizontes iguais não servem aqui, porque as duas barreiras coincidiriam.
+
+Essa regra é **estrita e independente da MA Cross**. Na MA Cross, horizontes iguais com curvas diferentes são válidos (seção 7.2); no Trend Filter, não. São propósitos diferentes: lá as curvas precisam se cruzar, aqui precisam ser duas barreiras distintas.
+
+O filtro usa preço atual e valor atual da média, não candle fechado.
 
 ### 9.2. RSI Filter
 
@@ -319,9 +368,13 @@ Com `Direção ON`, a inclinação média é:
 
 Quando o Bollinger Filter fica OFF, `Direção` e seus parâmetros ficam inativos. O valor ON/OFF salvo da Direção é preservado e volta a valer se o filtro principal for reativado.
 
-## 10. CONFIG > RISK
+## 10. Gestão > Risco
 
-### 10.1. LOTE
+A aba `Gestão` tem duas subabas: **`Risco`** e **`Proteção`**. Cada uma abre um trilho lateral com os grupos de campos.
+
+O trilho de `Risco` tem: `Lote`, `SL/TP`, `TP Parcial`, `BreakEven` e `Trailing`.
+
+### 10.1. Lote
 
 | Campo | Regra |
 |---|---|
@@ -339,7 +392,7 @@ Quando o Bollinger Filter fica OFF, `Direção` e seus parâmetros ficam inativo
 
 Antes de enviar a ordem, o Fusion recalcula os níveis com Bid/Ask atuais e valida lado correto, spread e `stopsLevel` da corretora. Um valor aceito visualmente pode ser bloqueado no momento da entrada se o mercado tornar o nível incompatível.
 
-### 10.3. TP PARCIAL
+### 10.3. TP Parcial
 
 | Campo | Regra |
 |---|---|
@@ -355,7 +408,7 @@ A soma dos percentuais ativos não pode exceder `100%`. O plano também precisa 
 
 O preço usa Bid para compra e Ask para venda. O parcial só é considerado executado depois da confirmação pelo histórico; uma aceitação de requisição não credita lucro estimado.
 
-### 10.4. BREAKEVEN
+### 10.4. BreakEven
 
 | Campo | Regra |
 |---|---|
@@ -365,7 +418,7 @@ O preço usa Bid para compra e Ask para venda. O parcial só é considerado exec
 
 Offset zero move o SL para a entrada. O BE não piora um SL que já esteja mais protegido.
 
-### 10.5. TRAILING
+### 10.5. Trailing
 
 | Campo | Regra |
 |---|---|
@@ -375,20 +428,22 @@ Offset zero move o SL para a entrada. O BE não piora um SL que já esteja mais 
 
 `Passo` não é o incremento mínimo entre modificações. O trailing só melhora o SL. Modificações de BE, trailing e TP Final Livre aguardam quando `freezeLevel` ou `stopsLevel` impedirem a alteração.
 
-## 11. CONFIG > PROTECT
+## 11. Gestão > Proteção
 
-### 11.1. GERAL
+O trilho de `Proteção` tem: `Geral`, `Spread/Lado`, `Sessão`, `Notícias`, `Limites Diários`, `Drawdown` e `Sequências`.
+
+### 11.1. Geral
 
 Resumo dos estados de Entrada, Sessão, News, DAY, DD e Streak.
 
-### 11.2. ENTRY
+### 11.2. Spread/Lado
 
 | Campo | Regra |
 |---|---|
 | `Max Spread` | Quando ON, bloqueia entrada se o spread atual superar o limite positivo em pontos. Não força fechamento. |
 | `Direção` | `Ambas`, `Só Compra` ou `Só Venda`. Aplica-se às entradas normais; VM direta é exceção documentada. |
 
-### 11.3. SESSION
+### 11.3. Sessão
 
 | Campo | Regra |
 |---|---|
@@ -399,7 +454,7 @@ Resumo dos estados de Entrada, Sessão, News, DAY, DD e Streak.
 
 Sem Overnight, o Fim deve ser posterior ao Início.
 
-### 11.4. NEWS
+### 11.4. Notícias
 
 Existem três janelas manuais independentes. O Fusion não consulta calendário econômico nem notícias externas.
 
@@ -412,7 +467,7 @@ Para cada janela:
 
 As janelas de News não possuem modo Overnight.
 
-### 11.5. DAY
+### 11.5. Limites Diários
 
 | Campo | Regra |
 |---|---|
@@ -425,7 +480,7 @@ As janelas de News não possuem modo Overnight.
 
 Contadores e P/L persistem no estado do gráfico e são auditados contra o histórico. Eles resetam no novo dia do servidor.
 
-### 11.6. DRAWDOWN
+### 11.6. Drawdown
 
 O DD protege lucro diário depois que `Max Ganho` é atingido. Para ficar ON, exige simultaneamente:
 
@@ -446,7 +501,7 @@ Bases:
 
 O piso é `base - limite`. Assim que o DD é ativado, sua configuração fica travada até o novo dia, mas novas entradas continuam permitidas enquanto o piso não for violado. Ao atingir o limite, a posição é forçada a fechar e novas entradas ficam bloqueadas.
 
-### 11.7. STREAK
+### 11.7. Sequências
 
 Loss e Win são independentes:
 
@@ -460,20 +515,31 @@ Loss e Win são independentes:
 
 Streak é atualizado depois do fechamento completo da posição, usando o P/L total. Win zera Loss; Loss zera Win. Um fechamento exatamente em zero não incrementa nem zera as sequências atuais. Streak não força o fechamento de uma posição aberta.
 
-## 12. CONFIG > SYSTEM
+## 12. Magic, conflito e diagnóstico
 
-| Campo | Descrição |
-|---|---|
-| `Magic Number do EA` | Inteiro positivo que identifica as operações e o perfil. Deve ser único entre perfis salvos. |
-| `Resolver Conflito` | Alterna entre PRIORIDADE e CANCELAR. |
-| `Logs Debug` | Acrescenta registros detalhados; use apenas em diagnóstico. |
+Na GUI 2.0 estes três itens **não moram mais numa aba de sistema**. Cada um foi para o lugar onde é lido junto do que ele afeta:
+
+| Campo | Onde fica | Descrição |
+|---|---|---|
+| `Magic Number` | aba `Perfis`, ao lado do nome | Inteiro positivo que identifica as operações e o perfil. Deve ser único entre perfis salvos. |
+| `Resolver Conflito` | `Estratégias > Geral` | Alterna entre `PRIORIDADE` e `CANCELAR`. É uma regra **entre** estratégias, e por isso fica ao lado de quais estão ligadas. |
+| Logs detalhados de debug | apenas nos `input` do EA (F7) | Acrescenta registros detalhados; use somente em diagnóstico. Não pertence ao perfil: é uma escolha da sessão. |
+
+*(Na nomenclatura histórica das versões 1.x, os três ficavam em `CONFIG > SYSTEM`.)*
 
 O Fusion usa dois bloqueios complementares:
 
 - o mesmo perfil não pode ficar carregado em dois gráficos;
 - o mesmo Magic não pode identificar duas instâncias operacionais.
 
-## 13. CONFIG > VISUAL
+## 13. Layout
+
+A aba `Layout` tem duas naturezas, e a divisão decide o comportamento:
+
+- **Indicadores visuais** são configuração do **perfil**: entram no rascunho e passam por `SALVAR`;
+- **Aparência do painel** (`Paleta`, `Tema`, `Tamanho do texto`) é preferência de quem opera: vale para todo gráfico, é aplicada no ato, não entra no perfil e não cria pendência. Por isso continua disponível mesmo com a configuração bloqueada.
+
+*(Na nomenclatura histórica das versões 1.x, estes controles ficavam em `CONFIG > VISUAL`.)*
 
 `Indicadores no Gráfico` liga uma camada estritamente visual. Ela não altera sinais, filtros nem execução.
 
@@ -495,13 +561,13 @@ Regras visuais:
 - a legenda das médias informa OFF, outro TF, aguardando ou ativa;
 - os handles visuais são separados dos handles operacionais.
 
-## 14. PERFIS
+## 14. Perfis
 
 ### 14.1. Ações
 
 | Ação | Função |
 |---|---|
-| `Atualizar Lista` | Relê os arquivos disponíveis. |
+| `Atualizar lista` | Relê os arquivos disponíveis. |
 | `NOVO` | Cria um perfil a partir do rascunho atual, exigindo novo nome e Magic livre. |
 | `CARREGAR` | Carrega o perfil selecionado. |
 | `DUPLICAR` | Cria uma cópia com novo nome e Magic livre. |
@@ -539,16 +605,25 @@ Perfil e chart state são conceitos diferentes. O perfil guarda configuração; 
 
 - Anexar, recompilar ou reiniciar em conta real/demo volta com novas entradas pausadas.
 - Uma posição restaurada continua sendo gerenciada.
-- Uma troca de timeframe no mesmo símbolo pode preservar o estado iniciado e nunca altera os timeframes dos módulos.
-- Rascunhos não salvos são descartados na troca de timeframe.
-- Trocar o símbolo do gráfico provoca bloqueio seguro; volte ao ativo anterior para recuperar o contexto.
 - Estado truncado, incompatível ou incompleto é rejeitado integralmente; o Fusion tenta ressincronizar posição e histórico de forma conservadora.
+- Trocar o símbolo do gráfico provoca bloqueio seguro; volte ao ativo anterior para recuperar o contexto.
+
+### 15.1. Troca do timeframe do gráfico
+
+Quatro fatos, e só estes:
+
+1. **Os timeframes operacionais não mudam.** Nenhuma estratégia e nenhum filtro passa a calcular em outro timeframe por causa disso.
+2. **O estado confirmado pode ser restaurado**, inclusive o estado iniciado — a troca acontece dentro de uma sessão em andamento e leva segundos.
+3. **Rascunhos não salvos são descartados.** Se havia alteração pendente na tela, ela não é salva nem aplicada, e o Fusion avisa explicitamente que foi descartada.
+4. **Os estados de entrada anteriores são consumidos**, e o Fusion aguarda um sinal novo. Um cruzamento que já valia antes da troca não vira ordem depois dela.
+
+O que muda de visível é apenas o desenho: curvas cujo timeframe não coincide com o novo timeframe do gráfico deixam de ser exibidas.
 
 ## 16. Diagnóstico e arquivos gerados
 
 ### 16.1. Journal/Experts
 
-Use `Logs Debug ON` apenas quando precisar de detalhes adicionais. Bloqueios importantes também aparecem em `STATUS`.
+Use `Logs Debug ON` apenas quando precisar de detalhes adicionais. Bloqueios importantes também aparecem em `Status`.
 
 ### 16.2. CSV de requisições
 
@@ -612,7 +687,7 @@ As três janelas começam OFF e com `00:00` a `00:00`:
 | News 2 | `inp_EnableNewsWindow2=false` | `inp_News2StartHour=0`, `inp_News2StartMinute=0` | `inp_News2EndHour=0`, `inp_News2EndMinute=0` | `inp_News2ClosePositions=false` |
 | News 3 | `inp_EnableNewsWindow3=false` | `inp_News3StartHour=0`, `inp_News3StartMinute=0` | `inp_News3EndHour=0`, `inp_News3EndMinute=0` | `inp_News3ClosePositions=false` |
 
-Em `inp_NewsNClosePositions`, `false` apenas bloqueia entradas e `true` fecha a posição e bloqueia.
+Em `inp_News1ClosePositions`, `inp_News2ClosePositions` e `inp_News3ClosePositions`, `false` apenas bloqueia entradas e `true` fecha a posição e bloqueia.
 
 ### 18.4. DAY, DD e Streak
 
