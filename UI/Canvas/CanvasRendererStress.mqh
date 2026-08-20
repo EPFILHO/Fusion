@@ -3,10 +3,12 @@
 //| Fragmento do corpo de CFusionCanvasRenderer — tela sintetica de   |
 //| pior caso para medir o custo de desenho.                          |
 //|                                                                   |
-//| Nao ha mais como exibi-la a mao: a tecla S saiu na Fase 3, quando |
-//| o renderizador passou a rodar num grafico com dinheiro pelo       |
-//| FusionCanvas.ex5. Quem a desenha agora e so a suite de medicao    |
-//| (tecla M), que a liga, mede e devolve a tela ao estado anterior.  |
+//| Nao ha mais como exibi-la em execucao: a tecla S saiu na Fase 3,  |
+//| quando o renderizador passou a rodar num grafico com dinheiro,    |
+//| e a M — que rodava a suite de medicao — saiu depois. Quem a       |
+//| desenha e so RunPerfSuite(), que a liga, mede e devolve a tela ao |
+//| estado anterior; hoje ela nao tem gatilho no painel de producao,  |
+//| e chama-la e coisa de desenvolvimento.                            |
 //|                                                                   |
 //| A densidade imita o painel real cheio: ~300 textos por quadro,    |
 //| ~50 retangulos arredondados, numeros mono justificados a direita, |

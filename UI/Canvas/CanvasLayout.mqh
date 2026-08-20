@@ -325,11 +325,13 @@ struct SEntryRestriction
 #define FCV_VK_HOME  36
 #define FCV_VK_UP    38
 #define FCV_VK_DOWN  40
-//--- Medicao do custo de desenho. As teclas S (tela de estresse) e B (perfil
-//--- bloqueado simulado) sairam na Fase 3: com o FusionCanvas.ex5 o
-//--- renderizador passou a rodar num grafico com dinheiro, e um toque
-//--- acidental exibiria estado falso indistinguivel de defeito.
-#define FCV_VK_M     77
+//--- Nao existe mais NENHUMA tecla de diagnostico no painel de producao. S (tela
+//--- de estresse) e B (perfil bloqueado simulado) sairam na Fase 3; M (suite de
+//--- medicao) saiu depois, pelo mesmo motivo levado ate o fim: o renderizador
+//--- roda num grafico com dinheiro, e atalho de teclado nao distingue quem
+//--- desenvolve de quem opera. RunPerfSuite() e a tela de estresse continuam no
+//--- codigo, disponiveis para desenvolvimento; o que saiu foi o caminho
+//--- acionavel a mao.
 
 //--- Escala do painel, em porcento das unidades logicas. Nomeada por efeito
 //--- (Menor/Padrao/Maior) e nao por numero: o usuario escolhe o que enxerga

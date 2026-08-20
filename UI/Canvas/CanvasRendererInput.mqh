@@ -611,27 +611,25 @@ void ChartEvent(const int id,const long &lparam,const double &dparam,const strin
         }
 
       //+---------------------------------------------------------------+
-      //| Medicao do custo de desenho. Unica tecla de diagnostico que    |
-      //| sobrou, e ela pode ficar: so LE, anuncia o que fez no log e    |
-      //| devolve a tela ao estado anterior ao terminar.                 |
-      //|                                                                |
-      //| ⚠ As outras duas SAIRAM na Fase 3, e o motivo foi ela: ate     |
-      //| entao o renderizador so era alcancado pelo harness, e a partir |
-      //| do FusionCanvas.ex5 ele responde num grafico com dinheiro.     |
+      //| NENHUMA tecla de diagnostico chega aqui, e nao deve voltar a   |
+      //| chegar. Foram tres, e as tres sairam pelo mesmo motivo: ate a  |
+      //| Fase 3 o renderizador so era alcancado pelo harness, e desde   |
+      //| entao ele responde num grafico com dinheiro.                   |
       //|   S — punha a tela sintetica de estresse SOBRE o painel real;  |
       //|   B — fingia perfil bloqueado, e um toque acidental exibiria   |
-      //|       um bloqueio que nao existe, indistinguivel de defeito.   |
-      //| A tela de estresse continua existindo: e o pior caso que a     |
-      //| suite de medicao desenha, so nao ha mais como liga-la a mao.   |
+      //|       um bloqueio que nao existe, indistinguivel de defeito;   |
+      //|   M — rodava a suite de medicao, que redesenha o painel varias |
+      //|       vezes e segura o thread da UI durante a medicao.         |
       //|                                                                |
-      //| Nao pode disparar com um campo em edicao: digitar "m" num      |
-      //| campo nao pode rodar a suite.                                  |
+      //| M sobreviveu a Fase 3 com o argumento de que "so LE e devolve  |
+      //| a tela ao estado anterior". O argumento e verdadeiro e mesmo   |
+      //| assim insuficiente: o painel de producao nao deve ter caminho  |
+      //| de diagnostico acionavel por engano, por mais benigno que o    |
+      //| efeito seja. Uma tecla so precisa ser tocada uma vez.          |
+      //|                                                                |
+      //| RunPerfSuite() e a tela de estresse continuam no codigo, para  |
+      //| desenvolvimento; o que saiu foi o gatilho de teclado.          |
       //+---------------------------------------------------------------+
-      if((int)lparam==FCV_VK_M && !EditHasFocus())
-        {
-         RunPerfSuite();
-         return;
-        }
       if(m_minimized || !m_overPanel) return;
       int viewH=ContentBottom()-ContentTop(), step=0;
       switch((int)lparam)
