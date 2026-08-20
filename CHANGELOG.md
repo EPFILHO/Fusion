@@ -1,5 +1,59 @@
 # Changelog
 
+## 2.000 - 2026-08-20
+
+### A GUI 2.0 substitui o painel classico
+
+- O painel construido sobre a biblioteca `Controls` foi **removido**. O EA passa a desenhar a interface inteira em `CCanvas`, com hit-test, edicao e rolagem proprios. Nao ha caminho para voltar ao painel antigo dentro do produto.
+- A navegacao de nivel 1 passa a ser `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`. A aba `CONFIG` deixou de existir: Risco e Protecao foram para `Gestao`, com trilho lateral proprio; indicadores visuais e aparencia do painel foram para `Layout`; o `Magic Number` foi para `Perfis`, ao lado do nome; e `Resolver Conflito` foi para `Estrategias > Geral`, junto de quais estrategias estao ligadas.
+- `Estrategias` e `Filtros` ganharam a subaba `Geral`, um panorama somente-leitura de quais modulos estao ativos. Ligar e desligar continua em cada subaba, junto dos parametros.
+- A aparencia do painel — paleta, tema e tamanho do texto — e preferencia de quem opera: vale para todos os graficos, e aplicada no ato, nao entra no perfil e continua disponivel com a configuracao bloqueada.
+- `Fusion.mq5` volta a ser o **unico EA de producao**, agora com a GUI 2.0 dentro. O harness de prototipo e o `FusionCanvas.mq5`, que existiram para rodar os dois paineis lado a lado durante a migracao, foram removidos.
+- A arquitetura operacional da 1.058 foi **preservada**. A migracao trocou a interface, nao o motor.
+
+### Seguranca descoberta durante a migracao
+
+Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GUI antiga:
+
+- carregar perfil com **posicao aberta** passou a ser recusado, com a leitura de posicao sincronizada **antes** da decisao. Sem essa guarda, trocar de perfil em operacao trocava tambem o `Magic`, que e como o EA reconhece as proprias ordens.
+- `RESTAURAR PERFIL ATIVO` virou um verbo proprio: "voltar ao que eu ja tinha" era indistinguivel de "adotar outro perfil" e herdava recusas que so fazem sentido no segundo caso.
+- os logs detalhados de debug sairam do arquivo de perfil e voltaram a ser governados pelo `input` — sao diagnostico de sessao, nao configuracao de estrategia.
+
+### Sinal represado apos reconexao ou volta de permissao
+
+- Quando a permissao de negociacao volta — reconexao com o servidor, AutoTrading religado, permissao da conta restaurada —, o Fusion **descarta o estado de entrada acumulado e exige um sinal novo**. Antes, um cruzamento formado durante a queda podia virar ordem no primeiro tick de volta, com atraso de minutos.
+- Nao basta consumir o sinal vigente: o candle que estava aberto no instante da liberacao tambem nao vale como entrada, porque sua formacao comecou enquanto o EA nao estava acompanhando. O primeiro sinal elegivel vem de um candle iniciado **depois** da liberacao. O criterio e o candle, nunca um prazo em milissegundos.
+- Enquanto a serie de precos nao responder, a quarentena **bloqueia tudo** e se recupera sozinha, sem contador nem tempo limite.
+- Vale para MA Cross, RSI e Bollinger, por uma transicao unica. Uma posicao ja aberta continua sendo gerenciada normalmente.
+- Com os logs detalhados ligados, uma recusa aparece no diario como `Sinal bloqueado pela quarentena`, com o candle do sinal e a barreira — uma linha por candle, nunca por tick.
+
+### Validacao das medias da MA Cross
+
+- A validade das duas medias passa a ser decidida pelo **horizonte efetivo** (`periodo x duracao do timeframe`), e nao pelo periodo isolado. A regra anterior errava dos dois lados: recusava `SMA 9` contra `EMA 9`, que sao curvas diferentes e uma configuracao legitima, e aceitava `EMA 9 H4` como rapida contra `EMA 21 M1` como lenta, em que a rapida cobre um horizonte 96 vezes maior.
+- **Horizontes iguais sao validos** quando as curvas diferem em periodo, timeframe, metodo ou preco aplicado. So e recusada a configuracao em que os quatro campos coincidem, porque ai as duas curvas sao a mesma linha e nao existe cruzamento possivel.
+- A tela e o motor usam **a mesma validacao**. Configuracao invalida que chegue por `input` ou por perfil antigo suspende apenas as **entradas da MA Cross** e registra o motivo: painel, gerenciamento da posicao aberta, protecoes, execucao e as demais estrategias seguem funcionando.
+- A faixa de periodo `1..1000` passou a ser verificada tambem no motor, e nao so na tela.
+- Quando os oito campos participantes ficam em desacordo, os oito sinalizam na tela — a correcao pode ser em qualquer um deles.
+
+### Nomenclatura e diagnostico
+
+- As duas medias do `Trend Filter` passam a se chamar **`MA1`** e **`MA2`** na tela, na legenda do grafico e nas mensagens. `M1` e `M2` eram ambiguos com os timeframes de 1 e 2 minutos do MT5. `MA1` continua sendo a barreira longa e `MA2` a curta, com regra estrita e independente da MA Cross.
+- As curvas do indicador visual passam a se chamar `Trend MA1` e `Trend MA2`.
+- A tecla `M`, que rodava a suite de medicao de desenho, foi **removida do painel de producao**. Nenhuma tecla de diagnostico sobra na interface: o renderizador roda num grafico com dinheiro, e um atalho nao distingue quem desenvolve de quem opera.
+- O aviso de volta de permissao deixou de dizer "EA pronto para operar", que era falso enquanto a quarentena de candle estivesse de pe.
+
+### Limitacoes a conhecer
+
+- Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.
+
+### Compatibilidade, documentacao e build
+
+- **Perfis da 1.058 continuam validos**: o schema de perfil, o formato de persistencia e o chart state nao mudaram nesta versao. Uma excecao a conferir: uma configuracao de MA Cross salva sob a regra antiga, com timeframes diferentes entre rapida e lenta, pode ser invalida sob a regra nova.
+- O `Manual do Usuario` foi reescrito para a GUI 2.0, com o cabecalho e seus estados, as sete abas, o que muda ao trocar o timeframe do grafico e a referencia completa dos `input` conferida contra o codigo.
+- Versao central em `2.000`, com `Fusion.mq5` e os tres indicadores visuais lendo dela ou declarando o mesmo numero. Build limpo nos quatro alvos: `0 errors, 0 warnings`.
+- Aceite da GUI 2.0 executado no MT5 em conta demo: 89 de 89 passos do roteiro da Fase 3, mais o smoke do binario definitivo e a verificacao em execucao das correcoes de reconexao e de validacao das medias.
+
+
 ## 1.058 - 2026-07-26
 - `Persistence/SettingsStore.mqh` (1245 linhas) foi dividido em `CSettingsStore`, uma fachada fina de 10 metodos, mais cinco modulos em `Persistence/Modules/`: `SettingsFileUtils` (parsing e paths), `ProfileSettingsSerializer` (encode/decode do bloco de settings e normalizacoes), `ChartStateSerializer` (mapeamento de campos de runtime), `ProfileStore` (CRUD de arquivo de perfil) e `ChartStateStore` (save/load de chart state).
 - Reorganizacao estrutural pura: nenhuma mudanca de comportamento, formato de arquivo de perfil/chart state ou API publica de `CSettingsStore`. Cada modulo foi extraido em um commit isolado, com o `build.ps1` fechando 0 errors/0 warnings apos cada passo.
