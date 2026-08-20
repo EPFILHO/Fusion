@@ -9,7 +9,7 @@
 - `Estrategias` e `Filtros` ganharam a subaba `Geral`, um panorama somente-leitura de quais modulos estao ativos. Ligar e desligar continua em cada subaba, junto dos parametros.
 - A aparencia do painel — paleta, tema e tamanho do texto — e preferencia de quem opera: vale para todos os graficos, e aplicada no ato, nao entra no perfil e continua disponivel com a configuracao bloqueada.
 - `Fusion.mq5` volta a ser o **unico EA de producao**, agora com a GUI 2.0 dentro. O harness de prototipo e o `FusionCanvas.mq5`, que existiram para rodar os dois paineis lado a lado durante a migracao, foram removidos.
-- A arquitetura operacional da 1.058 foi **preservada**. A migracao trocou a interface, nao o motor.
+- A **base arquitetural da 1.058 foi preservada**: modulos, formatos e fluxo operacional continuam os mesmos. Isso nao significa que o motor tenha ficado intocado — a 2.000 tambem contem as correcoes operacionais enumeradas nas secoes seguintes, e elas mudam quando uma entrada acontece.
 
 ### Seguranca descoberta durante a migracao
 
@@ -48,10 +48,11 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 
 ### Compatibilidade, documentacao e build
 
-- **Perfis da 1.058 continuam validos**: o schema de perfil, o formato de persistencia e o chart state nao mudaram nesta versao. Uma excecao a conferir: uma configuracao de MA Cross salva sob a regra antiga, com timeframes diferentes entre rapida e lenta, pode ser invalida sob a regra nova.
+- **O formato e o schema dos perfis da 1.058 permanecem compativeis**: nem o arquivo de perfil, nem o chart state, nem a versao do formato de persistencia mudaram nesta versao. Um perfil antigo **carrega normalmente**. O que pode mudar e o comportamento: uma configuracao de MA Cross que a regra antiga aceitava — tipicamente com timeframes diferentes entre rapida e lenta — pode ser invalida sob a regra nova, e nesse caso o perfil carrega, mas as **entradas da MA Cross ficam suspensas** ate a configuracao ser corrigida.
 - O `Manual do Usuario` foi reescrito para a GUI 2.0, com o cabecalho e seus estados, as sete abas, o que muda ao trocar o timeframe do grafico e a referencia completa dos `input` conferida contra o codigo.
 - Versao central em `2.000`, com `Fusion.mq5` e os tres indicadores visuais lendo dela ou declarando o mesmo numero. Build limpo nos quatro alvos: `0 errors, 0 warnings`.
-- Aceite da GUI 2.0 executado no MT5 em conta demo: 89 de 89 passos do roteiro da Fase 3, mais o smoke do binario definitivo e a verificacao em execucao das correcoes de reconexao e de validacao das medias.
+- Aceite da GUI 2.0 executado no MT5 em conta demo: 89 de 89 passos do roteiro da Fase 3, mais o smoke do binario definitivo.
+- Delimitacao da prova em execucao, para nao dar a entender mais do que foi observado: o **ciclo completo de reconexao** — queda, recusa do sinal represado e entrada de um cruzamento posterior — foi observado **na MA Cross**; a validacao das medias foi exercitada contra o predicado e na tela. RSI e Bollinger passam pelo mesmo caminho central de descarte, o que e escopo de implementacao, mas **nao** receberam a mesma prova em execucao.
 
 
 ## 1.058 - 2026-07-26

@@ -4,7 +4,7 @@
 
 Este manual descreve o comportamento efetivamente implementado no EP Fusion 2.000, cuja interface é a **GUI 2.0**, desenhada em canvas. Ele cobre a interface, os perfis e os parâmetros disponíveis nos `input` do MetaTrader 5.
 
-A GUI 2.0 substituiu por completo o painel clássico das versões 1.x. A navegação passou a ser `Status · Resultados · Estratégias · Filtros · Gestão · Perfis · Layout`. Nomes antigos como `CONFIG`, `STRATS`, `FILTERS` ou `RISK` não existem mais; quando aparecem neste manual, é sempre identificados como nomenclatura histórica.
+A GUI 2.0 substituiu por completo o painel clássico das versões 1.x. A navegação passou a ser `Status · Resultados · Estratégias · Filtros · Gestão · Perfis · Layout`. Nomes antigos como `CONFIG`, `STRATS`, `FILTERS` ou `RISK` não existem mais; quando aparecem neste manual, são sempre identificados como nomenclatura histórica.
 
 O motor operacional — estratégias, filtros, risco, proteções, execução e persistência — é o da 1.058, com as correções listadas no `CHANGELOG.md`.
 
@@ -84,12 +84,14 @@ O cabeçalho fica acima das abas e é o mesmo em todas elas. Ele reúne o ativo,
 | `INICIAR` | Libera novas entradas quando a configuração e o contexto permitem. Fica disponível também com posição aberta, para rearmar o EA sem esperar a operação fechar. |
 | `PAUSAR` | Interrompe novas entradas. Só fica disponível sem posição ou reconciliação pendente. |
 | `SALVAR` | Valida e grava as alterações do perfil carregado. |
-| `CANCELAR` | Descarta o rascunho e restaura a última configuração confirmada. No editor de novo perfil, cancela aquele fluxo. |
+| `CANCELAR` | Descarta o rascunho e restaura a última configuração confirmada. |
 | Nome do perfil | Mostra o perfil associado ao gráfico. Se aparecer `nome (sem arquivo)` em amarelo, veja a seção 5.5. |
+
+No formulário de `NOVO`/`DUPLICAR`, os controles globais do cabeçalho ficam **inativos**: ali a ação de desfazer é local e se chama `DESCARTAR`.
 
 ### 5.1. Distintivo de estado e faixas de aviso
 
-O distintivo à direita resume, em uma palavra, o que o EA está fazendo:
+O distintivo à direita resume, em uma palavra, o que o EA está fazendo. São **seis**, e apenas seis:
 
 | Distintivo | Significado |
 |---|---|
@@ -99,8 +101,8 @@ O distintivo à direita resume, em uma palavra, o que o EA está fazendo:
 | `BLOQUEADO` | Bloqueio estrutural ou de contexto. Consulte `Status`. |
 | `IMPEDIDO` | Sem permissão de negociação no MT5 ou na conta. |
 | `SEM ENTRADAS` | Alguma proteção está impedindo entradas. |
-| `CONFIGURACAO INVALIDA` | Há erro de configuração a corrigir antes de iniciar. |
-| `SESSAO`, `NOTICIAS`, `LIMITE DIARIO`, `DRAWDOWN`, `SEQUENCIA`, `DD ATIVO`, `DD ATINGIDO` | Qual proteção está em curso. |
+
+A **causa** de um bloqueio — sessão, notícias, limite diário, drawdown, sequência ou configuração inválida — não aparece no distintivo. Ela é mostrada como faixa abaixo do cabeçalho ou como aviso na aba `Status`.
 
 Abaixo do cabeçalho aparecem faixas que explicam o estado quando ele não é óbvio:
 
@@ -125,7 +127,7 @@ Uma posição que estava aberta **continua sendo gerenciada normalmente** — br
 
 O motivo é que o EA não tem como saber por que o terminal foi fechado — encerramento planejado, queda de energia, atualização do Windows, travamento — nem há garantia de quanto tempo ficou fora. Retomar sozinho significaria voltar a assumir risco sem que ninguém tenha confirmado que o contexto ainda faz sentido.
 
-Ao clicar `INICIAR`, o Fusion revalida permissão de negociação, conflito de perfil e registro de instância, e descarta sinais antigos para não entrar por um cruzamento que já estava valendo antes do reinício. Com posição aberta, o botão passa a exibir `OPERANDO`; sem posição, exibe `PAUSAR`.
+Ao clicar `INICIAR`, o Fusion revalida permissão de negociação, conflito de perfil e registro de instância, e descarta sinais antigos para não entrar por um cruzamento que já estava valendo antes do reinício. Com posição aberta, o **distintivo** passa a `OPERANDO`; o botão continua rotulado `PAUSAR` e fica desabilitado enquanto houver posição — a faixa abaixo do cabeçalho é que explica o motivo. Sem posição, o botão fica `PAUSAR` e habilitado.
 
 Trocar o timeframe do gráfico é o único caso que preserva o estado operacional automaticamente, porque acontece dentro de uma sessão em andamento e leva segundos.
 
@@ -320,9 +322,9 @@ Cada média ativa funciona como barreira completa:
 - SELL exige preço atual estritamente abaixo de todas as médias ON.
 - Preço igual à média bloqueia os dois lados.
 
-As duas médias são chamadas **`MA1`** e **`MA2`** na tela, na legenda do gráfico e nas mensagens. **`MA1` é a barreira longa e `MA2` a curta.** Com ambas ON, o horizonte efetivo da `MA1` (`período x duração do timeframe`) deve ser **estritamente maior** que o da `MA2` — horizontes iguais não servem aqui, porque as duas barreiras coincidiriam.
+As duas médias são chamadas **`MA1`** e **`MA2`** na tela, na legenda do gráfico e nas mensagens. **`MA1` é a barreira longa e `MA2` a curta.** Com ambas ON, o horizonte efetivo da `MA1` (`período x duração do timeframe`) deve ser **estritamente maior** que o da `MA2`.
 
-Essa regra é **estrita e independente da MA Cross**. Na MA Cross, horizontes iguais com curvas diferentes são válidos (seção 7.2); no Trend Filter, não. São propósitos diferentes: lá as curvas precisam se cruzar, aqui precisam ser duas barreiras distintas.
+Essa regra é **estrita e independente da MA Cross**. Na MA Cross, horizontes iguais com curvas diferentes são válidos (seção 7.2); no Trend Filter, não. A exigência estrita é o que define, sem ambiguidade, qual das duas é a barreira longa e qual é a curta — que é a informação de que este filtro precisa.
 
 O filtro usa preço atual e valor atual da média, não candle fechado.
 
@@ -568,10 +570,12 @@ Regras visuais:
 | Ação | Função |
 |---|---|
 | `Atualizar lista` | Relê os arquivos disponíveis. |
-| `NOVO` | Cria um perfil a partir do rascunho atual, exigindo novo nome e Magic livre. |
 | `CARREGAR` | Carrega o perfil selecionado. |
-| `DUPLICAR` | Cria uma cópia com novo nome e Magic livre. |
+| `NOVO` | Cria **e ativa** um perfil a partir da configuração **atualmente em uso**. Alterações pendentes na tela **não** são incorporadas. |
+| `DUPLICAR` | Cria **e ativa** uma cópia da configuração **lida do perfil selecionado**. |
 | `EXCLUIR` | Remove perfil que não seja default, ativo ou bloqueado por outro gráfico. |
+
+`NOVO` e `DUPLICAR` exigem **nome e Magic Number livres** — ambos precisam estar disponíveis antes de gravar. Os dois abrem um formulário próprio, e **trocar de aba descarta esse formulário**, como a própria tela avisa.
 
 Espaços e caracteres inválidos de arquivo no nome são substituídos por `_`.
 
