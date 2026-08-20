@@ -104,7 +104,7 @@ o preco perto de um cruzamento.
 
   Sem cruzamento nenhum no periodo: **inconclusivo**, repetir.
 
-- [ ] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
+- [x] **Sinal realmente novo entra.** Continue observando ate um cruzamento formado com o EA ja
   conectado. Ele deve entrar normalmente: `INFO ... STRAT_MA ... NEXT_CANDLE ... => BUY` (ou `SELL`)
   seguido da ordem. Se **nao** entrar, a quarentena nao desarmou — anote o horario e pare.
 
@@ -318,7 +318,33 @@ motivo dentro de 60 s. O priming roda de qualquer forma — a supressao e so do 
 
 ### O que ainda nao foi visto neste binario
 
-- [ ] **Entrada apos uma quarentena armada por DESCONEXAO.** O disarm foi provado as 21:49:00
+- [x] **Entrada apos uma quarentena armada por DESCONEXAO.** O disarm foi provado as 21:49:00
   (`NEXT_CANDLE => SELL` + ordem) sobre uma quarentena armada as 21:46:09 por **AutoTrading**. O
   caminho de desarme e identico nos dois casos, mas a sequencia desconexao -> entrada nova ainda nao
   aparece num log so. Basta deixar rodando ate o proximo cruzamento.
+
+### Ciclo completo num log so — 21:58 a 22:01
+
+O que faltava: quarentena armada por **desconexao**, sinal represado recusado e entrada nova, em
+sequencia, sem nenhuma outra manobra no meio.
+
+```
+21:58:35.427  [CONNECTION] Conexao com servidor perdida.
+21:58:36.414  [CONNECTION] Conexao com servidor restaurada.
+21:58:36.414  [AUTOTRADE]  Trading habilitado novamente. Aguardando sinal formado apos a liberacao.
+21:59:00.097  [SIGNAL]     Sinal bloqueado pela quarentena - MA Cross. Candle do sinal 03:58:00, barreira 03:58:00.
+22:01:00.206  [STRAT_MA]   NEXT_CANDLE fast[2]=69421.63480 fast[1]=69453.64493 slow[2]=69439.21333 slow[1]=69438.92667 => BUY
+22:01:00.431  [EXEC]       Entry sent by MA Cross (BUY)
+```
+
+| momento (servidor) | o que aconteceu |
+|---|---|
+| `03:58:36` | permissao volta; barreira captada em `03:58` — **o proprio candle da restauracao** |
+| `03:59:00` | cruzamento do candle `03:58` recusado: `03:58 > 03:58` e falso. **De novo o `>` estrito** |
+| `04:01:00` | cruzamento do candle `04:00` aceito: `04:00 > 03:58`. Inversao correta (`fast` cruza de baixo para cima). Ordem 225 ms depois |
+
+Nao houve entrada em `04:00:00` porque nao houve cruzamento no candle `03:59` — ausencia esperada, nao
+bloqueio.
+
+**Os quatro itens do aceite fechados no binario corrigido**: desconexao em M1; barreira nunca anterior
+ao candle da restauracao; sinal represado recusado; cruzamento genuinamente novo entrando.
