@@ -17,13 +17,13 @@
 #property indicator_style2  STYLE_SOLID
 #property indicator_width2  2
 
-#property indicator_label3  "Trend MA"
+#property indicator_label3  "Trend MA1"
 #property indicator_type3   DRAW_LINE
 #property indicator_color3  clrMagenta
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  2
 
-#property indicator_label4  "Trend M2"
+#property indicator_label4  "Trend MA2"
 #property indicator_type4   DRAW_LINE
 #property indicator_color4  clrOrange
 #property indicator_style4  STYLE_SOLID

@@ -63,7 +63,7 @@
 #define FCV_FLD_USE_BBF           72   // bool
 
 //--- Filtros > Tendencia. Cada media tem a propria chave: a 1.058 permite
-//--- usar so a M1, e uma chave unica esconderia isso.
+//--- usar so a MA1, e uma chave unica esconderia isso.
 #define FCV_FLD_TR_MA1_ON         74   // bool
 #define FCV_FLD_TR_MA1_PERIOD     75   // int
 #define FCV_FLD_TR_MA1_TF         76   // combo TF

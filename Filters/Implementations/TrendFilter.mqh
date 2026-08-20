@@ -172,7 +172,7 @@ public:
          long ma2Horizon = FusionMAHorizonSeconds(m_sellPeriod, m_sellTimeframe);
          if(ma1Horizon <= 0 || ma2Horizon <= 0 || ma1Horizon <= ma2Horizon)
            {
-            reason = "configuracao invalida: M1 deve ser mais longa que M2";
+            reason = "configuracao invalida: MA1 deve ser mais longa que MA2";
             return false;
            }
         }
@@ -196,10 +196,10 @@ public:
          double ma1Value = 0.0;
          if(!CurrentMAValue(m_ma1Handle, ma1Value))
            {
-            reason = "M1 indisponivel";
+            reason = "MA1 indisponivel";
             return false;
            }
-         if(BlocksSignal(signal, currentPrice, ma1Value, "M1", m_period, reason))
+         if(BlocksSignal(signal, currentPrice, ma1Value, "MA1", m_period, reason))
             return false;
         }
 
@@ -208,10 +208,10 @@ public:
          double ma2Value = 0.0;
          if(!CurrentMAValue(m_ma2Handle, ma2Value))
            {
-            reason = "M2 indisponivel";
+            reason = "MA2 indisponivel";
             return false;
            }
-         if(BlocksSignal(signal, currentPrice, ma2Value, "M2", m_sellPeriod, reason))
+         if(BlocksSignal(signal, currentPrice, ma2Value, "MA2", m_sellPeriod, reason))
             return false;
         }
 

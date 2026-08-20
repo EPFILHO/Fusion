@@ -577,7 +577,7 @@ private:
          else if(trendEligible &&
                  SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                         settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
-            trend2Shared = "Trend M1";
+            trend2Shared = "Trend MA1";
         }
 
       m_legendOverlay.Update(MALegendText("MA Rapida",
@@ -593,14 +593,14 @@ private:
                                          slowEligible,
                                          m_showSlowMA,
                                          slowShared),
-                            MALegendText("Trend M1",
+                            MALegendText("Trend MA1",
                                          trendConfigured,
                                          settings.trendMATimeframe,
                                          settings.trendMAPeriod,
                                          trendEligible,
                                          m_showTrendMA,
                                          trendShared),
-                            MALegendText("Trend M2",
+                            MALegendText("Trend MA2",
                                          trend2Configured,
                                          settings.trendSellMATimeframe,
                                          settings.trendSellMAPeriod,

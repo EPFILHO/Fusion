@@ -636,7 +636,7 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    //--- outra e o matiz, nao o tom. As Bandas ficam no cinza claro de proposito
    //--- — sao envelope, nao direcao, e nao devem competir com as medias.
    //--- ⚠ Sao INDICES na grade: mudar o numero de colunas move todos eles.
-   int swatch[5]={8,10,12,14,15};   // MA Rapida, MA Lenta, Trend M1, Trend M2, Bandas
+   int swatch[5]={8,10,12,14,15};   // MA Rapida, MA Lenta, Trend MA1, Trend MA2, Bandas
    for(int i=0;i<5;++i)
       m_stColor[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_COLOR0+i*FCV_VISUAL_SLOT_STRIDE)]=swatch[i];
   }

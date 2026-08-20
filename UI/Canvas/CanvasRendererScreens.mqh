@@ -1342,7 +1342,7 @@ void ScreenFilters(void)
      }
    if(s==1)
      {
-      //--- Cada media tem a propria chave: a 1.058 permite usar so a M1, e
+      //--- Cada media tem a propria chave: a 1.058 permite usar so a MA1, e
       //--- uma chave unica no topo esconderia isso.
       RowsReset();
       //--- Cada media governa os proprios parametros: com ela desligada, o EA
@@ -1362,7 +1362,7 @@ void ScreenFilters(void)
       RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF    ,ma2);
       RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD,ma2);
       RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE ,ma2);
-      RowNote   ("Com ambas ON, M1 deve ser mais longa que M2 (periodo x TF).");
+      RowNote   ("Com ambas ON, MA1 deve ser mais longa que MA2 (periodo x TF).");
       Card("MEDIA 2");
       return;
      }
@@ -1919,8 +1919,8 @@ void ScreenVisual(void)
    RowsReset();
    RowColorStyleF("MA Rapida",FCV_FLD_VIS_MAFAST_COLOR,FCV_FLD_VIS_MAFAST_STYLE);
    RowColorStyleF("MA Lenta", FCV_FLD_VIS_MASLOW_COLOR,FCV_FLD_VIS_MASLOW_STYLE);
-   RowColorStyleF("Trend M1", FCV_FLD_VIS_TREND1_COLOR,FCV_FLD_VIS_TREND1_STYLE);
-   RowColorStyleF("Trend M2", FCV_FLD_VIS_TREND2_COLOR,FCV_FLD_VIS_TREND2_STYLE);
+   RowColorStyleF("Trend MA1", FCV_FLD_VIS_TREND1_COLOR,FCV_FLD_VIS_TREND1_STYLE);
+   RowColorStyleF("Trend MA2", FCV_FLD_VIS_TREND2_COLOR,FCV_FLD_VIS_TREND2_STYLE);
    RowColorStyleF("Bandas",   FCV_FLD_VIS_BB_COLOR,    FCV_FLD_VIS_BB_STYLE);
    Card("CORES E ESTILOS");
 

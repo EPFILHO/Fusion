@@ -724,11 +724,11 @@ string ScreenErrorBB(void)
 string ScreenErrorTrend(void)
   {
    if(m_draft.trendMA1Enabled && !VPeriod(m_draft.trendMAPeriod))
-      return "Trend Filter: periodo da M1 deve ser 1 a 1000.";
+      return "Trend Filter: periodo da MA1 deve ser 1 a 1000.";
    if(m_draft.trendMA2Enabled && !VPeriod(m_draft.trendSellMAPeriod))
-      return "Trend Filter: periodo da M2 deve ser 1 a 1000.";
+      return "Trend Filter: periodo da MA2 deve ser 1 a 1000.";
    if(!FusionTrendMAOrderValid(m_draft))
-      return "Trend Filter: M1 deve ser mais longa que M2 (periodo x TF).";
+      return "Trend Filter: MA1 deve ser mais longa que MA2 (periodo x TF).";
    return "";
   }
 

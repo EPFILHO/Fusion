@@ -33,7 +33,7 @@ A validacao de largura existente continua ocorrendo antes da regra direcional. F
 - com apenas uma media ON, ela funciona como filtro unico para os dois lados;
 - com ambas OFF, o Trend Filter fica desligado.
 
-Com ambas ON, a M1 e a media longa e deve ter horizonte efetivo (`periodo x duracao do timeframe`) maior que a M2. A GUI impede salvar a ordem invalida e o motor repete a guarda antes de aprovar entradas.
+Com ambas ON, a MA1 e a media longa e deve ter horizonte efetivo (`periodo x duracao do timeframe`) maior que a MA2. A GUI impede salvar a ordem invalida e o motor repete a guarda antes de aprovar entradas.
 
 As duas medias visuais usam handles proprios, aparecem apenas quando o timeframe do grafico coincide com o timeframe configurado e nunca fornecem dados ao filtro.
 
@@ -45,8 +45,8 @@ As duas medias visuais usam handles proprios, aparecem apenas quando o timeframe
 4. Alterar um campo sem salvar, trocar o timeframe do grafico e confirmar o aviso de descarte, sem alteracao no perfil em disco.
 5. Ativar `Direcao BB`, usar tolerancia zero e confirmar SELL bloqueado com linha central ascendente e BUY bloqueado com linha central descendente.
 6. Aumentar `Incl. min. (pts/candle - Zero=mais sensivel)` e confirmar que inclinacoes dentro da zona neutra deixam de bloquear.
-7. Ativar M1=200 e M2=21 no mesmo TF e confirmar: acima das duas permite apenas BUY; abaixo das duas permite apenas SELL; entre elas bloqueia ambos.
+7. Ativar MA1=200 e MA2=21 no mesmo TF e confirmar: acima das duas permite apenas BUY; abaixo das duas permite apenas SELL; entre elas bloqueia ambos.
 8. Testar cada media isoladamente e confirmar que ela bloqueia BUY abaixo e SELL acima.
-9. Testar timeframes diferentes e confirmar que a validacao usa `periodo x TF`; M1 igual ou mais curta que M2 deve impedir o salvamento.
+9. Testar timeframes diferentes e confirmar que a validacao usa `periodo x TF`; MA1 igual ou mais curta que MA2 deve impedir o salvamento.
 10. Confirmar que a comparacao acompanha o preco atual e o valor corrente de cada MA.
 11. Em `CONFIG > VISUAL` — **hoje a aba `Layout`**, desde a GUI 2.0 —, testar cor e estilo das quatro MAs e das Bandas sem alterar qualquer decisao operacional.

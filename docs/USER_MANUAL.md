@@ -275,7 +275,7 @@ Cada média ativa funciona como barreira completa:
 - SELL exige preço atual estritamente abaixo de todas as médias ON.
 - Preço igual à média bloqueia os dois lados.
 
-Com ambas ON, o horizonte efetivo da M1 (`período x duração do timeframe`) deve ser estritamente maior que o da M2. O filtro usa preço atual e valor atual da média, não candle fechado.
+Com ambas ON, o horizonte efetivo da MA1 (`período x duração do timeframe`) deve ser estritamente maior que o da MA2. O filtro usa preço atual e valor atual da média, não candle fechado.
 
 ### 9.2. RSI Filter
 
@@ -481,8 +481,8 @@ O Fusion usa dois bloqueios complementares:
 
 - MA rápida;
 - MA lenta;
-- Trend M1;
-- Trend M2;
+- Trend MA1;
+- Trend MA2;
 - bandas de Bollinger.
 
 Estilos: Cheia, Tracejada e Pontilhada. A paleta percorre lime, verde-escuro, vermelho, vermelho-escuro, magenta, azul, azul-marinho, amarelo, gold, ciano, laranja e branco.
