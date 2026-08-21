@@ -692,6 +692,18 @@ public:
 
    bool              StartDialog(void) { return m_created; }
 
+   //--- Retangulo interativo do painel, somente leitura. FALSE quando nao ha
+   //--- painel na tela — nao criado, destruido ou desabilitado —, e nesse caso
+   //--- nao existe area proibida para ninguem.
+   bool              GetInteractiveRect(int &left,int &top,int &right,int &bottom)
+     {
+      left = top = right = bottom = 0;
+      if(!m_created)
+         return false;
+      m_renderer.PanelInteractiveRect(left, top, right, bottom);
+      return (right > left && bottom > top);
+     }
+
    void              Destroy(const int reason=REASON_REMOVE)
      {
       if(m_created) m_renderer.Destroy();

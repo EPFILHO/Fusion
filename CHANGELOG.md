@@ -42,6 +42,14 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - A tecla `M`, que rodava a suite de medicao de desenho, foi **removida do painel de producao**. Nenhuma tecla de diagnostico sobra na interface: o renderizador roda num grafico com dinheiro, e um atalho nao distingue quem desenvolve de quem opera.
 - O aviso de volta de permissao deixou de dizer "EA pronto para operar", que era falso enquanto a quarentena de candle estivesse de pe.
 
+### Legenda das medias movel
+
+- A legenda dos indicadores visuais passou a ser **arrastavel pelo fundo**, movendo-se como bloco unico com os textos junto. Ela continua nascendo no canto superior direito, com as mesmas margens, e nao mudou de aparencia, conteudo, cores nem tamanho.
+- A posicao e **limitada automaticamente as bordas**: a legenda permanece integralmente visivel **sempre que as dimensoes do grafico permitirem**. Enquanto houver espaco, o redimensionamento a mantem inteira na tela; quando o grafico voltar a crescer, ela retorna a posicao desejada — o limite muda onde ela e desenhada, nao o que o usuario escolheu.
+- A legenda tambem **evita automaticamente a area visivel do painel**: arrastada contra ele, para ou desliza pela borda em vez de passar por baixo, e sai da area ocupada se o painel for movido, minimizado ou restaurado sobre ela.
+- Num grafico **pequeno demais** para acomodar painel e legenda pode haver sobreposicao. Nesse caso o painel **sempre conserva a prioridade de clique**: abas, botoes, campos, comboboxes e barra de rolagem respondem normalmente mesmo com a legenda por cima.
+- A escolha e **independente por grafico** e sobrevive a troca de timeframe, a desligar e religar os indicadores, a reanexar o EA e a reiniciar o terminal. E preferencia visual: nao entra no perfil, nao passa por `SALVAR`, nao cria pendencia e nao toca schema nem chart state.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.

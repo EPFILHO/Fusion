@@ -12,9 +12,12 @@
 //--- grafico nao pode rolar no lugar dele.
 void SetChartScroll(const bool on) { ChartSetInteger(m_chart,CHART_MOUSE_SCROLL,on); }
 
+//--- Altura interativa: minimizado, so a barra de titulo responde.
+int PanelInteractiveHeight(void) const { return (m_minimized?FCV_TITLEBAR_H:m_ph); }
+
 bool InsidePanel(const int cx,const int cy)
   {
-   int h=m_minimized?FCV_TITLEBAR_H:m_ph;
+   int h=PanelInteractiveHeight();
    return (cx>=m_px && cx<m_px+S(FCV_PANEL_W) && cy>=m_py && cy<m_py+S(h));
   }
 
@@ -532,6 +535,18 @@ void HandleDrag(const int cx,const int cy)
 
 //+------------------------------------------------------------------+
 public:
+//--- O MESMO retangulo que o InsidePanel usa, exposto para quem precisa
+//--- desviar dele. Sai daqui, e nao de constantes copiadas, justamente para
+//--- nao existir uma segunda formula de "onde o painel esta" — no dia em que a
+//--- escala ou a barra de titulo mudarem, as duas mudam juntas.
+void PanelInteractiveRect(int &left,int &top,int &right,int &bottom) const
+  {
+   left   = m_px;
+   top    = m_py;
+   right  = m_px + S(FCV_PANEL_W);
+   bottom = m_py + S(PanelInteractiveHeight());
+  }
+
 void ChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
   {
    if(id==CHARTEVENT_CHART_CHANGE)

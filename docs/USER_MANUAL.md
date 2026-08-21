@@ -561,6 +561,10 @@ Regras visuais:
 - configurações idênticas são deduplicadas;
 - RSI de estratégia e filtro pode compartilhar a mesma subjanela e reunir níveis;
 - a legenda das médias informa OFF, outro TF, aguardando ou ativa;
+- a legenda é **móvel**: arraste-a pelo fundo e ela se reposiciona como um bloco único, com os textos acompanhando. Ela nasce no canto superior direito e é limitada automaticamente às bordas, permanecendo **integralmente visível sempre que as dimensões do gráfico permitirem**;
+- a legenda também **evita automaticamente a área visível do painel**: ao ser arrastada contra ele, ela para ou desliza pela borda em vez de passar por baixo. Se o painel for movido, minimizado ou restaurado sobre ela, a legenda sai da área ocupada e volta ao lugar escolhido quando o painel sair da frente;
+- num gráfico **pequeno demais** para acomodar os dois pode haver sobreposição. Nesse caso o painel **sempre conserva a prioridade de clique**: abas, botões, campos, comboboxes e barra de rolagem respondem normalmente, mesmo com a legenda por cima;
+- a posição escolhida é **independente por gráfico** e sobrevive a troca de timeframe, a desligar e religar os indicadores e a reanexar o EA. É preferência visual: não pertence ao perfil, não passa por `SALVAR` e não cria pendência;
 - os handles visuais são separados dos handles operacionais.
 
 ## 14. Perfis

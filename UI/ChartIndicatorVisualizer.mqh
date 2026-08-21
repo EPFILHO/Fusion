@@ -901,10 +901,22 @@ public:
       UpdateLegend(settings);
      }
 
-   void     OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
+   //--- Repassa a zona proibida para a legenda. Quem chama e o nivel que
+   //--- conhece painel e legenda; aqui nao ha referencia ao painel.
+   void     SetPanelExclusion(const bool valid,const int left,const int top,const int right,const int bottom)
      {
-      if(m_legendOverlay.IsCreated())
-         m_legendOverlay.ChartEvent(id, lparam, dparam, sparam);
+      if(!m_legendOverlay.IsCreated())
+         return;
+      m_legendOverlay.SetPanelExclusion(valid, left, top, right, bottom);
+     }
+
+   //--- TRUE quando o gesto foi consumido pela legenda e NAO deve seguir para o
+   //--- painel. Ver o comentario de CIndicatorLegendOverlay::ChartEvent.
+   bool     OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
+     {
+      if(!m_legendOverlay.IsCreated())
+         return false;
+      return m_legendOverlay.ChartEvent(id, lparam, dparam, sparam);
      }
 
    void     Shutdown(const int reason)

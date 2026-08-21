@@ -578,19 +578,51 @@ private:
 
       UpdatePanelIfVisible();
       m_chartIndicators.Sync(m_settings);
+      //--- A legenda e criada aqui dentro, quando os indicadores ligam. Este e
+      //--- o ponto que entrega a zona proibida a uma legenda recem-nascida, sem
+      //--- depender de o usuario mexer o mouse antes.
+      SyncLegendExclusion();
      }
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
-      m_chartIndicators.OnChartEvent(id, lparam, dparam, sparam);
+      //--- Este e o unico nivel que enxerga painel e legenda ao mesmo tempo, e
+      //--- por isso a coordenacao mora aqui. Publicada ANTES do teste de
+      //--- pressao: a legenda precisa saber onde o painel esta agora, nao onde
+      //--- estava no evento anterior.
+      SyncLegendExclusion();
+
+      //--- ⚠ O gesto tem UM dono. A legenda dos indicadores faz hit-test manual
+      //--- por coordenada, entao ZORDER nao separa nada: sem este consumo, o
+      //--- mesmo CHARTEVENT_MOUSE_MOVE chegava a ela E ao painel, e com a
+      //--- legenda parada sobre o painel os dois se moviam juntos. Tambem e o
+      //--- que evita os dois disputarem CHART_MOUSE_SCROLL.
+      //---
+      //--- Nao ha decisao operacional aqui: e despacho de evento de interface.
+      if(m_chartIndicators.OnChartEvent(id, lparam, dparam, sparam))
+         return;
+
       if(!ShouldShowPanel())
          return;
 
       m_panel.ChartEvent(id, lparam, dparam, sparam);
 
+      //--- De novo depois do painel: o evento pode te-lo movido, minimizado,
+      //--- restaurado ou fechado.
+      SyncLegendExclusion();
+
       SUICommand command;
       while(m_panel.ConsumeCommand(command))
          HandleUICommand(command);
+     }
+
+   //--- Retangulo interativo do painel -> legenda. Somente interface.
+   void              SyncLegendExclusion(void)
+     {
+      int left = 0, top = 0, right = 0, bottom = 0;
+      bool valid = (ShouldShowPanel() &&
+                    m_panel.GetInteractiveRect(left, top, right, bottom));
+      m_chartIndicators.SetPanelExclusion(valid, left, top, right, bottom);
      }
 
    void              OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result)
