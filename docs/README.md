@@ -16,10 +16,10 @@ A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudan�
 ⚠️ **Mas o motor compartilhado não ficou intocado.** A **auditoria da migração revelou vulnerabilidades** nele — os caminhos já eram alcançáveis pela GUI antiga; o que a migração fez foi encontrá-los, ao obrigar a reler cada regra para portá-la:
 
 - **guarda de posição aberta no `UI_COMMAND_LOAD_PROFILE`**, com a leitura de posição sincronizada **antes** de decidir (o cache `m_positionState` pode estar atrasado). Sem ela, carregar um perfil com operação em gerenciamento trocava a configuração ativa — inclusive o `Magic`, que é como o EA reconhece as próprias ordens;
-- **`UI_COMMAND_RESTORE_ACTIVE_PROFILE`**, verbo novo e aditivo: "voltar ao que eu já tinha" era indistinguível de "adotar outro perfil" e herdava recusas que existem só para o segundo caso;
+- **`NOVO` e `DUPLICAR` deixaram de ativar o perfil criado.** Eles eram traduzidos para o mesmo comando do `SALVAR`, que aplica a configuração **antes** de gravar — e o perfil nascia ativo sem ninguém ter pedido. Hoje são operações locais de persistência do painel, e `CARREGAR` é o único verbo que ativa um perfil;
 - `debugLogs` saiu do arquivo de perfil e voltou a ser governado pelo `input`.
 
-- `GUI_2000_PLANO.md`: o plano da migração — o porquê, as regras técnicas descobertas na prática, as dívidas aceitas (seção 6) e as lições (seção 8). **É a fonte; os demais são recortes.**
+- `GUI_2000_PLANO.md`: **registro histórico** do planejamento e do raciocínio da migração — o porquê, as regras técnicas descobertas na prática, as dívidas aceitas (seção 6) e as lições (seção 8). Preserva decisões que já podem ter sido substituídas; para o comportamento vigente, consulte o código, `ARCHITECTURE.md`, `USER_MANUAL.md` e `CHANGELOG.md`.
 - `GUI_2000_FASE3_TESTES.md`: o roteiro de aceite do painel novo, **89 de 89 passos executados** (88 no encerramento da fase, mais o `H4` em 2026-08-17). Documento histórico — descreve o ambiente de dois `.ex5`, que a Fase 4 desfez.
 - `GUI_2000_FASE3_PENDENTES.md`: fechamento da Fase 3.
 - `GUI_2000_FASE4.md`: fechamento da Fase 4 — a remoção do painel clássico, e as pendências que atravessaram.

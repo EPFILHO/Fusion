@@ -32,13 +32,7 @@ void GoTo(const int tab,const int sub,const int rail)
    //--- Sair do formulario devolve o rascunho ao comprometido pelo mesmo
    //--- motivo do DESCARTAR: duplicar semeia o rascunho com OUTRO perfil, e
    //--- trocar de aba nao pode deixar essa configuracao pendente sobre o ativo.
-   //---
-   //--- ⚠ Com uma criacao que FALHOU AO GRAVAR, o formulario NAO se fecha aqui.
-   //--- Ele e o unico lugar que oferece o desfazer, e fecha-lo por navegacao
-   //--- reabria o caminho perigoso por outra porta: o cabecalho voltava a
-   //--- aceitar SALVAR, que grava no perfil ATIVO. Mantido, voltar a Perfis
-   //--- reencontra o formulario e o DESCARTAR continua ao alcance.
-   if(m_profEdit!=FCV_PROF_VIEW && !m_createFailed)
+   if(m_profEdit!=FCV_PROF_VIEW)
      { m_profEdit=FCV_PROF_VIEW; ReloadDraft(); }
    //--- Navegar responde ao aviso anterior: ele descrevia o que acabou de
    //--- acontecer, e a partir daqui o usuario esta em outro assunto.
@@ -46,7 +40,7 @@ void GoTo(const int tab,const int sub,const int rail)
    m_delConfirm=false;
    //--- A do abandono cai pelo mesmo motivo: navegar e outro assunto, e uma
    //--- pergunta grave sobreviver a isso a faria reaparecer fora de contexto.
-   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
    if(rail>=0 && HasRail()) m_railSel[Sub()]=rail;
    m_scroll=0;
    m_comboOpen=-1;

@@ -89,31 +89,8 @@ private:
    //| conferido em EAApplicationCommands: o caminho de SAVE_PROFILE  |
    //| so toca o painel em ReloadPanelSettingsIfVisible.              |
    //+---------------------------------------------------------------+
-   int                   m_echoKind;     // 0 nenhum, 1 salvar, 2 criar, 3 restaurar
+   int                   m_echoKind;     // 0 nenhum, 1 SALVAR do perfil ativo
    string                m_echoProfile;
-   //+---------------------------------------------------------------+
-   //| Contexto anterior a uma TRANSACAO de criacao.                  |
-   //|                                                                |
-   //| Guardado porque a criacao APLICA antes de gravar: falhando o   |
-   //| disco, a sessao fica rodando a configuracao de um perfil que   |
-   //| nao existe, e o unico desfazer confiavel e este — o arquivo do |
-   //| perfil ativo pode ser exatamente o que sumiu.                  |
-   //|                                                                |
-   //| ⚠ Fotografado UMA VEZ por transacao, na primeira tentativa, e  |
-   //| liberado so no sucesso ou no abandono confirmado. Recapturar a |
-   //| cada tentativa era um defeito grave e silencioso: na segunda,  |
-   //| o snapshot ja carrega a configuracao da PRIMEIRA — o desfazer  |
-   //| "restaurava" exatamente o que deveria descartar, e ainda       |
-   //| anunciava que o perfil anterior tinha voltado.                 |
-   //|                                                                |
-   //| Guarda tambem a DIVIDA DE PERSISTENCIA que existia antes. Criar|
-   //| perfil e permitido com uma gravacao ja pendente, e o rollback  |
-   //| apagava essa divida junto: o arquivo do perfil ativo seguia    |
-   //| desatualizado e o painel parava de avisar.                     |
-   //+---------------------------------------------------------------+
-   SEASettings           m_preCreateSettings;
-   bool                  m_hasPreCreate;
-   string                m_preCreateStale;
    //--- Perfil cujo arquivo ficou para tras numa gravacao que falhou. Guardado
    //--- pelo NOME, e nao so como sinalizador, para o aviso poder dizer o que se
    //--- perdeu quando o usuario troca de perfil por cima dele.
@@ -167,53 +144,21 @@ private:
               FusionSettingsEqual(onDisk,expected));
      }
 
+   //--- ⚠ SO o SALVAR do perfil ATIVO chega aqui. A criacao nao passa mais pelo
+   //--- EA: ela grava direto em disco, confirma pelo retorno do store e nao tem
+   //--- eco a interpretar.
    void              AnnounceSaveOutcome(const bool saved)
      {
-      //--- Restauracao: nao ha gravacao a conferir. Ela CHEGOU, e o simples
-      //--- fato de o EA ter recarregado ja e a confirmacao — o estado perigoso
-      //--- (configuracao aplicada sem perfil que a tenha) acabou.
-      if(m_echoKind==3)
-        {
-         m_renderer.NoteFailedCreate(false);
-         //--- A divida de persistencia que existia ANTES da criacao volta com o
-         //--- resto do contexto. Limpa-la aqui apagava um aviso legitimo: se o
-         //--- SALVAR do perfil ativo ja tinha falhado, o arquivo dele continua
-         //--- desatualizado depois do rollback — o rollback desfaz a criacao,
-         //--- nao a gravacao que falhou antes dela.
-         m_staleProfile=m_preCreateStale;
-         m_renderer.SetPersistenceFailed(m_staleProfile!="");
-         m_hasPreCreate=false; m_preCreateStale="";
-         m_renderer.SetNotice("CRIACAO ABANDONADA",
-                              "A configuracao anterior do perfil "+m_echoProfile+
-                              " voltou a valer, e a do perfil que nao chegou a ser "+
-                              "gravado foi descartada.",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
-         return;
-        }
-
       //--- A marca fica ATE a proxima gravacao bem-sucedida: e ela que mantem o
       //--- SALVAR aceso para o usuario tentar de novo, e que faz o EA avisar ao
       //--- fechar o grafico que ha algo por gravar.
-      //---
-      //--- Vale para os dois casos, e no da criacao ela nao e sobre o perfil
-      //--- novo: a configuracao dele ja esta VALENDO nesta sessao, entao o
-      //--- arquivo do perfil ATIVO ficou para tras. Guardamos o nome para saber
-      //--- de qual arquivo estamos falando quando alguem trocar de perfil.
       m_renderer.SetPersistenceFailed(!saved);
       m_staleProfile = saved ? "" : m_snapshot.activeProfileName;
-      //--- Criacao que falhou tem semantica propria de abandono: o DESCARTAR
-      //--- passa a pedir a restauracao do estado anterior em vez de so fechar a
-      //--- tela. E o contexto so e liberado quando a transacao ACABA — criou, ou
-      //--- abandonou. Liberado antes, uma segunda tentativa fotografaria o
-      //--- estado que a primeira ja tinha alterado.
-      m_renderer.NoteFailedCreate(!saved && m_echoKind==2);
-      if(saved && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
 
       if(saved)
         {
-         m_renderer.SetNotice((m_echoKind==2) ? "PERFIL CRIADO" : "PERFIL SALVO",
-                              (m_echoKind==2)
-                              ? "O perfil "+m_echoProfile+" foi criado e esta ativo neste grafico."
-                              : "As alteracoes foram gravadas em "+m_echoProfile+".",
+         m_renderer.SetNotice("PERFIL SALVO",
+                              "As alteracoes foram gravadas em "+m_echoProfile+".",
                               FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          return;
         }
@@ -221,20 +166,6 @@ private:
       //--- metades do que aconteceu — a configuracao VALE agora, o arquivo NAO
       //--- foi escrito —, porque dizer so "falhou" faria o usuario procurar na
       //--- tela uma alteracao que nao se perdeu.
-      //---
-      //--- ⚠ O botao citado MUDA com a operacao, e mandar o botao errado aqui
-      //--- era o defeito: numa criacao que falhou, "clique SALVAR" grava no
-      //--- perfil ATIVO — ou seja, sobrescreveria o perfil anterior com a
-      //--- configuracao do que se tentou criar.
-      if(m_echoKind==2)
-        {
-         m_renderer.SetNotice("PERFIL NAO CRIADO",
-                              "O arquivo de "+m_echoProfile+" nao foi escrito, e a "+
-                              "configuracao dele esta valendo nesta sessao. O formulario "+
-                              "continua aberto: clique CRIAR PERFIL para tentar de novo.",
-                              FCV_SEM_BAD);
-         return;
-        }
       m_renderer.SetNotice("PERFIL NAO GRAVADO",
                            "A configuracao esta valendo nesta sessao, mas o arquivo de "+
                            m_echoProfile+" nao foi escrito. Clique SALVAR para tentar de novo.",
@@ -383,71 +314,19 @@ private:
          return true;
         }
 
+      //--- ⚠ NAO vira UI_COMMAND. Ate aqui a criacao era traduzida para
+      //--- UI_COMMAND_SAVE_PROFILE — o MESMO comando do SALVAR —, e o EA
+      //--- aplicava a configuracao antes de gravar. Dali vinha tudo: o perfil
+      //--- nascia ativo sem ninguem ter pedido, uma falha de disco deixava a
+      //--- configuracao valendo sob o nome do perfil anterior, e desfazer isso
+      //--- exigia um verbo proprio de rollback.
+      //---
+      //--- Criar e operacao de DISCO, como o EXCLUIR. O motor nao muda, entao
+      //--- nao ha o que desfazer.
       if(intent.kind==FCV_INTENT_CREATE_PROFILE)
         {
-         //--- SANEADO aqui, como a 1.058 faz (ProfileDraftName ja devolve o nome
-         //--- saneado antes de enfileirar o comando). O renderizador manda o
-         //--- texto cru porque ele nao conhece a regra de nome de arquivo — ela
-         //--- e do store, e o store e deste lado.
-         //---
-         //--- Sem isto o perfil nascia com DUAS identidades: o arquivo virava
-         //--- "Meu_Perfil.cfg" e aparecia assim na lista, enquanto o cabecalho e
-         //--- o aviso diziam "Meu Perfil". Tecnicamente funcionava — a
-         //--- comparacao de perfil ja e feita pela forma saneada —, mas a tela
-         //--- afirmava dois nomes para a mesma coisa.
-         string newName=m_store.SanitizeProfileName(intent.profile);
-         if(newName=="")
-           {
-            m_renderer.SetNotice("NOME OBRIGATORIO",
-                                 "Informe um nome para o perfil novo.",FCV_SEM_BAD);
-            return false;
-           }
-         //--- Reconferencia em disco, nao na lista em memoria: e o unico jeito
-         //--- de ver o arquivo que outro grafico criou desde a ultima leitura —
-         //--- inclusive um que nem abre, e que ainda assim ocupa o nome.
-         if(!NameFreeOnDisk(newName))
-           {
-            RefreshProfiles();
-            m_renderer.SetNotice("NOME JA EXISTE",
-                                 "Ja existe um perfil chamado "+newName+" em disco. "+
-                                 "Escolha outro nome.",FCV_SEM_BAD);
-            return false;
-           }
-         string owner="";
-         if(!MagicFreeOnDisk(intent.magic,newName,owner))
-           {
-            RefreshProfiles();
-            m_renderer.SetNotice("MAGIC JA USADO",
-                                 (intent.magic<=0)
-                                 ? "Informe um Magic inteiro positivo."
-                                 : "O Magic "+IntegerToString(intent.magic)+
-                                   " ja pertence ao perfil "+owner+". Escolha outro numero.",
-                                 FCV_SEM_BAD);
-            return false;
-           }
-         //--- O Magic do formulario vence o do rascunho: o rascunho descreve o
-         //--- perfil ATIVO (ou, numa duplicacao, o de origem), e o numero novo e
-         //--- justamente o que distingue o perfil que esta nascendo.
-         SEASettings settings=intent.settings;
-         settings.magicNumber=intent.magic;
-         //--- Fotografa o estado ANTES de o EA aplicar o perfil novo, e SO na
-         //--- primeira tentativa: da segunda em diante o snapshot ja carrega a
-         //--- configuracao da tentativa anterior, e recapturar faria o desfazer
-         //--- restaurar exatamente o que ele deveria descartar.
-         if(!m_hasPreCreate)
-           {
-            m_preCreateSettings = m_snapshot.settings;
-            m_preCreateStale    = m_staleProfile;
-            m_hasPreCreate      = true;
-           }
-
-         command.type        = UI_COMMAND_SAVE_PROFILE;
-         command.text        = newName;
-         command.hasSettings = true;
-         command.settings    = settings;
-         command.reloadScope = RELOAD_COLD;
-         m_echoKind=2; m_echoProfile=newName;
-         return true;
+         ExecuteCreate(intent.profile,intent.magic,intent.settings);
+         return false;
         }
 
       if(intent.kind==FCV_INTENT_LOAD_PROFILE)
@@ -482,42 +361,66 @@ private:
                                  FCV_SEM_BAD);
             return false;
            }
+         //--- ⚠ ULTIMA porta antes de o EA aplicar. O ramo de LOAD_PROFILE em
+         //--- EAApplicationCommands le, resolve timeframes e chama
+         //--- ApplySettings — nao ha ali validacao de lote, stops ou plano
+         //--- parcial contra o simbolo. A lacuna e ANTERIOR a este item; ela so
+         //--- ficou alcancavel porque agora e possivel guardar em disco um
+         //--- perfil valido para OUTRO ativo.
+         //---
+         //--- ⚠ Validado o que o EA VAI APLICAR, e nao o que o arquivo traz. O
+         //--- motor normaliza timeframe legado antes de aplicar; validando o
+         //--- alvo cru, um perfil antigo com campo zerado seria recusado aqui
+         //--- por algo que o EA teria consertado sozinho. A copia e local — nem
+         //--- o arquivo nem `target` sao alterados para validar — e o fallback e
+         //--- o MESMO do snapshot, para os dois caminhos concordarem.
+         SEASettings candidate=target;
+         ResolveOperationalTimeframes(candidate,m_snapshot.operationalFallbackTimeframe);
+
+         //--- Validado o ALVO, e nao o rascunho do perfil ativo, e no escopo
+         //--- completo — aqui o ativo atual e criterio, porque carregar E adotar.
+         string cfgTab="", cfgError="";
+         if(!m_renderer.SettingsValidForSymbol(candidate,cfgTab,cfgError))
+           {
+            //--- ⚠ O texto NAO manda "corrigir em <aba>": o perfil recusado nao e
+            //--- o ativo, e a GUI so edita o ativo. Pior, ele nao pode virar
+            //--- ativo aqui — a incompatibilidade e justamente o motivo da
+            //--- recusa. A rota que existe vem de FusionProfileFixElsewhereHint.
+            m_renderer.SetNotice("PERFIL INCOMPATIVEL COM "+m_snapshot.symbol,
+                                 "O perfil "+profileName+" nao foi carregado porque "+
+                                 "sua configuracao nao e valida para "+m_snapshot.symbol+
+                                 ": "+cfgError+" "+
+                                 FusionProfileFixElsewhereHint(cfgTab,
+                                       "tente carrega-lo novamente aqui"),
+                                 FCV_SEM_BAD);
+            return false;
+           }
+
+         //--- ⚠ PORTA PROPRIA DA IDENTIDADE. `SettingsValidForSymbol` entra no
+         //--- modo DUP de proposito, e ali `ScreenErrorProfiles` nao roda — logo
+         //--- a validacao acima nao diz NADA sobre o Magic. Sem esta reconferencia
+         //--- sobrariam dois furos: Magic <= 0 num arquivo editado por fora, e a
+         //--- colisao que outro grafico criou depois do ultimo "Atualizar lista"
+         //--- (o `m_profDup` do botao vem da lista em memoria, nao do disco).
+         string magicOwner="";
+         if(!MagicFreeOnDisk(target.magicNumber,profileName,magicOwner))
+           {
+            RefreshProfiles();
+            m_renderer.SetNotice("PERFIL NAO CARREGADO",
+                                 (target.magicNumber<=0)
+                                 ? "O perfil "+profileName+" tem Magic invalido: "+
+                                   "ele precisa ser um inteiro positivo."
+                                 : "O Magic "+IntegerToString(target.magicNumber)+
+                                   " de "+profileName+" ja pertence ao perfil "+
+                                   magicOwner+". Corrija um dos dois antes de carregar.",
+                                 FCV_SEM_BAD);
+            return false;
+           }
          command.type=UI_COMMAND_LOAD_PROFILE;
          command.text=profileName;
          return true;
         }
 
-      //+------------------------------------------------------------+
-      //| Abandonar uma criacao que falhou ao gravar.                 |
-      //|                                                             |
-      //| ⚠ Comando PROPRIO, e nao um LOAD_PROFILE do perfil ativo.   |
-      //| Traduzido para LOAD, a distincao morria na fronteira: o EA  |
-      //| aplica ali as recusas que protegem contra ADOTAR outro      |
-      //| perfil — drawdown ativo, perfil ou Magic em uso por outro   |
-      //| grafico —, e uma delas nega justamente o desfazer.          |
-      //|                                                             |
-      //| O caso e concreto: com o perfil ativo preso por outro       |
-      //| grafico, CRIAR PERFIL e uma saida deliberadamente permitida.|
-      //| Se a criacao aplicar e falhar ao gravar, o DESCARTAR pediria|
-      //| a volta — e a MESMA trava que motivou a criacao a recusaria,|
-      //| deixando o usuario preso na retentativa.                    |
-      //|                                                             |
-      //| E vai com as CONFIGURACOES, nao so com o nome: reler o      |
-      //| perfil ativo do disco falha justamente quando o arquivo dele|
-      //| e o que sumiu. Com o estado anterior em maos, o desfazer     |
-      //| independe do disco.                                          |
-      //+------------------------------------------------------------+
-      if(intent.kind==FCV_INTENT_RESTORE_ACTIVE)
-        {
-         string profileName=(intent.profile=="") ? m_snapshot.activeProfileName : intent.profile;
-         command.type        = UI_COMMAND_RESTORE_ACTIVE_PROFILE;
-         command.text        = profileName;
-         command.hasSettings = m_hasPreCreate;
-         if(m_hasPreCreate) command.settings=m_preCreateSettings;
-         command.reloadScope = RELOAD_COLD;
-         m_echoKind=3; m_echoProfile=profileName;
-         return true;
-        }
 
       //--- As duas que NAO chegam ao EA. Ambas sao operacoes de disco do
       //--- proprio painel, como na 1.058.
@@ -577,6 +480,122 @@ private:
                            "Nao foi possivel apagar o arquivo de "+profileName+".",FCV_SEM_BAD);
      }
 
+   //+---------------------------------------------------------------+
+   //| CRIAR PERFIL / CRIAR COPIA — gravacao, e SO gravacao.          |
+   //|                                                                |
+   //| Irmao do ExecuteDelete: opera o disco pelo store do painel e   |
+   //| nao manda nada ao EA. Nenhuma chamada daqui alcanca            |
+   //| ApplySettings, ReloadAll, PrimeEntryStates, PersistChartState, |
+   //| m_activeProfileName ou o registro de instancia — o motor       |
+   //| termina esta funcao exatamente como comecou.                   |
+   //|                                                                |
+   //| E dai vem a melhor propriedade do desenho: uma gravacao que    |
+   //| FALHA nao precisa de desfazer. Nao ha estado hibrido a         |
+   //| reconciliar, entao o formulario so continua aberto para a      |
+   //| retentativa.                                                   |
+   //|                                                                |
+   //| ⚠ Nao mexe na DIVIDA DE PERSISTENCIA do perfil ativo           |
+   //| (`m_staleProfile`). Ela e sobre outro arquivo, e criar um      |
+   //| perfil novo nao a quita nem a agrava.                          |
+   //+---------------------------------------------------------------+
+   void              ExecuteCreate(const string rawName,const int magic,
+                                   const SEASettings &source)
+     {
+      //--- SANEADO aqui, como a 1.058 faz. O renderizador manda o texto cru
+      //--- porque ele nao conhece a regra de nome de arquivo — ela e do store, e
+      //--- o store e deste lado.
+      //---
+      //--- Sem isto o perfil nascia com DUAS identidades: o arquivo virava
+      //--- "Meu_Perfil.cfg" e aparecia assim na lista, enquanto o cabecalho e o
+      //--- aviso diziam "Meu Perfil".
+      string newName=m_store.SanitizeProfileName(rawName);
+      if(newName=="")
+        {
+         m_renderer.SetNotice("NOME OBRIGATORIO",
+                              "Informe um nome para o perfil novo.",FCV_SEM_BAD);
+         return;
+        }
+
+      //--- ⚠ TRAVA PRESERVADA, e nao herdada por acidente. Ate aqui o drawdown
+      //--- travado recusava a criacao por efeito colateral: ela passava por
+      //--- ApplySettings, que nega mudanca de Magic com o DD ativo — e toda
+      //--- criacao muda o Magic, porque exige um numero livre. Saindo do EA, a
+      //--- recusa desapareceria sozinha. Mantida aqui de proposito: ampliar
+      //--- quando criar funciona nao e assunto deste item.
+      if(m_snapshot.drawdownConfigLocked)
+        {
+         m_renderer.SetNotice("PERFIL NAO CRIADO",
+                              (m_snapshot.drawdownConfigLockReason!="")
+                              ? m_snapshot.drawdownConfigLockReason
+                              : "A protecao de drawdown esta travando a configuracao.",
+                              FCV_SEM_BAD);
+         return;
+        }
+
+      //--- Reconferencia em disco, e nao na lista em memoria: e o unico jeito de
+      //--- ver o arquivo que outro grafico criou desde a ultima leitura —
+      //--- inclusive um que nem abre, e que ainda assim ocupa o nome. Fica
+      //--- imediatamente antes da gravacao para encolher a janela de corrida,
+      //--- que sem lock de arquivo nao fecha.
+      if(!NameFreeOnDisk(newName))
+        {
+         RefreshProfiles();
+         m_renderer.SetNotice("NOME JA EXISTE",
+                              "Ja existe um perfil chamado "+newName+" em disco. "+
+                              "Escolha outro nome.",FCV_SEM_BAD);
+         return;
+        }
+      string owner="";
+      if(!MagicFreeOnDisk(magic,newName,owner))
+        {
+         RefreshProfiles();
+         m_renderer.SetNotice("MAGIC JA USADO",
+                              (magic<=0)
+                              ? "Informe um Magic inteiro positivo."
+                              : "O Magic "+IntegerToString(magic)+
+                                " ja pertence ao perfil "+owner+". Escolha outro numero.",
+                              FCV_SEM_BAD);
+         return;
+        }
+
+      SEASettings settings=source;
+      //--- O Magic do formulario vence o da origem: a origem descreve o perfil
+      //--- ATIVO (ou, numa duplicacao, o de origem), e o numero novo e
+      //--- justamente o que distingue o perfil que esta nascendo.
+      settings.magicNumber=magic;
+      //--- ⚠ MESMA normalizacao do caminho anterior, com o MESMO fallback. O EA
+      //--- resolvia com `OperationalFallbackTimeframe()`; o painel nao calcula
+      //--- esse valor, entao ele vem pronto no snapshot. Escolher outro aqui —
+      //--- `Period()`, ou uma constante — faria dois caminhos de gravacao
+      //--- discordarem sobre a mesma configuracao. So age sobre campo zerado,
+      //--- herdado de arquivo antigo: `FusionLoadProfile` converte o texto sem
+      //--- validar, entao um perfil legado chega aqui com o zero intacto.
+      ResolveOperationalTimeframes(settings,m_snapshot.operationalFallbackTimeframe);
+      //--- Corta na precisao que o arquivo guarda, para o que fica em memoria ser
+      //--- exatamente o que foi para o disco.
+      FusionApplyStoragePrecision(settings);
+
+      if(!m_store.SaveProfile(newName,settings))
+        {
+         RefreshProfiles();
+         //--- Sem prazo: e recusa, e recusa pede decisao. E o texto diz o que NAO
+         //--- aconteceu, porque aqui isso e a informacao principal.
+         m_renderer.SetNotice("PERFIL NAO CRIADO",
+                              "O arquivo de "+newName+" nao foi escrito. Nada mudou "+
+                              "neste grafico: o perfil ativo e a configuracao em uso "+
+                              "continuam como estavam. Clique de novo para tentar mais "+
+                              "uma vez, ou DESCARTAR para sair.",FCV_SEM_BAD);
+         return;
+        }
+
+      RefreshProfiles();
+      m_renderer.EndProfileFormSelecting(newName);
+      m_renderer.SetNotice("PERFIL CRIADO",
+                           "Perfil "+newName+" criado e selecionado. Clique CARREGAR "+
+                           "para ativa-lo neste grafico.",
+                           FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
+     }
+
    void              ExecuteDuplicate(const string sourceName)
      {
       if(sourceName=="") return;
@@ -596,8 +615,6 @@ public:
      {
       m_created=false; m_lastActiveProfile=""; m_chartId=0;
       m_echoKind=0; m_echoProfile=""; m_staleProfile="";
-      m_hasPreCreate=false; m_preCreateStale="";
-      SetDefaultSettings(m_preCreateSettings);
      }
 
    //--- Ciclo de vida. O renderizador da Fase 1 ja faz isto de verdade.
@@ -734,87 +751,28 @@ public:
       //--- precisa de um gatilho manual alem da troca de perfil ativo.
       else if(m_renderer.ConsumeProfileRefreshRequest())
          RefreshProfiles();
-      //--- Chegou Update com uma gravacao pendente de resposta: o EA recusou.
-      //--- Ele registra o motivo no log, mas o painel nao pode ficar calado —
-      //--- da tela, o clique em SALVAR simplesmente nao teria feito nada.
-      //--- Chegou Update com um pedido pendente de resposta: o EA recusou.
-      //--- A recusa da restauracao merece texto proprio — ali o formulario
-      //--- continua aberto de proposito, e dizer "as alteracoes continuam
-      //--- pendentes" descreveria outra coisa.
-      if(m_echoKind==3)
+      //--- Chegou Update com uma gravacao pendente de resposta: o EA recusou o
+      //--- SALVAR. Ele registra o motivo no log, mas o painel nao pode ficar
+      //--- calado — da tela, o clique simplesmente nao teria feito nada.
+      //---
+      //--- ⚠ "Recusou" NAO significa "nada aconteceu". `ApplySettings` atribui
+      //--- m_settings, recarrega execucao e protecoes, e so DEPOIS devolve o
+      //--- resultado do ReloadAll — um indicador que nao recria seus handles a
+      //--- faz responder `false` com a sessao ja alterada. Por isso aqui tambem
+      //--- se PERGUNTA AO DISCO, em vez de deduzir do sinal: mesma escolha do
+      //--- AnnounceSaveOutcome, pelo mesmo motivo.
+      //---
+      //--- A criacao nao chega mais aqui — ela nao vira comando, e responde pelo
+      //--- retorno do store no proprio ExecuteCreate.
+      if(m_echoKind!=0)
         {
-         m_renderer.SetNotice("NAO FOI POSSIVEL ABANDONAR",
-                              "O EA nao recarregou o perfil "+m_echoProfile+
-                              ". O formulario continua aberto; o motivo esta no log.",
-                              FCV_SEM_BAD);
+         bool landed=SaveLandedOnDisk(m_snapshot.settings);
+         m_renderer.SetPersistenceFailed(!landed);
+         m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
+         m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
+                              "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
+                              ". O motivo esta no log.",FCV_SEM_BAD);
          ClearEcho();
-        }
-      else if(m_echoKind!=0)
-        {
-         //+---------------------------------------------------------+
-         //| Recusa: o EA voltou sem recarregar o painel.             |
-         //|                                                          |
-         //| ⚠ "Recusou" NAO significa "nada aconteceu". `ApplySettings`|
-         //| atribui m_settings, recarrega execucao e protecoes, e so |
-         //| DEPOIS devolve o resultado do ReloadAll — um indicador   |
-         //| que nao recria seus handles a faz responder `false` com a|
-         //| sessao ja alterada. O chamador entende como "nao aplicado"|
-         //| e volta sem tocar no painel.                             |
-         //|                                                          |
-         //| Entao aqui tambem se PERGUNTA AO DISCO, em vez de deduzir|
-         //| do sinal — mesma escolha do AnnounceSaveOutcome, pelo    |
-         //| mesmo motivo. Assim o aviso e o estado ficam certos      |
-         //| independentemente de qual caminho o EA tomou.            |
-         //+---------------------------------------------------------+
-         //+---------------------------------------------------------+
-         //| ⚠ Na CRIACAO, "arquivo ausente" nao distingue nada.      |
-         //|                                                          |
-         //| O arquivo do perfil novo nao existe tanto quando a       |
-         //| escrita falhou quanto quando o EA recusou o comando ANTES|
-         //| de aplicar — reconciliacao de fechamento pendente, ou o  |
-         //| nome/Magic tomado na corrida. Nos dois casos o disco diz |
-         //| a mesma coisa, e so um deles pede desfazer.              |
-         //|                                                          |
-         //| Tratar todos como falha de escrita prendia o usuario num |
-         //| rollback desnecessario — e, se a causa era a             |
-         //| reconciliacao, ela recusa TAMBEM o rollback: um beco     |
-         //| construido sobre um diagnostico errado.                  |
-         //|                                                          |
-         //| Quem distingue e a CONFIGURACAO: nao tendo o EA chegado a |
-         //| aplicar, o snapshot ainda e o de antes da tentativa. A    |
-         //| comparacao e confiavel porque toda criacao carrega um     |
-         //| Magic livre — logo diferente do que valia.                |
-         //+---------------------------------------------------------+
-         bool refusedBeforeApply=(m_echoKind==2 && m_hasPreCreate &&
-                                  FusionSettingsEqual(m_snapshot.settings,m_preCreateSettings));
-         if(refusedBeforeApply)
-           {
-            //--- Nada foi aplicado: o perfil ativo e o arquivo dele continuam
-            //--- como estavam. Nao se inventa divida de persistencia, e a que ja
-            //--- existisse fica intocada. A transacao acaba aqui — o formulario
-            //--- segue aberto como uma tentativa comum.
-            m_hasPreCreate=false; m_preCreateStale="";
-            m_renderer.NoteFailedCreate(false);
-            m_renderer.SetNotice("PERFIL NAO CRIADO",
-                                 "O EA recusou criar "+m_echoProfile+
-                                 " e nada foi alterado. Corrija a causa (o motivo esta "+
-                                 "no log) e clique CRIAR PERFIL de novo.",FCV_SEM_BAD);
-            ClearEcho();
-           }
-         else
-           {
-            bool landed=SaveLandedOnDisk(m_snapshot.settings);
-            m_renderer.SetPersistenceFailed(!landed);
-            m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
-            //--- Aqui o formulario NAO foi fechado (o ReloadFromEA nem rodou),
-            //--- entao a criacao continua na tela e o DESCARTAR precisa desfazer.
-            m_renderer.NoteFailedCreate(!landed && m_echoKind==2);
-            if(landed && m_echoKind==2) { m_hasPreCreate=false; m_preCreateStale=""; }
-            m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
-                                 "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
-                                 ". O motivo esta no log.",FCV_SEM_BAD);
-            ClearEcho();
-           }
         }
       m_renderer.SetSnapshot(m_snapshot);
       m_renderer.Render();
@@ -854,15 +812,14 @@ public:
       m_renderer.SetSnapshot(m_snapshot);
       //--- A resposta vem ANTES da recarga: e ela que decide se o formulario de
       //--- criacao continua aberto, e quem fecha o formulario e o ReloadFromEA.
-      //--- O eco de restauracao (3) nao tem gravacao a conferir: ele so precisa
-      //--- ter CHEGADO. Trata-lo como sucesso aqui e o que fecha o formulario.
-      bool saved=(m_echoKind==0 || m_echoKind==3) || SaveLandedOnDisk(settings);
+      //--- Sem eco pendente nao ha gravacao a conferir.
+
+      bool saved=(m_echoKind==0) || SaveLandedOnDisk(settings);
       //--- Esta recarga e a RESPOSTA ao nosso pedido: o rascunho nao se perdeu,
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
       //--- houve, entao e substituido por AnnounceSaveOutcome.
       m_renderer.ReloadFromEA("Os campos passaram a mostrar o perfil "+profileName+
-                              ". O que estava sendo editado e nao foi salvo se perdeu.",
-                              (m_echoKind==2 && !saved));
+                              ". O que estava sendo editado e nao foi salvo se perdeu.");
       //+------------------------------------------------------------+
       //| Trocou o perfil ativo com um arquivo para tras.             |
       //|                                                             |

@@ -156,24 +156,17 @@ void CancelDeleteConfirm(void)
 //| realmente quer abandonar continua podendo, e quem ia clicar sem   |
 //| saber e avisado do que custa.                                     |
 //|                                                                   |
-//| ⚠ SO NOS DOIS CAMINHOS QUE PERDEM DE VERDADE. Abrir o NOVO nao    |
-//| perde nada — o CRIAR PERFIL de dentro dele exige a mesma          |
-//| configuracao valida e fica apagado. EXCLUIR mexe em OUTRO perfil. |
-//| Atualizar lista so relê a pasta. Pedir confirmacao neles          |
-//| ensinaria o usuario a clicar SIM sem ler, que e como uma          |
-//| confirmacao deixa de proteger.                                    |
-//|                                                                   |
-//| ⚠ A duplicacao e confirmada ao CONCLUIR, e nao ao entrar: entrar  |
-//| no formulario nao aplica nada, e o DESCARTAR devolve o rascunho.  |
-//| Quem abandona e o CRIAR COPIA — e ele so acende porque o rascunho |
-//| passou a ser o do perfil de ORIGEM, que pode valer neste grafico  |
-//| enquanto o ativo nao vale.                                        |
+//| ⚠ SO NO CARREGAR, que e o unico verbo que perde de verdade. NOVO e|
+//| DUPLICAR gravam em disco e nao substituem a configuracao em uso — |
+//| desde que criar deixou de ativar, nao ha nada a abandonar neles.  |
+//| EXCLUIR mexe em OUTRO perfil. Atualizar lista so rele a pasta.    |
+//| Pedir confirmacao onde nada se perde ensinaria o usuario a clicar |
+//| SIM sem ler, que e como uma confirmacao deixa de proteger.        |
 //+------------------------------------------------------------------+
 //--- ⚠ `CommittedConfigValid` e nao `ConfigInputsValid`. A pergunta e sobre o
 //--- PERFIL ATIVO poder ser gravado, e o rascunho deixa de representa-lo assim
-//--- que o DUPLICAR o substitui pela origem. Com o rascunho, as duas condicoes da
-//--- confirmacao da copia eram mutuamente exclusivas e ela nunca aparecia — ver a
-//--- nota daquela funcao.
+//--- que o DUPLICAR o substitui pela origem — o formulario continua podendo
+//--- estar aberto quando esta pergunta e feita.
 bool AbandonNeedsConfirm(void)
   { return (ActiveProfileOrphan() && !CommittedConfigValid()); }
 
@@ -184,28 +177,18 @@ bool AbandonArmed(const int op)
 //--- some da tela e sobrevive no estado, para ressuscitar quando o acesso voltar.
 bool AbandonOpAvailable(void)
   {
-   if(m_abandonOp==FCV_ABANDON_LOAD)   return AccCanLoadSelected();
-   if(m_abandonOp==FCV_ABANDON_CREATE) return AccCanCreateCopy();
+   if(m_abandonOp==FCV_ABANDON_LOAD) return AccCanLoadSelected();
    return false;
   }
 
-void ArmAbandonConfirm(const int op,const string target,const int magic=0)
+void ArmAbandonConfirm(const int op,const string target)
   {
    m_abandonOp=op;
    m_abandonTarget=target;
-   //--- ⚠ O Magic viaja junto porque o SIM da criacao PRECISA dele, e os campos
-   //--- continuam editaveis enquanto a pergunta esta no ar. Relendo o formulario
-   //--- no segundo clique, a pergunta nomearia um nome e a execucao gravaria
-   //--- outro — o contrato e "operacao e alvo capturados no primeiro clique", e
-   //--- ele so vale se o segundo clique nao consultar mais nada.
-   m_abandonMagic=magic;
    //--- Sem prazo, como a do EXCLUIR: descreve um ESTADO em vigor, e sumindo
    //--- sozinha deixaria SIM e NAO na tela sem a frase que diz o que fazem.
-   string what=(op==FCV_ABANDON_LOAD)
-               ? "Carregar "+target
-               : "Criar "+target;
    SetNotice("ISTO DESCARTA A CONFIGURACAO EM USO",
-             what+" ativa outro perfil neste grafico. O perfil "+
+             "Carregar "+target+" ativa outro perfil neste grafico. O perfil "+
              m_snap.activeProfileName+" esta sem arquivo em disco e nao pode ser "+
              "gravado aqui — a configuracao dele existe SO na memoria e sera "+
              "perdida. Restaurar o arquivo dele preserva tudo. Clique SIM para "+
@@ -216,7 +199,7 @@ void CancelAbandonConfirm(void)
   {
    if(m_abandonOp==FCV_ABANDON_NONE) return;
    m_abandonOp=FCV_ABANDON_NONE;
-   m_abandonTarget=""; m_abandonMagic=0;
+   m_abandonTarget="";
    ClearNotice();
    m_viewDirty=true;
   }
@@ -345,9 +328,9 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
          CancelAbandonConfirm();
 
       //+---------------------------------------------------------------+
-      //| Primeiro clique nos dois caminhos que abandonam: ARMA, nao age.|
-      //| Ver AbandonNeedsConfirm — inclusive por que nao vale para o    |
-      //| NOVO, para o EXCLUIR nem para Atualizar lista.                 |
+      //| Primeiro clique no CARREGAR: ARMA, nao age. So ele abandona algo:  |
+      //| a criacao virou gravacao em disco e nao substitui o que esta em uso.|
+      //| Nao vale para NOVO, DUPLICAR, EXCLUIR nem Atualizar lista.     |
       //|                                                                |
       //| O alvo e capturado AQUI e nao lido de novo no SIM: entre um    |
       //| clique e outro a selecao pode mudar, e a pergunta nomearia um  |
@@ -358,17 +341,6 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
         {
          if(m_btnId[i]==FCV_BTN_LOAD && !AbandonArmed(FCV_ABANDON_LOAD))
            { ArmAbandonConfirm(FCV_ABANDON_LOAD,SelectedProfileName()); Render(); return true; }
-         //--- So a DUPLICACAO: no NOVO o rascunho continua sendo o do perfil
-         //--- orfao, entao o CRIAR PERFIL ja esta apagado pela configuracao
-         //--- invalida e este ramo nunca e alcancado por ele.
-         if(m_btnId[i]==FCV_BTN_SAVE && m_profEdit==FCV_PROF_DUP &&
-            !AbandonArmed(FCV_ABANDON_CREATE))
-           {
-            int armMagic=0;
-            ProfileFormMagic(armMagic);
-            ArmAbandonConfirm(FCV_ABANDON_CREATE,ProfileFormRawName(),armMagic);
-            Render(); return true;
-           }
         }
 
       switch(m_btnId[i])
@@ -382,14 +354,11 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
             //--- atingir outro.
             int op=m_abandonOp;
             string target=m_abandonTarget;
-            int magic=m_abandonMagic;
             m_abandonOp=FCV_ABANDON_NONE;
-            m_abandonTarget=""; m_abandonMagic=0;
+            m_abandonTarget="";
             ClearNotice();
             if(op==FCV_ABANDON_LOAD)
                QueueIntent(FCV_INTENT_LOAD_PROFILE,target);
-            else if(op==FCV_ABANDON_CREATE)
-               QueueIntent(FCV_INTENT_CREATE_PROFILE,target,magic);
             break;
            }
          case FCV_BTN_ABANDONNO: break;   // o desarme ja aconteceu acima
@@ -415,7 +384,11 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
            {
             int magic=0;
             ProfileFormMagic(magic);
-            QueueIntent(FCV_INTENT_CREATE_PROFILE,ProfileFormRawName(),magic);
+            //--- ⚠ MESMO predicado do botao. O caminho do ABANDONOK nao passa pelo
+            //--- botao, entao a guarda mora no ponto que enfileira — que os dois
+            //--- compartilham.
+            if(ProfileFormConfigValid())
+               QueueIntent(FCV_INTENT_CREATE_PROFILE,ProfileFormRawName(),magic);
             break;
            }
 
@@ -424,20 +397,11 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
          //--- desfazer isso deixaria a configuracao de OUTRO perfil pendente
          //--- sobre o ativo.
          //---
-         //--- ⚠ Depois de uma criacao que FALHOU AO GRAVAR, abandonar nao pode
-         //--- ser so fechar a tela: o EA ja aplicou a configuracao do perfil que
-         //--- nao nasceu, e ela continuaria valendo sob o nome do perfil
-         //--- anterior — com o SALVAR do cabecalho, que reaparece, apontando
-         //--- para ele. Ali o DESCARTAR pede ao EA que RECARREGUE o perfil
-         //--- ativo do disco, que e o desfazer que existe. O formulario so
-         //--- fecha quando a recarga volta; recusada, ele continua aberto e a
-         //--- saida perigosa segue fechada.
+         //--- Nao ha mais nada a desfazer aqui. A criacao grava em disco e nao
+         //--- toca no motor: uma gravacao que falha nao deixa configuracao
+         //--- aplicada sob o nome do perfil anterior, entao abandonar voltou a
+         //--- ser simplesmente fechar a tela.
          case FCV_BTN_CANCEL:
-            if(m_createFailed)
-              {
-               QueueIntent(FCV_INTENT_RESTORE_ACTIVE,m_snap.activeProfileName);
-               break;
-              }
             m_profEdit=FCV_PROF_VIEW;
             ClearProfileForm();
             ReloadDraft();
@@ -548,16 +512,6 @@ void SetPersistenceFailed(const bool failed)
    m_viewDirty=true;
   }
 
-//--- A ultima CRIACAO falhou ao gravar e o formulario ficou aberto para a
-//--- retentativa. Estado separado de m_notSaved porque muda o significado do
-//--- DESCARTAR: aqui abandonar exige desfazer, e nao so fechar a tela.
-void NoteFailedCreate(const bool failed)
-  {
-   if(m_createFailed==failed) return;
-   m_createFailed=failed;
-   m_viewDirty=true;
-  }
-
 //--- Resposta a uma intencao, ou a qualquer outra coisa que o painel precise
 //--- dizer. Aparece na caixa de aviso. `ttlMs` = 0 e o padrao: sem prazo.
 void SetNotice(const string title,const string body,const int sem,const uint ttlMs=0)
@@ -568,6 +522,86 @@ void SetNotice(const string title,const string body,const int sem,const uint ttl
    m_noticeAt   =GetTickCount();
    m_noticeTtl  =ttlMs;
    m_viewDirty  =true;
+  }
+
+//+------------------------------------------------------------------+
+//| Fecha o formulario de criacao SELECIONANDO o perfil recem-criado. |
+//|                                                                   |
+//| Selecionado nao e ativo: o grafico continua no perfil de antes, e |
+//| o CARREGAR — unico verbo que ativa — fica ali, um clique adiante, |
+//| ja apontando para o alvo certo. Deixar a selecao onde estava faria |
+//| a proxima acao mirar outro perfil que nao o que acabou de nascer.  |
+//|                                                                   |
+//| Chamado DEPOIS de SetProfiles, para que o nome ja exista na lista.|
+//| Nao achando o nome, apenas fecha o formulario: uma selecao fora de |
+//| faixa e pior que nenhuma.                                          |
+//+------------------------------------------------------------------+
+void EndProfileFormSelecting(const string profileName)
+  {
+   ReleaseEditFocus();
+   m_profEdit=FCV_PROF_VIEW;
+   ClearProfileForm();
+   ReloadDraft();
+   for(int i=0;i<m_profCount;++i)
+      if(m_profName[i]==profileName) { m_profSel=i; break; }
+   m_viewDirty=true;
+  }
+
+
+//+------------------------------------------------------------------+
+//| Valida SETTINGS RECEBIDAS contra o ativo deste grafico, no escopo |
+//| COMPLETO, e sem deixar rastro.                                    |
+//|                                                                   |
+//| Existe para o CARREGAR. A lacuna e ANTERIOR a este item, mas so   |
+//| ficou alcancavel agora: enquanto criar tambem ativava, era        |
+//| impossivel guardar em disco um perfil invalido para o ativo, e o  |
+//| CARREGAR nunca encontrava um. Permitindo duplicar um perfil de    |
+//| outro ativo, esse arquivo passa a existir — e alguem vai clicar   |
+//| CARREGAR nele.                                                    |
+//|                                                                   |
+//| ⚠ EMPRESTA o rascunho, e devolve. Todas as regras leem `m_draft`, |
+//| entao validar outra configuracao exige coloca-la ali; o que nao   |
+//| pode e sobrar. Rascunho, modo, escopo e os dois caches voltam ao  |
+//| que eram, e a selecao nao e tocada.                               |
+//|                                                                   |
+//| ⚠ O MODO E TROCADO para fora do VIEW, e isso e proposital, nao    |
+//| descuido: `ScreenErrorProfiles` cobra unicidade de Magic contra o |
+//| perfil ATIVO (`VMagicTakenByOther` ancora em                      |
+//| `m_snap.activeProfileName`), e o candidato NAO e o ativo — o      |
+//| Magic dele seria acusado de colidir com ele mesmo, e nenhum       |
+//| perfil carregaria. A identidade do alvo ja e governada em outro   |
+//| lugar, e por uma porta PROPRIA: o painel reconfere                |
+//| `MagicFreeOnDisk(target.magicNumber, profileName, ...)` no clique,|
+//| imediatamente antes de emitir o comando — isso cobre Magic <= 0 e |
+//| a colisao que outro grafico criou depois do ultimo refresh. O     |
+//| `m_profDup` do botao e o peer lock continuam valendo, mas nenhum  |
+//| dos dois le o disco na hora do clique. O que sobra AQUI e a       |
+//| pergunta certa: esta CONFIGURACAO roda neste ativo?               |
+//+------------------------------------------------------------------+
+bool SettingsValidForSymbol(const SEASettings &candidate,string &tabName,string &err)
+  {
+   SEASettings keepDraft=m_draft;
+   int         keepMode=m_profEdit;
+   bool        keepScope=m_vSymbolRules;
+   bool        keepCfgKnown=m_cfgValidKnown,  keepCfgValid=m_cfgValid;
+   bool        keepIntrKnown=m_intrValidKnown, keepIntrValid=m_intrValid;
+
+   m_draft=candidate;
+   SyncDerivedSettings();
+   m_profEdit=FCV_PROF_DUP;
+   m_vSymbolRules=true;
+   m_cfgValidKnown=false;
+
+   tabName=""; err="";
+   err=FirstConfigError(tabName);
+
+   m_draft=keepDraft;
+   SyncDerivedSettings();
+   m_profEdit=keepMode;
+   m_vSymbolRules=keepScope;
+   m_cfgValidKnown=keepCfgKnown;   m_cfgValid=keepCfgValid;
+   m_intrValidKnown=keepIntrKnown; m_intrValid=keepIntrValid;
+   return (err=="");
   }
 
 //+------------------------------------------------------------------+
@@ -630,19 +664,14 @@ void BeginDuplicate(const SEASettings &source,const string suggestedName)
 //|                                                                   |
 //| Ver ReloadDraft: o valor do EA vence o texto em edicao, com aviso.|
 //|                                                                   |
-//| `keepForm` existe para UM caso, e ele era grave: a CRIACAO que    |
-//| falhou ao gravar. Fechando o formulario ali, o perfil novo perdia |
-//| o nome — o painel so guardava "houve falha" — e o aviso mandava   |
-//| clicar SALVAR, que grava no perfil ATIVO. Seguindo a instrucao da |
-//| tela, o usuario sobrescreveria o perfil anterior com a            |
-//| configuracao do perfil que tentou criar.                          |
-//|                                                                   |
-//| Com o formulario aberto, o alvo continua na tela, os botoes do    |
-//| cabecalho seguem apagados (headerLive exige modo de navegacao) e  |
-//| a retentativa e o proprio CRIAR PERFIL. O estado guarda a         |
-//| operacao, e nao so o fato de ter falhado.                         |
-//+------------------------------------------------------------------+
-void ReloadFromEA(const string reason,const bool keepForm=false)
+//| ⚠ O parametro `keepForm` foi REMOVIDO, e nao esquecido. Ele       |
+//| existia para UM caso: a criacao que aplicava e falhava ao gravar, |
+//| onde fechar o formulario perdia o nome do perfil novo e o aviso   |
+//| mandava clicar SALVAR — que grava no perfil ATIVO, sobrescrevendo |
+//| o anterior com a configuracao do que se tentou criar. Criar virou |
+//| gravacao em disco: o formulario que continua aberto numa falha    |
+//| nunca chega aqui, porque nada foi aplicado e o EA nao recarrega.  |
+void ReloadFromEA(const string reason)
   {
    //--- A SEGUNDA fronteira em que a identidade da tela muda — e a assincrona.
    //--- Ver ResetScrollIfScreenChanged: fechar o formulario aqui (criacao
@@ -650,18 +679,17 @@ void ReloadFromEA(const string reason,const bool keepForm=false)
    //--- e a lista reaparecia na posicao em que o formulario estava.
    int screenBefore=ScreenId();
    bool lostTyping=(EditHasFocus() || HasPending());
-   if(!keepForm) m_profEdit=FCV_PROF_VIEW;
+   m_profEdit=FCV_PROF_VIEW;
    m_delConfirm=false;
    //--- A do abandono cai pelo mesmo motivo do m_delConfirm: o EA acabou de
    //--- mudar o mundo sob ela. Reset cru, e nao CancelAbandonConfirm, para o
    //--- ClearNotice dela nao apagar o aviso que esta funcao pode escrever logo
    //--- abaixo.
-   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
    ReloadDraft();
    ResetScrollIfScreenChanged(screenBefore);
-   //--- Com o formulario mantido, nada se perdeu: o que o usuario digitou
-   //--- continua ali. Anunciar perda seria falso.
-   if(lostTyping && !keepForm)
+   //--- Anuncia a perda so quando havia mesmo algo em edicao.
+   if(lostTyping)
       SetNotice("CAMPOS RECARREGADOS",reason,FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
   }
 private:

@@ -229,15 +229,19 @@ A divisao de responsabilidades entre os dois e a peca central do desenho:
 - **o renderizador decide o que OFERECER** — desenha, publica as caixas de clique e resolve o estado visual a partir do snapshot. Ele **nao alcanca `Persistence`**: a lista de perfis chega pronta, em vetores primitivos. Os registros de concorrencia (`CInstanceRegistry`, `CActiveProfileRegistry`) ele **tambem consulta**, para desenhar — mas a leitura dele pode ter ate um segundo de idade, e por isso nao decide nada;
 - **o painel decide o que ACONTECE** — e o unico lado que alcanca `Persistence`, e reconfere **no instante do clique** as condicoes externas **pertinentes a cada operacao**, nao no instante do desenho.
 
-⚠️ **"Reconferir" nao e uniforme, e supor que fosse leva a erro nas duas direcoes.** Gravar, criar, carregar e excluir perfil dependem do disco e das travas, e sao reconferidos contra os dois. **Iniciar/pausar nao consulta nada** — e alternancia de estado do motor, e a autoridade e o EA. E o **desfazer de criacao falhada** (`FCV_INTENT_RESTORE_ACTIVE`) e deliberadamente **independente do disco**: ele carrega as configuracoes anteriores em maos porque o caso em que existe e justamente aquele em que o arquivo do perfil ativo nao esta la.
+⚠️ **"Reconferir" nao e uniforme, e supor que fosse leva a erro nas duas direcoes.** Gravar, criar, carregar e excluir perfil dependem do disco e das travas, e sao reconferidos contra os dois — no instante do clique, e nao no do desenho. **Iniciar/pausar nao consulta nada** — e alternancia de estado do motor, e a autoridade e o EA.
 
-Entre os dois circulam **intencoes** (`UI/Canvas/CanvasIntents.mqh`), nao comandos: o renderizador publica "o usuario pediu X", e o painel traduz para `SUICommand` — ou executa sozinho. **Excluir e duplicar perfil nunca chegam ao EA**: sao operacoes de disco do proprio painel, como na 1.058, onde o EA nao tem comando de excluir.
+Entre os dois circulam **intencoes** (`UI/Canvas/CanvasIntents.mqh`), nao comandos: o renderizador publica "o usuario pediu X", e o painel traduz para `SUICommand` — ou executa sozinho.
+
+**Quais chegam ao EA, e por que.** `CARREGAR` chega porque **aplica e ativa** outro perfil; `SALVAR` chega porque aplica e grava a configuracao do perfil **ativo**. `NOVO`, `DUPLICAR` e `EXCLUIR` **nunca chegam**: sao operacoes locais de persistencia do painel, que opera o disco pelo store que ja possui — como na 1.058, onde o EA nao tem comando de excluir.
+
+⚠️ **Criar nao altera estado operacional nenhum.** Grava o arquivo e para por ai: nada de `ApplySettings`, recarga de estrategias, protecoes ou execucao, nem troca do perfil ativo, do estado do grafico ou do registro de instancia. Dai decorre a propriedade que dispensa codigo: uma gravacao que **falha** nao deixa nada a restaurar, entao **nao existe desfazer de criacao**. O rollback que existia — um verbo proprio do EA mais o contexto anterior guardado em memoria — foi removido junto com a causa dele.
 
 Modulos de `UI/Canvas/`:
 
 - `CanvasTheme.mqh`, `CanvasLayout.mqh`: cores, geometria e constantes. Sem estado, prefixo `FCV_` em tudo.
 - `CanvasFields.mqh`, `CanvasForm.mqh`: identificadores de campo e o construtor declarativo de formulario (cada tela empilha linhas; a altura do cartao deriva das linhas).
-- `CanvasIntents.mqh`: os tipos de intencao que atravessam a fronteira renderizador -> painel. A lista esta no proprio arquivo; nao repetir a contagem aqui, que ja envelheceu uma vez (`FCV_INTENT_RESTORE_ACTIVE` entrou depois e virou a setima).
+- `CanvasIntents.mqh`: os tipos de intencao que atravessam a fronteira renderizador -> painel. A lista esta no proprio arquivo; **nao repetir a contagem aqui**, que ja envelheceu duas vezes — uma intencao entrou depois da primeira redacao, e outra saiu quando criar deixou de aplicar configuracao.
 - `CanvasRenderer.mqh`: a classe, com os fragmentos abaixo incluidos no corpo — idioma de UI do projeto.
 - `CanvasRendererPrimitives.mqh`: desenho basico e a conversao logico -> pixel (`S()`/`L()`).
 - `CanvasRendererChrome.mqh`: cabecalho, abas, trilho e a **camada de acesso** (quem pode iniciar, salvar, carregar, criar, excluir).

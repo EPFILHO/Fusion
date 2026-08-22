@@ -54,4 +54,26 @@ bool FusionHasEnabledNewsWindow(const SEASettings &settings)
    return false;
   }
 
+//+------------------------------------------------------------------+
+//| A ROTA UNICA de conserto de um perfil que NAO e o ativo.          |
+//|                                                                   |
+//| A GUI so edita a configuracao do perfil ATIVO. Entao mandar        |
+//| "Corrija em Gestao" sobre um perfil apenas SELECIONADO e uma       |
+//| instrucao inexequivel: nao ha onde editar aquele perfil neste      |
+//| grafico — e, no caso que motivou isto, ele nem pode ser ativado    |
+//| aqui, porque a incompatibilidade com o ativo e justamente o motivo |
+//| da recusa. O usuario ia ate a aba e nao encontrava o que corrigir. |
+//|                                                                   |
+//| A rota que EXISTE e esta: carregar o perfil onde ele vale, ajustar |
+//| la, salvar, e voltar. Escrita uma vez so para as variantes nao se  |
+//| espalharem — e a licao 1 da secao 8 do plano: mensagem que instrui |
+//| acao impossivel e pior que mensagem nenhuma.                      |
+//+------------------------------------------------------------------+
+string FusionProfileFixElsewhereHint(const string tabName,const string retryAction)
+  {
+   return "Para corrigi-lo pela interface, carregue-o em um grafico de ativo "
+          "compativel, faca o ajuste em " + tabName + " e salve; depois " +
+          retryAction + ".";
+  }
+
 #endif

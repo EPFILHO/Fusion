@@ -9,6 +9,24 @@ comparacao durante a transicao.
 
 ---
 
+## ⚠️ Advertência global: o desenho de "criar perfil" mudou em 2026-08-22
+
+Este documento é **histórico**. Ele registra o raciocínio da migração, incluindo decisões que já foram substituídas, e o registro tem valor justamente por preservar o porquê — mas **não descreve o produto atual** em tudo.
+
+Em particular, **todo trecho deste arquivo** que afirme ou pressuponha qualquer uma destas coisas descreve o desenho **antigo**, e não o vigente:
+
+- que criar perfil **aplica a configuração e ativa** o perfil criado;
+- que uma criação que falha ao gravar deixa a sessão rodando a configuração de um perfil que não existe;
+- que existe **rollback** de criação falhada, em qualquer forma — `FCV_INTENT_RESTORE_ACTIVE`, `UI_COMMAND_RESTORE_ACTIVE_PROFILE`, `m_preCreateSettings`, `m_preCreateStale`, `m_hasPreCreate` ou `m_createFailed`;
+- que o `DESCARTAR` do formulário precisa desfazer alguma coisa;
+- que a confirmação de abandono vale para `CRIAR CÓPIA`.
+
+**O que vale hoje:** `NOVO` e `DUPLICAR` apenas gravam um arquivo em disco, sem tocar no motor; `CARREGAR` é o único verbo que ativa um perfil; e, como criar não altera estado operacional nenhum, **uma falha de gravação não deixa nada a restaurar** — o rollback inteiro foi removido, junto com a causa dele.
+
+A fonte do estado vigente é, nesta ordem: o **código** da 2.000, depois `ARCHITECTURE.md`, `USER_MANUAL.md` e `CHANGELOG.md`.
+
+---
+
 ## 1. Por que 2.0
 
 Nao quebra compatibilidade: formato de perfil, estado de grafico e toda a logica
@@ -560,6 +578,8 @@ aviso. `Update` continua sendo a atualizacao periodica, que nunca sobrescreve
 edicao pendente.
 
 ### Divida ACEITA: criar perfil sempre ATIVA — e perfil nao tem ativo
+
+> ✅ **QUITADA em 2026-08-22.** `NOVO` e `DUPLICAR` passaram a somente gravar em disco, e `CARREGAR` virou o unico verbo que ativa um perfil. O texto abaixo preserva o registro historico da divida e do raciocinio que a aceitou; o comportamento descrito nele **nao vale mais**. Ver `CHANGELOG.md`, secao "Criar perfil deixou de ativar o perfil criado".
 
 ⚠️ Nada nesta secao esta consertado, e ela e a unica das dividas registradas que
 nasce de uma **decisao de produto**, nao de um defeito.

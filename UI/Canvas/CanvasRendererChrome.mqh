@@ -23,7 +23,7 @@ bool RailHasError(const int cfg,const int idx)
   {
    if(idx<0 || idx>=RailCountFor(cfg)) return false;
    int base=(cfg==0) ? FCV_SCREEN_RISK0 : FCV_SCREEN_PROT0;
-   return (ScreenError(base+idx)!="");
+   return (ScreenErrorFormScoped(base+idx)!="");
   }
 
 //--- ⚠ Recebe a ABA, e nao so o indice da subaba. A faixa de nivel 2 pertence
@@ -34,8 +34,8 @@ bool RailHasError(const int cfg,const int idx)
 bool CfgHasError(const int tab,const int cfg)
   {
    if(cfg<0) return false;
-   if(tab==2) return (cfg<4 && ScreenError(FCV_SCREEN_STRAT0 +cfg)!="");
-   if(tab==3) return (cfg<4 && ScreenError(FCV_SCREEN_FILTER0+cfg)!="");
+   if(tab==2) return (cfg<4 && ScreenErrorFormScoped(FCV_SCREEN_STRAT0 +cfg)!="");
+   if(tab==3) return (cfg<4 && ScreenErrorFormScoped(FCV_SCREEN_FILTER0+cfg)!="");
    if(tab==FCV_TAB_GESTAO)
      {
       if(cfg>1) return false;
@@ -1311,10 +1311,11 @@ string LoadBlockedWhy(void)
 //| portas que levam para longe dele, e as quatro levam:              |
 //|                                                                   |
 //|  - CARREGAR troca o perfil ativo: a configuracao em uso some;     |
-//|  - NOVO e DUPLICAR criam, e criar tambem ATIVA (divida registrada |
-//|    da secao 6), entao abandonam o perfil sem arquivo do mesmo     |
-//|    jeito — a configuracao sobrevive sob outro nome, a identidade  |
-//|    nao;                                                           |
+//|  - NOVO e DUPLICAR nao ativam mais nada — criar virou gravacao em |
+//|    disco —, mas a trava permanece por outra razao: o perfil ativo |
+//|    continua sem arquivo depois, e criar OUTRO nao quita a divida. |
+//|    Sair para o formulario com o SALVAR aceso atras esconderia o   |
+//|    unico botao que resolve;                                       |
 //|  - EXCLUIR apaga OUTRO perfil e nao abandonaria nada, mas fica    |
 //|    junto por decisao do usuario: primeiro grave, depois apague    |
 //|    com o perfil ja fora de risco. Quatro botoes apagados de uma   |
@@ -1354,10 +1355,7 @@ bool ActiveProfileOrphan(void)
   {
    if(!m_snap.activeProfileFileMissing) return false;
    if(m_notSaved) return false;
-   //--- `m_createFailed` entra porque o SALVAR tambem o consulta: com uma
-   //--- criacao falhada pendente ele fica apagado de proposito, e a saida dali e
-   //--- o DESCARTAR do formulario.
-   return (!m_createFailed && AccActiveProfileEditable());
+   return AccActiveProfileEditable();
   }
 
 bool AccSaveFirstLock(void)
@@ -1383,14 +1381,6 @@ bool AccCanLoadSelected(void)
    if(m_selRuntimeLocked || m_selProfileLocked) return false;
    if(AccSaveFirstLock() || EditingNow()) return false;
    return AccCanLoadProfile();
-  }
-
-bool AccCanCreateCopy(void)
-  {
-   if(m_profEdit!=FCV_PROF_DUP) return false;
-   bool nameBad=false, magicBad=false; string err="";
-   if(!ProfileFormReady(nameBad,magicBad,err)) return false;
-   return ConfigInputsValid();
   }
 
 //--- Excluir mexe no disco: exige o perfil ativo editavel e nada pendente.
@@ -1534,7 +1524,7 @@ void DrawHeader(void)
              //--- tentou criar. O `headerLive` ja cobre isso enquanto o
              //--- formulario esta aberto; esta segunda guarda existe porque a
              //--- condicao que importa e o estado, nao a tela que o mostra.
-             FCV_BTN_SAVECFG,headerLive && !m_createFailed &&
+             FCV_BTN_SAVECFG,headerLive &&
                              AccActiveProfileEditable() && ConfigInputsValid() &&
                              (HasPending() || EditingNow() ||
                               m_snap.activeProfileFileMissing || m_notSaved));

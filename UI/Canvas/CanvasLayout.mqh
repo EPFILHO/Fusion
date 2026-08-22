@@ -177,7 +177,6 @@
 //--- viajar junto para a pergunta nomear o perfil certo.
 #define FCV_ABANDON_NONE   0
 #define FCV_ABANDON_LOAD   1
-#define FCV_ABANDON_CREATE 2
 
 //--- Quanto tempo a marca de "o terminal encerrou uma edicao" continua valendo
 //--- para o clique seguinte. MEDIDO: no log do usuario (2026-08-15) o

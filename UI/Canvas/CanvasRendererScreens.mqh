@@ -120,7 +120,7 @@ bool ScreenAlert(string &title,string &body,int &sem)
       return true;
      }
 
-   string err=ScreenError(ScreenId());
+   string err=ScreenErrorFormScoped(ScreenId());
    if(StringLen(err)==0) return false;
    //--- ⚠ "CONFIGURACAO INVALIDA", e nao "CORRIJA ESTA TELA". O titulo antigo
    //--- descrevia o LUGAR, nao o problema — e nem sempre e correcao: "Selecione
@@ -977,9 +977,11 @@ void ScreenProfiles(void)
 
    if(editing)
      {
-      //--- Nome e Magic sao os dois campos que definem um perfil novo. O Magic
-      //--- vem preenchido na duplicacao porque copiar exige troca-lo: dois
-      //--- perfis com o mesmo Magic fariam o EA confundir as proprias ordens.
+      //--- Nome e Magic sao os dois campos que definem um perfil novo. Na
+      //--- duplicacao o Magic nasce VAZIO, e nao copiado: dois perfis com o
+      //--- mesmo Magic fariam o EA confundir as proprias ordens, entao copiar
+      //--- exige um numero novo — e um campo ja preenchido com o invalido so
+      //--- adiantaria o botao apagado, sem dizer por que.
       //--- Os quatro criterios da 1.058, conferidos contra a lista ja lida:
       //--- nome preenchido, nome livre, Magic valido e Magic livre.
       bool nameBad=false, magicBad=false;
@@ -992,9 +994,11 @@ void ScreenProfiles(void)
 
       RowsReset();
       RowField("Nome","Como o perfil aparece na lista","",!nameBad);
-      //--- O Magic da criacao ainda e local: ele nao pode escrever no rascunho,
-      //--- que descreve o perfil ATIVO, e nao o que esta sendo criado. Quem o
-      //--- transporta para o perfil novo e o comando de gravar, na Etapa 2c.
+      //--- O Magic da criacao e LOCAL ao formulario: ele nao escreve no
+      //--- rascunho, que descreve o perfil ATIVO no NOVO e o perfil de ORIGEM no
+      //--- DUPLICAR — em nenhum dos dois casos o perfil que esta nascendo. Quem
+      //--- o transporta para o arquivo novo e o ExecuteCreate, que o reconfere
+      //--- no disco antes de gravar.
       RowField("Magic","Precisa ser diferente de todos os outros","",!magicBad);
       //+---------------------------------------------------------------+
       //| Por que o botao esta apagado.                                  |
@@ -1002,18 +1006,19 @@ void ScreenProfiles(void)
       //| Sao DUAS causas independentes, e a segunda nao aparecia em     |
       //| lugar nenhum desta tela: o formulario pode estar perfeito e a  |
       //| CONFIGURACAO ser invalida. Criar grava o rascunho inteiro num  |
-      //| arquivo novo, entao `configInputsValid` pesa aqui tanto quanto |
-      //| no SALVAR.                                                     |
+      //| arquivo novo, entao ela pesa aqui — mas no ESCOPO do           |
+      //| formulario: completo no NOVO, que nasce do que roda neste      |
+      //| grafico; intrinseco no DUPLICAR, que so copia um arquivo. Ver  |
+      //| ProfileFormConfigValid.                                        |
       //|                                                                |
-      //| Acontece de verdade e sem nada de errado: duplicar um perfil   |
-      //| de outro ativo. Um lote de 0.40, legitimo no ouro, nao existe  |
-      //| num indice cujo minimo e 1 contrato — e criar o perfil aqui    |
-      //| tambem o ATIVA neste grafico.                                  |
+      //| Duplicar um perfil de OUTRO ativo e legitimo e passa: um lote  |
+      //| de 0.40, valido no ouro, nao existe num indice cujo minimo e 1 |
+      //| contrato — e a copia pode ser guardada assim mesmo, porque     |
+      //| criar nao ativa nada. Quem cobra o ativo e o CARREGAR.         |
       //|                                                                |
       //| Sem esta nota, a tela dizia "clique CRIAR COPIA" com o CRIAR   |
       //| COPIA apagado: mensagem que instrui acao que a interface       |
-      //| impede, a licao 1 da secao 8 pela terceira vez. A aba ficava   |
-      //| vermelha, mas em Perfis nao ha por que olhar para Gestao.      |
+      //| impede, a licao 1 da secao 8 pela terceira vez.                |
       //+---------------------------------------------------------------+
       //+---------------------------------------------------------------+
       //| ⚠ O CARTAO NAO EXIBE MAIS ERRO. Ele foi para a caixa do rodape, |
@@ -1041,21 +1046,26 @@ void ScreenProfiles(void)
       //--- do zero, ou dos padroes, e nao e nada disso: ele grava o que voce ja
       //--- tem sob um nome novo. Levantado pelo usuario, que perguntou "cria novo
       //--- como? duplica quem?" depois de meses com a tela.
-      //--- ⚠ "Cria e ATIVA", nas duas. A ativacao e a consequencia que o usuario
-      //--- nao espera e a origem do risco desta tela: e por ela que criar aqui
-      //--- abandona o perfil em uso. Dizer so "cria" escondia a metade que custa.
+      //--- ⚠ E cada um diz o que NAO faz: criar grava em disco e NAO ativa. A
+      //--- ativacao e a consequencia que o usuario nao espera, e antes ela
+      //--- acontecia de verdade — hoje nao acontece, e a tela precisa dizer isso
+      //--- com a mesma clareza com que antes precisava avisar do risco.
       //--- ⚠ E nada de "com as alteracoes da tela" no NOVO: ele fica APAGADO
       //--- enquanto ha edicao ou pendencia, entao nunca captura alteracao nao
       //--- gravada — a frase prometia algo que o botao nao consegue fazer.
       RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Cria e ATIVA uma copia do perfil "+
+               ? "Cria em disco uma copia do perfil "+
                  ((m_profSel>=0) ? m_profName[m_profSel] : "selecionado")+
-                 ", com a configuracao lida do arquivo dele. Ajuste o Magic e "+
-                 "clique CRIAR COPIA."
-               : "Cria e ATIVA um perfil novo a partir da configuracao atualmente "+
-                 "em uso por "+
+                 ", com a configuracao lida do arquivo dele. O perfil atual "+
+                 "continuara ativo. Informe outro Magic livre e clique CRIAR "+
+                 "COPIA. A compatibilidade com o ativo deste grafico so e "+
+                 "verificada ao CARREGAR."
+               : "Cria em disco um perfil novo a partir da configuracao "+
+                 "atualmente em uso por "+
                  (m_snap.activeProfileName=="" ? "este grafico" : m_snap.activeProfileName)+
-                 ". Informe nome e Magic livre, e clique CRIAR PERFIL.");
+                 ". O perfil atual continuara ativo; use CARREGAR se quiser "+
+                 "ativar o novo. Informe nome e Magic livre, e clique CRIAR "+
+                 "PERFIL.");
       //+---------------------------------------------------------------+
       //| ⚠ TROCAR DE ABA DESCARTA ISTO, e a tela precisava dizer.        |
       //|                                                                |
@@ -1073,9 +1083,10 @@ void ScreenProfiles(void)
       //| queria preservar, que e justo o que a faixa do cabecalho pede   |
       //| para NAO fazer.                                                 |
       //|                                                                |
-      //| Nao da para consertar so com texto: e a divida "criar perfil    |
-      //| sempre ATIVA" (secao 6) encostando na tela de novo. O que da e  |
-      //| avisar antes, que e o que falta para a decisao ser informada.   |
+      //| Nao da para consertar so com texto: a configuracao e uma so, e o|
+      //| formulario nao tem onde editar a do perfil que esta nascendo. O |
+      //| que da e avisar antes, que e o que falta para a decisao ser     |
+      //| informada.                                                      |
       //+---------------------------------------------------------------+
       RowNoteSem("Trocar de aba descarta este formulario — inclusive para corrigir "
                  "a configuracao. O que voce ajustar nas outras abas pertence ao "
@@ -1094,29 +1105,20 @@ void ScreenProfiles(void)
       //--- Os rotulos nomeiam a acao, nao a categoria. "SALVAR" e "CANCELAR"
       //--- ja existem no cabecalho e significam outra coisa la — gravar
       //--- alteracoes do perfil ativo. Repetir a palavra faria o usuario
-      //--- decidir qual dos dois e o certo em vez de simplesmente ler.
       int bw=(m_fx2-m_fx1-8)/2;
-      //--- So acende com os quatro criterios satisfeitos E a configuracao
-      //--- INTEIRA valida (configInputsValid da 1.058, que a Etapa 2d trouxe).
+      //--- So acende com os quatro criterios satisfeitos E a configuracao valida
+      //--- no ESCOPO DO FORMULARIO: completa para o NOVO, que nasce do que roda
+      //--- neste grafico; intrinseca para o DUPLICAR, que so copia um arquivo.
       //--- Antes acendia sempre, e um botao que promete gravar sem ter o que
       //--- gravar so descobre o problema depois do clique — pior aqui, onde o
       //--- clique cria um arquivo novo com a configuracao invalida dentro.
-      //--- Confirmacao de abandono ao CONCLUIR a copia. No lugar do proprio
-      //--- CRIAR COPIA; o DESCARTAR fica onde esta, porque ele continua sendo a
-      //--- saida e nao abandona nada.
-      bool createArmed=(AbandonArmed(FCV_ABANDON_CREATE) && AbandonNeedsConfirm() &&
-                        AccCanCreateCopy());
-      if(createArmed)
-        {
-         int cw=(bw-6)/2;
-         PutButton(m_fx1,m_fy,cw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_ABANDONOK,true);
-         PutButton(m_fx1+cw+6,m_fy,bw-cw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
-                   FCV_BTN_ABANDONNO,true);
-        }
-      else
-         PutButton(m_fx1,m_fy,bw,30,
-                   m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
-                   true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ConfigInputsValid());
+      //---
+      //--- Um clique, e nao dois: a confirmacao de abandono saiu daqui junto com
+      //--- a causa dela. Criar grava em disco e nao substitui a configuracao em
+      //--- uso, entao nao ha nada a abandonar para perguntar.
+      PutButton(m_fx1,m_fy,bw,30,
+                m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
+                true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ProfileFormConfigValid());
       PutButton(m_fx1+bw+8,m_fy,bw,30,"DESCARTAR",
                 false,m_t.warn,m_t.onAcc,FCV_BTN_CANCEL,true);
       m_fy+=30+FCV_CARD_GAP;

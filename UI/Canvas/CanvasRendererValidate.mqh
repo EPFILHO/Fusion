@@ -178,14 +178,28 @@ bool VSlopeActive(void)
 //--- Lote conferido contra a ESPECIFICACAO DO ATIVO, nao contra uma faixa
 //--- inventada: minimo, maximo e passo mudam de simbolo para simbolo, e um lote
 //--- desalinhado do passo e recusado pela corretora, nao pelo EA.
-bool VLot(void)
+//+------------------------------------------------------------------+
+//| Lote — DUAS perguntas, e confundi-las deixou passar lote zero.    |
+//|                                                                   |
+//| Suspender `VLot()` inteiro no escopo intrinseco tirava junto a    |
+//| exigencia de lote POSITIVO, que nao depende de ativo nenhum: uma  |
+//| copia com lote 0 ou negativo passava a poder ser criada. As duas  |
+//| metades ficam separadas aqui, escritas uma vez so, e `VLot()`     |
+//| continua sendo a pergunta completa para quem ja a fazia.          |
+//+------------------------------------------------------------------+
+bool VLotPositive(void)
+  { return (m_draft.fixedLot>0.0); }
+
+bool VLotFitsSymbol(void)
   {
    double lot=m_draft.fixedLot;
-   if(lot<=0.0) return false;
    if(m_snap.symbolSpec.volumeMin>0.0 && lot<(m_snap.symbolSpec.volumeMin-0.0000001)) return false;
    if(m_snap.symbolSpec.volumeMax>0.0 && lot>(m_snap.symbolSpec.volumeMax+0.0000001)) return false;
    return FusionIsVolumeAligned(lot,m_snap.symbolSpec);
   }
+
+bool VLot(void)
+  { return (VLotPositive() && VLotFitsSymbol()); }
 
 //--- Distancia menor que o minimo da corretora e ordem recusada na origem.
 //--- Zero passa: zero desliga o stop, nao e uma distancia curta.
@@ -793,7 +807,11 @@ string ScreenErrorBBFilter(void)
 
 string ScreenErrorRiskLot(void)
   {
-   if(!VLot())
+   //--- INTRINSECA: lote positivo vale em qualquer ativo, e vale nos dois escopos.
+   if(!VLotPositive())
+      return "Lote Fixo deve ser maior que 0.";
+   //--- REGRA DO ATIVO: faixa e alinhamento ao step, suspensas no DUPLICAR.
+   if(m_vSymbolRules && !VLotFitsSymbol())
       return "Lote Fixo invalido para o ativo atual.";
    if(!VPoints(m_draft.slippagePoints))
       return "Slippage invalido. Use 0 a 100000 pontos.";
@@ -804,7 +822,8 @@ string ScreenErrorRiskLot(void)
    //---
    //--- So depois dos erros PROPRIOS desta tela: com o lote ja invalido, o
    //--- plano falha por consequencia, e apontar o plano esconderia a causa.
-   if(VVolumeSpecKnown())
+   //--- REGRA DO ATIVO: o plano de volumes so existe contra a spec do simbolo.
+   if(m_vSymbolRules && VVolumeSpecKnown())
      {
       string volumeError="";
       if(!VPartialVolumePlan(volumeError))
@@ -820,9 +839,10 @@ string ScreenErrorRiskSLTP(void)
       return "SL Fixo invalido. Use 0 a 100000 pontos.";
    if(!VPoints(m_draft.fixedTPPoints))
       return "TP Fixo invalido. Use 0 a 100000 pontos.";
-   if(!VStopsLevel(m_draft.fixedSLPoints))
+   //--- REGRA DO ATIVO: stops level e do simbolo do grafico.
+   if(m_vSymbolRules && !VStopsLevel(m_draft.fixedSLPoints))
       return "SL Fixo abaixo do minimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
-   if(!VStopsLevel(m_draft.fixedTPPoints))
+   if(m_vSymbolRules && !VStopsLevel(m_draft.fixedTPPoints))
       return "TP Fixo abaixo do minimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
    return "";
   }
@@ -847,7 +867,9 @@ string ScreenErrorRiskPartial(void)
       return "TP Final Livre exige o Trailing ativo. Ative o Trailing, na tela "
              "Trailing, ou desligue o TP Final Livre aqui.";
    string volumeError="";
-   if(!VPartialVolumePlan(volumeError))
+   //--- REGRA DO ATIVO: idem. As checagens de percentual acima sao intrinsecas
+   //--- e continuam valendo nos dois escopos.
+   if(m_vSymbolRules && !VPartialVolumePlan(volumeError))
       return volumeError+(VVolumeSpecKnown()
                           ? " Ajuste os percentuais aqui ou aumente o Lote Fixo, na tela Lote."
                           : "");
@@ -1001,15 +1023,29 @@ string ScreenErrorProtStreak(void)
 //--- ActiveMagicConflicts() — e la o motivo vira texto na faixa do cabecalho.
 string ScreenErrorProfiles(void)
   {
+   //--- ⚠ A SAIDA DO FORMULARIO VEM PRIMEIRO, e a ordem inversa era um defeito.
+   //--- Dentro do NOVO ou do DUPLICAR, o Magic do RASCUNHO e a identidade
+   //--- ANTIGA — a do perfil ativo, ou a do perfil de origem — e ela NAO vai ser
+   //--- gravada: quem vai e o numero digitado no formulario, conferido por
+   //--- `ProfileFormReady` e reconferido no disco por `MagicFreeOnDisk` dentro
+   //--- do `ExecuteCreate`.
+   //---
+   //--- Cobrando `magicNumber<=0` antes desta saida, um perfil de origem com
+   //--- Magic 0 — arquivo antigo, ou editado por fora — ficava impossivel de
+   //--- DUPLICAR, mesmo com o usuario informando um Magic novo e valido. Ou
+   //--- seja: a tela recusava justamente a operacao que RECUPERA o arquivo.
+   //---
+   //--- E a unicidade tem o mesmo motivo de sair daqui: na duplicacao o rascunho
+   //--- carrega, por definicao, o Magic do perfil de ORIGEM, e cobra-la acusaria
+   //--- colisao com o proprio arquivo que esta sendo copiado. Mesma excecao da
+   //--- 1.058 (`if(ProfileEditMode()) magicUnique = true`).
+   if(m_profEdit!=FCV_PROF_VIEW)
+      return "";
+
+   //--- Fora do formulario, o rascunho E o perfil ativo: aqui as duas regras
+   //--- valem inteiras.
    if(m_draft.magicNumber<=0)
       return "Magic invalido. Informe um numero inteiro positivo.";
-   //--- Dentro do formulario de criar/duplicar, o Magic do RASCUNHO nao e o que
-   //--- vai ser gravado: quem manda e o do formulario, conferido por
-   //--- ProfileFormReady. E na duplicacao o rascunho carrega, por definicao, o
-   //--- Magic do perfil de ORIGEM — cobrar unicidade dele acusaria colisao com
-   //--- o proprio arquivo que esta sendo copiado, e o CRIAR COPIA nunca
-   //--- acenderia. Mesma excecao da 1.058 (`if(ProfileEditMode()) magicUnique = true`).
-   if(m_profEdit!=FCV_PROF_VIEW) return "";
    string owner="";
    if(VMagicTakenByOther(m_draft.magicNumber,owner))
       return "Magic ja usado pelo perfil "+owner+".";
@@ -1032,11 +1068,13 @@ string ScreenErrorProfiles(void)
 //| nome e Magic nao sao reescritas aqui.                              |
 //|                                                                   |
 //| Duas causas, na mesma ordem que tinham no cartao:                  |
-//|  1. o formulario (nome/Magic);                                     |
+//|  1. o formulario (nome/Magic);                                    |
 //|  2. a CONFIGURACAO, que pesa porque criar grava o rascunho inteiro |
-//|     num arquivo novo E ativa o perfil neste grafico. A frase       |
-//|     comeca pela CAUSA e aponta a aba: sem essa ligacao a recusa    |
-//|     parece arbitraria para quem pediu so uma copia.                |
+//|     num arquivo novo — no ESCOPO do formulario, e nao sempre o     |
+//|     completo: o DUPLICAR nao cobra o ativo deste grafico, porque   |
+//|     nao ativa nada. A frase comeca pela CAUSA e aponta a aba: sem  |
+//|     essa ligacao a recusa parece arbitraria para quem pediu so uma |
+//|     copia.                                                         |
 //+------------------------------------------------------------------+
 string ScreenErrorProfileEdit(void)
   {
@@ -1046,13 +1084,27 @@ string ScreenErrorProfileEdit(void)
    if(StringLen(formError)>0)
       return formError;
 
-   if(ConfigInputsValid())
+   //--- ⚠ MESMO predicado do botao e do ponto que enfileira a intencao.
+   //--- Criar NAO ativa: o perfil nasce em disco e o grafico continua no perfil
+   //--- anterior. Por isso o DUPLICAR nao cobra o ativo atual — so o NOVO, que
+   //--- nasce da configuracao em uso aqui.
+   if(ProfileFormConfigValid())
       return "";
    string cfgTab="";
-   string cfgError=FirstConfigError(cfgTab);
+   string cfgError=ProfileFormConfigError(cfgTab);
    if(StringLen(cfgError)==0)
       return "";
-   return "Criar tambem ATIVA o perfil neste grafico, entao a configuracao "
+   if(m_profEdit==FCV_PROF_DUP)
+      //--- ⚠ MESMA orientacao inexequivel do CARREGAR, e pelo mesmo motivo: o
+      //--- perfil de ORIGEM nao e o ativo, entao nao ha onde edita-lo aqui. A
+      //--- rota real e a mesma, e vem da mesma funcao.
+      return "A configuracao do perfil de origem tem um problema proprio, que "
+             "nao depende do ativo: "+cfgError+" "+
+             FusionProfileFixElsewhereHint(cfgTab,"tente duplica-lo de novo");
+   //--- Aqui, sim, "Corrija em <aba>" e executavel: o rascunho do NOVO E a
+   //--- configuracao do perfil ATIVO, que a GUI edita. Sair do formulario o
+   //--- descarta — a nota da tela ja avisa — e o NOVO fica esperando.
+   return "O perfil novo nasce da configuracao em uso neste grafico, entao ela "
           "precisa ser valida para o "+m_snap.symbol+". Corrija em "+
           cfgTab+": "+cfgError;
   }
@@ -1100,6 +1152,41 @@ string ScreenError(const int screen)
   }
 
 //+------------------------------------------------------------------+
+//| O MESMO erro de tela, no ESCOPO DO FORMULARIO aberto.             |
+//|                                                                   |
+//| Consumido pelos MARCADORES — trilho, subaba e aba —, e pela caixa |
+//| do rodape. Sem isto o painel dizia duas coisas contrarias ao mesmo |
+//| tempo: dentro do DUPLICAR, o CRIAR COPIA aceso afirmando que a    |
+//| copia e valida, e a aba Gestao vermelha por uma regra do ativo    |
+//| deste grafico — ativo que nao participa da duplicacao.            |
+//|                                                                   |
+//| So o DUPLICAR muda de escopo, e so enquanto o formulario esta      |
+//| aberto. Fora dele, e no NOVO, nada muda: ali o ativo atual E       |
+//| criterio.                                                          |
+//|                                                                   |
+//| ⚠ O que isto NAO esconde: erro intrinseco real da origem (ele     |
+//| continua acendendo), o Magic duplicado da aba Perfis (que sai de  |
+//| `HasDuplicateMagic` e de `ScreenErrorProfiles`, nenhum dos dois   |
+//| sensivel ao escopo) e qualquer bloqueio do perfil ATIVO fora do   |
+//| formulario.                                                       |
+//+------------------------------------------------------------------+
+string ScreenErrorFormScoped(const int screen)
+  {
+   if(m_profEdit!=FCV_PROF_DUP)
+      return ScreenError(screen);
+
+   bool keepScope=m_vSymbolRules;
+   bool keepCfgKnown=m_cfgValidKnown, keepCfgValid=m_cfgValid;
+
+   m_vSymbolRules=false;
+   string e=ScreenError(screen);
+
+   m_vSymbolRules=keepScope;
+   m_cfgValidKnown=keepCfgKnown; m_cfgValid=keepCfgValid;
+   return e;
+  }
+
+//+------------------------------------------------------------------+
 //| configInputsValid — o predicado que faltava a camada de acesso.   |
 //|                                                                   |
 //| Ate a 2c ele valia true, o que AFROUXAVA a regra: dava para       |
@@ -1117,7 +1204,8 @@ string ScreenError(const int screen)
 //| fronteira natural — e depender de lembrar de invalidar em cada    |
 //| ponto de escrita seria criar a chance de esquecer um.             |
 //+------------------------------------------------------------------+
-void InvalidateValidationCache(void) { m_cfgValidKnown=false; m_cmtValidKnown=false; }
+void InvalidateValidationCache(void)
+  { m_cfgValidKnown=false; m_cmtValidKnown=false; m_intrValidKnown=false; }
 
 bool ConfigInputsValid(void)
   {
@@ -1127,6 +1215,79 @@ bool ConfigInputsValid(void)
       m_cfgValidKnown=true;
      }
    return m_cfgValid;
+  }
+
+//+------------------------------------------------------------------+
+//| A MESMA validacao, no escopo INTRINSECO — sem as tres regras que  |
+//| dependem do ativo do grafico.                                     |
+//|                                                                   |
+//| Existe para o DUPLICAR. Copiar um arquivo nao e adota-lo: um      |
+//| perfil valido para ouro, com lote que nenhum indice aceita, tem   |
+//| de poder ser duplicado num grafico de indice. A compatibilidade   |
+//| com o ativo e cobrada quando alguem tentar CARREGAR a copia — que |
+//| e o unico verbo que ativa perfil.                                 |
+//|                                                                   |
+//| ⚠ NAO pula telas. RiskLot, RiskSLTP e RiskPartial misturam regra  |
+//| intrinseca com regra do simbolo, e pular a tela inteira deixaria  |
+//| passar slippage fora de faixa, TP1 % acima de 100 ou TP Final     |
+//| Livre sem Trailing. O escopo entra DENTRO de cada validacao, e    |
+//| cada regra continua escrita uma vez so.                           |
+//|                                                                   |
+//| O escopo e trocado e devolvido aqui, com o cache do escopo cheio  |
+//| salvo e restaurado — mesmo cuidado do CommittedConfigValid, e     |
+//| pela mesma razao: sem ele esta consulta deixaria o                |
+//| `ConfigInputsValid` do mesmo quadro respondendo pelo escopo       |
+//| errado.                                                           |
+//+------------------------------------------------------------------+
+bool ConfigIntrinsicValid(void)
+  {
+   if(!m_intrValidKnown)
+     {
+      bool keepScope=m_vSymbolRules;
+      bool keepKnown=m_cfgValidKnown, keepValid=m_cfgValid;
+
+      m_vSymbolRules=false;
+      m_cfgValidKnown=false;
+      m_intrValid=(FirstConfigError()=="");
+      m_intrValidKnown=true;
+
+      m_vSymbolRules=keepScope;
+      m_cfgValidKnown=keepKnown; m_cfgValid=keepValid;
+     }
+   return m_intrValid;
+  }
+
+//+------------------------------------------------------------------+
+//| PONTO UNICO de decisao do formulario de criacao.                  |
+//|                                                                   |
+//| Consultado pelos tres lugares que precisam concordar: o botao que |
+//| acende, o texto que explica a recusa e o ponto que enfileira a    |
+//| intencao. Divergindo, a tela ofereceria o que a execucao recusa — |
+//| ou o contrario, que e pior, porque nada explicaria o clique       |
+//| inerte.                                                           |
+//|                                                                   |
+//| NOVO nasce da configuracao em uso neste grafico, entao vale a     |
+//| validacao completa. DUPLICAR le outro arquivo, e para ele o ativo |
+//| atual nao e criterio.                                             |
+//+------------------------------------------------------------------+
+bool ProfileFormConfigValid(void)
+  {
+   return (m_profEdit==FCV_PROF_DUP) ? ConfigIntrinsicValid() : ConfigInputsValid();
+  }
+
+//--- O erro do escopo que vale para o formulario aberto, para o texto da recusa.
+string ProfileFormConfigError(string &tabName)
+  {
+   if(m_profEdit!=FCV_PROF_DUP)
+      return FirstConfigError(tabName);
+
+   bool keepScope=m_vSymbolRules;
+   bool keepKnown=m_cfgValidKnown, keepValid=m_cfgValid;
+   m_vSymbolRules=false; m_cfgValidKnown=false;
+   string e=FirstConfigError(tabName);
+   m_vSymbolRules=keepScope;
+   m_cfgValidKnown=keepKnown; m_cfgValid=keepValid;
+   return e;
   }
 
 //+------------------------------------------------------------------+

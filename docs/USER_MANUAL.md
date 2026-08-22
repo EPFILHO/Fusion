@@ -574,12 +574,18 @@ Regras visuais:
 | Ação | Função |
 |---|---|
 | `Atualizar lista` | Relê os arquivos disponíveis. |
-| `CARREGAR` | Carrega o perfil selecionado. |
-| `NOVO` | Cria **e ativa** um perfil a partir da configuração **atualmente em uso**. Alterações pendentes na tela **não** são incorporadas. |
-| `DUPLICAR` | Cria **e ativa** uma cópia da configuração **lida do perfil selecionado**. |
+| `CARREGAR` | **É o único verbo que ativa um perfil.** Carrega o perfil selecionado e o torna ativo neste gráfico. |
+| `NOVO` | Grava em disco um perfil a partir da configuração **atualmente em uso**. Alterações pendentes na tela **não** são incorporadas. **Não ativa** o perfil criado. |
+| `DUPLICAR` | Grava em disco uma cópia da configuração **lida do perfil selecionado**, com um Magic novo. **Não ativa** a cópia. |
 | `EXCLUIR` | Remove perfil que não seja default, ativo ou bloqueado por outro gráfico. |
 
-`NOVO` e `DUPLICAR` exigem **nome e Magic Number livres** — ambos precisam estar disponíveis antes de gravar. Os dois abrem um formulário próprio, e **trocar de aba descarta esse formulário**, como a própria tela avisa.
+`NOVO` e `DUPLICAR` **criam sem ativar**. O perfil recém-criado fica **selecionado** na lista, e o gráfico continua no perfil anterior — para adotá-lo, clique `CARREGAR`. Nada é aplicado ao motor: se a gravação falhar, a configuração em uso e o perfil ativo ficam exatamente como estavam, e não há nada a desfazer.
+
+Os dois exigem **nome e Magic Number livres** — ambos conferidos no disco no instante do clique. Os dois abrem um formulário próprio, e **trocar de aba descarta esse formulário**, como a própria tela avisa.
+
+**Compatibilidade com o ativo do gráfico.** `NOVO` nasce da configuração que roda aqui, então ela precisa ser válida para o ativo deste gráfico. `DUPLICAR` só copia um arquivo: um perfil de ouro, com lote que nenhum índice aceita, **pode ser duplicado num gráfico de índice**. A compatibilidade com o ativo é cobrada quando alguém tentar `CARREGAR` a cópia.
+
+Um perfil recusado no `CARREGAR` por incompatibilidade **não pode ser corrigido neste gráfico** — a tela só edita o perfil ativo. O caminho é carregá-lo num gráfico de ativo compatível, ajustar, salvar, e voltar. O próprio aviso diz isso.
 
 Espaços e caracteres inválidos de arquivo no nome são substituídos por `_`.
 

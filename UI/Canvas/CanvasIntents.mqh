@@ -29,27 +29,13 @@
 #define FCV_INTENT_TOGGLE_RUN      1
 //--- SALVAR do cabecalho: grava o rascunho no perfil ATIVO
 #define FCV_INTENT_SAVE_ACTIVE     2
-//--- CRIAR PERFIL / CRIAR COPIA: grava o rascunho num nome NOVO
+//--- CRIAR PERFIL / CRIAR COPIA: grava o rascunho num nome NOVO, SEM aplicar.
+//--- Nao vira UI_COMMAND: criar e operacao de disco, como o EXCLUIR, e o motor
+//--- nao muda. Por isso nao existe desfazer aqui — nao ha o que desfazer.
 #define FCV_INTENT_CREATE_PROFILE  3
 #define FCV_INTENT_LOAD_PROFILE    4
 #define FCV_INTENT_DELETE_PROFILE  5
 #define FCV_INTENT_DUPLICATE       6
-//--- Abandonar uma criacao que FALHOU AO GRAVAR, devolvendo ao EA a
-//--- configuracao que valia antes dela.
-//---
-//--- Existe porque, nesse estado, o EA ja APLICOU a configuracao do perfil que
-//--- nao chegou a ser criado: a sessao roda a configuracao de X sob o nome do
-//--- perfil anterior. Fechar o formulario e so parar de mostra-lo deixava esse
-//--- descasamento de pe — e o SALVAR do cabecalho, que reaparece, grava no
-//--- perfil ATIVO. `CRIAR X -> falha -> DESCARTAR -> SALVAR` sobrescrevia o
-//--- perfil anterior com a configuracao de X.
-//---
-//--- Abandonar so e seguro se DESFIZER. Vira um
-//--- UI_COMMAND_RESTORE_ACTIVE_PROFILE — verbo proprio, e nao um
-//--- LOAD_PROFILE do perfil ativo: o LOAD carrega as recusas que protegem
-//--- contra ADOTAR outro perfil, e uma delas negaria justamente o desfazer.
-//--- Ver a nota do comando em Core/Types.mqh.
-#define FCV_INTENT_RESTORE_ACTIVE  7
 
 //--- Severidade da resposta que volta para a tela. Mesmos tres niveis do
 //--- FCV_SEM_* do desenho; separados para nao amarrar o vocabulario de

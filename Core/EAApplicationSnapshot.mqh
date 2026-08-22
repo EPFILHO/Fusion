@@ -32,6 +32,7 @@
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
       snapshot.bbFilterEnabled  = m_settings.bbFilterEnabled;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
+      snapshot.operationalFallbackTimeframe = OperationalFallbackTimeframe();
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;

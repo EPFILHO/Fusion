@@ -296,7 +296,6 @@ private:
    //--- precisa nomear o perfil. Ver AbandonNeedsConfirm.
    int               m_abandonOp;
    string            m_abandonTarget;
-   int               m_abandonMagic;
    //--- O TERMINAL encerrou uma edicao e a borda do mouse ainda nao chegou. Ver
    //--- a guarda em HandleButtonClick: sem isto, o clique que encerra a edicao
    //--- executa o botao que ele proprio acabou de reacender. O INSTANTE anda
@@ -310,9 +309,6 @@ private:
    //--- A ultima gravacao falhou: a configuracao esta valendo, o arquivo nao.
    //--- Nao e pendencia de rascunho — ver SetPersistenceFailed.
    bool              m_notSaved;
-   //--- E ela era uma CRIACAO. Muda o que o DESCARTAR significa: ver
-   //--- NoteFailedCreate e o caso FCV_BTN_CANCEL.
-   bool              m_createFailed;
    //--- Resposta do ConfigInputsValid neste quadro. Ver a nota dele: sao tres
    //--- consultas por quadro sobre um rascunho que nao muda no meio do desenho.
    bool              m_cfgValid, m_cfgValidKnown;
@@ -320,6 +316,14 @@ private:
    //--- proprio pelo mesmo motivo do de cima: a resposta custa vinte e uma telas.
    //--- Ver CommittedConfigValid.
    bool              m_cmtValid, m_cmtValidKnown;
+   //--- Escopo da validacao no quadro corrente. `false` suspende AS TRES regras
+   //--- que dependem do ativo do grafico (VLot, VStopsLevel, VPartialVolumePlan)
+   //--- e SO elas: faixas e dependencias internas das mesmas telas continuam
+   //--- valendo. Membro, e nao parametro, pela mesma razao do CommittedConfigValid
+   //--- logo abaixo — trocar e devolver aqui dentro evita fazer `ScreenError`
+   //--- carregar um escopo por todos os seus chamadores de desenho.
+   bool              m_vSymbolRules;
+   bool              m_intrValid, m_intrValidKnown;
 
    //--- medicao
    bool              m_stress;                // tela sintetica de pior caso
@@ -427,7 +431,7 @@ public:
       //--- perfil naquele indice pode ser outro agora — ou nem existir mais.
       //--- Vale para as DUAS confirmacoes, pelo mesmo motivo.
       m_delConfirm=false;
-      m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
+      m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
       m_profSel=-1;
       if(StringLen(keep)>0)
          for(int i=0;i<m_profCount;++i)
@@ -549,10 +553,12 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    m_noticeTitle=""; m_noticeBody=""; m_noticeSem=FCV_SEM_NEUTRAL;
    m_noticeAt=0; m_noticeTtl=0;
    m_delConfirm=false; m_btnFitLogged=false;
-   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget=""; m_abandonMagic=0;
-   m_notSaved=false; m_createFailed=false;
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
+   m_notSaved=false;
    m_cfgValid=true; m_cfgValidKnown=false;
    m_cmtValid=true; m_cmtValidKnown=false;
+   m_vSymbolRules=true;
+   m_intrValid=true; m_intrValidKnown=false;
 
    //--- Snapshot neutro ate o EA mandar o primeiro. Sem isto o painel nasceria
    //--- com campos vazios no primeiro quadro — parece defeito, nao "sem dado".

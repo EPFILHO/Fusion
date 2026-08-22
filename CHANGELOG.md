@@ -62,6 +62,18 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - O aviso do handoff passou a ter **propriedade exclusiva do texto** e limpeza por comparacao exata, para nunca apagar um aviso acionavel — AutoTrading, protecao ou perfil — e para nao ficar preso na tela depois que deixa de valer.
 - Mensagens ao operador deixaram de falar em "continuidade nao autorizada no desligamento": quem troca o timeframe nao desligou nada.
 
+### Criar perfil deixou de ativar o perfil criado
+
+- **`NOVO` e `DUPLICAR` passaram a somente gravar em disco.** Ate aqui os dois eram traduzidos para o MESMO comando do `SALVAR`, que **aplica a configuracao antes de gravar** — e o perfil nascia ativo sem ninguem ter pedido. Foi assim que um usuario clicou `NOVO` e viu o perfil `WIN` deixar de existir.
+- **`CARREGAR` e agora o unico verbo que ativa um perfil.** O perfil recem-criado fica **selecionado** na lista; o grafico continua no perfil anterior.
+- Criar **nao toca no motor**: nao ha `ApplySettings`, recarga de estrategias, protecoes ou execucao, nem alteracao do perfil ativo, do estado do grafico ou do registro de instancia. A consequencia pratica e que **uma gravacao que falha nao precisa de desfazer** — antes ela deixava a configuracao do perfil que nao nasceu valendo sob o nome do perfil anterior, e abandonar exigia um verbo proprio de rollback, que foi removido junto.
+- **`DUPLICAR` deixou de exigir compatibilidade com o ativo do grafico.** Um perfil de ouro, com lote que nenhum indice aceita, pode ser duplicado num grafico de indice. Continuam valendo todas as regras que **nao** dependem do simbolo — faixas, dependencias entre campos, MA Cross, requisitos de trailing e TP parcial —, e **lote positivo** entre elas. `NOVO` continua exigindo validacao completa, porque nasce da configuracao que roda neste grafico.
+- **`CARREGAR` passou a validar o perfil alvo contra o ativo** antes de aplicar: lote, stops e plano de parciais. A lacuna era anterior, e so ficou alcancavel porque agora e possivel guardar em disco um perfil destinado a outro ativo. O alvo e validado **ja normalizado**, com o mesmo fallback de timeframe que o motor usa, para um perfil legado nao ser recusado por algo que o EA consertaria sozinho.
+- **O Magic do alvo e reconferido no disco no instante do clique**, tanto ao criar quanto ao carregar. Isso recusa `Magic <= 0` e fecha a janela em que outro grafico cria uma colisao depois do ultimo `Atualizar lista`.
+- Um perfil de origem com **Magic invalido** voltou a poder ser **duplicado** com um Magic novo — antes a tela recusava justamente a operacao que recupera o arquivo.
+- As travas existentes foram preservadas: EA iniciado, posicao em gerenciamento, reconciliacao de fechamento e drawdown com configuracao travada continuam impedindo a criacao.
+- Mensagem de recusa do `CARREGAR` deixou de mandar "Corrija em <aba>": a tela so edita o perfil ATIVO, e o perfil recusado nao pode virar ativo ali. Agora ela aponta a rota que existe — carregar num grafico de ativo compativel, ajustar, salvar e voltar.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.
