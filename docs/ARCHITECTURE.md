@@ -308,6 +308,30 @@ Ate a Fase 4, esta secao descrevia tres regras que existiam para contornar a Sta
 
 O que sobrou dessas tres, e vale por si: **quem altera estado exibido marca a tela como suja**. O pulso repinta, o `Render` limpa. Sem isso, dado novo aparece sob desenho velho — que e pior que erro visivel.
 
+## Handoff do Estado de Entrada na Troca do Timeframe Visual
+
+Trocar o timeframe do grafico descarrega e recarrega o EA. Esse intervalo e tratado como reinicio visual controlado: ele nao pode apagar nem rejuvenescer o estado logico das estrategias. Sinal reconhecido antes da troca atravessa; sinal formado inteiro durante o intervalo cego nao.
+
+**Bloco versionado no chart state.** O estado de entrada e persistido num bloco `entry.*` proprio, com versao de schema (`FUSION_ENTRY_STATE_VERSION`) independente da versao do restante do arquivo. O bloco tem contagem fixa de campos e validacao semantica propria.
+
+**Erro do bloco isolado do restante do runtime.** Um bloco `entry.*` invalido, incompleto, duplicado ou de chave desconhecida nao derruba o chart state inteiro: ele produz um erro separado e o carregamento publica `present` sem candidato. Contexto, posicao, STREAK, DAY e DRAWDOWN continuam valendo. A distincao entre "arquivo antigo que nunca teve o bloco" e "bloco presente e corrompido" e explicita, porque as duas situacoes chegam com os campos zerados e exigem tratamentos diferentes.
+
+**Settings de origem versus configuracao operacional final.** A compatibilidade e decidida comparando a configuracao que **gerou** o estado com a configuracao **efetivamente ativa** depois do boot, e nao com a que foi requisitada. A copia da origem e feita antes da substituicao pelo perfil canonico, e um estado cuja origem nao pode ser determinada e recusado.
+
+**Predicados separados por estrategia.** MA Cross, RSI e Bollinger tem cada uma o seu predicado de compatibilidade, em `Core/Types.mqh`. Nao existe predicado generico: cada estrategia sabe quais campos mudariam o significado do proprio estado.
+
+**Ordem da restauracao.** A restauracao acontece **depois** de handles criados, protecoes avaliadas, posicao sincronizada e permissao de negociacao atualizada. A avaliacao e em duas fases justamente por causa disso: o veredito preliminar usa apenas dados inertes, e `CanOpen()` — que nao e consulta pura, pois pode fixar limite diario, armar drawdown e produzir diagnostico — so e chamado se tudo o mais ja passou.
+
+**Duas barreiras independentes.** A barreira do intervalo cego visual e um estado separado da quarentena de reconexao e volta de permissao. Nunca um booleano so: sao gatilhos, ciclos de vida e criterios de liberacao diferentes, e acopla-los faz uma apagar a outra. A quarentena de reconexao tem prioridade sobre a barreira visual.
+
+**Captura tardia da barreira.** O instante da barreira e capturado apenas sob tick, com serie viva. Nunca de timer nem de `OnDeinit`: nesses contextos a serie do novo timeframe ainda pode estar vazia ou desatualizada, e uma barreira lida cedo demais aponta para um candle anterior ao proprio reinicio — o que deixaria passar exatamente o sinal que ela existe para barrar. Enquanto a barreira nao tem horario, ela **bloqueia**; falhar aberto aqui seria inverter a regra.
+
+**Helper puro da maquina de estados da MA Cross.** A transicao de estado da MA Cross vive em funcoes livres, sem estado e sem acesso a indicador (`FusionMACrossHasNewCross`, `FusionMACrossPendingWouldFire`, `FusionMACrossApply`). As barreiras entram como booleanos ja calculados, porque consulta-las tem efeito colateral e um helper puro nao pode provoca-lo. A estrategia calcula o evento, consulta as barreiras sob precondicao e aplica o resultado.
+
+**Fallback por estrategia.** A restauracao e individual: uma estrategia que falha e primeada com seguranca sem desfazer a importacao das demais. O resultado e classificado em quatro desfechos — integral, parcial, nenhuma ativa restaurada, e fallback conservador. Estrategia desligada e resetada e listada a parte, e nunca contada como falha. Em qualquer desfecho a barreira do intervalo cego e armada em **todas** as estrategias, inclusive desligadas.
+
+**Propriedade exclusiva do aviso de handoff.** O aviso do handoff e o menos importante da fila: `ApplyRuntimeNotice` apenas substitui o texto, entao publica-lo as cegas apagaria "AutoTrading desabilitado", que e acionavel. Ele so e publicado quando nao ha bloqueio nem aviso ja no ar, e quando publica grava o proprio texto em campo separado. A limpeza compara esse campo com o aviso corrente e so limpa se ainda for exatamente o mesmo texto — nunca limpa `m_runtimeNotice` genericamente, porque protecao, permissao ou perfil podem ter tomado a tela nesse meio-tempo. Com posicao aberta o aviso nao chega a ser publicado: a existencia da posicao ja e o motivo esperado para nao restaurar entradas, e o registro fica em `INFO`, distinguindo entrada de gerenciamento.
+
 ## Prioridade Atual de Arquitetura
 
 A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 completou a expansao funcional principal de estrategias/filtros, a 1.053 avancou para risco e protecoes na GUI, e as versoes 1.054 a 1.057 endureceram reconciliacao, persistencia, filtros direcionais, restore e build.

@@ -66,6 +66,109 @@ void FusionApplyRuntimeField(const string key,
    else if(key == "drawdown.triggerBufferProfit") drawdownState.triggerBufferProfit = StringToDouble(value);
   }
 
+//+------------------------------------------------------------------+
+//| Bloco `entry.*` — estado logico de entrada.                       |
+//|                                                                    |
+//| ⚠ Dominio SEPARADO dos demais. Nenhuma chave daqui pode alcancar   |
+//| FusionApplySetting: elas nao sao configuracao, e cair no catch-all |
+//| de settings envenenaria a contagem que valida o bloco de perfil.   |
+//+------------------------------------------------------------------+
+void FusionApplyEntryStateField(const string key,const string value,SEntryStateSnapshot &entry)
+  {
+   if(key == "entry.version") entry.version = (int)StringToInteger(value);
+   else if(key == "entry.capturedAt") entry.capturedAt = (datetime)StringToInteger(value);
+   else if(key == "entry.eligible") entry.eligible = (bool)StringToInteger(value);
+   else if(key == "entry.ma.lastCrossTime") entry.maLastCrossTime = (datetime)StringToInteger(value);
+   else if(key == "entry.ma.lastCrossSignal") entry.maLastCrossSignal = (int)StringToInteger(value);
+   else if(key == "entry.ma.candlesAfterCross") entry.maCandlesAfterCross = (int)StringToInteger(value);
+   else if(key == "entry.ma.lastCheckBarTime") entry.maLastCheckBarTime = (datetime)StringToInteger(value);
+   else if(key == "entry.ma.pendingObserved") entry.maPendingObserved = (bool)StringToInteger(value);
+   else if(key == "entry.ma.quarantine") entry.maQuarantine = (bool)StringToInteger(value);
+   else if(key == "entry.ma.barrier") entry.maBarrier = (datetime)StringToInteger(value);
+   else if(key == "entry.rsi.lastSignalBarTime") entry.rsiLastSignalBarTime = (datetime)StringToInteger(value);
+   else if(key == "entry.rsi.quarantine") entry.rsiQuarantine = (bool)StringToInteger(value);
+   else if(key == "entry.rsi.barrier") entry.rsiBarrier = (datetime)StringToInteger(value);
+   else if(key == "entry.bb.lastSignalBarTime") entry.bbLastSignalBarTime = (datetime)StringToInteger(value);
+   else if(key == "entry.bb.quarantine") entry.bbQuarantine = (bool)StringToInteger(value);
+   else if(key == "entry.bb.barrier") entry.bbBarrier = (datetime)StringToInteger(value);
+  }
+
+#define FUSION_ENTRY_STATE_FIELD_COUNT 16
+
+int FusionChartStateEntryFieldIndex(const string key)
+  {
+   if(key == "entry.version") return 0;
+   if(key == "entry.capturedAt") return 1;
+   if(key == "entry.eligible") return 2;
+   if(key == "entry.ma.lastCrossTime") return 3;
+   if(key == "entry.ma.lastCrossSignal") return 4;
+   if(key == "entry.ma.candlesAfterCross") return 5;
+   if(key == "entry.ma.lastCheckBarTime") return 6;
+   if(key == "entry.ma.pendingObserved") return 7;
+   if(key == "entry.ma.quarantine") return 8;
+   if(key == "entry.ma.barrier") return 9;
+   if(key == "entry.rsi.lastSignalBarTime") return 10;
+   if(key == "entry.rsi.quarantine") return 11;
+   if(key == "entry.rsi.barrier") return 12;
+   if(key == "entry.bb.lastSignalBarTime") return 13;
+   if(key == "entry.bb.quarantine") return 14;
+   if(key == "entry.bb.barrier") return 15;
+   return -1;
+  }
+
+//--- Sanidade do CONTEUDO, depois da estrutural. Devolve "" quando o bloco
+//--- pode ser considerado para continuidade.
+//---
+//--- ⚠ Nao decide elegibilidade nem janela de tempo: isso e do chamador, que
+//--- conhece o relogio e o contexto. Aqui so se recusa o que e impossivel.
+string FusionValidateEntryStateSnapshot(const SEntryStateSnapshot &entry)
+  {
+   if(entry.version != FUSION_ENTRY_STATE_VERSION)
+      return "versao do bloco de entrada desconhecida";
+   if(entry.capturedAt <= 0)
+      return "horario de captura invalido";
+
+   if(entry.maLastCrossSignal != (int)SIGNAL_NONE &&
+      entry.maLastCrossSignal != (int)SIGNAL_BUY &&
+      entry.maLastCrossSignal != (int)SIGNAL_SELL)
+      return "direcao pendente da MA Cross invalida";
+
+   //--- ⚠ INVARIANTE GERAL: o contador so pode ser ZERO, com ou sem pendencia.
+   //--- Ele nunca sobrevive a um evento — ao chegar a 1, o proprio
+   //--- GetEntrySignal dispara e chama ResetEntryTracking antes de devolver o
+   //--- controle; e se a quarentena recusar o disparo, ela tambem o zera. Fora
+   //--- do modo `Segundo candle` ele sequer e incrementado. Qualquer valor
+   //--- diferente de zero, portanto, e estado que o motor nao consegue produzir.
+   if(entry.maCandlesAfterCross != 0)
+      return "contador de candles da MA Cross fora do dominio observavel";
+
+   if(entry.maLastCrossTime < 0 || entry.maLastCheckBarTime < 0 ||
+      entry.rsiLastSignalBarTime < 0 || entry.bbLastSignalBarTime < 0 ||
+      entry.maBarrier < 0 || entry.rsiBarrier < 0 || entry.bbBarrier < 0)
+      return "timestamp negativo no bloco de entrada";
+
+   //--- Coerencia da pendencia da MA, nos DOIS sentidos.
+   //---
+   //--- ⚠ `m_lastCrossSignal` so fica preenchido enquanto uma espera de segundo
+   //--- candle esta armada: no modo `Candle seguinte` ele e limpo no mesmo
+   //--- GetEntrySignal que o produziu. Entao, ENTRE eventos, direcao pendente e
+   //--- pendencia observada sao a mesma coisa — um sem o outro e estado que o
+   //--- motor nao consegue gerar, e aceita-lo seria importar ficcao.
+   if(entry.maPendingObserved)
+     {
+      if(entry.maLastCrossSignal == (int)SIGNAL_NONE)
+         return "pendencia da MA Cross sem direcao";
+      if(entry.maLastCrossTime <= 0)
+         return "pendencia da MA Cross sem candle do cruzamento";
+      if(entry.maLastCheckBarTime <= 0)
+         return "pendencia da MA Cross sem candle de referencia";
+     }
+   else if(entry.maLastCrossSignal != (int)SIGNAL_NONE)
+      return "direcao pendente da MA Cross sem pendencia observada";
+
+   return "";
+  }
+
 void FusionApplyContextField(const string key,const string value,SChartStateContext &context)
   {
    if(key == "context.chartId") context.chartId = (ulong)StringToInteger(value);

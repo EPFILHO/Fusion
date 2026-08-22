@@ -572,6 +572,414 @@ struct SChartStateContext
    bool   discardedUnsavedDraft;
   };
 
+//+------------------------------------------------------------------+
+//| Estado LOGICO de entrada das estrategias, para atravessar a troca |
+//| do timeframe visual.                                              |
+//|                                                                    |
+//| ⚠ Nao e uma ordem pronta nem um sinal armado. E o que cada        |
+//| estrategia ja tinha OBSERVADO antes do desligamento: qual candle  |
+//| ja foi contado, qual cruzamento ja disparou, qual espera de        |
+//| segundo candle estava em curso. Depois da restauracao, qualquer    |
+//| entrada ainda precisa nascer num tick normal e passar de novo por  |
+//| permissao, protecoes, spread, sessao, noticias, resolvedor,        |
+//| filtros, direcao, risco e execucao.                               |
+//|                                                                    |
+//| ⚠ `eligible` e decidido na EXPORTACAO, nao na leitura: so uma      |
+//| troca controlada de grafico, mesmo simbolo, EA iniciado e sem      |
+//| bloqueio conhecido produz continuidade. Fora disso o bloco e       |
+//| gravado inelegivel e o boot cai no caminho conservador.            |
+//|                                                                    |
+//| A quarentena do item 12 viaja junto, por estrategia, para que a    |
+//| continuidade NAO possa ser usada para burlar a exigencia de sinal  |
+//| fresco depois de uma volta de permissao.                          |
+//+------------------------------------------------------------------+
+#define FUSION_ENTRY_STATE_VERSION           1
+//--- Janela de validade do handoff. Estado mais velho que isto nunca
+//--- ressuscita sinal: uma troca de timeframe leva segundos, e o que
+//--- passa disso ja nao e "a mesma sessao".
+#define FUSION_ENTRY_STATE_HANDOFF_SECONDS 120
+
+struct SEntryStateSnapshot
+  {
+   //--- ⚠ NAO SERIALIZADO. Diz se o arquivo TRAZIA bloco `entry.*`, e nao se ele
+   //--- prestava. Sem isto, arquivo antigo (bloco ausente) e bloco corrompido
+   //--- chegavam identicos ao predicado — os dois com valid=false e
+   //--- capturedAt=0 — e o diagnostico saia errado, ainda que o fallback fosse
+   //--- igualmente seguro. O loader publica `present=true` mesmo quando recusa o
+   //--- bloco, sem publicar os campos parciais.
+   bool     present;
+   //--- Integridade e origem
+   bool     valid;                 // bloco presente, completo e semanticamente sao
+   bool     eligible;              // continuidade autorizada na exportacao
+   int      version;
+   datetime capturedAt;            // TimeLocal() do desligamento
+   //--- MA Cross
+   datetime maLastCrossTime;
+   int      maLastCrossSignal;     // ENUM_SIGNAL_TYPE serializado como int
+   int      maCandlesAfterCross;
+   datetime maLastCheckBarTime;
+   bool     maPendingObserved;     // havia E2C_WAIT realmente observado
+   bool     maQuarantine;
+   datetime maBarrier;
+   //--- RSI
+   datetime rsiLastSignalBarTime;
+   bool     rsiQuarantine;
+   datetime rsiBarrier;
+   //--- Bollinger
+   datetime bbLastSignalBarTime;
+   bool     bbQuarantine;
+   datetime bbBarrier;
+  };
+
+void ResetEntryStateSnapshot(SEntryStateSnapshot &snapshot)
+  {
+   snapshot.present              = false;
+   snapshot.valid                = false;
+   snapshot.eligible             = false;
+   snapshot.version              = FUSION_ENTRY_STATE_VERSION;
+   snapshot.capturedAt           = 0;
+   snapshot.maLastCrossTime      = 0;
+   snapshot.maLastCrossSignal    = (int)SIGNAL_NONE;
+   snapshot.maCandlesAfterCross  = 0;
+   snapshot.maLastCheckBarTime   = 0;
+   snapshot.maPendingObserved    = false;
+   snapshot.maQuarantine         = false;
+   snapshot.maBarrier            = 0;
+   snapshot.rsiLastSignalBarTime = 0;
+   snapshot.rsiQuarantine        = false;
+   snapshot.rsiBarrier           = 0;
+   snapshot.bbLastSignalBarTime  = 0;
+   snapshot.bbQuarantine         = false;
+   snapshot.bbBarrier            = 0;
+  }
+
+//--- Janela do handoff. Fora dela o estado nunca ressuscita sinal.
+//---
+//--- ⚠ Relogio que anda para tras tambem reprova: `now` anterior a captura e
+//--- sinal de ajuste de hora ou de arquivo de outra maquina, e nenhum dos dois
+//--- autoriza continuidade.
+bool FusionEntryStateHandoffFresh(const SEntryStateSnapshot &entry,const datetime now)
+  {
+   if(!entry.valid)          return false;
+   if(entry.capturedAt <= 0) return false;
+   if(now <= 0)              return false;
+   if(now < entry.capturedAt) return false;
+   return ((long)(now - entry.capturedAt) <= FUSION_ENTRY_STATE_HANDOFF_SECONDS);
+  }
+
+//+------------------------------------------------------------------+
+//| Compatibilidade da configuracao, POR ESTRATEGIA.                  |
+//|                                                                    |
+//| O estado so pode ser importado quando a configuracao final for a   |
+//| mesma que produziu o estado — nos campos que afetam ENTRADA.       |
+//|                                                                    |
+//| ⚠ Por estrategia, e nao global: mexer na MA nao pode invalidar o   |
+//| estado do RSI e do Bollinger, que continuam coerentes.            |
+//|                                                                    |
+//| ⚠ Diferenca puramente VISUAL ou de sessao nao entra aqui. Cor de   |
+//| linha, tema, painel e logs de debug nao mudam sinal nenhum, e      |
+//| trata-los como incompatibilidade jogaria fora estado bom.         |
+//+------------------------------------------------------------------+
+bool FusionMACrossEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   return (origin.useMACross          == current.useMACross &&
+           origin.maCrossPriority     == current.maCrossPriority &&
+           origin.maFastPeriod        == current.maFastPeriod &&
+           origin.maSlowPeriod        == current.maSlowPeriod &&
+           origin.maFastTimeframe     == current.maFastTimeframe &&
+           origin.maSlowTimeframe     == current.maSlowTimeframe &&
+           origin.maFastMethod        == current.maFastMethod &&
+           origin.maSlowMethod        == current.maSlowMethod &&
+           origin.maFastPrice         == current.maFastPrice &&
+           origin.maSlowPrice         == current.maSlowPrice &&
+           origin.maMinDistancePoints == current.maMinDistancePoints &&
+           origin.maEntryMode         == current.maEntryMode);
+  }
+
+bool FusionRSIEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   //--- rsiExitMode entra de proposito: o modo de saida por linha media muda a
+   //--- elegibilidade da propria ENTRADA (SignalAlreadyReachedMiddleTarget).
+   return (origin.useRSI       == current.useRSI &&
+           origin.rsiPriority  == current.rsiPriority &&
+           origin.rsiPeriod    == current.rsiPeriod &&
+           origin.rsiTimeframe == current.rsiTimeframe &&
+           origin.rsiOversold  == current.rsiOversold &&
+           origin.rsiOverbought== current.rsiOverbought &&
+           origin.rsiMiddle    == current.rsiMiddle &&
+           origin.rsiMode      == current.rsiMode &&
+           origin.rsiPrice     == current.rsiPrice &&
+           origin.rsiExitMode  == current.rsiExitMode);
+  }
+
+bool FusionBollingerEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   return (origin.useBollinger == current.useBollinger &&
+           origin.bbPriority   == current.bbPriority &&
+           origin.bbPeriod     == current.bbPeriod &&
+           origin.bbTimeframe  == current.bbTimeframe &&
+           origin.bbDeviation  == current.bbDeviation &&
+           origin.bbPrice      == current.bbPrice &&
+           origin.bbMode       == current.bbMode);
+  }
+
+//+------------------------------------------------------------------+
+//| Aceite GLOBAL do handoff.                                         |
+//|                                                                    |
+//| ⚠ Funcao PURA e UNICA. O EA e a sonda chamam esta mesma decisao —  |
+//| uma sonda que reimplementasse a regra provaria a copia, nao o      |
+//| produto, e as duas divergiriam no primeiro ajuste.                |
+//|                                                                    |
+//| Os bloqueios chegam ja resolvidos pelo motor (posicao, contexto,   |
+//| permissao, protecao). Nao se deriva elegibilidade de texto de      |
+//| aviso nem de estado visual da GUI: mensagem e consequencia, nao    |
+//| fonte de verdade.                                                 |
+//+------------------------------------------------------------------+
+enum ENUM_ENTRY_HANDOFF_RESULT
+  {
+   ENTRY_HANDOFF_ACCEPTED = 0,
+   ENTRY_HANDOFF_NO_BLOCK,        // arquivo antigo, sem bloco entry.*
+   ENTRY_HANDOFF_INVALID_BLOCK,   // bloco presente porem invalido
+   ENTRY_HANDOFF_NOT_ELIGIBLE,    // exportado sem continuidade autorizada
+   ENTRY_HANDOFF_STALE,           // fora da janela de 120 s
+   ENTRY_HANDOFF_NOT_CHART_CHANGE,
+   ENTRY_HANDOFF_SYMBOL_CHANGED,
+   ENTRY_HANDOFF_NOT_STARTED,
+   ENTRY_HANDOFF_POSITION,        // posicao ou pendencia: caminho conservador
+   ENTRY_HANDOFF_BLOCKED,         // contexto, permissao ou protecao
+   ENTRY_HANDOFF_ORIGIN_UNKNOWN   // settings que produziram o estado nao chegaram
+  };
+
+struct SEntryHandoffContext
+  {
+   bool     originSettingsKnown;
+   bool     wasChartChange;
+   bool     sameSymbol;
+   bool     wasStarted;
+   bool     hasPositionOrPending;
+   bool     operationalBlocked;   // contexto/runtime bloqueado
+   bool     permissionBlocked;
+   bool     protectionBlocked;
+   datetime now;
+  };
+
+ENUM_ENTRY_HANDOFF_RESULT FusionEvaluateEntryHandoff(const SEntryStateSnapshot &entry,
+                                                     const SEntryHandoffContext &context)
+  {
+   //--- Ordem deliberada: primeiro o que e AUSENCIA (arquivo antigo), depois o
+   //--- que e DEFEITO, depois o que e CONTEXTO. Assim o motivo relatado e o mais
+   //--- especifico, e nao o primeiro que por acaso reprovou.
+   //---
+   //--- ⚠ `present` e a UNICA fonte de "o arquivo trazia bloco". Deduzir isso de
+   //--- capturedAt/version confundia arquivo antigo com bloco corrompido, porque
+   //--- os dois chegam resetados.
+   if(!entry.present)
+      return ENTRY_HANDOFF_NO_BLOCK;
+   if(!entry.valid)
+      return ENTRY_HANDOFF_INVALID_BLOCK;
+   if(!entry.eligible)
+      return ENTRY_HANDOFF_NOT_ELIGIBLE;
+   //--- Sem as settings que produziram o estado nao ha como julgar
+   //--- compatibilidade por estrategia, e importar as cegas seria pior que
+   //--- primear.
+   if(!context.originSettingsKnown)
+      return ENTRY_HANDOFF_ORIGIN_UNKNOWN;
+   if(!context.wasChartChange)
+      return ENTRY_HANDOFF_NOT_CHART_CHANGE;
+   if(!context.sameSymbol)
+      return ENTRY_HANDOFF_SYMBOL_CHANGED;
+   if(!context.wasStarted)
+      return ENTRY_HANDOFF_NOT_STARTED;
+   if(!FusionEntryStateHandoffFresh(entry, context.now))
+      return ENTRY_HANDOFF_STALE;
+   if(context.hasPositionOrPending)
+      return ENTRY_HANDOFF_POSITION;
+   if(context.operationalBlocked || context.permissionBlocked || context.protectionBlocked)
+      return ENTRY_HANDOFF_BLOCKED;
+
+   return ENTRY_HANDOFF_ACCEPTED;
+  }
+
+string FusionEntryHandoffReason(const ENUM_ENTRY_HANDOFF_RESULT result)
+  {
+   switch(result)
+     {
+      case ENTRY_HANDOFF_ACCEPTED:         return "";
+      case ENTRY_HANDOFF_NO_BLOCK:         return "estado anterior nao trazia bloco de sinais";
+      case ENTRY_HANDOFF_INVALID_BLOCK:    return "bloco de sinais invalido";
+      case ENTRY_HANDOFF_NOT_ELIGIBLE:     return "novas entradas nao estavam liberadas no momento da troca";
+      case ENTRY_HANDOFF_STALE:            return "estado antigo demais para continuidade";
+      case ENTRY_HANDOFF_NOT_CHART_CHANGE: return "reinicio nao foi troca de timeframe";
+      case ENTRY_HANDOFF_SYMBOL_CHANGED:   return "ativo do grafico mudou";
+      case ENTRY_HANDOFF_NOT_STARTED:      return "EA nao estava iniciado";
+      case ENTRY_HANDOFF_POSITION:         return "posicao ou fechamento pendente";
+      case ENTRY_HANDOFF_BLOCKED:          return "bloqueio operacional, de permissao ou de protecao";
+      case ENTRY_HANDOFF_ORIGIN_UNKNOWN:   return "configuracao de origem do estado desconhecida";
+     }
+   return "motivo desconhecido";
+  }
+
+//+------------------------------------------------------------------+
+//| Maquina de estados do cruzamento da MA — LOGICA PURA.             |
+//|                                                                    |
+//| Nao conhece handle, buffer, iTime, logger, ordem, filtro nem       |
+//| protecao. Recebe estado + evento, devolve acao. O caminho de       |
+//| producao detecta o cruzamento, consulta as barreiras e emite os    |
+//| logs conforme a acao devolvida.                                   |
+//|                                                                    |
+//| ⚠ Existe para a sonda exercitar a MESMA transicao que o EA usa.    |
+//| Uma sonda com maquina de estados paralela provaria a copia.        |
+//|                                                                    |
+//| ⚠ As barreiras chegam como resultado JA calculado, e nao como      |
+//| dependencia, porque consulta-las tem efeito colateral: desarmam ao |
+//| passar e logam ao recusar. Chama-las fora da hora certa gastaria a |
+//| quarentena. Por isso as duas pre-condicoes que decidem QUANDO      |
+//| consultar sao funcoes proprias, usadas pela producao e por este    |
+//| helper — uma definicao, dois chamadores, sem duplicar a regra.     |
+//+------------------------------------------------------------------+
+enum ENUM_MA_CROSS_ACTION
+  {
+   MA_ACTION_NONE = 0,
+   MA_ACTION_NEXT_CANDLE_FIRE,     // modo Candle seguinte: dispara na deteccao
+   MA_ACTION_E2C_ARM,              // Segundo candle: espera armada
+   MA_ACTION_E2C_FIRE,             // disparo de pendencia local
+   MA_ACTION_E2C_FIRE_IMPORTED,    // disparo de pendencia vinda do chart state
+   MA_ACTION_NEW_CROSS_BLOCKED,    // cruzamento novo recusado por barreira
+   MA_ACTION_PENDING_BLOCKED       // pendencia recusada pela quarentena do item 12
+  };
+
+struct SMACrossTrackingState
+  {
+   datetime lastCrossTime;
+   int      lastCrossSignal;      // ENUM_SIGNAL_TYPE serializado
+   int      candlesAfterCross;
+   datetime lastCheckBarTime;
+   bool     pendingImported;
+  };
+
+struct SMACrossEvent
+  {
+   bool     crossDetected;
+   int      crossSignal;
+   datetime crossBarTime;         // abertura do candle [1]
+   datetime currentBarTime;       // abertura do candle [0]
+   bool     secondCandleMode;
+  };
+
+struct SMACrossOutcome
+  {
+   ENUM_MA_CROSS_ACTION action;
+   int                  signal;            // sinal a devolver, ou SIGNAL_NONE
+   bool                 importedCancelled; // pendencia importada morreu neste passo
+  };
+
+//--- Pre-condicao 1: ha cruzamento novo, ainda nao consumido?
+bool FusionMACrossHasNewCross(const SMACrossTrackingState &state,const SMACrossEvent &event)
+  {
+   return (event.crossDetected &&
+           event.crossSignal != (int)SIGNAL_NONE &&
+           event.crossBarTime != state.lastCrossTime);
+  }
+
+//--- Pre-condicao 2: a pendencia armada dispararia NESTE passo?
+//---
+//--- ⚠ Inclui a virada de candle que ainda nao foi contada. Sem isso, a
+//--- producao consultaria a quarentena em passos em que nada dispara — e cada
+//--- consulta indevida pode desarma-la cedo demais.
+bool FusionMACrossPendingWouldFire(const SMACrossTrackingState &state,const SMACrossEvent &event)
+  {
+   if(!event.secondCandleMode)
+      return false;
+   if(state.lastCrossSignal == (int)SIGNAL_NONE)
+      return false;
+   if(FusionMACrossHasNewCross(state, event))
+      return false;
+
+   int advanced = state.candlesAfterCross;
+   if(event.currentBarTime != state.lastCheckBarTime)
+      advanced++;
+   return (advanced >= 1);
+  }
+
+void FusionMACrossApply(SMACrossTrackingState &state,
+                        const SMACrossEvent &event,
+                        const bool newCrossBlocked,
+                        const bool pendingBlocked,
+                        SMACrossOutcome &outcome)
+  {
+   outcome.action            = MA_ACTION_NONE;
+   outcome.signal            = (int)SIGNAL_NONE;
+   outcome.importedCancelled = false;
+
+   if(FusionMACrossHasNewCross(state, event))
+     {
+      //--- Contracruzamento: a identidade importada morre antes de qualquer
+      //--- decisao, nos dois desfechos.
+      if(state.pendingImported)
+        {
+         state.pendingImported     = false;
+         outcome.importedCancelled = true;
+        }
+
+      state.lastCrossTime     = event.crossBarTime;
+      state.candlesAfterCross = 0;
+      state.lastCheckBarTime  = event.currentBarTime;
+
+      if(newCrossBlocked)
+        {
+         //--- Cruzamento do intervalo cego (ou da quarentena): descartado, e a
+         //--- pendencia antiga cai junto.
+         state.lastCrossSignal = (int)SIGNAL_NONE;
+         outcome.action        = MA_ACTION_NEW_CROSS_BLOCKED;
+         return;
+        }
+
+      state.lastCrossSignal = event.crossSignal;
+
+      if(!event.secondCandleMode)
+        {
+         state.lastCrossSignal = (int)SIGNAL_NONE;
+         outcome.action        = MA_ACTION_NEXT_CANDLE_FIRE;
+         outcome.signal        = event.crossSignal;
+         return;
+        }
+
+      outcome.action = MA_ACTION_E2C_ARM;
+      return;
+     }
+
+   if(event.secondCandleMode && state.lastCrossSignal != (int)SIGNAL_NONE)
+     {
+      if(event.currentBarTime != state.lastCheckBarTime)
+        {
+         state.lastCheckBarTime = event.currentBarTime;
+         state.candlesAfterCross++;
+        }
+
+      if(state.candlesAfterCross >= 1)
+        {
+         if(pendingBlocked)
+           {
+            state.lastCrossSignal   = (int)SIGNAL_NONE;
+            state.candlesAfterCross = 0;
+            state.pendingImported   = false;
+            outcome.action          = MA_ACTION_PENDING_BLOCKED;
+            return;
+           }
+
+         outcome.signal = state.lastCrossSignal;
+         outcome.action = state.pendingImported ? MA_ACTION_E2C_FIRE_IMPORTED
+                                                : MA_ACTION_E2C_FIRE;
+         //--- Disparou: o tracking inteiro zera, inclusive a marca de importado.
+         state.lastCrossTime     = 0;
+         state.lastCrossSignal   = (int)SIGNAL_NONE;
+         state.candlesAfterCross = 0;
+         state.lastCheckBarTime  = 0;
+         state.pendingImported   = false;
+        }
+     }
+  }
+
 struct SUIPanelSnapshot
   {
    SEASettings settings;

@@ -191,6 +191,31 @@ public:
       return true;
      }
 
+   //--- Exportacao/importacao do estado logico. Alem do carimbo do candle ja
+   //--- consumido, a quarentena do item 12 viaja junto — senao um estado
+   //--- importado serviria de atalho para burlar a exigencia de sinal fresco.
+   virtual void      ExportEntryState(SEntryStateSnapshot &snapshot) const override
+     {
+      snapshot.rsiLastSignalBarTime = m_lastSignalBarTime;
+      snapshot.rsiQuarantine        = ExportQuarantine(snapshot.rsiBarrier);
+     }
+
+   virtual bool      ImportEntryState(const SEntryStateSnapshot &snapshot,string &reason) override
+     {
+      reason = "";
+      m_lastSignalBarTime = snapshot.rsiLastSignalBarTime;
+      ImportQuarantine(snapshot.rsiQuarantine, snapshot.rsiBarrier);
+      return true;
+     }
+
+   virtual bool      EntryStateCompatible(const SEASettings &origin,const SEASettings &current) const override
+     { return FusionRSIEntryStateCompatible(origin, current); }
+
+   //--- Handle valido tambem: sem ele a estrategia nao le buffer, e importar
+   //--- carimbo de candle deixaria estado pendurado.
+   virtual bool      ReadyForEntryStateImport(void) const override
+     { return (m_enabled && m_initialized && m_handle != INVALID_HANDLE); }
+
    virtual void      PrimeEntryState(void) override
      {
       ResetEntryTracking();
@@ -221,7 +246,7 @@ public:
       //--- Candle iniciado antes da liberacao da permissao nao vale como entrada,
       //--- mesmo que o sinal seja de um [1] ainda nao visto. Consome o candle para
       //--- nao reavaliar a cada tick.
-      if(FreshCandleBarrierBlocks(signalBarTime))
+      if(EntryBarriersBlock(signalBarTime))
         {
          m_lastSignalBarTime = signalBarTime;
          return SIGNAL_NONE;

@@ -56,6 +56,18 @@ private:
    ENUM_SIGNAL_TYPE    m_lastCrossSignal;
    int                 m_candlesAfterCross;
    datetime            m_lastCheckBarTime;
+   //--- PROCEDENCIA da pendencia armada: veio do chart state ou nasceu nesta
+   //--- sessao?
+   //---
+   //--- ⚠ NAO e ele que isenta a pendencia da barreira visual. A isencao e
+   //--- ESTRUTURAL: o disparo de QUALQUER pendencia — local ou importada —
+   //--- consulta somente a quarentena do item 12. A local ja enfrentou a
+   //--- barreira visual quando foi DETECTADA; a importada foi observada na
+   //--- instancia anterior. Este campo serve para tres coisas, e so elas:
+   //---   1. registrar a procedencia;
+   //---   2. escolher entre E2C_FIRE e E2C_FIRE_IMPORTADO no log;
+   //---   3. informar o cancelamento por cruzamento mais recente.
+   bool                m_pendingImported;
    //--- Espelho do predicado central (FusionMACrossConfigState). Guardado no
    //--- Reload porque e la que a configuracao chega; GetEntrySignal e
    //--- Initialize apenas o consultam. m_configLoggedState evita repetir a
@@ -190,6 +202,7 @@ private:
       m_lastCrossSignal   = SIGNAL_NONE;
       m_candlesAfterCross = 0;
       m_lastCheckBarTime  = 0;
+      m_pendingImported   = false;
      }
 
    //--- ⚠ TROCA ATOMICA. A versao anterior comecava liberando o par vivo: se a
@@ -523,6 +536,52 @@ public:
       return (m_active.ready ? m_active.fastTimeframe : m_timeframe);
      }
 
+   //--- Exportacao para o chart state. So o que foi OBSERVADO: nada de handle,
+   //--- buffer, preco calculado ou decisao pronta.
+   virtual void      ExportEntryState(SEntryStateSnapshot &snapshot) const override
+     {
+      snapshot.maLastCrossTime     = m_lastCrossTime;
+      snapshot.maLastCrossSignal   = (int)m_lastCrossSignal;
+      snapshot.maCandlesAfterCross = m_candlesAfterCross;
+      snapshot.maLastCheckBarTime  = m_lastCheckBarTime;
+      //--- Pendencia observada e exatamente "havia direcao armada": fora do
+      //--- modo Segundo candle, m_lastCrossSignal e limpo no mesmo evento.
+      snapshot.maPendingObserved   = (m_lastCrossSignal != SIGNAL_NONE);
+      snapshot.maQuarantine        = ExportQuarantine(snapshot.maBarrier);
+     }
+
+   //--- Importacao. Roda DEPOIS dos handles e antes de qualquer avaliacao.
+   virtual bool      ImportEntryState(const SEntryStateSnapshot &snapshot,string &reason) override
+     {
+      reason = "";
+      //--- Validacao que depende do MODO, e por isso mora aqui e nao no
+      //--- serializer: so `Segundo candle` produz pendencia armada.
+      if(snapshot.maPendingObserved && m_entryMode != ENTRY_2ND_CANDLE)
+        {
+         reason = "pendencia importada exige modo Segundo candle";
+         return false;
+        }
+
+      m_lastCrossTime     = snapshot.maLastCrossTime;
+      m_lastCrossSignal   = (ENUM_SIGNAL_TYPE)snapshot.maLastCrossSignal;
+      m_candlesAfterCross = snapshot.maCandlesAfterCross;
+      m_lastCheckBarTime  = snapshot.maLastCheckBarTime;
+      //--- Marca a PROCEDENCIA da pendencia. Nao muda quais barreiras ela
+      //--- enfrenta no disparo — isso e igual para pendencia local e importada.
+      m_pendingImported   = snapshot.maPendingObserved;
+      ImportQuarantine(snapshot.maQuarantine, snapshot.maBarrier);
+      return true;
+     }
+
+   virtual bool      EntryStateCompatible(const SEASettings &origin,const SEASettings &current) const override
+     { return FusionMACrossEntryStateCompatible(origin, current); }
+
+   //--- Alem de ligada e inicializada, a MA exige par de handles coerente com o
+   //--- que foi pedido: importar carimbo de candle sem par ativo deixaria estado
+   //--- pendurado, esperando handles que talvez nunca venham.
+   virtual bool      ReadyForEntryStateImport(void) const override
+     { return EntriesOperational(); }
+
    virtual void      PrimeEntryState(void) override
      {
       ResetEntryTracking();
@@ -550,69 +609,75 @@ public:
       ENUM_SIGNAL_TYPE crossSignal = DetectCross(fastBuffer, slowBuffer);
       datetime crossBarTime = iTime(m_symbol, m_active.fastTimeframe, 1);
 
-      if(crossSignal != SIGNAL_NONE && crossBarTime != m_lastCrossTime)
+      //--- ⚠ A transicao vive em FusionMACrossApply, funcao PURA compartilhada
+      //--- com a sonda. Aqui fica so o que depende do MT5: ler buffers, detectar
+      //--- o cruzamento, consultar as barreiras na hora certa e logar conforme a
+      //--- acao devolvida.
+      //---
+      //--- As barreiras sao consultadas SOB PRE-CONDICAO, e nao a esmo: cada
+      //--- consulta tem efeito colateral — desarma ao passar, loga ao recusar —,
+      //--- e chama-las num passo em que nada aconteceria gastaria a quarentena
+      //--- antes da hora.
+      SMACrossTrackingState state;
+      state.lastCrossTime     = m_lastCrossTime;
+      state.lastCrossSignal   = (int)m_lastCrossSignal;
+      state.candlesAfterCross = m_candlesAfterCross;
+      state.lastCheckBarTime  = m_lastCheckBarTime;
+      state.pendingImported   = m_pendingImported;
+
+      SMACrossEvent event;
+      event.crossDetected    = (crossSignal != SIGNAL_NONE);
+      event.crossSignal      = (int)crossSignal;
+      event.crossBarTime     = crossBarTime;
+      event.currentBarTime   = iTime(m_symbol, m_active.fastTimeframe, 0);
+      event.secondCandleMode = (m_entryMode == ENTRY_2ND_CANDLE);
+
+      //--- Cruzamento novo passa pelas DUAS barreiras (item 12 + intervalo cego).
+      bool newCrossBlocked = false;
+      if(FusionMACrossHasNewCross(state, event))
+         newCrossBlocked = EntryBarriersBlock(crossBarTime);
+
+      //--- Pendencia armada passa SO pela quarentena do item 12. A barreira
+      //--- visual nao se aplica: o cruzamento ja foi observado, nesta sessao ou
+      //--- na anterior, e recusa-lo aqui apagaria justamente o estado que a
+      //--- troca de timeframe deveria preservar.
+      bool pendingBlocked = false;
+      if(FusionMACrossPendingWouldFire(state, event))
+         pendingBlocked = FreshCandleBarrierBlocks(state.lastCrossTime);
+
+      SMACrossOutcome outcome;
+      FusionMACrossApply(state, event, newCrossBlocked, pendingBlocked, outcome);
+
+      m_lastCrossTime     = state.lastCrossTime;
+      m_lastCrossSignal   = (ENUM_SIGNAL_TYPE)state.lastCrossSignal;
+      m_candlesAfterCross = state.candlesAfterCross;
+      m_lastCheckBarTime  = state.lastCheckBarTime;
+      m_pendingImported   = state.pendingImported;
+
+      if(outcome.importedCancelled && m_logger != NULL)
+         m_logger.Debug("STRAT_MA",
+                        StringFormat("Pendencia importada cancelada por novo cruzamento em %s: o mercado invalidou a direcao preservada.",
+                                     TimeToString(crossBarTime, TIME_DATE | TIME_SECONDS)));
+
+      switch(outcome.action)
         {
-         //--- A barreira e conferida na DETECCAO do cruzamento, nao no disparo: o
-         //--- candle que importa e o que formou o sinal. Com `Segundo candle` isso
-         //--- impede que um cruzamento nascido no escuro fique armado para disparar
-         //--- depois. O cruzamento e consumido (m_lastCrossTime) para nao ser
-         //--- reavaliado a cada tick do mesmo candle.
-         if(FreshCandleBarrierBlocks(crossBarTime))
-           {
-            m_lastCrossTime = crossBarTime;
-            m_lastCrossSignal = SIGNAL_NONE;
-            m_candlesAfterCross = 0;
-            m_lastCheckBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
-            return SIGNAL_NONE;
-           }
-
-         m_lastCrossTime = crossBarTime;
-         m_lastCrossSignal = crossSignal;
-         m_candlesAfterCross = 0;
-         m_lastCheckBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
-
-         if(m_entryMode == ENTRY_NEXT_CANDLE)
-           {
-            LogCrossSnapshot("NEXT_CANDLE", crossSignal, fastBuffer, slowBuffer);
-            m_lastCrossSignal = SIGNAL_NONE;
-            return crossSignal;
-           }
-
-         LogCrossSnapshot("E2C_WAIT", crossSignal, fastBuffer, slowBuffer);
-         return SIGNAL_NONE;
+         case MA_ACTION_NEXT_CANDLE_FIRE:
+            LogCrossSnapshot("NEXT_CANDLE", (ENUM_SIGNAL_TYPE)outcome.signal, fastBuffer, slowBuffer);
+            break;
+         case MA_ACTION_E2C_ARM:
+            LogCrossSnapshot("E2C_WAIT", (ENUM_SIGNAL_TYPE)event.crossSignal, fastBuffer, slowBuffer);
+            break;
+         case MA_ACTION_E2C_FIRE:
+            LogCrossSnapshot("E2C_FIRE", (ENUM_SIGNAL_TYPE)outcome.signal, fastBuffer, slowBuffer);
+            break;
+         case MA_ACTION_E2C_FIRE_IMPORTED:
+            //--- Evidencia de que a troca de timeframe preservou o estado. E o
+            //--- que o roteiro de teste procura.
+            LogCrossSnapshot("E2C_FIRE_IMPORTADO", (ENUM_SIGNAL_TYPE)outcome.signal, fastBuffer, slowBuffer);
+            break;
         }
 
-      if(m_entryMode == ENTRY_2ND_CANDLE && m_lastCrossSignal != SIGNAL_NONE)
-        {
-         datetime currentBarTime = iTime(m_symbol, m_active.fastTimeframe, 0);
-         if(currentBarTime != m_lastCheckBarTime)
-           {
-            m_lastCheckBarTime = currentBarTime;
-            m_candlesAfterCross++;
-           }
-
-         if(m_candlesAfterCross >= 1)
-           {
-            //--- Rede de seguranca do disparo: um cruzamento armado ANTES da suspensao
-            //--- normalmente e apagado pelo priming, mas o priming nao roda com posicao
-            //--- aberta nem com o EA pausado. Aqui o invariante vale sozinho, sem
-            //--- depender de quem chamou o que. Zera so o sinal armado e preserva
-            //--- m_lastCrossTime, que ja identifica este cruzamento como consumido.
-            if(FreshCandleBarrierBlocks(m_lastCrossTime))
-              {
-               m_lastCrossSignal = SIGNAL_NONE;
-               m_candlesAfterCross = 0;
-               return SIGNAL_NONE;
-              }
-
-            ENUM_SIGNAL_TYPE signal = m_lastCrossSignal;
-            LogCrossSnapshot("E2C_FIRE", signal, fastBuffer, slowBuffer);
-            ResetEntryTracking();
-            return signal;
-           }
-        }
-
-      return SIGNAL_NONE;
+      return (ENUM_SIGNAL_TYPE)outcome.signal;
      }
 
    virtual ENUM_SIGNAL_TYPE GetExitSignal(const ENUM_POSITION_TYPE currentPosition) override

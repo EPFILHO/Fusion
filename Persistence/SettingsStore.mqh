@@ -54,7 +54,8 @@ public:
                                     const SPositionRuntimeState &state,
                                     const SStreakRuntimeState &streakState,
                                     const SDailyLimitsRuntimeState &dailyState,
-                                    const SDrawdownRuntimeState &drawdownState)
+                                    const SDrawdownRuntimeState &drawdownState,
+                                    const SEntryStateSnapshot &entryState)
      {
       return FusionSaveChartState(context,
                                   activeProfileName,
@@ -63,7 +64,8 @@ public:
                                   state,
                                   streakState,
                                   dailyState,
-                                  drawdownState);
+                                  drawdownState,
+                                  entryState);
      }
 
    bool              LoadChartState(const ulong chartId,
@@ -75,6 +77,8 @@ public:
                                     SStreakRuntimeState &streakState,
                                     SDailyLimitsRuntimeState &dailyState,
                                     SDrawdownRuntimeState &drawdownState,
+                                    SEntryStateSnapshot &entryState,
+                                    string &entryStateError,
                                     string &errorReason)
      {
       return FusionLoadChartState(chartId,
@@ -86,6 +90,8 @@ public:
                                   streakState,
                                   dailyState,
                                   drawdownState,
+                                  entryState,
+                                  entryStateError,
                                   errorReason);
      }
   };

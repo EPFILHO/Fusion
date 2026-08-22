@@ -15,6 +15,7 @@
       m_startBlockedReason  = "";
       m_activeProfileBlockedReason = "";
       m_runtimeNotice       = "";
+      m_handoffNoticeText   = "";
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
       m_entryBlockNoticeActive = false;

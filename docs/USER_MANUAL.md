@@ -618,14 +618,60 @@ Perfil e chart state são conceitos diferentes. O perfil guarda configuração; 
 
 ### 15.1. Troca do timeframe do gráfico
 
-Quatro fatos, e só estes:
+Trocar o timeframe do gráfico **reinicializa o EA por dentro**: o MT5 descarrega e recarrega o programa. O Fusion trata esse intervalo de poucos segundos como um reinício visual controlado, e não como um desligamento.
 
-1. **Os timeframes operacionais não mudam.** Nenhuma estratégia e nenhum filtro passa a calcular em outro timeframe por causa disso.
-2. **O estado confirmado pode ser restaurado**, inclusive o estado iniciado — a troca acontece dentro de uma sessão em andamento e leva segundos.
+**O que não muda:**
+
+1. **Os timeframes operacionais não mudam.** Trocar o timeframe visual do gráfico não altera o período em que qualquer estratégia ou filtro calcula. A GUI e os `input` do Fusion oferecem **somente períodos concretos** — `M1`, `M5`, `H1` e os demais da lista —, então não existe módulo cujo timeframe seja "o do gráfico". Valores zero ou legados equivalentes a `PERIOD_CURRENT` são normalizados para um período concreto antes de a configuração ser aplicada.
+2. **O estado confirmado é restaurado**, inclusive o estado iniciado — a troca acontece dentro de uma sessão em andamento.
 3. **Rascunhos não salvos são descartados.** Se havia alteração pendente na tela, ela não é salva nem aplicada, e o Fusion avisa explicitamente que foi descartada.
-4. **Os estados de entrada anteriores são consumidos**, e o Fusion aguarda um sinal novo. Um cruzamento que já valia antes da troca não vira ordem depois dela.
 
 O que muda de visível é apenas o desenho: curvas cujo timeframe não coincide com o novo timeframe do gráfico deixam de ser exibidas.
+
+#### O que acontece com os sinais
+
+Se o EA **estava iniciado** e o contexto continua compatível, um sinal **já observado antes da troca** pode ser preservado e continuar valendo depois dela. É o caso da MA Cross no modo *Segundo candle*: um cruzamento reconhecido, à espera do candle seguinte, atravessa a troca e dispara no candle operacional correto, uma única vez.
+
+Isso vale dentro de limites estritos:
+
+- **A janela máxima é de 120 segundos.** Passado esse tempo entre o desligamento e a volta, o estado é considerado velho e descartado.
+- **Sinal formado durante o intervalo cego não é aproveitado.** Enquanto o EA estava sendo recarregado, ninguém estava acompanhando o mercado; um cruzamento nascido inteiro nesse vão não vira ordem. Só vale sinal de candle iniciado **depois** da volta.
+- **Um contracruzamento no intervalo cego cancela a pendência anterior** — e ele próprio também não opera. O resultado é nenhuma entrada, em nenhuma das duas direções.
+- **A quarentena de reconexão continua independente e tem prioridade.** Se a permissão de negociação caiu e voltou, a regra descrita na seção sobre reconexão prevalece sobre tudo isto.
+
+#### Com posição aberta
+
+Trocar o timeframe com operação em andamento é seguro:
+
+- a posição é **ressincronizada** assim que o EA volta;
+- **gerenciamento, saída e proteções continuam** — SL, TP, trailing, breakeven e parcial seguem valendo;
+- **nenhum sinal de nova entrada é preservado**;
+- **nenhuma nova posição é aberta** enquanto a atual permanecer ativa.
+
+No diário aparece uma linha informativa dizendo exatamente isso. Não é aviso de erro e não vai para o painel.
+
+#### Quando o estado não é preservado
+
+O Fusion volta ao comportamento conservador — descarta os sinais e espera sinal novo — sempre que:
+
+- havia **posição aberta ou fechamento em reconciliação**;
+- a **configuração operacional mudou** e ficou incompatível com a de origem;
+- havia **bloqueio** operacional, de permissão de negociação ou de proteção;
+- o estado gravado estava **inválido, incompleto ou vencido**;
+- o **ativo do gráfico mudou**;
+- o EA **não estava iniciado**.
+
+#### O que isto não promete
+
+A preservação vale **apenas** para a troca do timeframe do próprio gráfico. Ela **não** acontece em:
+
+- reinício do terminal;
+- recompilação ou reanexo do EA;
+- troca de ativo;
+- intervalos maiores que 120 segundos;
+- configuração operacional incompatível.
+
+Nesses casos o comportamento é o de sempre: novas entradas pausadas, sinais descartados, e uma posição aberta continua sendo gerenciada normalmente.
 
 ## 16. Diagnóstico e arquivos gerados
 

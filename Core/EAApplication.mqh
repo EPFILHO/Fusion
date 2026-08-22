@@ -85,6 +85,10 @@ private:
    string                  m_startBlockedReason;
    string                  m_activeProfileBlockedReason;
    string                  m_runtimeNotice;
+   //--- Propriedade EXCLUSIVA do aviso de handoff: guarda o texto que ESTA
+   //--- publicado por ele, para que a limpeza saiba distinguir "ainda e o meu
+   //--- aviso" de "outro aviso mais importante ja tomou a tela".
+   string                  m_handoffNoticeText;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
    bool                    m_entryBlockNoticeActive;
@@ -201,6 +205,20 @@ private:
       ResetDailyLimitsRuntimeState(restoredDailyState);
       ResetDrawdownRuntimeState(restoredDrawdownState);
       string chartStateLoadError = "";
+      //--- Canal proprio: um bloco `entry.*` estragado nao derruba o runtime.
+      SEntryStateSnapshot restoredEntryState;
+      ResetEntryStateSnapshot(restoredEntryState);
+      string entryStateError = "";
+      //--- Settings que PRODUZIRAM o estado, guardadas antes de o perfil
+      //--- canonico poder substitui-las. A comparacao de compatibilidade da
+      //--- etapa 2 e "origem do estado" contra "operacional final"; sem esta
+      //--- copia, os dois lados seriam o mesmo objeto e a comparacao mentiria.
+      SEASettings entryOriginSettings;
+      bool entryOriginSettingsKnown = false;
+      //--- ⚠ Comparado direto entre o contexto SALVO e o simbolo do grafico
+      //--- atual, antes de m_chartContext ser sobrescrito. Depois disso os dois
+      //--- passam a ser o mesmo valor e a comparacao sempre daria verdadeira.
+      bool entrySameSymbol = false;
 
       if(m_settingsStore.LoadChartState(m_chartContext.chartId,
                                         restoredContext,
@@ -211,6 +229,8 @@ private:
                                         restoredStreakState,
                                         restoredDailyState,
                                         restoredDrawdownState,
+                                        restoredEntryState,
+                                        entryStateError,
                                         chartStateLoadError))
         {
          if(!ShouldRestoreSavedState(restoredContext))
@@ -235,6 +255,16 @@ private:
                                               ? (ENUM_TIMEFRAMES)restoredContext.periodValue
                                               : OperationalFallbackTimeframe();
             ResolveOperationalTimeframes(restoredSettings, restoreFallback);
+
+            //--- ⚠ AQUI, e nao antes nem depois. Antes, os timeframes salvos
+            //--- ainda nao estao normalizados e a comparacao acusaria diferenca
+            //--- que nao existe; depois, `restoredSettings` pode ja ter virado o
+            //--- perfil canonico e a copia deixaria de ser a origem do estado.
+            //--- Esta e a configuracao que de fato PRODUZIU o bloco `entry.*`.
+            entryOriginSettings = restoredSettings;
+            entryOriginSettingsKnown = true;
+            entrySameSymbol = (restoredContext.symbol == _Symbol);
+
             string restoredActiveProfile = (restoredProfile == "") ? restoredSettings.defaultProfileName : restoredProfile;
             bool restoredDrawdownLocked = (restoredDrawdownState.dayKey == FusionProtectionCurrentDayKey() &&
                                            (restoredDrawdownState.protectionActive || restoredDrawdownState.limitReached));
@@ -399,14 +429,33 @@ private:
             TryAuditDailyHistory(true);
         }
 
-      if(restoredRunningAfterChartChange && !HasManagedOrPendingPosition())
-        {
-         m_signalManager.PrimeEntryStates();
-         m_logger.Info("SIGNAL", "Sinais existentes descartados apos troca de timeframe; aguardando novo sinal.");
-        }
-
+      //--- ⚠ A permissao e atualizada ANTES de montar o contexto do handoff. O
+      //--- guard nasce DESBLOQUEADO e so vira verdade depois do primeiro
+      //--- Refresh(): ler o valor inicial diria "pode operar" mesmo com o
+      //--- AutoTrading desligado, e um estado seria importado atraves de um
+      //--- bloqueio.
       if(!m_runtimeBlocked)
          RefreshTradePermissionState();
+
+      //--- Handoff do estado de entrada. Roda DEPOIS de: handles criados
+      //--- (m_signalManager.Initialize), protecoes importadas, posicao e
+      //--- fechamento pendente sincronizados, e permissao ja consultada de
+      //--- verdade. E ANTES de qualquer avaliacao de entrada — o primeiro tick
+      //--- so vem depois de Initialize() retornar.
+      //---
+      //--- ⚠ SOMENTE na troca de timeframe. Chamado em todo boot, ele fazia
+      //--- reanexo, recompilacao e inicializacao normal armarem a barreira do
+      //--- intervalo cego — mudando a semantica de inicializacao fora do escopo
+      //--- desta tarefa. O predicado puro continua cobrindo NOT_CHART_CHANGE
+      //--- para teste defensivo, mas o caminho real nao transforma todo boot
+      //--- numa falsa troca visual.
+      if(restoredRunningAfterChartChange)
+         RestoreEntryStateAfterChartChange(restoredEntryState,
+                                           entryStateError,
+                                           entryOriginSettings,
+                                           entryOriginSettingsKnown,
+                                           entrySameSymbol,
+                                           restoredStarted);
 
       if(m_runtimeBlocked)
          m_logger.Warn("CONTEXT", m_runtimeBlockReason);
@@ -497,6 +546,7 @@ private:
       if(m_positionState.hasPosition)
         {
          ClearProtectionNotice();
+         ClearHandoffNotice();
          ManageOpenPosition();
          UpdateLivePanelIfDue();
          return;

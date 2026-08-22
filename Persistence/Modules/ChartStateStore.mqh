@@ -13,7 +13,8 @@ bool FusionSaveChartState(const SChartStateContext &context,
                           const SPositionRuntimeState &state,
                           const SStreakRuntimeState &streakState,
                           const SDailyLimitsRuntimeState &dailyState,
-                          const SDrawdownRuntimeState &drawdownState)
+                          const SDrawdownRuntimeState &drawdownState,
+                          const SEntryStateSnapshot &entryState)
   {
    FusionSettingsEnsureFolders();
 
@@ -85,6 +86,26 @@ bool FusionSaveChartState(const SChartStateContext &context,
    ok = FusionSettingsWriteLine(handle, "drawdown.triggerDrawdownAmount", DoubleToString(drawdownState.triggerDrawdownAmount, 2)) && ok;
    ok = FusionSettingsWriteLine(handle, "drawdown.triggerBufferProfit", DoubleToString(drawdownState.triggerBufferProfit, 2)) && ok;
 
+   //--- Bloco `entry.*`: estado logico de entrada. Escrito sempre e inteiro. Um
+   //--- bloco pela metade e pior que bloco nenhum — a leitura recusa parcial,
+   //--- entao gravar tudo ou nada mantem as duas pontas coerentes.
+   ok = FusionSettingsWriteLine(handle, "entry.version", IntegerToString(entryState.version)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.capturedAt", IntegerToString((long)entryState.capturedAt)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.eligible", IntegerToString((int)entryState.eligible)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.lastCrossTime", IntegerToString((long)entryState.maLastCrossTime)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.lastCrossSignal", IntegerToString(entryState.maLastCrossSignal)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.candlesAfterCross", IntegerToString(entryState.maCandlesAfterCross)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.lastCheckBarTime", IntegerToString((long)entryState.maLastCheckBarTime)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.pendingObserved", IntegerToString((int)entryState.maPendingObserved)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.quarantine", IntegerToString((int)entryState.maQuarantine)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.ma.barrier", IntegerToString((long)entryState.maBarrier)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.rsi.lastSignalBarTime", IntegerToString((long)entryState.rsiLastSignalBarTime)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.rsi.quarantine", IntegerToString((int)entryState.rsiQuarantine)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.rsi.barrier", IntegerToString((long)entryState.rsiBarrier)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.bb.lastSignalBarTime", IntegerToString((long)entryState.bbLastSignalBarTime)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.bb.quarantine", IntegerToString((int)entryState.bbQuarantine)) && ok;
+   ok = FusionSettingsWriteLine(handle, "entry.bb.barrier", IntegerToString((long)entryState.bbBarrier)) && ok;
+
    FileFlush(handle);
    FileClose(handle);
    if(!ok)
@@ -110,10 +131,19 @@ bool FusionLoadChartState(const ulong chartId,
                           SStreakRuntimeState &streakState,
                           SDailyLimitsRuntimeState &dailyState,
                           SDrawdownRuntimeState &drawdownState,
+                          SEntryStateSnapshot &entryState,
+                          string &entryStateError,
                           string &errorReason)
   {
    FusionSettingsEnsureFolders();
    errorReason = "";
+   //--- ⚠ Canal de erro SEPARADO. Um bloco `entry.*` estragado invalida so a
+   //--- continuidade dos sinais; posicao, parcial, DAY, drawdown, streak,
+   //--- identidade do perfil e settings continuam sendo publicados. Misturar
+   //--- este motivo no errorReason faria um detalhe de sinal derrubar o
+   //--- runtime financeiro inteiro.
+   entryStateError = "";
+   ResetEntryStateSnapshot(entryState);
 
    string fileName = FusionChartStateFileName(chartId);
    int handle = FileOpen(fileName, FILE_READ | FILE_TXT | FILE_ANSI);
@@ -179,6 +209,17 @@ bool FusionLoadChartState(const ulong chartId,
    bool seenBBFilter = false;
    bool seenLegacyTail = false;
    bool seenCurrentTail = false;
+
+   SEntryStateSnapshot candidateEntry;
+   ResetEntryStateSnapshot(candidateEntry);
+   int  entryLineCount = 0;
+   //--- "O arquivo TRAZIA bloco entry.*", independente de ele prestar. Marcado
+   //--- por prefixo, antes de qualquer classificacao — inclusive por chave
+   //--- desconhecida. E o que separa arquivo antigo de bloco corrompido.
+   bool entryBlockSeen = false;
+   bool seenEntryFields[FUSION_ENTRY_STATE_FIELD_COUNT];
+   ArrayInitialize(seenEntryFields, false);
+   string entryStructuralError = "";
 
    string structuralError = "";
 
@@ -265,6 +306,34 @@ bool FusionLoadChartState(const ulong chartId,
             seenDrawdownFields[fieldIndex] = true;
             drawdownLineCount++;
            }
+        }
+      //--- ⚠ ANTES do catch-all de settings, e com erro proprio. Sem este ramo
+      //--- as chaves `entry.*` cairiam no `else` abaixo, entrariam no
+      //--- settingLineCount e seriam entregues ao parser de configuracao —
+      //--- quebrando a contagem que valida o bloco de perfil.
+      else if(StringFind(key, "entry.") == 0)
+        {
+         entryBlockSeen = true;
+
+         int fieldIndex = FusionChartStateEntryFieldIndex(key);
+         if(fieldIndex < 0)
+           {
+            if(entryStructuralError == "")
+               entryStructuralError = "bloco de entrada contem chave desconhecida: " + key;
+           }
+         else if(seenEntryFields[fieldIndex])
+           {
+            if(entryStructuralError == "")
+               entryStructuralError = "bloco de entrada contem chave duplicada: " + key;
+           }
+         else
+           {
+            seenEntryFields[fieldIndex] = true;
+            entryLineCount++;
+            FusionApplyEntryStateField(key, value, candidateEntry);
+           }
+         //--- Nao interrompe a leitura: o resto do arquivo continua valendo.
+         continue;
         }
       else
         {
@@ -375,6 +444,40 @@ bool FusionLoadChartState(const ulong chartId,
    FusionNormalizeTrendSettings(candidateSettings);
    FusionNormalizeVisualSettings(candidateSettings);
    candidateSettings.schemaVersion = FUSION_SETTINGS_SCHEMA_VERSION;
+
+   //--- Bloco de entrada, avaliado por ULTIMO e a parte. Qualquer veredito aqui
+   //--- afeta so a continuidade dos sinais: o runtime financeiro abaixo e
+   //--- publicado de qualquer forma.
+   //---
+   //--- Tres desfechos:
+   //---   nenhuma linha  -> arquivo antigo. Sem continuidade, e sem erro.
+   //---   linhas erradas -> continuidade invalida, com motivo.
+   //---   bloco inteiro  -> candidato, se passar na sanidade semantica.
+   if(!entryBlockSeen)
+      entryStateError = "";                       // compatibilidade com arquivo anterior a este bloco
+   else if(entryStructuralError != "")
+      entryStateError = entryStructuralError;
+   else if(entryLineCount != FUSION_ENTRY_STATE_FIELD_COUNT)
+      entryStateError = "bloco de entrada incompleto";
+   else
+     {
+      string semanticError = FusionValidateEntryStateSnapshot(candidateEntry);
+      if(semanticError != "")
+         entryStateError = semanticError;
+      else
+        {
+         //--- ⚠ Unico ponto que publica CAMPO. Estado parcial nunca sai daqui.
+         candidateEntry.present = true;
+         candidateEntry.valid   = true;
+         entryState = candidateEntry;
+        }
+     }
+
+   //--- ⚠ `present` sai mesmo no caso invalido, e SOZINHO: o chamador precisa
+   //--- distinguir "arquivo antigo" de "bloco corrompido", mas nao pode receber
+   //--- nenhum campo parcial junto. entryState continua com o reset da entrada.
+   if(entryBlockSeen)
+      entryState.present = true;
 
    context = candidateContext;
    activeProfileName = candidateActiveProfileName;

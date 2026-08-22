@@ -162,6 +162,29 @@ public:
       return true;
      }
 
+   //--- Exportacao/importacao do estado logico. A quarentena do item 12 viaja
+   //--- junto, pelo mesmo motivo das outras duas estrategias.
+   virtual void      ExportEntryState(SEntryStateSnapshot &snapshot) const override
+     {
+      snapshot.bbLastSignalBarTime = m_lastSignalBarTime;
+      snapshot.bbQuarantine        = ExportQuarantine(snapshot.bbBarrier);
+     }
+
+   virtual bool      ImportEntryState(const SEntryStateSnapshot &snapshot,string &reason) override
+     {
+      reason = "";
+      m_lastSignalBarTime = snapshot.bbLastSignalBarTime;
+      ImportQuarantine(snapshot.bbQuarantine, snapshot.bbBarrier);
+      return true;
+     }
+
+   virtual bool      EntryStateCompatible(const SEASettings &origin,const SEASettings &current) const override
+     { return FusionBollingerEntryStateCompatible(origin, current); }
+
+   //--- Handle valido tambem, pelo mesmo motivo do RSI.
+   virtual bool      ReadyForEntryStateImport(void) const override
+     { return (m_enabled && m_initialized && m_handle != INVALID_HANDLE); }
+
    virtual void      PrimeEntryState(void) override
      {
       ResetEntryTracking();
@@ -190,7 +213,7 @@ public:
       //--- Candle iniciado antes da liberacao da permissao nao vale como entrada,
       //--- mesmo que o sinal seja de um [1] ainda nao visto. Consome o candle para
       //--- nao reavaliar a cada tick.
-      if(FreshCandleBarrierBlocks(signalBarTime))
+      if(EntryBarriersBlock(signalBarTime))
         {
          m_lastSignalBarTime = signalBarTime;
          return SIGNAL_NONE;

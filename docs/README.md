@@ -24,6 +24,12 @@ A 2.000 **preserva a arquitetura operacional da 1.058**, tendo a GUI como mudan�
 - `GUI_2000_FASE3_PENDENTES.md`: fechamento da Fase 3.
 - `GUI_2000_FASE4.md`: fechamento da Fase 4 — a remoção do painel clássico, e as pendências que atravessaram.
 
+### Correções operacionais da 2.000
+
+- `FIX_SINAL_REPRESADO_RECONEXAO.md`: o desenho da quarentena de reconexão e volta de permissão — por que o critério é o candle, e nunca um prazo em milissegundos.
+- `FIX_SINAL_REPRESADO_TESTES.md`: o roteiro de aceite daquela correção.
+- `PRESERVACAO_SINAL_TROCA_TIMEFRAME_TESTES.md`: evidências do aceite da preservação do estado de entrada na troca do timeframe visual. Separa explicitamente prova automatizada, prova manual no EA real e cobertura estrutural não provocada. ⚠️ A sonda usada ali era **temporária** e foi removida no mesmo commit; o documento preserva o resultado, não a ferramenta.
+
 - `USER_MANUAL.md`: **Manual do Usuário 2.000** — atualizado para a GUI 2.0. Descreve instalação, primeiro uso, cabeçalho e estados, as sete abas, estratégias, filtros, gestão, perfis, indicadores visuais, diagnóstico e a referência completa dos `input`. É a fonte de uso do produto.
 - `DOCUMENTATION_AUDIT_1057.md`: escopo e resultado da revisão documental da 1.057. Documento histórico.
 

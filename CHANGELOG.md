@@ -50,13 +50,25 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - Num grafico **pequeno demais** para acomodar painel e legenda pode haver sobreposicao. Nesse caso o painel **sempre conserva a prioridade de clique**: abas, botoes, campos, comboboxes e barra de rolagem respondem normalmente mesmo com a legenda por cima.
 - A escolha e **independente por grafico** e sobrevive a troca de timeframe, a desligar e religar os indicadores, a reanexar o EA e a reiniciar o terminal. E preferencia visual: nao entra no perfil, nao passa por `SALVAR`, nao cria pendencia e nao toca schema nem chart state.
 
+### Estado de entrada preservado na troca do timeframe visual
+
+- Trocar o timeframe do grafico **deixou de descartar automaticamente os sinais ja reconhecidos**. Quando o EA estava iniciado e o contexto continua compativel, o estado logico de entrada atravessa a reinicializacao. O caso que motivou a mudanca: uma pendencia de **segundo candle** da MA Cross, reconhecida antes da troca, era perdida e o cruzamento nunca virava ordem.
+- A preservacao vale **somente** para `REASON_CHARTCHANGE` e dentro de uma **janela de 120 segundos**. Reinicio do terminal, recompilacao, reanexo, troca de ativo e intervalos maiores continuam com o comportamento conservador de sempre.
+- **Sinal formado durante o intervalo cego nao atravessa.** Enquanto o EA e recarregado ninguem acompanha o mercado, entao so vale sinal de candle iniciado depois da volta. Um contracruzamento nascido nesse vao **cancela a pendencia anterior** e tambem nao opera — o resultado e nenhuma entrada, em nenhuma direcao.
+- A barreira do intervalo cego e **independente** da quarentena de reconexao, que continua tendo prioridade. Enquanto a barreira nao conhece o horario do candle, ela bloqueia.
+- **Com posicao aberta nada e preservado, e nada muda no gerenciamento.** A posicao e ressincronizada, SL, TP, trailing, breakeven e parcial seguem valendo, e nenhuma nova entrada e aberta enquanto ela permanecer ativa. O diario registra isso em `INFO`; nao vai aviso ao painel, porque a existencia da posicao ja e o motivo esperado.
+- Causam **fallback conservador**: posicao aberta ou fechamento em reconciliacao, configuracao operacional incompativel, bloqueio operacional, de permissao ou de protecao, estado invalido ou vencido, ativo trocado e EA nao iniciado.
+- A restauracao e **por estrategia**: uma que falha e primeada com seguranca sem desfazer as demais. Estrategia desligada e resetada e nunca contada como falha.
+- O aviso do handoff passou a ter **propriedade exclusiva do texto** e limpeza por comparacao exata, para nunca apagar um aviso acionavel — AutoTrading, protecao ou perfil — e para nao ficar preso na tela depois que deixa de valer.
+- Mensagens ao operador deixaram de falar em "continuidade nao autorizada no desligamento": quem troca o timeframe nao desligou nada.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.
 
 ### Compatibilidade, documentacao e build
 
-- **O formato e o schema dos perfis da 1.058 permanecem compativeis**: nem o arquivo de perfil, nem o chart state, nem a versao do formato de persistencia mudaram nesta versao. Um perfil antigo **carrega normalmente**. O que pode mudar e o comportamento: uma configuracao de MA Cross que a regra antiga aceitava — tipicamente com timeframes diferentes entre rapida e lenta — pode ser invalida sob a regra nova, e nesse caso o perfil carrega, mas as **entradas da MA Cross ficam suspensas** ate a configuracao ser corrigida.
+- **O chart state recebeu um bloco `entry.*` aditivo e retrocompativel; o formato dos perfis e a versao do schema permaneceram inalterados.** O bloco tem versao propria, independente do schema do arquivo. Um chart state gravado por versao anterior, sem o bloco, carrega normalmente e apenas nao restaura estado de entrada. Um perfil antigo tambem **carrega normalmente**. O que pode mudar e o comportamento: uma configuracao de MA Cross que a regra antiga aceitava — tipicamente com timeframes diferentes entre rapida e lenta — pode ser invalida sob a regra nova, e nesse caso o perfil carrega, mas as **entradas da MA Cross ficam suspensas** ate a configuracao ser corrigida.
 - O `Manual do Usuario` foi reescrito para a GUI 2.0, com o cabecalho e seus estados, as sete abas, o que muda ao trocar o timeframe do grafico e a referencia completa dos `input` conferida contra o codigo.
 - Versao central em `2.000`, com `Fusion.mq5` e os tres indicadores visuais lendo dela ou declarando o mesmo numero. Build limpo nos quatro alvos: `0 errors, 0 warnings`.
 - Aceite da GUI 2.0 executado no MT5 em conta demo: 89 de 89 passos do roteiro da Fase 3, mais o smoke do binario definitivo.

@@ -30,6 +30,63 @@ protected:
    //--- reavaliar o mesmo candle.
    bool             m_freshCandleBlockLogged;
    datetime         m_freshCandleLoggedBar;
+   //--- Barreira do INTERVALO CEGO da troca do timeframe visual.
+   //---
+   //--- ⚠ SEPARADA da quarentena do item 12, de proposito. As duas parecem
+   //--- iguais e decidem coisas diferentes:
+   //---
+   //---   quarentena (item 12) — a permissao de trading voltou. Pode invalidar
+   //---     ate um sinal que ja estava pendente, porque o EA esteve cego para o
+   //---     mercado inteiro.
+   //---   barreira visual — o EA se reinicializou por troca de timeframe. So
+   //---     recusa sinais NOVOS, nao observados antes do desligamento. Um
+   //---     E2C_WAIT importado atravessa esta, porque ele JA tinha sido visto.
+   //---
+   //--- Um booleano so para as duas deixaria o estado importado burlar o item
+   //--- 12 ou a barreira visual apagar a pendencia preservada.
+   bool             m_visualQuarantine;
+   datetime         m_visualBarrier;
+   bool             m_visualBlockLogged;
+   datetime         m_visualLoggedBar;
+
+   //--- Mesma licao do item 12: captura TARDIA, debaixo do primeiro tick com a
+   //--- serie respondendo. Capturar na reinicializacao leria o mundo do ultimo
+   //--- tick antes do desligamento.
+   bool              CaptureVisualBarrier(void)
+     {
+      if(m_visualBarrier > 0)
+         return true;
+      if(!m_initialized || m_symbol == "")
+         return false;
+
+      datetime openBar = iTime(m_symbol, ReferenceTimeframe(), 0);
+      if(openBar <= 0)
+         return false;
+
+      m_visualBarrier = openBar;
+      return true;
+     }
+
+   void              LogVisualBlock(const datetime signalBarTime)
+     {
+      if(m_logger == NULL)
+         return;
+      if(m_visualBlockLogged && signalBarTime == m_visualLoggedBar)
+         return;
+
+      m_visualBlockLogged = true;
+      m_visualLoggedBar   = signalBarTime;
+
+      string barrier = (m_visualBarrier > 0)
+                       ? FormatBarTime(m_visualBarrier)
+                       : "ainda desconhecida (serie indisponivel)";
+
+      m_logger.Debug("SIGNAL",
+                     StringFormat("Sinal do intervalo cego recusado - %s. Candle do sinal %s, barreira visual %s.",
+                                  m_name,
+                                  FormatBarTime(signalBarTime),
+                                  barrier));
+     }
 
    string            FormatBarTime(const datetime value) const
      {
@@ -116,6 +173,10 @@ public:
       m_freshCandleBarrier     = 0;
       m_freshCandleBlockLogged = false;
       m_freshCandleLoggedBar   = 0;
+      m_visualQuarantine       = false;
+      m_visualBarrier          = 0;
+      m_visualBlockLogged      = false;
+      m_visualLoggedBar        = 0;
      }
 
    virtual          ~CStrategyBase(void) {}
@@ -137,10 +198,113 @@ public:
       m_freshCandleBarrier     = 0;
       m_freshCandleBlockLogged = false;
       m_freshCandleLoggedBar   = 0;
+      m_visualQuarantine       = false;
+      m_visualBarrier          = 0;
+      m_visualBlockLogged      = false;
+      m_visualLoggedBar        = 0;
      }
 
    virtual bool      Reload(const SEASettings &settings,const ENUM_RELOAD_SCOPE scope) = 0;
    virtual void      PrimeEntryState(void) {}
+
+   //--- Contrato do handoff de estado logico. Virtual para o SignalManager
+   //--- percorrer as estrategias sem conhecer o tipo concreto de cada uma —
+   //--- casts por id seriam uma segunda tabela de "quem e quem".
+   //--- ⚠ TODOS os defaults falham FECHADO. Uma estrategia futura que esquecesse
+   //--- um override seria anunciada como restaurada sem ter importado nada — e o
+   //--- log mentiria sobre preservacao de sinal. Sem suporte explicito, ela e
+   //--- incompativel, nao esta pronta e a importacao recusa com motivo.
+   virtual void      ExportEntryState(SEntryStateSnapshot &snapshot) const {}
+
+   virtual bool      ImportEntryState(const SEntryStateSnapshot &snapshot,string &reason)
+     {
+      reason = "estrategia sem suporte a handoff de estado de entrada";
+      return false;
+     }
+
+   virtual bool      EntryStateCompatible(const SEASettings &origin,const SEASettings &current) const
+     { return false; }
+
+   virtual bool      ReadyForEntryStateImport(void) const
+     { return false; }
+
+   //--- Quarentena do item 12, exposta para atravessar a troca de timeframe.
+   //---
+   //--- ⚠ Ela viaja com o estado de propriedade: um E2C_WAIT importado NAO pode
+   //--- servir de atalho para burlar a exigencia de sinal fresco depois de uma
+   //--- volta de permissao. Se a quarentena estava armada no desligamento, ela
+   //--- volta armada.
+   bool              ExportQuarantine(datetime &barrier) const
+     {
+      barrier = m_freshCandleBarrier;
+      return m_freshCandleQuarantine;
+     }
+
+   void              ImportQuarantine(const bool active,const datetime barrier)
+     {
+      //--- ⚠ NAO toca a barreira visual. As duas sao independentes: importar a
+      //--- quarentena do item 12 nao pode apagar a protecao do intervalo cego.
+      m_freshCandleQuarantine  = active;
+      m_freshCandleBarrier     = (active && barrier > 0) ? barrier : 0;
+      m_freshCandleBlockLogged = false;
+      m_freshCandleLoggedBar   = 0;
+     }
+
+   //--- Arma a barreira do intervalo cego. Nasce ATIVA e sem horario; quem
+   //--- captura e RefreshVisualBarrier, no primeiro tick com serie.
+   //---
+   //--- Trocas visuais sucessivas apenas rearmam: o estado pendente importado
+   //--- nao e tocado aqui.
+   void              SuspendEntriesUntilFreshCandleVisual(void)
+     {
+      m_visualQuarantine  = true;
+      m_visualBarrier     = 0;
+      m_visualBlockLogged = false;
+      m_visualLoggedBar   = 0;
+     }
+
+   void              RefreshVisualBarrier(void)
+     {
+      if(!m_visualQuarantine)
+         return;
+      CaptureVisualBarrier();
+     }
+
+   //--- Recusa sinal NOVO nascido no intervalo cego. Mesmo criterio do item 12:
+   //--- so vale candle iniciado DEPOIS da barreira, e sem horario bloqueia.
+   bool              VisualBarrierBlocks(const datetime signalBarTime)
+     {
+      if(!m_visualQuarantine)
+         return false;
+
+      if(m_visualBarrier <= 0 || signalBarTime <= 0)
+        {
+         LogVisualBlock(signalBarTime);
+         return true;
+        }
+
+      if(signalBarTime > m_visualBarrier)
+        {
+         m_visualQuarantine  = false;
+         m_visualBarrier     = 0;
+         m_visualBlockLogged = false;
+         m_visualLoggedBar   = 0;
+         return false;
+        }
+
+      LogVisualBlock(signalBarTime);
+      return true;
+     }
+
+   //--- Porta unica dos sinais NOVOS: as duas barreiras, nesta ordem. A do item
+   //--- 12 vem primeiro porque e a mais forte — ela pode recusar o que a visual
+   //--- deixaria passar.
+   bool              EntryBarriersBlock(const datetime signalBarTime)
+     {
+      if(FreshCandleBarrierBlocks(signalBarTime))
+         return true;
+      return VisualBarrierBlocks(signalBarTime);
+     }
 
    //--- Consumir o estado vigente nao basta quando a permissao de trading volta no
    //--- meio de um candle: esse candle vira [1] no fechamento e comecou a se formar
@@ -164,6 +328,7 @@ public:
    //--- antes da liberacao. A barreira nasce desconhecida, e desconhecida bloqueia.
    virtual void      SuspendEntriesUntilFreshCandle(void)
      {
+      //--- ⚠ NAO toca a barreira visual: dominios separados.
       m_freshCandleQuarantine  = true;
       m_freshCandleBarrier     = 0;
       m_freshCandleBlockLogged = false;
@@ -212,6 +377,8 @@ public:
 
       if(signalBarTime > m_freshCandleBarrier)
         {
+         //--- Desarma SO a quarentena do item 12. A barreira visual, se armada,
+         //--- continua valendo e e avaliada em VisualBarrierBlocks.
          m_freshCandleQuarantine  = false;
          m_freshCandleBarrier     = 0;
          m_freshCandleBlockLogged = false;

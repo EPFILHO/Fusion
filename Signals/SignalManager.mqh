@@ -128,6 +128,116 @@ public:
             m_strategies[i].PrimeEntryState();
      }
 
+   //--- Exportacao do estado logico para o chart state. Parte sempre de um
+   //--- snapshot ja resetado pelo chamador; aqui so se preenche versao, hora e
+   //--- o que cada estrategia sabe de si.
+   //---
+   //--- `present` e `valid` NAO sao preenchidos: sao campos de runtime do
+   //--- carregamento, e nao entram nas 16 linhas serializadas.
+   void              ExportEntryStates(SEntryStateSnapshot &snapshot)
+     {
+      snapshot.version    = FUSION_ENTRY_STATE_VERSION;
+      if(snapshot.capturedAt <= 0)
+         snapshot.capturedAt = TimeLocal();
+
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+         if(m_strategies[i] != NULL)
+            m_strategies[i].ExportEntryState(snapshot);
+     }
+
+   //--- ⚠ Barreira do intervalo cego em TODAS as estrategias, inclusive as
+   //--- desligadas. Uma estrategia habilitada logo depois da troca entraria com
+   //--- um [1] formado enquanto o EA se reinicializava. Ela fica armada e SEM
+   //--- horario; o primeiro tick apos ser habilitada captura o candle vigente.
+   void              SuspendEntriesUntilFreshCandleVisualAll(void)
+     {
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+         if(m_strategies[i] != NULL)
+            m_strategies[i].SuspendEntriesUntilFreshCandleVisual();
+     }
+
+   //--- Restauracao por estrategia. Devolve quantas foram importadas e monta a
+   //--- descricao para o log.
+   //---
+   //--- ⚠ Uma estrategia que nao pode importar recebe PrimeEntryState()
+   //--- INDIVIDUAL — inclusive desligada. Isso nao passa pelo PrimeEntryStates()
+   //--- generico, cuja semantica (so estrategias habilitadas) e usada por outros
+   //--- oito chamadores e nao pode mudar por causa desta restauracao.
+   //---
+   //--- ⚠ Falha de uma NAO desfaz as outras: restauracao parcial e um desfecho
+   //--- legitimo, e derrubar tudo por causa de uma trocaria um problema pequeno
+   //--- por um grande.
+   //--- ⚠ TRES categorias, e nao duas. Estrategia DESLIGADA nao e falha: ela e
+   //--- resetada por seguranca e entra em `inactiveList`. Misturar as duas fazia
+   //--- a configuracao mais comum — so MA ativa — parecer restauracao parcial em
+   //--- toda troca de timeframe.
+   //---
+   //---   importedList  — ativa e restaurada
+   //---   failedList    — ATIVA que nao pode ser restaurada (com motivo)
+   //---   inactiveList  — desligada, resetada com seguranca
+   void              RestoreEntryStatesOrPrimeSafely(const SEntryStateSnapshot &snapshot,
+                                                     const SEASettings &originSettings,
+                                                     const SEASettings &currentSettings,
+                                                     int &activeImported,
+                                                     int &activeFailed,
+                                                     string &importedList,
+                                                     string &failedList,
+                                                     string &inactiveList)
+     {
+      activeImported = 0;
+      activeFailed   = 0;
+      importedList   = "";
+      failedList     = "";
+      inactiveList   = "";
+
+      for(int i = 0; i < ArraySize(m_strategies); i++)
+        {
+         if(m_strategies[i] == NULL)
+            continue;
+
+         string name = m_strategies[i].Name();
+
+         //--- Desligada: reset individual, por seguranca, e nada de falha.
+         //--- ⚠ Chamado aqui, e nao pelo PrimeEntryStates() generico, cuja
+         //--- semantica (so habilitadas) e usada por outros oito chamadores.
+         if(!m_strategies[i].Enabled())
+           {
+            m_strategies[i].PrimeEntryState();
+            inactiveList += (inactiveList == "" ? "" : ", ") + name;
+            continue;
+           }
+
+         string reason = "";
+         bool   done   = false;
+
+         if(!m_strategies[i].ReadyForEntryStateImport())
+            reason = "nao operacional";
+         else if(!m_strategies[i].EntryStateCompatible(originSettings, currentSettings))
+            reason = "configuracao incompativel";
+         else if(!m_strategies[i].ImportEntryState(snapshot, reason))
+           {
+            //--- Motivo vem da estrategia. Vazio nunca sai daqui: um "primeada ()"
+            //--- no log nao diz nada a quem investiga.
+            if(reason == "")
+               reason = "importacao recusada sem detalhe";
+           }
+         else
+            done = true;
+
+         if(done)
+           {
+            activeImported++;
+            importedList += (importedList == "" ? "" : ", ") + name;
+           }
+         else
+           {
+            m_strategies[i].PrimeEntryState();
+            activeFailed++;
+            failedList += (failedList == "" ? "" : ", ") + name + " (" + reason + ")";
+           }
+        }
+     }
+
    //--- Diferente de PrimeEntryStates, arma tambem quem esta desligado: uma
    //--- estrategia reativada logo depois da restauracao entraria com um [1]
    //--- formado no escuro. A propria Reload devolve o estado quando o usuario
@@ -161,6 +271,10 @@ public:
          //--- entao servia de referencia e era descartado: um sinal legitimo
          //--- perdido, possivelmente horas depois da reconexao.
          m_strategies[i].RefreshFreshCandleBarrier();
+         //--- Mesma captura tardia, para a barreira do intervalo cego. As duas
+         //--- ficam aqui, imediatamente antes da avaliacao, porque so debaixo do
+         //--- tick a serie esta atualizada.
+         m_strategies[i].RefreshVisualBarrier();
 
          ENUM_SIGNAL_TYPE signal = m_strategies[i].GetEntrySignal();
          if(signal == SIGNAL_NONE)
