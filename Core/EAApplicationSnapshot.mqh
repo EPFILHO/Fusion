@@ -33,6 +33,23 @@
       snapshot.bbFilterEnabled  = m_settings.bbFilterEnabled;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
       snapshot.operationalFallbackTimeframe = OperationalFallbackTimeframe();
+      //--- ⚠ Publicado SO com posicao aberta e SO se o evento for dela. O card
+      //--- descreve a protecao de uma posicao viva; sobreviver a ela, ou migrar
+      //--- para outra, seria afirmar algo que nao existe.
+      snapshot.protectionChanged = (m_protectionChangeEvent.detected &&
+                                    m_positionState.hasPosition &&
+                                    m_protectionChangeEvent.positionId == m_positionState.positionId);
+      snapshot.protectionChangeDetail = snapshot.protectionChanged
+                                        ? FusionProtectionChangeText(m_protectionChangeEvent, SymbolSpec().digits)
+                                        : "";
+      //--- A classificacao segue a mesma porta: sem evento publicado, nada a
+      //--- classificar. Assim a tela nunca le um enum orfao.
+      snapshot.protectionSlChange = snapshot.protectionChanged
+                                    ? m_protectionChangeEvent.slChange
+                                    : FUSION_SLTP_UNCHANGED;
+      snapshot.protectionTpChange = snapshot.protectionChanged
+                                    ? m_protectionChangeEvent.tpChange
+                                    : FUSION_SLTP_UNCHANGED;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;

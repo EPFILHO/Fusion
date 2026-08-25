@@ -16,6 +16,7 @@
       m_activeProfileBlockedReason = "";
       m_runtimeNotice       = "";
       m_handoffNoticeText   = "";
+      ResetProtectionChangeEvent(m_protectionChangeEvent);
       m_protectionNoticeActive = false;
       m_protectionNoticeReason = "";
       m_entryBlockNoticeActive = false;

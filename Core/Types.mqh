@@ -481,6 +481,226 @@ struct SPositionRuntimeState
    double             dayPeakProjectedProfit;
   };
 
+//+------------------------------------------------------------------+
+//| ALTERACAO EXTERNA DE PROTECAO — observabilidade, e SO isso.       |
+//|                                                                   |
+//| O Fusion NAO desfaz a decisao de quem opera. Nada aqui restaura,   |
+//| trava ou reenvia SL/TP: e leitura, comparacao e aviso.             |
+//|                                                                   |
+//| ⚠ "Externa", e nunca "manual". A alteracao pode vir do MT5 do      |
+//| desktop, do aplicativo, da corretora ou de outro programa — o      |
+//| Fusion nao tem como distinguir, e afirmar "manual" seria inventar  |
+//| um fato tecnico que ele nao possui.                                |
+//+------------------------------------------------------------------+
+#define FUSION_SLTP_UNCHANGED 0
+#define FUSION_SLTP_CREATED   1   // 0 -> preco
+#define FUSION_SLTP_MODIFIED  2   // preco A -> preco B
+#define FUSION_SLTP_REMOVED   3   // preco -> 0
+
+struct SProtectionChangeEvent
+  {
+   bool     detected;      // ha evento a exibir
+   ulong    positionId;    // dono do evento; troca de posicao o descarta
+   int      slChange;      // FUSION_SLTP_*
+   double   slBefore;
+   double   slAfter;
+   int      tpChange;
+   double   tpBefore;
+   double   tpAfter;
+   datetime at;
+  };
+
+void ResetProtectionChangeEvent(SProtectionChangeEvent &event)
+  {
+   event.detected   = false;
+   event.positionId = 0;
+   event.slChange   = FUSION_SLTP_UNCHANGED;
+   event.slBefore   = 0.0;
+   event.slAfter    = 0.0;
+   event.tpChange   = FUSION_SLTP_UNCHANGED;
+   event.tpBefore   = 0.0;
+   event.tpAfter    = 0.0;
+   event.at         = 0;
+  }
+
+//--- Nivel AUSENTE e zero, e zero nao e um preco. O terminal devolve 0.0 exato
+//--- quando nao ha SL ou TP, entao a pergunta e binaria e nao precisa de
+//--- tolerancia — misturar as duas coisas faria "removido" virar "alterado para
+//--- um preco muito baixo".
+bool FusionLevelPresent(const double level)
+  {
+   return (level > 0.0);
+  }
+
+//+------------------------------------------------------------------+
+//| Tolerancia de comparacao, derivada do ATIVO.                      |
+//|                                                                   |
+//| ⚠ Existe por um falso positivo concreto, e nao por preciosismo com |
+//| double: ModifyStops guarda o valor SOLICITADO, e o Fusion          |
+//| normaliza apenas para digits, nunca para tickSize. Num ativo cujo  |
+//| tick nao e o point — indices e futuros com passo de varios pontos, |
+//| cripto —, o servidor arredonda ao grid e devolve um valor          |
+//| diferente do que ficou guardado. Sem tolerancia, o proprio         |
+//| TRAILING seria acusado de alteracao externa, que e exatamente o    |
+//| susto que este recurso existe para nao dar.                        |
+//|                                                                   |
+//| Meio tick: diferenca de ATE meio tick e arredondamento ao grid e   |
+//| entra na tolerancia; alteracao real move um tick INTEIRO, e        |
+//| continua detectada.                                                |
+//|                                                                   |
+//| ⚠ Spec desconhecida FALHA PARA "IGUAL", e nao para "alterado". Sem |
+//| saber o grid do ativo nao da para separar ruido de decisao, e num  |
+//| recurso puramente informativo o erro caro e o alarme falso.        |
+//+------------------------------------------------------------------+
+double FusionLevelEpsilon(const SSymbolSpec &spec)
+  {
+   double grid = MathMax(spec.tickSize, spec.point);
+   if(grid <= 0.0)
+      return 0.0;
+   return (grid / 2.0);
+  }
+
+bool FusionLevelEqual(const double a,const double b,const SSymbolSpec &spec)
+  {
+   bool aPresent = FusionLevelPresent(a);
+   bool bPresent = FusionLevelPresent(b);
+   if(aPresent != bPresent)
+      return false;
+   if(!aPresent)
+      return true;
+
+   double epsilon = FusionLevelEpsilon(spec);
+   //--- Grid desconhecido: nao ha como julgar, entao nao se acusa.
+   if(epsilon <= 0.0)
+      return true;
+   //--- `<=`, e nao `<`: exatamente meio tick ainda pode ser arredondamento ao
+   //--- grid. Uma alteracao real anda pelo menos um tick inteiro.
+   return (MathAbs(a - b) <= epsilon);
+  }
+
+//--- Classifica UM nivel. before/after na ordem cronologica.
+int FusionClassifyLevelChange(const double before,const double after,const SSymbolSpec &spec)
+  {
+   if(FusionLevelEqual(before, after, spec))
+      return FUSION_SLTP_UNCHANGED;
+   if(!FusionLevelPresent(before))
+      return FUSION_SLTP_CREATED;
+   if(!FusionLevelPresent(after))
+      return FUSION_SLTP_REMOVED;
+   return FUSION_SLTP_MODIFIED;
+  }
+
+//+------------------------------------------------------------------+
+//| A PRECONDICAO de identidade, separada e testavel.                 |
+//|                                                                   |
+//| Comparar so faz sentido sobre a MESMA posicao, com base anterior   |
+//| real. Fora disso nao ha alteracao: ha outra posicao, ou nenhuma.   |
+//| Entrada e volta de reconciliacao caem aqui sem caso especial —     |
+//| em ambas o estado anterior nao tinha posicao.                      |
+//+------------------------------------------------------------------+
+bool FusionProtectionChangeComparable(const bool prevHasPosition,const bool curHasPosition,
+                                      const ulong prevPositionId,const ulong curPositionId)
+  {
+   if(!prevHasPosition || !curHasPosition)
+      return false;
+   if(prevPositionId == 0 || curPositionId == 0)
+      return false;
+   return (prevPositionId == curPositionId);
+  }
+//+------------------------------------------------------------------+
+//| O predicado inteiro, puro e sem acesso ao terminal.               |
+//|                                                                   |
+//| Compara EXCLUSIVAMENTE `previous` contra `current` da MESMA        |
+//| sincronizacao. As precondicoes de identidade ficam com quem chama  |
+//| — e nao sao detalhe: comparar posicoes diferentes inventaria       |
+//| eventos, e a primeira sincronizacao de uma posicao nao tem base    |
+//| anterior nenhuma.                                                  |
+//|                                                                   |
+//| ⚠ NAO existe deduplicacao contra o ultimo evento anunciado, e a    |
+//| ausencia e deliberada. Houve aqui uma guarda que comparava com o   |
+//| evento anterior, justificada por uma premissa FALSA: a de que a    |
+//| divergencia reapareceria a cada tick porque o Fusion nao restaura  |
+//| o valor. Nao reaparece — depois da sincronizacao, `m_positionState`|
+//| passa a SER o valor do servidor, entao o `previous` da vez         |
+//| seguinte ja nasce igual a ele e nada e detectado. A propria        |
+//| atualizacao da baseline elimina a repeticao.                       |
+//|                                                                   |
+//| E a guarda nao era so redundante: ela PERDIA um evento legitimo.   |
+//| Alteracao externa leva A -> B e e anunciada; o trailing do Fusion  |
+//| leva B -> C, corretamente em silencio; entao outra alteracao       |
+//| externa leva C -> B. O terceiro evento e real e precisa aparecer,  |
+//| mas o valor final voltou a ser B — e a guarda o recusaria por      |
+//| "ja anunciado".                                                    |
+//|                                                                   |
+//| O ultimo evento continua existindo, mas so como ESTADO DO CARD.    |
+//| Ele nunca e porta da deteccao.                                     |
+//+------------------------------------------------------------------+
+bool FusionDetectProtectionChange(const double prevSL,const double prevTP,
+                                  const double curSL,const double curTP,
+                                  const SSymbolSpec &spec,
+                                  const ulong positionId,
+                                  SProtectionChangeEvent &event)
+  {
+   //--- ⚠ ANTES de qualquer retorno. Sem isto, um `false` deixaria o evento
+   //--- ANTERIOR de pe na variavel de quem chama, e um chamador que reusa a
+   //--- mesma variavel exibiria um card velho como se fosse novo.
+   ResetProtectionChangeEvent(event);
+
+   int slChange = FusionClassifyLevelChange(prevSL, curSL, spec);
+   int tpChange = FusionClassifyLevelChange(prevTP, curTP, spec);
+
+   if(slChange == FUSION_SLTP_UNCHANGED && tpChange == FUSION_SLTP_UNCHANGED)
+      return false;
+
+   event.detected   = true;
+   event.positionId = positionId;
+   event.slChange   = slChange;
+   event.slBefore   = prevSL;
+   event.slAfter    = curSL;
+   event.tpChange   = tpChange;
+   event.tpBefore   = prevTP;
+   event.tpAfter    = curTP;
+   return true;
+  }
+
+//--- Texto de UM nivel, para log e card. Zero vira "removido": imprimir
+//--- 0.00000 faria quem le procurar um preco que nao existe.
+string FusionLevelText(const double level,const int digits)
+  {
+   if(!FusionLevelPresent(level))
+      return "removido";
+   return DoubleToString(level, digits);
+  }
+
+//+------------------------------------------------------------------+
+//| ⚠ O TEXTO SEGUE A CLASSIFICACAO, e nao os numeros crus.           |
+//|                                                                   |
+//| Formatar os dois lados sempre pelo mesmo caminho produzia frase    |
+//| sem sentido na CRIACAO: como zero vira "removido", um SL que       |
+//| nasceu do nada aparecia como "SL removido -> 77000.00" — que le    |
+//| como o oposto do que aconteceu.                                    |
+//+------------------------------------------------------------------+
+string FusionLevelChangeText(const string label,const int change,
+                             const double before,const double after,
+                             const int digits)
+  {
+   if(change == FUSION_SLTP_CREATED)
+      return label + " criado em " + FusionLevelText(after, digits);
+   if(change == FUSION_SLTP_REMOVED)
+      return label + " " + FusionLevelText(before, digits) + " -> removido";
+   if(change == FUSION_SLTP_MODIFIED)
+      return label + " " + FusionLevelText(before, digits) + " -> " +
+             FusionLevelText(after, digits);
+   return label + " sem alteracao";
+  }
+
+string FusionProtectionChangeText(const SProtectionChangeEvent &event,const int digits)
+  {
+   return FusionLevelChangeText("SL", event.slChange, event.slBefore, event.slAfter, digits) +
+          "; " +
+          FusionLevelChangeText("TP", event.tpChange, event.tpBefore, event.tpAfter, digits) + ".";
+  }
+
 struct SStreakRuntimeState
   {
    int      dayKey;
@@ -1050,6 +1270,16 @@ struct SUIPanelSnapshot
    //--- — Period(), ou uma constante — faria dois caminhos de gravacao
    //--- discordarem sobre a mesma configuracao.
    ENUM_TIMEFRAMES operationalFallbackTimeframe;
+   //--- Alteracao externa de SL/TP observada na posicao ATUAL. Publicado so
+   //--- quando ha posicao aberta e o evento pertence a ela.
+   bool   protectionChanged;
+   string protectionChangeDetail;
+   //--- ⚠ A CLASSIFICACAO vem pronta do EA, em FUSION_SLTP_*. A tela precisa
+   //--- distinguir remocao de alteracao — remover o SL deixa a posicao exposta
+   //--- e pede outra urgencia —, e procurar a palavra "removido" dentro do
+   //--- detalhe seria decidir gravidade lendo texto formatado.
+   int    protectionSlChange;
+   int    protectionTpChange;
   };
 
 struct SUICommand

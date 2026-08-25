@@ -82,6 +82,16 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - **Vale tambem quando a criacao falha.** Esse caminho existe para preservar o par ativo — do qual depende a saida por cruzamento de uma posicao aberta — e podia justamente destrui-lo quando o handle que nascia era o proprio par vivo.
 - A politica de recriacao de handles **nao mudou**: `RELOAD_COLD` e `RELOAD_WARM` continuam recriando. E por esse caminho que um par degradado, numericamente valido mas morto no terminal, volta a ser recriado.
 
+### Alteracao de SL/TP passa a ser observada e informada
+
+- O Fusion **detecta, registra e informa** quando o SL ou o TP da posicao aberta muda por fora do ultimo ajuste que ele proprio reconheceu. O recurso e **somente observabilidade**: ele **nao restaura os valores anteriores, nao trava os niveis e nao reenvia modificacao**. A decisao de quem opera e respeitada, e o gerenciamento — SL, TP, trailing, breakeven e TP parcial — continua ativo exatamente como antes.
+- Sao distinguidos quatro desfechos por nivel: **criado**, **alterado**, **removido** e sem alteracao. Remocao aparece como `removido`, nunca como o numero zero, e criacao aparece como `criado em`.
+- **Trailing e breakeven do proprio Fusion nao geram alerta.** A comparacao usa uma tolerancia derivada do **grid do ativo** — metade do maior entre `tickSize` e `point` —, porque o servidor arredonda o preco enviado para o grid negociavel. Sem ela, pedir 77002 num ativo de tick 5 e receber 77000 de volta faria o proprio ajuste do EA acusar alteracao externa.
+- Quando o ativo nao informa `tickSize` nem `point`, a tolerancia fica indefinida e **nenhuma diferenca entre precos e acusada**. Remocao continua sendo detectada, porque nao depende de grid.
+- O `Status` mostra um **aviso compacto**; o detalhe numerico fica em `Gestao > Risco > SL/TP`. Remocao sobe na prioridade do `Status` e recebe orientacao urgente, porque deixa a posicao exposta.
+- O texto **nao atribui autoria**: diz que houve alteracao, nao que ela foi manual ou feita pelo usuario. A origem pode ser desktop, celular, corretora ou outro programa, e o Fusion nao tem como distinguir.
+- O evento e **somente runtime**. Ele desaparece no fechamento confirmado da posicao, na troca de posicao e na reinicializacao provocada por troca de timeframe do grafico. **O registro no diario permanece**, e e por ele que o historico e reconstruido. Nada disso entra em perfil, chart state ou schema.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.

@@ -169,7 +169,9 @@ Mostra:
 - quantidade de estratégias e filtros ativos;
 - existência e estratégia responsável pela posição;
 - modo de conflito;
-- aviso prioritário de contexto, permissão, risco, proteção, perfil, reversão ou entrada bloqueada.
+- aviso prioritário de contexto, permissão, risco, proteção, perfil, reversão, entrada bloqueada ou alteração de SL/TP.
+
+O aviso do `Status` é sempre **curto**: ele diz o que exige atenção, e o detalhe fica na aba do assunto. No caso de SL/TP, os preços de antes e de depois ficam em `Gestão > Risco > SL/TP`.
 
 `Status` é a referência principal para entender por que o EA não iniciou ou não abriu uma operação.
 
@@ -393,6 +395,35 @@ O trilho de `Risco` tem: `Lote`, `SL/TP`, `TP Parcial`, `BreakEven` e `Trailing`
 | `Compensar Spread TP` | Subtrai o spread atual da distância do TP, reduzindo o alvo nominal. Se o resultado não for positivo, a entrada é bloqueada. |
 
 Antes de enviar a ordem, o Fusion recalcula os níveis com Bid/Ask atuais e valida lado correto, spread e `stopsLevel` da corretora. Um valor aceito visualmente pode ser bloqueado no momento da entrada se o mercado tornar o nível incompatível.
+
+#### Alteração de SL/TP fora do Fusion
+
+O Fusion acompanha o SL e o TP da posição aberta e **avisa quando eles mudam por fora do último ajuste que ele reconheceu**.
+
+O aviso é **somente informativo**. O Fusion **não restaura os valores anteriores, não trava os níveis e não reenvia modificação**: a decisão de quem opera é respeitada. O gerenciamento continua exatamente como antes — SL, TP, trailing, breakeven e TP parcial seguem valendo.
+
+O texto **não diz de quem foi a alteração**. A mudança pode ter vindo do MetaTrader no computador, do aplicativo do celular, da mesa da corretora ou de outro programa ligado à mesma conta, e o Fusion não tem como distinguir. Ele informa o que mudou, não quem mudou.
+
+Cada nível é classificado em quatro desfechos:
+
+| Desfecho | Como aparece |
+|---|---|
+| Criado | `SL criado em 77000.00` |
+| Alterado | `SL 77000.00 -> 77100.00` |
+| Removido | `SL 77000.00 -> removido` |
+| Sem alteração | aparece como `SL sem alteracao` ou `TP sem alteracao` quando o outro nível mudou; se nenhum dos dois mudou, não há aviso |
+
+**Trailing e breakeven do próprio Fusion não disparam o aviso.** A comparação tolera a diferença de arredondamento que o servidor aplica ao encaixar o preço no grid do ativo. Um ajuste real do operador anda mais que isso e é detectado normalmente.
+
+Onde cada coisa aparece:
+
+- no `Status`, um **aviso curto**, sem números;
+- aqui, em `Gestão > Risco > SL/TP`, o **detalhe** com os preços de antes e de depois;
+- no diário, uma linha `WARN` com o detalhe completo.
+
+**Remoção recebe tratamento urgente.** Ficar sem Stop Loss deixa a posição exposta, então o aviso sobe de prioridade no `Status`, fica vermelho e pede a recolocação do nível. TP removido e SL removido têm textos próprios, e a remoção dos dois no mesmo momento aparece como um aviso só.
+
+O aviso é **somente de sessão**. Ele sai da tela quando a posição fecha em definitivo, quando outra posição toma o lugar dela e quando o EA é reinicializado — inclusive pela troca do timeframe do gráfico. **A linha no diário permanece**, e é por ela que se reconstrói o que aconteceu. Nada disso entra no perfil nem no estado do gráfico.
 
 ### 10.3. TP Parcial
 
@@ -653,8 +684,9 @@ Trocar o timeframe com operação em andamento é seguro:
 - **gerenciamento, saída e proteções continuam** — SL, TP, trailing, breakeven e parcial seguem valendo;
 - **nenhum sinal de nova entrada é preservado**;
 - **nenhuma nova posição é aberta** enquanto a atual permanecer ativa.
+- um **aviso de alteração de SL/TP** que estivesse na tela **desaparece**, porque esse aviso é somente de sessão; o registro dele permanece no diário.
 
-No diário aparece uma linha informativa dizendo exatamente isso. Não é aviso de erro e não vai para o painel.
+No diário aparece uma linha informativa sobre a ressincronização da posição. Não é aviso de erro e não vai para o painel.
 
 #### Quando o estado não é preservado
 

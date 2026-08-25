@@ -301,6 +301,62 @@ void DrawColorPopup(void)
 //+------------------------------------------------------------------+
 //| Telas de nivel 1 sem formulario                                   |
 //+------------------------------------------------------------------+
+//| ALTERACAO EXTERNA DE SL/TP — a FONTE UNICA do que a tela diz.     |
+//|                                                                   |
+//| Duas telas mostram este evento: o selo compacto do Status e o      |
+//| cartao de Gestao > Risco > SL/TP. As frases nasceram duplicadas   |
+//| nos dois pontos, e duplicata de texto e como duas telas comecam a |
+//| discordar dentro do mesmo painel — foi assim com o "Estado DD" da |
+//| Fase 2. Aqui ha um lugar so.                                      |
+//|                                                                   |
+//| Le SOMENTE os tres campos publicados pelo EA. A gravidade sai da  |
+//| CLASSIFICACAO, nunca de procurar "removido" dentro do detalhe: o  |
+//| detalhe e texto formatado para leitura, nao dado.                 |
+//|                                                                   |
+//| Remocao e BAD porque pede acao — a posicao ficou exposta. Alterar |
+//| ou criar e WARN: informa, e nao ha o que fazer agora.             |
+//+------------------------------------------------------------------+
+bool ProtectionChangeNotice(string &title,string &guidance,int &sem)
+  {
+   title=""; guidance=""; sem=FCV_SEM_WARN;
+   if(!m_snap.protectionChanged)
+      return false;
+
+   bool slGone = (m_snap.protectionSlChange == FUSION_SLTP_REMOVED);
+   bool tpGone = (m_snap.protectionTpChange == FUSION_SLTP_REMOVED);
+
+   if(slGone && tpGone)
+     {
+      title="SL E TP REMOVIDOS";
+      guidance="Recoloque o Stop Loss imediatamente e restabeleca o Take Profit da posicao.";
+      sem=FCV_SEM_BAD;
+      return true;
+     }
+   if(slGone)
+     {
+      title="SL REMOVIDO";
+      guidance="Recoloque o Stop Loss imediatamente para limitar o risco da posicao.";
+      sem=FCV_SEM_BAD;
+      return true;
+     }
+   if(tpGone)
+     {
+      title="TP REMOVIDO";
+      guidance="Recoloque o Take Profit o quanto antes para restabelecer o alvo da posicao.";
+      sem=FCV_SEM_BAD;
+      return true;
+     }
+
+   //--- ⚠ Sem "alteracao manual" nem "feita pelo usuario": a origem pode ser
+   //--- desktop, celular, corretora ou outro programa, e o Fusion nao distingue.
+   title="SL/TP ALTERADO";
+   guidance="A protecao da posicao foi alterada. Evite mudar SL/TP enquanto o "
+            "Fusion gerencia a operacao.";
+   sem=FCV_SEM_WARN;
+   return true;
+  }
+
+//+------------------------------------------------------------------+
 //--- A linha de aviso da Sessao mostra o motivo mais grave que existir. A
 //--- ordem e deliberada: o que impede de operar vem antes do que apenas
 //--- suspende entradas, que vem antes de recado informativo. Mostrar o menos
@@ -347,6 +403,16 @@ bool StatusNotice(string &title,string &body,int &sem)
       body="VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
       return true;
      }
+   //--- ⚠ REMOCAO acima de PERFIL SEM ARQUIVO, que e informativo — o proprio
+   //--- corpo dele diz que o EA segue com o estado do grafico. Deixa-lo esconder
+   //--- um SL removido contradiria a regra. Fica ABAIXO de VIRADA DE MAO, que
+   //--- descreve uma saida/reversao ja em curso, e dos cinco bloqueios acima,
+   //--- que impedem o EA de agir. A ordem real e a desta funcao, de cima para
+   //--- baixo. Texto e gravidade vem de ProtectionChangeNotice — fonte unica,
+   //--- compartilhada com o cartao de Gestao > Risco > SL/TP.
+   string pcTitle,pcGuidance; int pcSem;
+   if(ProtectionChangeNotice(pcTitle,pcGuidance,pcSem) && pcSem==FCV_SEM_BAD)
+     { title=pcTitle; body=pcGuidance; sem=pcSem; return true; }
    if(m_snap.activeProfileFileMissing)
      {
       title="PERFIL SEM ARQUIVO";
@@ -416,6 +482,12 @@ bool StatusNotice(string &title,string &body,int &sem)
    SEntryRestriction entryR=ResolveEntryRestriction();
    if(entryR.active)
      { title=entryR.cause; body=entryR.reason; return true; }
+   //--- Alteracao ou criacao: informa, mas nao pede acao imediata como a
+   //--- remocao — que ja saiu la em cima, no seu proprio degrau. Fica ABAIXO
+   //--- dos bloqueios de entrada e da restricao persistente, e ACIMA do aviso
+   //--- generico e do "Sem alertas". Mesma fonte unica do degrau de remocao.
+   if(ProtectionChangeNotice(pcTitle,pcGuidance,pcSem))
+     { title=pcTitle; body=pcGuidance; sem=pcSem; return true; }
    if(HasText(m_snap.runtimeNotice))
      {
       title=m_snap.started ? "AVISO OPERACIONAL" : "AVISO DE CONTEXTO";
@@ -1601,6 +1673,39 @@ void ScreenRisk(void)
          RowNote   ("Use a mesma contagem exibida pela regua do grafico.");
          RowNote   (SpreadCompensationNote());
          Card("STOP LOSS E TAKE PROFIT");
+         //+---------------------------------------------------------------+
+         //| O DETALHE mora aqui, e nao no Status.                          |
+         //|                                                                |
+         //| O Status leva o selo e uma frase; quem quer os numeros vem a    |
+         //| tela que trata de SL/TP. Duas notas multilinha no Status faziam |
+         //| um cartao que ocupava a tela inteira para dizer o que cabe em   |
+         //| uma linha.                                                      |
+         //|                                                                |
+         //| Condicional: so existe enquanto houver evento da posicao ATUAL. |
+         //| Some no fechamento e na troca de posicao, pela mesma porta do   |
+         //| snapshot.                                                       |
+         //|                                                                |
+         //| ⚠ Sem repetir que a deteccao nao restaurou, que o gerenciamento |
+         //| continua, nem explicar trailing e breakeven. Isso e do manual e |
+         //| do log — aqui vale o que aconteceu e o que fazer.               |
+         //+---------------------------------------------------------------+
+         //--- ⚠ MESMA fonte do Status: titulo, orientacao e gravidade saem de
+         //--- ProtectionChangeNotice. Aqui o titulo do cartao e fixo — quem
+         //--- chegou nesta tela ja sabe do que se trata —, e o que a funcao
+         //--- acrescenta e a orientacao e a cor. O detalhe numerico e o unico
+         //--- conteudo que so existe aqui.
+         //--- ⚠ Chaves obrigatorias: MQL5 recusa declaracao dentro de `case`
+         //--- sem bloco proprio ("initialization skipped by case label").
+           {
+            string pcTitle,pcGuidance; int pcSem;
+            if(ProtectionChangeNotice(pcTitle,pcGuidance,pcSem))
+              {
+               RowsReset();
+               RowNote(m_snap.protectionChangeDetail);
+               RowNoteSem(pcGuidance,pcSem);
+               Card("ALTERACAO NA POSICAO");
+              }
+           }
          return;
 
       //--- TP parcial: TP1 comanda. A 1.058 poe TP1 e TP2 lado a lado em duas

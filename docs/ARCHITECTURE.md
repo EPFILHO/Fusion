@@ -275,7 +275,9 @@ O escopo da exclusao precisa ser **auditavel por leitura**.
 
 Continuam valendo, agora por motivo proprio e nao por heranca:
 
-**O `Status` e dono do DETALHE operacional**, inclusive em formato multilinha: a escada completa de alertas, os cartoes de sessao e posicao, o motivo de cada bloqueio. A aba `Resultados` permanece voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+**O `Status` e dono do RESUMO e do ALERTA global**, inclusive em formato multilinha: a escada completa de alertas, os cartoes de sessao e posicao, o motivo de cada bloqueio. A aba `Resultados` permanece voltada a leitura de estado e resultados, sem acumular alertas de contexto.
+
+⚠️ **O DETALHE, porem, nem sempre e do `Status`.** Esta regra ja foi escrita aqui como "o `Status` e dono do detalhe operacional", e essa formulacao era absoluta demais: ela empurrava para o `Status` conteudo que so se entende ao lado dos campos que o originaram. Quando o detalhe pertence a um dominio — os precos de antes e depois de uma alteracao de SL/TP, por exemplo —, ele fica na **tela do dominio**, e o `Status` carrega apenas o aviso curto que manda olhar la. O que continua sendo do `Status`, sem excecao, e **saber que existe algo a olhar**.
 
 ⚠️ **Mas o `Status` nao e o unico lugar onde um aviso aparece, e nao deve ser.** Um aviso que so existe dentro de uma aba nao e lido por quem esta em outra — foi um achado do aceite da Fase 3, com a formulacao "a aba ficou vermelha nao conta quando o usuario esta em outra aba". A GUI 2.0 tem tres niveis, com papeis distintos:
 
@@ -335,6 +337,26 @@ Trocar o timeframe do grafico descarrega e recarrega o EA. Esse intervalo e trat
 **Fallback por estrategia.** A restauracao e individual: uma estrategia que falha e primeada com seguranca sem desfazer a importacao das demais. O resultado e classificado em quatro desfechos — integral, parcial, nenhuma ativa restaurada, e fallback conservador. Estrategia desligada e resetada e listada a parte, e nunca contada como falha. Em qualquer desfecho a barreira do intervalo cego e armada em **todas** as estrategias, inclusive desligadas.
 
 **Propriedade exclusiva do aviso de handoff.** O aviso do handoff e o menos importante da fila: `ApplyRuntimeNotice` apenas substitui o texto, entao publica-lo as cegas apagaria "AutoTrading desabilitado", que e acionavel. Ele so e publicado quando nao ha bloqueio nem aviso ja no ar, e quando publica grava o proprio texto em campo separado. A limpeza compara esse campo com o aviso corrente e so limpa se ainda for exatamente o mesmo texto — nunca limpa `m_runtimeNotice` genericamente, porque protecao, permissao ou perfil podem ter tomado a tela nesse meio-tempo. Com posicao aberta o aviso nao chega a ser publicado: a existencia da posicao ja e o motivo esperado para nao restaurar entradas, e o registro fica em `INFO`, distinguindo entrada de gerenciamento.
+
+## Deteccao de Alteracao Externa de SL/TP
+
+Observabilidade pura. O modulo **le** a sincronizacao da posicao e publica o que mudou; ele **nao envia nenhuma modificacao**, nao restaura nivel anterior e nao trava nada. Trailing e breakeven continuam sendo os caminhos de gerenciamento automatico do SL pelo Fusion: a orquestracao permanece em `EAApplicationManagePosition`, o calculo em `Risk` e o envio da modificacao em `Execution`. Esta funcionalidade apenas **observa o estado ja sincronizado** — e, sendo o proprio objetivo dela admitir que o nivel pode mudar por fora, "dono exclusivo" nao descreveria nem o desenho nem a realidade.
+
+**Onde a comparacao acontece.** Em `SyncPositionState`, entre a **baseline anterior** (`m_positionState` antes da sincronizacao) e o **estado recem-sincronizado**, para a **mesma `positionId`**. E o unico ponto do ciclo em que os dois lados existem juntos e ja refletem o servidor.
+
+**Precondicoes de identidade.** Nao se compara quando nao ha o que comparar: **primeira sincronizacao** (nao havia posicao antes), **posicao diferente** (`positionId` mudou) e **fechamento** (deixou de haver posicao). `positionId` zero nunca compara. Sem essas guardas, o boot do EA e cada troca de posicao produziriam um alerta falso — foi por elas que a troca de timeframe com posicao aberta passou no aceite sem WARN espurio.
+
+**Tolerancia derivada do ativo.** A igualdade entre niveis usa **metade do maior entre `tickSize` e `point`**. O servidor arredonda o preco enviado para o grid negociavel, entao o proprio trailing do Fusion pede 77002 e recebe 77000 de volta; sem tolerancia, o EA acusaria a si mesmo. Quando o ativo nao informa nem `tickSize` nem `point`, o epsilon fica indefinido e **nenhuma diferenca entre precos e classificada como alteracao** — falhar fechado aqui e preferivel a inundar de falso positivo. **Remocao continua sendo detectada**, porque presenca do nivel nao depende de grid.
+
+**Nao ha deduplicacao contra o ultimo evento, e isso e deliberado.** A repeticao por tick e eliminada pela **atualizacao da baseline**: depois da sincronizacao, o estado novo passa a ser o ponto de comparacao, e o mesmo par de valores nunca e comparado duas vezes. Deduplicar contra o ultimo evento chegou a ser implementado e foi **removido**, porque engolia um caso real: A→B externo, B→C interno pelo trailing, C→B externo — o terceiro seria descartado por parecer com o primeiro.
+
+**O evento e runtime e pertence a `positionId`.** Vive em `SProtectionChangeEvent m_protectionChangeEvent`, campo de instancia. E limpo no **fechamento definitivo** (junto de `ResetCloseReconciliation`/`ResetPositionRuntimeState`, nunca em `BeginCloseReconciliation`), quando a posicao corrente tem outro `positionId`, e em `ResetTransientRuntimeState`. **Nao entra em perfil, chart state nem schema**, e por isso nao sobrevive a reinicializacao — inclusive a causada por troca de timeframe. A persistencia do fato e o **log**.
+
+**Helpers puros em `Core/Types.mqh`.** Presenca, epsilon, igualdade, classificacao, precondicao de identidade, deteccao e formatacao sao funcoes livres, sem estado e sem acesso ao MT5, exercitadas por sonda fora do EA. `EAApplicationPositionSync` so orquestra: monta o candidato num **local**, e so promove a `m_protectionChangeEvent` quando a deteccao confirma.
+
+**Divisao de tela.** O `Status` recebe **somente o aviso compacto**; o detalhe do dominio fica em `Gestao > Risco > SL/TP`. Remocao sobe na escada do `Status` — acima de `PERFIL SEM ARQUIVO`, que apenas informa — porque deixa a posicao exposta e pede acao. O texto das quatro situacoes tem **fonte unica** em `ProtectionChangeNotice`, no renderizador: duplicar frase entre duas telas e como elas comecam a discordar. A gravidade sai da **classificacao publicada**, nunca de procurar palavra dentro do texto formatado.
+
+**Nao se afirma autoria.** O snapshot diz que houve alteracao e qual foi; nunca que foi manual ou feita pelo usuario. A origem pode ser outro terminal, o aplicativo do celular, a mesa da corretora ou outro programa na mesma conta, e o EA nao tem como distinguir. Alem disso, o MQL5 nao garante ordenacao de transacao, entao "externo" aqui significa **fora do ultimo ajuste reconhecido**, e nao prova de terceiro.
 
 ## Prioridade Atual de Arquitetura
 

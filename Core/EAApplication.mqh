@@ -89,6 +89,11 @@ private:
    //--- publicado por ele, para que a limpeza saiba distinguir "ainda e o meu
    //--- aviso" de "outro aviso mais importante ja tomou a tela".
    string                  m_handoffNoticeText;
+   //--- Ultima alteracao de SL/TP observada fora do ultimo ajuste reconhecido
+   //--- pelo Fusion. SOMENTE runtime: nao vai para o chart state, entao o card
+   //--- se perde numa troca de timeframe ou reinicio. O LOG permanece — e ele
+   //--- que e a prova.
+   SProtectionChangeEvent  m_protectionChangeEvent;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
    bool                    m_entryBlockNoticeActive;
