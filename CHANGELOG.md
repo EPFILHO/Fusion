@@ -74,6 +74,14 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - As travas existentes foram preservadas: EA iniciado, posicao em gerenciamento, reconciliacao de fechamento e drawdown com configuracao travada continuam impedindo a criacao.
 - Mensagem de recusa do `CARREGAR` deixou de mandar "Corrija em <aba>": a tela so edita o perfil ATIVO, e o perfil recusado nao pode virar ativo ali. Agora ela aponta a rota que existe — carregar num grafico de ativo compativel, ajustar, salvar e voltar.
 
+### Correcao: SALVAR podia deixar as medias da MA Cross inoperantes
+
+- **Salvar o perfil podia parar as entradas da MA Cross em silencio.** A troca de handles das medias recriava o par e liberava o anterior; como o `iMA()` do MT5 **devolve o mesmo identificador** quando a configuracao nao muda, a liberacao atingia os handles recem-publicados. A estrategia continuava se declarando operacional, mas toda leitura de buffer falhava — **nenhum cruzamento era avaliado, e nao havia log de bloqueio**.
+- Bastava salvar com os parametros das medias inalterados. O caso mais comum: mudar **so o modo de entrada** entre `Proximo candle` e `Segundo candle`. Trocar o timeframe do grafico "curava", porque reinicializava o EA e criava handles novos.
+- A liberacao passou a ser **condicional**: sai apenas o handle que nao faz parte do par novo, e nenhum identificador e liberado duas vezes.
+- **Vale tambem quando a criacao falha.** Esse caminho existe para preservar o par ativo — do qual depende a saida por cruzamento de uma posicao aberta — e podia justamente destrui-lo quando o handle que nascia era o proprio par vivo.
+- A politica de recriacao de handles **nao mudou**: `RELOAD_COLD` e `RELOAD_WARM` continuam recriando. E por esse caminho que um par degradado, numericamente valido mas morto no terminal, volta a ser recriado.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.

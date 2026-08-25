@@ -211,6 +211,43 @@ private:
    //--- morre depois de os DOIS novos existirem, e handles e metadados sao
    //--- publicados no mesmo instante — nunca ha um par ativo descrito por
    //--- metadado que nao e o dele.
+   //+---------------------------------------------------------------+
+   //| Liberacao ALIAS-SAFE de um handle candidato.                   |
+   //|                                                                |
+   //| ⚠ `iMA()` NAO cria um indicador por chamada: com a mesma        |
+   //| configuracao o terminal devolve o identificador que ja existe.  |
+   //| Logo um handle "novo" pode ser, numericamente, o par que esta   |
+   //| vivo — e libera-lo mata quem se queria preservar.               |
+   //|                                                                |
+   //| `alreadyReleased` cobre o outro caso: com as duas curvas        |
+   //| identicas, o candidato rapido e o lento sao o mesmo numero, e   |
+   //| liberar duas vezes soltaria uma referencia que nao e nossa.     |
+   //+---------------------------------------------------------------+
+   void              ReleaseIfNotActivePair(const int candidate,const int alreadyReleased)
+     {
+      if(candidate == INVALID_HANDLE)
+         return;
+      if(candidate == m_fastHandle || candidate == m_slowHandle)
+         return;
+      if(candidate == alreadyReleased)
+         return;
+      IndicatorRelease(candidate);
+     }
+
+   //--- O espelho da funcao acima, para o par ANTIGO: so sai o que nao aparece
+   //--- no par novo. Mesmo `alreadyReleased` contra liberacao dupla.
+   void              ReleaseOldIfNotInNewPair(const int oldHandle,const int newFast,
+                                              const int newSlow,const int alreadyReleased)
+     {
+      if(oldHandle == INVALID_HANDLE)
+         return;
+      if(oldHandle == newFast || oldHandle == newSlow)
+         return;
+      if(oldHandle == alreadyReleased)
+         return;
+      IndicatorRelease(oldHandle);
+     }
+
    bool              CreateHandles(void)
      {
       if((int)m_fastTimeframe <= 0 || (int)m_slowTimeframe <= 0)
@@ -226,14 +263,33 @@ private:
       if(newFastHandle == INVALID_HANDLE || newSlowHandle == INVALID_HANDLE)
         {
          //--- Desfaz o que chegou a nascer e devolve o par anterior intacto.
-         ReleaseIndicatorHandle(newFastHandle);
-         ReleaseIndicatorHandle(newSlowHandle);
+         //---
+         //--- ⚠ Aqui a protecao contra alias importa ate mais que no sucesso:
+         //--- este ramo existe para preservar o par vivo — do qual depende a
+         //--- saida por cruzamento de uma posicao aberta — e liberar cru podia
+         //--- justamente mata-lo, quando o candidato que nasceu era o proprio
+         //--- handle ativo.
+         ReleaseIfNotActivePair(newFastHandle, INVALID_HANDLE);
+         ReleaseIfNotActivePair(newSlowHandle, newFastHandle);
          if(m_logger != NULL)
             m_logger.Error("STRAT_MA", "Failed to create MA handles");
          return false;
         }
 
-      ReleaseHandles();
+      //--- ⚠ A troca so libera o que NAO faz parte do par novo. O
+      //--- `ReleaseHandles()` incondicional que existia aqui se autodestruia
+      //--- quando nenhum parametro das medias mudava: `iMA` devolvia os mesmos
+      //--- identificadores, eles eram liberados, e os campos passavam a apontar
+      //--- para indicadores mortos — `CopyBuffer` respondendo -1 com erro 4807 a
+      //--- cada tick, calado, e nenhuma entrada avaliada.
+      //--- O rapido antigo entra como `alreadyReleased` do lento: se os dois
+      //--- eram o mesmo numero e ele saiu, o segundo passo nao repete a
+      //--- liberacao; se nao saiu, e porque pertence ao par novo, e ai a
+      //--- propria checagem do par ja o protege.
+      int previousFastHandle = m_fastHandle;
+      ReleaseOldIfNotInNewPair(m_fastHandle, newFastHandle, newSlowHandle, INVALID_HANDLE);
+      ReleaseOldIfNotInNewPair(m_slowHandle, newFastHandle, newSlowHandle, previousFastHandle);
+
       m_fastHandle = newFastHandle;
       m_slowHandle = newSlowHandle;
 
