@@ -3,14 +3,14 @@
 
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
 #define FUSION_NEWS_WINDOW_COUNT 3
-#define FUSION_SETTINGS_SCHEMA_VERSION 14
+#define FUSION_SETTINGS_SCHEMA_VERSION 15
 //--- Quantas linhas o FusionSaveSettingsBlock grava. A validacao usa >=, entao
 //--- arquivos de versoes anteriores com mais linhas continuam aceitos — mas
 //--- ACRESCENTAR OU REMOVER UMA LINHA DO GRAVADOR EXIGE ATUALIZAR ESTE NUMERO.
 //--- Esquecer faz todo perfil recem-salvo ser recusado como incompleto no
 //--- carregamento seguinte, sem erro de compilacao para avisar. Ja aconteceu
 //--- ao tirar debugLogs do perfil: 142 virou 141.
-#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 141
+#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 144
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -140,10 +140,30 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_LOAD_PROFILE
   };
 
+//+------------------------------------------------------------------+
+//| Como o tamanho de cada parcial e expresso. GLOBAL para os dois     |
+//| estagios: nao existe TP1 em percentual com TP2 em volume.          |
+//|                                                                    |
+//| Misturar as duas unidades no mesmo plano tornaria a soma ilegivel: |
+//| "50% mais 0.30" nao se confere de cabeca, e a recusa por falta de  |
+//| minimo apareceria sem que ninguem soubesse qual estagio corrigir.  |
+//+------------------------------------------------------------------+
+enum ENUM_PARTIAL_SIZE_MODE
+  {
+   PARTIAL_SIZE_PERCENT = 0,   // Fracao da posicao, em %
+   PARTIAL_SIZE_VOLUME  = 1    // Volume negociavel, na unidade do ativo
+  };
+
+//--- ⚠ `percent` e `volume` COEXISTEM de proposito. Guardar os dois permite
+//--- alternar o modo sem destruir o valor anterior: quem experimenta volume e
+//--- volta ao percentual reencontra o que tinha. Reaproveitar um campo so
+//--- daria uma chave cujo significado depende de outra chave — e um perfil
+//--- lido sem o modo passaria a valer coisa diferente do que foi gravado.
 struct SPartialTPConfig
   {
    bool   enabled;
-   double percent;
+   double percent;          // vale quando o modo e PARTIAL_SIZE_PERCENT
+   double volume;           // vale quando o modo e PARTIAL_SIZE_VOLUME
    int    distancePoints;
   };
 
@@ -227,6 +247,8 @@ struct SEASettings
    bool                     compensateTPSpread;
    bool                     usePartialTP;
    bool                     freeFinalTP;
+   //--- Vale para TP1 e TP2 ao mesmo tempo. Ver ENUM_PARTIAL_SIZE_MODE.
+   ENUM_PARTIAL_SIZE_MODE   partialSizeMode;
    SPartialTPConfig         tp1;
    SPartialTPConfig         tp2;
    bool                     useTrailing;
@@ -1367,11 +1389,20 @@ void SetDefaultSettings(SEASettings &settings)
    settings.compensateTPSpread    = false;
    settings.usePartialTP          = false;
    settings.freeFinalTP           = false;
+   //--- ⚠ O default do modo e PERCENT, e nao por gosto: e o significado que
+   //--- todo perfil ate o schema 14 ja tem. Um perfil antigo que carregue sem
+   //--- a chave precisa continuar valendo exatamente o que valia.
+   settings.partialSizeMode       = PARTIAL_SIZE_PERCENT;
    settings.tp1.enabled           = false;
    settings.tp1.percent           = 50.0;
+   //--- Volume nasce INATIVO (zero). Um default negociavel faria um perfil
+   //--- antigo, migrado para o schema novo, ganhar um volume que ninguem pediu
+   //--- caso alguem trocasse o modo depois.
+   settings.tp1.volume            = 0.0;
    settings.tp1.distancePoints    = 150;
    settings.tp2.enabled           = false;
    settings.tp2.percent           = 25.0;
+   settings.tp2.volume            = 0.0;
    settings.tp2.distancePoints    = 300;
    settings.useTrailing           = false;
    settings.trailingStartPoints   = 150;

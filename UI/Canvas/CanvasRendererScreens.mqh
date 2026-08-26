@@ -1712,27 +1712,126 @@ void ScreenRisk(void)
       //--- colunas; aqui viram dois cartoes, porque a coluna estreita nao cabe
       //--- na largura do painel sem encolher os campos.
       case 2:
+        {
+         //--- ⚠ UMA linha de tamanho por estagio, trocando de identidade com o
+         //--- modo - nunca as duas visiveis. Mostrar "Volume %" e "Volume" lado
+         //--- a lado convidaria a preencher ambos e a perguntar qual vale.
+         bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
+
          RowsReset();
          RowNote   ("Fecha partes da posicao em alvos globais antes do TP final.");
+         RowComboF ("Tamanho",FCV_COMBO_PARTIAL_MODE,FCV_FLD_PARTIAL_MODE);
+         RowNote   ("Vale para TP1 e TP2 ao mesmo tempo. Trocar o modo nao apaga "
+                    "o valor guardado do outro.");
+         Card("TAMANHO DO PARCIAL");
+
+         RowsReset();
          RowToggleF("Ativo",FCV_FLD_TP1_ON);
-         RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP1_PCT,true,Tp1Params());
+         if(volumeMode)
+            RowFieldF ("Volume",PartialFieldHint(),FCV_FLD_TP1_VOL,true,Tp1Params());
+         else
+            RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP1_PCT,true,Tp1Params());
          RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP1_DIST,true,Tp1Params());
          Card("TP1");
 
          RowsReset();
          RowToggleF("Ativo",FCV_FLD_TP2_ON,Tp2Editable());
-         RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP2_PCT,true,Tp2Params());
+         if(volumeMode)
+            RowFieldF ("Volume",PartialFieldHint(),FCV_FLD_TP2_VOL,true,Tp2Params());
+         else
+            RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP2_PCT,true,Tp2Params());
          RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP2_DIST,true,Tp2Params());
          RowNote   ("TP1 ON ativa o TP parcial; TP2 depende dele.");
          Card("TP2");
+
+         //+------------------------------------------------------------+
+         //| RESUMO DOS VOLUMES - a conta corrida, refeita a cada quadro.|
+         //|                                                             |
+         //| Fica entre o TP2 e o TP FINAL: e o ponto da sequencia em    |
+         //| que ele se le - depois do que reserva, antes do que encerra.|
+         //|                                                             |
+         //| ⚠ `RowStatic` NAO quebra linha. Entao rotulo curto e o      |
+         //| numero SOZINHO na coluna da direita. Frases como "Se        |
+         //| ativado, disponivel para TP2" ou "restam 0.10" ocupavam as  |
+         //| duas colunas e eram cortadas pela largura - o resumo existe  |
+         //| para ser conferido de relance, e um numero cortado nao e     |
+         //| conferivel.                                                  |
+         //+------------------------------------------------------------+
+        {
+         SPartialSummary sum;
+         VBuildPartialSummary(sum);
+         RowsReset();
+
+         if(!sum.specKnown)
+            RowNote("Especificacao de volume do ativo indisponivel.");
+         else if(!sum.lotValid)
+           {
+            RowStatic("Lote inicial","invalido",FCV_SEM_BAD);
+            RowStatic("Calculo","indisponivel");
+           }
+         else if(!sum.partialOn)
+           {
+            RowStatic("TP Parcial","desativado");
+            RowStatic("Lote inicial",VSummaryVol(sum.entry));
+            RowStatic("Saldo minimo",VSummaryVol(sum.minLeft));
+           }
+         else
+           {
+            RowStatic("Lote inicial",VSummaryVol(sum.entry));
+            RowStatic("Maximo TP1",VSummaryVol(sum.availTp1));
+
+            if(!sum.tp1Valid)
+              {
+               RowStatic(VSummaryStageLabel(true),"valor invalido",FCV_SEM_BAD);
+               RowStatic("Saldo final","indisponivel");
+              }
+            else
+              {
+               RowStatic(VSummaryStageLabel(true)+" fecha",VSummaryVol(sum.tp1Volume));
+               RowStatic("Saldo apos TP1",VSummaryVol(sum.afterTp1));
+
+               if(!sum.tp2On)
+                 {
+                  RowStatic("TP2","desativado");
+                  if(sum.availTp2Known)
+                     RowStatic("Maximo se ativado",VSummaryVol(sum.availTp2));
+                 }
+               else
+                 {
+                  if(sum.availTp2Known)
+                     RowStatic("Maximo TP2",VSummaryVol(sum.availTp2));
+                  if(!sum.tp2Valid)
+                    {
+                     RowStatic(VSummaryStageLabel(false),"valor invalido",FCV_SEM_BAD);
+                     RowStatic("Saldo final","indisponivel");
+                    }
+                  else
+                    {
+                     RowStatic(VSummaryStageLabel(false)+" fecha",VSummaryVol(sum.tp2Volume));
+                     RowStatic("Saldo final",VSummaryVol(sum.afterTp2));
+                    }
+                 }
+              }
+            RowStatic("Saldo minimo",VSummaryVol(sum.minLeft));
+           }
+         Card("RESUMO DOS VOLUMES");
+        }
 
          RowsReset();
          RowToggleF("TP Final Livre",FCV_FLD_FREE_TP,FreeTpEditable());
          RowNote   ("Remove o TP final apos o ultimo parcial. Requer trailing ativo; "
                     "o restante passa a sair pelo trailing.");
-         RowNote   ("Volumes sao ajustados ao lote minimo e passo do ativo.");
+         //--- ⚠ Texto dependente do modo. "Volumes sao ajustados ao lote minimo
+         //--- e passo do ativo" fica FALSO no modo Volume, onde o valor digitado
+         //--- e RECUSADO, nao ajustado - e a frase mandaria esperar um conserto
+         //--- que nao vem. Sempre "volume": nunca "lote" nem "contratos".
+         if(volumeMode)
+            RowNote("O volume informado precisa respeitar minimo, maximo e passo do ativo.");
+         else
+            RowNote("O volume calculado e ajustado ao minimo e ao passo do ativo.");
          Card("TP FINAL");
          return;
+        }
 
       case 3:
          RowsReset();

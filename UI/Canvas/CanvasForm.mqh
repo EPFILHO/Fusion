@@ -96,6 +96,8 @@
 #define FCV_COMBO_TARGET    18
 #define FCV_COMBO_DDTYPE    19
 #define FCV_COMBO_DDPEAK    20
+//--- ⚠ 21, e nao 11: FCV_COMBO_EXIT ja ocupa o 11. O maior kind em uso e o 20.
+#define FCV_COMBO_PARTIAL_MODE 21
 
 //--- semantica de selo e de valor
 #define FCV_SEM_NEUTRAL 0

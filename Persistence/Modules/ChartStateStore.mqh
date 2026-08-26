@@ -209,6 +209,10 @@ bool FusionLoadChartState(const ulong chartId,
    bool seenBBFilter = false;
    bool seenLegacyTail = false;
    bool seenCurrentTail = false;
+   //--- Chaves do schema 15. A do modo so acende com valor DENTRO do enum.
+   bool seenPartialSizeMode = false;
+   bool seenTp1Volume = false;
+   bool seenTp2Volume = false;
 
    SEntryStateSnapshot candidateEntry;
    ResetEntryStateSnapshot(candidateEntry);
@@ -349,6 +353,9 @@ bool FusionLoadChartState(const ulong chartId,
          else if(key == "bbFilterEnabled") seenBBFilter = true;
          else if(key == "bbFilterMinWidthPercent") seenLegacyTail = true;
          else if(key == "bbFilterMinSlopePoints") seenCurrentTail = true;
+         else if(key == "partial.sizeMode") seenPartialSizeMode = FusionPartialSizeModeTextValid(value);
+         else if(key == "tp1.volume") seenTp1Volume = FusionSettingsNumberTextValid(value);
+         else if(key == "tp2.volume") seenTp2Volume = FusionSettingsNumberTextValid(value);
         }
 
       if(structuralError != "")
@@ -393,7 +400,10 @@ bool FusionLoadChartState(const ulong chartId,
                                       seenRSIFilter,
                                       seenBBFilter,
                                       seenLegacyTail,
-                                      seenCurrentTail))
+                                      seenCurrentTail,
+                                      seenPartialSizeMode,
+                                      seenTp1Volume,
+                                      seenTp2Volume))
      {
       errorReason = "bloco de configuracao incompleto ou schema invalido";
       return false;

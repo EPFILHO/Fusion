@@ -3,42 +3,26 @@
 
 #include "../Core/Types.mqh"
 #include "../Core/Logger.mqh"
+//--- Fonte unica do plano de volumes do TP parcial, compartilhada com a tela.
+#include "../Core/PartialVolumePlan.mqh"
 
 class CRiskManager
   {
 private:
    CLogger *m_logger;
 
+   //--- Delega para a fonte unica. O corpo que vivia aqui era LETRA POR LETRA o
+   //--- de `FusionNormalizePartialVolume` - arredondar ao passo, prender na
+   //--- faixa, cortar as casas do passo. Duas copias da mesma conta so esperam
+   //--- que uma delas seja corrigida sozinha.
    double   NormalizeVolumeToSpec(const double volume,const SSymbolSpec &spec) const
      {
-      if(spec.volumeStep <= 0.0)
-         return volume;
-
-      double normalized = MathRound(volume / spec.volumeStep) * spec.volumeStep;
-      normalized = MathMax(spec.volumeMin, normalized);
-      normalized = MathMin(spec.volumeMax, normalized);
-
-      double temp = spec.volumeStep;
-      int digits = 0;
-      while(digits < 8 && MathAbs(temp - MathRound(temp)) > 0.0000001)
-        {
-         temp *= 10.0;
-         digits++;
-        }
-
-      return NormalizeDouble(normalized, digits);
+      return FusionNormalizePartialVolume(volume, spec);
      }
 
-   bool     PartialVolumePlanValid(const SRiskPlan &plan,const double reserved,const SSymbolSpec &spec) const
-     {
-      if(spec.volumeMin <= 0.0)
-         return false;
-      if(reserved <= 0.0)
-         return false;
-      if((plan.volume - reserved) + 0.0000001 < spec.volumeMin)
-         return false;
-      return true;
-     }
+   //--- ⚠ `PartialVolumePlanValid` foi REMOVIDA. Ela conferia se o plano deixava
+   //--- o volume minimo aberto - regra que agora vive uma vez so, dentro de
+   //--- `FusionBuildPartialVolumePlan` (FUSION_PARTIAL_PLAN_NO_MIN_LEFT).
 
    bool     CurrentPrices(const SSymbolSpec &spec,double &bid,double &ask) const
      {
@@ -259,34 +243,77 @@ public:
          return false;
         }
 
-      if(settings.usePartialTP)
+      //+---------------------------------------------------------------+
+      //| TP PARCIAL - fonte unica, atras da PORTA GLOBAL.                |
+      //|                                                                |
+      //| A formula percentual que vivia aqui foi REMOVIDA, nao movida:  |
+      //| ela era a segunda escrita da mesma regra que a tela ja fazia   |
+      //| em `VPartialVolumePlan`, e duas escritas do mesmo criterio      |
+      //| divergem. O sintoma seria a tela aprovando o que a entrada      |
+      //| recusa - ou pior, o contrario.                                  |
+      //|                                                                |
+      //| ⚠ `settings.usePartialTP` CONTINUA SENDO A PORTA EXTERNA, como |
+      //| era antes. Chamar o helper incondicionalmente e deixa-lo        |
+      //| decidir por `tp1.enabled` MUDARIA O CONTRATO: um perfil com o   |
+      //| global desligado e valores dormentes invalidos nos estagios era |
+      //| aceito e passaria a ser BLOQUEADO. `BuildEntryPlan` e API       |
+      //| publica e nao pode presumir que todo chamador ja normalizou o   |
+      //| struct - a normalizacao sincroniza os dois campos, mas depender |
+      //| disso implicitamente e como nao ter a guarda.                   |
+      //|                                                                |
+      //| Com o global desligado: nada e calculado, nada e recusado,      |
+      //| nenhum motivo e publicado, e os campos parciais ficam zerados   |
+      //| como ja nasceram acima.                                         |
+      //+---------------------------------------------------------------+
+      if(!settings.usePartialTP)
         {
-         double reserved = 0.0;
+         plan.usePartialTP = false;
+         return true;
+        }
 
-         if(settings.tp1.enabled)
-           {
-            plan.tp1Volume = NormalizeVolumeToSpec(plan.volume * (settings.tp1.percent / 100.0), spec);
-            plan.tp1Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp1.distancePoints * spec.point), spec.digits);
-            if(plan.tp1Volume <= 0.0 || plan.tp1Volume + 0.0000001 >= plan.volume)
-               return false;
-            reserved      += plan.tp1Volume;
-           }
+      //--- Global ligado: daqui para baixo o helper e a UNICA autoridade, sem
+      //--- fallback para a formula antiga.
+      SPartialVolumePlan partial;
+      if(!FusionBuildPartialVolumePlan(plan.volume, settings.partialSizeMode,
+                                       settings.tp1, settings.tp2, spec, partial))
+        {
+         //--- ⚠ CONTRATO: plano recusado NAO deixa reserva utilizavel. Os campos
+         //--- parciais ja nasceram zerados acima e continuam zerados aqui - um
+         //--- valor residual de um plano invalido poderia ser copiado para o
+         //--- estado da posicao e virar um fechamento parcial que ninguem pediu.
+         plan.tp1Volume = 0.0; plan.tp1Price = 0.0;
+         plan.tp2Volume = 0.0; plan.tp2Price = 0.0;
+         plan.usePartialTP = false;
 
-         if(settings.tp2.enabled)
-           {
-            double requested = NormalizeVolumeToSpec(plan.volume * (settings.tp2.percent / 100.0), spec);
-            double remaining = plan.volume - reserved;
-            if(requested <= 0.0 || remaining <= spec.volumeMin)
-               return false;
-            plan.tp2Volume = MathMin(requested, remaining);
-            plan.tp2Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp2.distancePoints * spec.point), spec.digits);
-            if(plan.tp2Volume <= 0.0 || plan.tp2Volume + 0.0000001 >= remaining)
-               return false;
-            reserved      += plan.tp2Volume;
-           }
+         //--- ⚠ E o motivo passa a SAIR. Antes este ramo devolvia false com
+         //--- `runtimeStopsError` vazio, e o chamador so publica aviso quando ele
+         //--- vem preenchido: a entrada era bloqueada em silencio, sem nada na
+         //--- tela dizendo por que.
+         runtimeStopsError  = "Entrada bloqueada: TP parcial invalido.";
+         runtimeStopsDetail = FusionPartialPlanReason(partial.code);
+         if(m_logger != NULL)
+            m_logger.Warn("RISK", "Plano de TP parcial recusado: " + FusionPartialPlanReason(partial.code));
+         return false;
+        }
 
-         if(!PartialVolumePlanValid(plan, reserved, spec))
-            return false;
+      //--- DISABLED nao e erro: e simplesmente ausencia de TP parcial. Mas com o
+      //--- global LIGADO ele denuncia uma configuracao inconsistente (TP1
+      //--- desligado por dentro), e ai `plan.usePartialTP` tem de cair junto:
+      //--- deixa-lo verdadeiro com volumes zerados descreveria uma posicao que
+      //--- espera parcial e nunca vai receber uma.
+      if(partial.code != FUSION_PARTIAL_PLAN_OK)
+        {
+         plan.usePartialTP = false;
+         return true;
+        }
+
+      plan.tp1Volume = partial.tp1Volume;
+      plan.tp1Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp1.distancePoints * spec.point), spec.digits);
+
+      if(partial.tp2Volume > 0.0)
+        {
+         plan.tp2Volume = partial.tp2Volume;
+         plan.tp2Price  = NormalizeDouble(effectiveEntryPrice + (direction * settings.tp2.distancePoints * spec.point), spec.digits);
         }
 
       return true;

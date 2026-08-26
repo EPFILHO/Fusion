@@ -41,8 +41,13 @@ bool FusionSameNewsWindow(const SNewsWindowConfig &a,const SNewsWindowConfig &b)
 
 bool FusionSamePartialTP(const SPartialTPConfig &a,const SPartialTPConfig &b)
   {
+   //--- ⚠ Compara os DOIS tamanhos, sempre, e nao so o do modo vigente. Eles
+   //--- fazem parte do perfil mesmo quando inativos: comparando so o corrente,
+   //--- editar o valor do outro modo nao acenderia pendencia, o SALVAR ficaria
+   //--- apagado e a alteracao se perderia calada.
    return (a.enabled == b.enabled &&
            FusionSameDouble(a.percent,b.percent) &&
+           FusionSameDouble(a.volume,b.volume) &&
            a.distancePoints == b.distancePoints);
   }
 
@@ -121,6 +126,7 @@ bool FusionSettingsEqual(const SEASettings &a,const SEASettings &b)
    if(a.compensateTPSpread  != b.compensateTPSpread)  return false;
    if(a.usePartialTP        != b.usePartialTP)        return false;
    if(a.freeFinalTP         != b.freeFinalTP)         return false;
+   if(a.partialSizeMode     != b.partialSizeMode)      return false;
    if(!FusionSamePartialTP(a.tp1,b.tp1))              return false;
    if(!FusionSamePartialTP(a.tp2,b.tp2))              return false;
    if(a.useTrailing         != b.useTrailing)         return false;

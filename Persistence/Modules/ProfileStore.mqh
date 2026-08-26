@@ -155,6 +155,10 @@ bool FusionLoadProfile(const string profileName,SEASettings &settings)
    bool seenBBFilter = false;
    bool seenLegacyTail = false;
    bool seenCurrentTail = false;
+   //--- Chaves do schema 15. A do modo so acende com valor DENTRO do enum.
+   bool seenPartialSizeMode = false;
+   bool seenTp1Volume = false;
+   bool seenTp2Volume = false;
 
    while(!FileIsEnding(handle))
      {
@@ -176,6 +180,9 @@ bool FusionLoadProfile(const string profileName,SEASettings &settings)
       else if(key == "bbFilterEnabled") seenBBFilter = true;
       else if(key == "bbFilterMinWidthPercent") seenLegacyTail = true;
       else if(key == "bbFilterMinSlopePoints") seenCurrentTail = true;
+      else if(key == "partial.sizeMode") seenPartialSizeMode = FusionPartialSizeModeTextValid(value);
+      else if(key == "tp1.volume") seenTp1Volume = FusionSettingsNumberTextValid(value);
+      else if(key == "tp2.volume") seenTp2Volume = FusionSettingsNumberTextValid(value);
       FusionApplySetting(key, value, candidate);
      }
 
@@ -192,7 +199,10 @@ bool FusionLoadProfile(const string profileName,SEASettings &settings)
                                       seenRSIFilter,
                                       seenBBFilter,
                                       seenLegacyTail,
-                                      seenCurrentTail))
+                                      seenCurrentTail,
+                                      seenPartialSizeMode,
+                                      seenTp1Volume,
+                                      seenTp2Volume))
       return false;
 
    FusionNormalizeProtectionSettings(candidate);

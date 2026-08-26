@@ -68,6 +68,12 @@ void FusionApplyStoragePrecision(SEASettings &settings)
    settings.maxDrawdown   = NormalizeDouble(settings.maxDrawdown,  FUSION_STORAGE_DIGITS);
    settings.tp1.percent   = NormalizeDouble(settings.tp1.percent,  FUSION_STORAGE_DIGITS);
    settings.tp2.percent   = NormalizeDouble(settings.tp2.percent,  FUSION_STORAGE_DIGITS);
+   //--- ⚠ Volume usa a precisao de LOTE, pela mesma razao do fixedLot logo
+   //--- abaixo: cortar para 2 casas mascararia um volume desalinhado do passo.
+   //--- 0.125 com passo 0.01 viraria 0.13 - valido, e diferente do que se pediu.
+   //--- Desalinhado, ele continua desalinhado e a validacao o recusa.
+   settings.tp1.volume    = NormalizeDouble(settings.tp1.volume, FUSION_STORAGE_DIGITS_LOT);
+   settings.tp2.volume    = NormalizeDouble(settings.tp2.volume, FUSION_STORAGE_DIGITS_LOT);
    settings.bbDeviation   = NormalizeDouble(settings.bbDeviation,  FUSION_STORAGE_DIGITS);
    settings.bbFilterDeviation      = NormalizeDouble(settings.bbFilterDeviation,      FUSION_STORAGE_DIGITS);
    settings.bbFilterMinWidthPercent= NormalizeDouble(settings.bbFilterMinWidthPercent,FUSION_STORAGE_DIGITS);

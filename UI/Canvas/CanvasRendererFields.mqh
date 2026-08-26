@@ -381,6 +381,7 @@ int FieldGetIndex(const int fid)
       case FCV_FLD_MA_SLOW_TF:     return TfToIndex(m_draft.maSlowTimeframe);
       case FCV_FLD_MA_SLOW_METHOD: return (int)m_draft.maSlowMethod;
       case FCV_FLD_MA_SLOW_PRICE:  return (int)m_draft.maSlowPrice-1;
+      case FCV_FLD_PARTIAL_MODE:   return (int)m_draft.partialSizeMode;
       case FCV_FLD_MA_ENTRY_MODE:  return (int)m_draft.maEntryMode;
       case FCV_FLD_MA_EXIT_MODE:   return (int)m_draft.maExitMode;
       case FCV_FLD_RSI_TF:         return TfToIndex(m_draft.rsiTimeframe);
@@ -445,6 +446,9 @@ void FieldSetIndex(const int fid,const int idx)
       case FCV_FLD_MA_SLOW_TF:     m_draft.maSlowTimeframe=TfFromIndex(idx);   break;
       case FCV_FLD_MA_SLOW_METHOD: m_draft.maSlowMethod=(ENUM_MA_METHOD)idx;   break;
       case FCV_FLD_MA_SLOW_PRICE:  m_draft.maSlowPrice=(ENUM_APPLIED_PRICE)(idx+1); break;
+      //--- ⚠ So troca QUAL campo aparece. Nao converte, nao normaliza e nao apaga
+      //--- percentual nem volume: os dois continuam guardados no rascunho.
+      case FCV_FLD_PARTIAL_MODE:   m_draft.partialSizeMode=(ENUM_PARTIAL_SIZE_MODE)idx; break;
       case FCV_FLD_MA_ENTRY_MODE:  m_draft.maEntryMode=(ENUM_ENTRY_MODE)idx;   break;
       case FCV_FLD_MA_EXIT_MODE:   m_draft.maExitMode=(ENUM_EXIT_MODE)idx;     break;
       case FCV_FLD_RSI_TF:         m_draft.rsiTimeframe=TfFromIndex(idx);      break;
@@ -499,6 +503,36 @@ void FieldSetIndex(const int fid,const int idx)
 //--- nao se le como horario. Mesmo StringFormat da 1.058 (SyncProtectionControls).
 string TimePartText(const int value) { return StringFormat("%02d",value); }
 
+//+------------------------------------------------------------------+
+//| Volume DIGITADO, como foi digitado. Vale para os TRES campos de    |
+//| volume: Lote Fixo, Volume do TP1 e Volume do TP2.                  |
+//|                                                                    |
+//| ⚠ NAO usa `FusionFormatVolume`. Aquele formatador escreve com as   |
+//| casas do `volumeStep`, entao 0.125 num ativo de passo 0.01 sai     |
+//| como "0.13" - um numero que o rascunho nao contem e que a          |
+//| validacao esta recusando. A tela ficava contraditoria: mostrava um |
+//| valor alinhado ao passo e mantinha o campo vermelho.                |
+//|                                                                    |
+//| Quatro casas fixas, zeros finais aparados: 0.1250 -> "0.125",      |
+//| 0.3000 -> "0.3", e 0.125 continua "0.125".                          |
+//|                                                                    |
+//| NAO normaliza nem altera o rascunho - so escreve o que ja existe.  |
+//| `FusionFormatVolume` continua certo para minimo/passo/maximo da    |
+//| especificacao, onde as casas do passo sao o que se quer.           |
+//+------------------------------------------------------------------+
+string VolumeInputText(const double volume)
+  {
+   string text=DoubleToString(volume,FUSION_STORAGE_DIGITS_LOT);
+   if(StringFind(text,".")<0)
+      return text;
+   int len=StringLen(text);
+   while(len>0 && StringGetCharacter(text,len-1)=='0')
+      len--;
+   if(len>0 && StringGetCharacter(text,len-1)=='.')
+      len--;
+   return StringSubstr(text,0,len);
+  }
+
 string FieldGetText(const int fid)
   {
    int w,f;
@@ -540,16 +574,21 @@ string FieldGetText(const int fid)
       case FCV_FLD_BF_MINPCT:      return DoubleToString(m_draft.bbFilterMinWidthPercent,2);
       case FCV_FLD_BF_SLOPE_BACK:  return IntegerToString(m_draft.bbFilterSlopeLookback);
       case FCV_FLD_BF_SLOPE_MINPTS:return IntegerToString(m_draft.bbFilterMinSlopePoints);
-      //--- Gestao > Risco. O lote e o unico campo cuja grafia depende do ativo:
-      //--- o passo de volume decide as casas decimais, e escreve-lo com duas
-      //--- fixas mostraria 0.10 num ativo cujo passo e 0.001.
-      case FCV_FLD_FIXED_LOT:   return FusionFormatVolume(m_draft.fixedLot,m_snap.symbolSpec);
+      //--- Gestao > Risco. ⚠ O lote NAO e mais escrito com as casas do passo do
+      //--- ativo: fazia 0.125 aparecer como "0.13" num passo de 0.01, valor que
+      //--- o rascunho nao contem e que a validacao recusa - tela mostrando um
+      //--- numero e julgando outro. Agora usa VolumeInputText, como os volumes
+      //--- do TP Parcial. As casas do passo continuam valendo para a DICA de
+      //--- minimo/passo/maximo, que descreve a especificacao e nao o digitado.
+      case FCV_FLD_FIXED_LOT:   return VolumeInputText(m_draft.fixedLot);
       case FCV_FLD_SLIPPAGE:    return IntegerToString(m_draft.slippagePoints);
       case FCV_FLD_SL_POINTS:   return IntegerToString(m_draft.fixedSLPoints);
       case FCV_FLD_TP_POINTS:   return IntegerToString(m_draft.fixedTPPoints);
       case FCV_FLD_TP1_PCT:     return DoubleToString(m_draft.tp1.percent,2);
+      case FCV_FLD_TP1_VOL:     return VolumeInputText(m_draft.tp1.volume);
       case FCV_FLD_TP1_DIST:    return IntegerToString(m_draft.tp1.distancePoints);
       case FCV_FLD_TP2_PCT:     return DoubleToString(m_draft.tp2.percent,2);
+      case FCV_FLD_TP2_VOL:     return VolumeInputText(m_draft.tp2.volume);
       case FCV_FLD_TP2_DIST:    return IntegerToString(m_draft.tp2.distancePoints);
       case FCV_FLD_BE_TRIGGER:  return IntegerToString(m_draft.breakevenTriggerPoints);
       case FCV_FLD_BE_OFFSET:   return IntegerToString(m_draft.breakevenOffsetPoints);
@@ -640,10 +679,16 @@ void FieldSetText(const int fid,const string text)
       //--- tela mostrar 1.23 enquanto o EA operaria 1.234 — a mesma classe de
       //--- divergencia entre o que se ve e o que vale que o parse recusado
       //--- criava. E, gravado, o valor voltaria diferente do disco.
+      //--- ⚠ Os volumes do TP Parcial usam a precisao de LOTE (4 casas), como o
+      //--- Lote Fixo. Cortar em 2 mascararia um volume desalinhado do passo:
+      //--- 0.125 viraria 0.13, que e valido - e o operador gravaria um volume
+      //--- que nunca pediu, sem nunca ver a recusa.
       if(kind==FCV_FTYPE_DEC)
          parsed=DoubleToString(StringToDouble(parsed),
-                               (fid==FCV_FLD_FIXED_LOT) ? FUSION_STORAGE_DIGITS_LOT
-                                                        : FUSION_STORAGE_DIGITS);
+                               (fid==FCV_FLD_FIXED_LOT ||
+                                fid==FCV_FLD_TP1_VOL ||
+                                fid==FCV_FLD_TP2_VOL) ? FUSION_STORAGE_DIGITS_LOT
+                                                      : FUSION_STORAGE_DIGITS);
      }
 
    int w,f;
@@ -703,8 +748,10 @@ void FieldSetText(const int fid,const string text)
       case FCV_FLD_SL_POINTS:   m_draft.fixedSLPoints         =(int)StringToInteger(parsed); break;
       case FCV_FLD_TP_POINTS:   m_draft.fixedTPPoints         =(int)StringToInteger(parsed); break;
       case FCV_FLD_TP1_PCT:     m_draft.tp1.percent           =StringToDouble(parsed);       break;
+      case FCV_FLD_TP1_VOL:     m_draft.tp1.volume            =StringToDouble(parsed);       break;
       case FCV_FLD_TP1_DIST:    m_draft.tp1.distancePoints    =(int)StringToInteger(parsed); break;
       case FCV_FLD_TP2_PCT:     m_draft.tp2.percent           =StringToDouble(parsed);       break;
+      case FCV_FLD_TP2_VOL:     m_draft.tp2.volume            =StringToDouble(parsed);       break;
       case FCV_FLD_TP2_DIST:    m_draft.tp2.distancePoints    =(int)StringToInteger(parsed); break;
       case FCV_FLD_BE_TRIGGER:  m_draft.breakevenTriggerPoints=(int)StringToInteger(parsed); break;
       case FCV_FLD_BE_OFFSET:   m_draft.breakevenOffsetPoints =(int)StringToInteger(parsed); break;

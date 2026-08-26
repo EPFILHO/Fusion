@@ -111,6 +111,13 @@
 #define FCV_FLD_VIS_BB_COLOR     229
 #define FCV_FLD_VIS_BB_STYLE     230
 
+//--- TP Parcial por quantidade. O seletor e GLOBAL (vale para TP1 e TP2); os
+//--- dois volumes sao campos proprios, independentes dos percentuais, para que
+//--- trocar de modo nao destrua o valor dormente do outro.
+#define FCV_FLD_PARTIAL_MODE     231   // combo PARTIAL_MODE
+#define FCV_FLD_TP1_VOL          232   // double(4) - volume bruto, sem arredondar
+#define FCV_FLD_TP2_VOL          233   // double(4) - volume bruto, sem arredondar
+
 //--- Perfis
 //--- O Magic identifica as ordens deste perfil no grafico. Mora em Perfis, e
 //--- nao em Config, porque e identidade do perfil e a lista ja mostra o de

@@ -3,6 +3,84 @@
 
 #include "../../Core/Types.mqh"
 #include "SettingsFileUtils.mqh"
+#include "../../Core/SettingsPrecision.mqh"
+
+//+------------------------------------------------------------------+
+//| Validadores TEXTUAIS das chaves novas.                            |
+//|                                                                    |
+//| ⚠ Sao textuais de proposito. `StringToInteger` e `StringToDouble`  |
+//| do MQL5 sao PERMISSIVOS: convertem o prefixo e desistem em             |
+//| silencio, entao "0abc" vira 0 e "abc" vira 0. Julgar pelo numero    |
+//| convertido faria um arquivo corrompido virar uma configuracao       |
+//| financeira aparentemente valida - percentual, no caso do modo.      |
+//|                                                                    |
+//| `FusionSettingsParseLine` NAO apara nada: ele corta no primeiro    |
+//| "=" e entrega o resto cru. O gravador nunca escreve espaco, entao  |
+//| espaco so aparece em arquivo editado a mao. A decisao e aparar o   |
+//| branco (inclusive o \r de um arquivo com fim de linha do Windows)  |
+//| e exigir forma canonica no que sobrar.                              |
+//+------------------------------------------------------------------+
+string FusionSettingsTrim(const string value)
+  {
+   string trimmed = value;
+   StringTrimLeft(trimmed);
+   StringTrimRight(trimmed);
+   StringReplace(trimmed, "\r", "");
+   StringReplace(trimmed, "\n", "");
+   StringTrimLeft(trimmed);
+   StringTrimRight(trimmed);
+   return trimmed;
+  }
+
+//--- So "0" e "1". Nao se deriva validade do numero convertido.
+bool FusionPartialSizeModeTextValid(const string value)
+  {
+   string t = FusionSettingsTrim(value);
+   return (t == "0" || t == "1");
+  }
+
+//+------------------------------------------------------------------+
+//| O texto e um numero, INTEIRO ate o fim?                            |
+//|                                                                    |
+//| Aceita sinal opcional, digitos e no maximo um ponto decimal, com   |
+//| pelo menos um digito. Qualquer caractere estranho reprova o texto  |
+//| todo - e essa a diferenca para o StringToDouble, que aceitaria o   |
+//| prefixo e devolveria um numero.                                    |
+//|                                                                    |
+//| ⚠ NAO julga o valor contra o ativo. Zero e um numero legitimo aqui:|
+//| e o volume DORMENTE de um perfil em modo percentual. Quem recusa   |
+//| valor fora da grade e o plano, mais tarde, com a spec na mao.      |
+//+------------------------------------------------------------------+
+bool FusionSettingsNumberTextValid(const string value)
+  {
+   string t = FusionSettingsTrim(value);
+   int len = StringLen(t);
+   if(len <= 0)
+      return false;
+
+   int  index  = 0;
+   int  digits = 0;
+   int  dots   = 0;
+   ushort first = StringGetCharacter(t, 0);
+   if(first == '+' || first == '-')
+      index = 1;
+
+   for(; index < len; index++)
+     {
+      ushort c = StringGetCharacter(t, index);
+      if(c >= '0' && c <= '9')
+        { digits++; continue; }
+      if(c == '.')
+        { dots++; if(dots > 1) return false; continue; }
+      return false;                     // qualquer outro caractere reprova
+     }
+
+   if(digits <= 0)
+      return false;
+
+   //--- Ultima porta: o que o MQL5 produz precisa ser um numero utilizavel.
+   return MathIsValidNumber(StringToDouble(t));
+  }
 
 bool FusionSaveSettingsBlock(const int handle,const SEASettings &settings)
   {
@@ -81,11 +159,14 @@ bool FusionSaveSettingsBlock(const int handle,const SEASettings &settings)
    ok = FusionSettingsWriteLine(handle, "compensateTPSpread", IntegerToString((int)settings.compensateTPSpread)) && ok;
    ok = FusionSettingsWriteLine(handle, "usePartialTP", IntegerToString((int)settings.usePartialTP)) && ok;
    ok = FusionSettingsWriteLine(handle, "freeFinalTP", IntegerToString((int)settings.freeFinalTP)) && ok;
+   ok = FusionSettingsWriteLine(handle, "partial.sizeMode", IntegerToString((int)settings.partialSizeMode)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp1.enabled", IntegerToString((int)settings.tp1.enabled)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp1.percent", DoubleToString(settings.tp1.percent, 2)) && ok;
+   ok = FusionSettingsWriteLine(handle, "tp1.volume", DoubleToString(settings.tp1.volume, FUSION_STORAGE_DIGITS_LOT)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp1.distancePoints", IntegerToString(settings.tp1.distancePoints)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp2.enabled", IntegerToString((int)settings.tp2.enabled)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp2.percent", DoubleToString(settings.tp2.percent, 2)) && ok;
+   ok = FusionSettingsWriteLine(handle, "tp2.volume", DoubleToString(settings.tp2.volume, FUSION_STORAGE_DIGITS_LOT)) && ok;
    ok = FusionSettingsWriteLine(handle, "tp2.distancePoints", IntegerToString(settings.tp2.distancePoints)) && ok;
    ok = FusionSettingsWriteLine(handle, "useTrailing", IntegerToString((int)settings.useTrailing)) && ok;
    ok = FusionSettingsWriteLine(handle, "trailingStartPoints", IntegerToString(settings.trailingStartPoints)) && ok;
@@ -258,11 +339,27 @@ void FusionApplySetting(const string key,const string value,SEASettings &setting
    else if(key == "compensateTPSpread") settings.compensateTPSpread = (bool)StringToInteger(value);
    else if(key == "usePartialTP") settings.usePartialTP = (bool)StringToInteger(value);
    else if(key == "freeFinalTP") settings.freeFinalTP = (bool)StringToInteger(value);
+   //--- ⚠ FALHA FECHADA: um modo fora do enum NAO e atribuido. O campo fica no
+   //--- default e a flag `seen` do chamador nao acende, entao o perfil v15 e
+   //--- recusado como incompleto. Aceitar e "normalizar para percentual" faria
+   //--- um arquivo corrompido virar uma configuracao valida em silencio.
+   else if(key == "partial.sizeMode")
+     {
+      if(FusionPartialSizeModeTextValid(value))
+         settings.partialSizeMode = (ENUM_PARTIAL_SIZE_MODE)StringToInteger(value);
+     }
    else if(key == "tp1.enabled") settings.tp1.enabled = (bool)StringToInteger(value);
    else if(key == "tp1.percent") settings.tp1.percent = StringToDouble(value);
+   //--- Simetrico ao modo: texto invalido NAO e atribuido. O perfil ja sera
+   //--- recusado pela flag; deixar o campo no default evita que um valor
+   //--- inventado circule caso algum caminho futuro ignore a recusa.
+   else if(key == "tp1.volume")
+     { if(FusionSettingsNumberTextValid(value)) settings.tp1.volume = StringToDouble(value); }
    else if(key == "tp1.distancePoints") settings.tp1.distancePoints = (int)StringToInteger(value);
    else if(key == "tp2.enabled") settings.tp2.enabled = (bool)StringToInteger(value);
    else if(key == "tp2.percent") settings.tp2.percent = StringToDouble(value);
+   else if(key == "tp2.volume")
+     { if(FusionSettingsNumberTextValid(value)) settings.tp2.volume = StringToDouble(value); }
    else if(key == "tp2.distancePoints") settings.tp2.distancePoints = (int)StringToInteger(value);
    else if(key == "useTrailing") settings.useTrailing = (bool)StringToInteger(value);
    else if(key == "trailingStartPoints") settings.trailingStartPoints = (int)StringToInteger(value);
@@ -345,7 +442,10 @@ bool FusionProfileHasRequiredFields(const int schemaVersion,
                                     const bool seenRSIFilter,
                                     const bool seenBBFilter,
                                     const bool seenLegacyTail,
-                                    const bool seenCurrentTail)
+                                    const bool seenCurrentTail,
+                                    const bool seenPartialSizeMode,
+                                    const bool seenTp1Volume,
+                                    const bool seenTp2Volume)
   {
    if(!seenSchema || schemaVersion <= 0 || schemaVersion > FUSION_SETTINGS_SCHEMA_VERSION)
       return false;
@@ -363,10 +463,29 @@ bool FusionProfileHasRequiredFields(const int schemaVersion,
    if(schemaVersion >= 8 && !seenBBFilter)
       return false;
 
+   // ⚠ O TAIL DO v14 CONTINUA OBRIGATORIO, e esta linha existe por causa de
+   // uma armadilha da propria promocao de schema: enquanto o schema corrente
+   // era 14, `bbFilterMinSlopePoints` era exigido pelo ramo estrito logo
+   // abaixo. Ao promover para 15, o 14 cairia no `return true` final e um
+   // arquivo v14 TRUNCADO passaria a ser aceito como legado - completado com
+   // defaults, calado. Exigir daqui para cima cobre 14 e 15 de uma vez.
+   if(schemaVersion >= 14 && !seenCurrentTail)
+      return false;
+
    // O schema atual e estrito: um perfil novo deve conter o bloco completo
    // gravado por FusionSaveSettingsBlock e o seu ultimo campo obrigatorio.
+   //
+   // ⚠ As tres chaves do TP Parcial sao exigidas por FLAG, e nao pela contagem
+   // de linhas. `settingLineCount` diz quantas linhas vieram, nunca QUAIS: um
+   // arquivo com o numero certo de linhas e a chave errada passaria pela
+   // contagem. E a flag do modo so acende com um valor DENTRO do enum, entao
+   // `partial.sizeMode=7` recusa o perfil em vez de virar percentual.
    if(schemaVersion == FUSION_SETTINGS_SCHEMA_VERSION)
+     {
+      if(!seenPartialSizeMode || !seenTp1Volume || !seenTp2Volume)
+         return false;
       return (settingLineCount >= FUSION_SETTINGS_SCHEMA_LINE_COUNT && seenCurrentTail);
+     }
 
    return true;
   }

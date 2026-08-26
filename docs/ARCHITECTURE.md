@@ -358,6 +358,32 @@ Observabilidade pura. O modulo **le** a sincronizacao da posicao e publica o que
 
 **Nao se afirma autoria.** O snapshot diz que houve alteracao e qual foi; nunca que foi manual ou feita pelo usuario. A origem pode ser outro terminal, o aplicativo do celular, a mesa da corretora ou outro programa na mesma conta, e o EA nao tem como distinguir. Alem disso, o MQL5 nao garante ordenacao de transacao, entao "externo" aqui significa **fora do ultimo ajuste reconhecido**, e nao prova de terceiro.
 
+## Plano de Volumes do TP Parcial
+
+**Fonte unica.** `FusionBuildPartialVolumePlan`, em `Core/PartialVolumePlan.mqh`, e a UNICA autoridade sobre o plano. A regra vivia duas vezes — `VPartialVolumePlan` decidia se a tela aceitava e `RiskManager::BuildEntryPlan` decidia se a ordem saia —, e duas escritas do mesmo criterio divergem. O sintoma seria o pior possivel: a tela aprovando o que a entrada recusa, com dinheiro na mesa. Funcoes livres, sem estado e sem acesso ao MT5: tudo entra por parametro, o que as torna exercitaveis por sonda fora do EA.
+
+**Modo global, valores separados.** `ENUM_PARTIAL_SIZE_MODE` vale para TP1 e TP2 ao mesmo tempo; nao ha mistura. `SPartialTPConfig` guarda `percent` E `volume`, e so o do modo vigente entra no calculo. Guardar os dois permite alternar sem destruir o valor anterior; reaproveitar um campo so daria uma chave cujo significado depende de outra chave, e um perfil lido sem o modo passaria a valer coisa diferente do que foi gravado.
+
+**Percentual arredonda, volume digitado nao.** No modo percentual, `MathMax(volumeMin)` ajusta o resultado de uma CONTA e continua sendo o comportamento historico. No modo volume ele reescreveria o que a pessoa digitou: `0.003` num ativo de minimo `0.01` viraria `0.01` calado, e o operador fecharia o triplo do que pediu. Entao o valor digitado e julgado BRUTO — finito, dentro da faixa, alinhado ao passo — e so depois se tira residuo de ponto flutuante.
+
+**Falha fechada.** `MathIsValidNumber` vem antes de qualquer comparacao, porque toda comparacao com NaN devolve false e um `<= 0.0` sozinho deixaria NaN passar. O volume de entrada tambem e conferido contra a GRADE, e nao so contra a faixa. Percentual invalido e recusado ANTES de virar volume: sem isso, a normalizacao devolveria o minimo negociavel e uma configuracao corrompida sairia como parcial valido.
+
+**Contrato do plano recusado.** Quando o helper recusa, `BuildEntryPlan` zera `tp1Volume`, `tp2Volume`, `tp1Price`, `tp2Price` e desliga `plan.usePartialTP` antes de sair. Um residuo poderia ser copiado para o estado da posicao e virar um fechamento parcial que ninguem pediu. Nao ha fallback para a formula antiga.
+
+**A porta global permanece externa.** `settings.usePartialTP` continua sendo conferido ANTES do helper. Deixar o helper decidir por `tp1.enabled` mudaria o contrato: um perfil com o global desligado e valores dormentes invalidos era aceito e passaria a ser bloqueado. `BuildEntryPlan` e API publica e nao pode presumir que todo chamador ja normalizou o struct.
+
+**TP1 e TP2 sao SEMPRE parciais.** O plano exige que reste o volume minimo aberto. Estender o TP2 para encerrar a posicao foi desenhado e **descartado**: invadia envio assincrono, reconciliacao, desconexao, execucao parcial e contabilidade, e `ExecutionService::PartialClose` recusa `lotToClose >= state.volume` — trocar `>=` por `>` produziria configuracao aceita, ordem recusada e uma pendencia presa. O saldo remanescente fica aberto para o mecanismo de encerramento configurado, **se houver** — TP Fixo, trailing, SL ou sinal. O Fusion nao garante que exista um: quem configura o perfil responde por isso.
+
+**Schema 15.** Tres chaves novas: `partial.sizeMode`, `tp1.volume`, `tp2.volume`. Sao exigidas por FLAG `seen`, e nao por `LINE_COUNT` — a contagem diz quantas linhas vieram, nunca QUAIS. Os validadores sao TEXTUAIS porque `StringToInteger` e `StringToDouble` sao permissivos: convertem o prefixo e desistem calados, entao `"0abc"` viraria `0` e um arquivo corrompido viraria configuracao financeira aparentemente valida. O modo so acende a flag com `"0"` ou `"1"` canonicos. Perfis ate a 14 carregam em `PARTIAL_SIZE_PERCENT` com volumes zerados. E a exigencia do tail do v14 (`bbFilterMinSlopePoints`) passou a ser explicita: ao promover o schema, o 14 cairia no ramo permissivo e um arquivo truncado seria aceito como legado.
+
+**A tela traduz, nao decide.** `VPartialVolumePlan` virou adaptador: chama o helper UMA vez e devolve motivo E codigo. A orientacao ao operador e escolhida pelo CODIGO — nunca por busca de palavra no texto do erro, nunca colada por modo. O modo escolhe apenas COMO o campo se chama. `NO_MIN_LEFT`, `ENTRY_INVALID` e `SPEC_UNKNOWN` nao marcam campo nenhum: o primeiro nasce da combinacao dos estagios, e os outros dois nao sao do que foi digitado.
+
+**Escopo de DUPLICAR.** Sob `!m_vSymbolRules` o plano nao e consultado — ele depende da spec, e a duplicacao existe para guardar perfil de outro simbolo. So as regras intrinsecas valem ali, e o modo e conferido direto, sem esperar `MODE_INVALID` do helper: a ordem dele devolve `SPEC_UNKNOWN` antes de olhar o modo.
+
+**O resumo dos volumes e projecao visual.** A conta `entrada - outro - minimo` E uma repeticao da aritmetica do plano, e isso esta declarado: o helper responde "cabe ou nao cabe", nao "ate quanto cabe". Ela nao aprova, nao recusa e nao entra em nenhum caminho de decisao. Se divergir do plano, quem esta errado e ela. A traducao de percentual para volume reusa `FusionPartialStageVolume`, para nao existir uma terceira formula.
+
+**O que a tela mostra e o que a tela julga.** O campo de volume exibe o valor BRUTO — `VolumeInputText`, quatro casas, zeros finais aparados. `FusionFormatVolume` escreve com as casas do `volumeStep` e faria `0.125` aparecer como `0.13` num passo de `0.01`: um numero que o rascunho nao contem e que a validacao esta recusando. Ele continua correto para minimo, passo e maximo da especificacao. A mesma correcao valeu para o `Lote Fixo`.
+
 ## Prioridade Atual de Arquitetura
 
 A linha 1.050/1.051 fechou um ciclo de saneamento conservador da GUI. A 1.052 completou a expansao funcional principal de estrategias/filtros, a 1.053 avancou para risco e protecoes na GUI, e as versoes 1.054 a 1.057 endureceram reconciliacao, persistencia, filtros direcionais, restore e build.

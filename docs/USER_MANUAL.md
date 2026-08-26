@@ -427,19 +427,66 @@ O aviso é **somente de sessão**. Ele sai da tela quando a posição fecha em d
 
 ### 10.3. TP Parcial
 
+O TP Parcial fecha **partes** da posição em alvos intermediários. **TP1 e TP2 são sempre saídas parciais**: nenhum dos dois encerra a operação. O saldo remanescente permanece aberto para o mecanismo de encerramento configurado, **se houver** — TP Fixo, trailing, SL ou sinal da estratégia. Garantir que exista uma forma adequada de encerramento e proteção é responsabilidade de quem opera.
+
+#### Tamanho: Percentual ou Volume
+
+Um seletor **global** decide como os dois estágios são medidos. Não há mistura: TP1 e TP2 usam sempre o mesmo modo.
+
+| Modo | O que se digita |
+|---|---|
+| `Percentual` | Uma fração da posição, em `%` — maior que `0` e até `100`. |
+| `Volume` | Um volume negociável, na unidade do ativo. |
+
+No modo `Volume`, o valor informado é o mesmo número enviado na ordem. Ele precisa respeitar **mínimo, máximo e passo** do ativo — e **não é ajustado em silêncio**: `0,125` num ativo de passo `0,01` é recusado, não arredondado para `0,13`. O campo mostra exatamente o que foi digitado, inclusive quando está recusado.
+
+**Trocar o modo não apaga nada.** O percentual e o volume de cada estágio são guardados separadamente; só o do modo vigente entra no cálculo. Quem experimenta `Volume` e volta para `Percentual` reencontra o que tinha.
+
+#### Sempre sobra volume aberto
+
+O plano exige que reste ao menos o **volume mínimo do ativo** depois dos parciais. Com lote `0,20` e mínimo `0,01`:
+
+- `TP1 0,10 + TP2 0,10` é **recusado** — não sobraria nada;
+- `TP1 0,10 + TP2 0,09` é aceito, restando `0,01`.
+
+Para apenas **dois níveis de saída**, use o TP1 para a primeira parcial e configure o **TP Fixo** para encerrar o restante.
+
+#### Resumo dos volumes
+
+Abaixo do TP2 há uma tabela recalculada a cada alteração, **sempre em quantidade** — mesmo no modo percentual:
+
+```
+Lote inicial             0.20
+Maximo TP1               0.19
+TP1 50% fecha            0.10
+Saldo apos TP1           0.10
+Maximo TP2               0.09
+TP2 45% fecha            0.09
+Saldo final              0.01
+Saldo minimo             0.01
+```
+
+`Maximo TP1` e `Maximo TP2` são o teto de cada estágio **mantendo o mínimo aberto**. Um valor inválido não apaga o que já era conhecido: a conta só vira `indisponivel` a partir do ponto quebrado.
+
+O resumo é **informativo**. Quem aceita ou recusa a configuração é a validação; ele apenas mostra os números.
+
+#### Campos
+
 | Campo | Regra |
 |---|---|
 | `TP1 Ativo` | Liga o sistema de parcial. |
-| `TP1 Volume %` | Maior que `0` e até `100`. |
+| `TP1 Volume %` / `TP1 Volume` | Conforme o modo. |
 | `TP1 Dist pts` | Maior que `0`. |
 | `TP2 Ativo` | Só pode funcionar com TP1 ativo. |
-| `TP2 Volume %` | Maior que `0` e até `100`. |
+| `TP2 Volume %` / `TP2 Volume` | Conforme o modo. |
 | `TP2 Dist pts` | Maior que `0`. |
 | `TP Final Livre` | Depois do último parcial, remove o TP final e deixa o restante sob trailing. Exige TP1 e trailing ativos. |
 
-A soma dos percentuais ativos não pode exceder `100%`. O plano também precisa gerar volumes válidos segundo mínimo e step do símbolo e deixar volume remanescente operável.
-
 O preço usa Bid para compra e Ask para venda. O parcial só é considerado executado depois da confirmação pelo histórico; uma aceitação de requisição não credita lucro estimado.
+
+#### Perfis antigos
+
+Um perfil gravado antes desta versão **carrega em `Percentual`**, com os percentuais valendo exatamente o que valiam. Os campos de volume nascem zerados e inativos — eles só passam a governar se você trocar o modo e informá-los.
 
 ### 10.4. BreakEven
 

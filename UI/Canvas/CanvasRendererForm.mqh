@@ -191,6 +191,8 @@ int ComboItems(const int kind,string &out[])
    //--- relance. Quem explica a acao completa e a dica logo abaixo.
    if(kind==FCV_COMBO_NEWS)
      { string a[2]={"Bloquear","Fechar + Bloq."}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+   if(kind==FCV_COMBO_PARTIAL_MODE)
+     { string a[2]={"Percentual","Volume"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_ENTRY)
      { string a[2]={"Proxima Vela","2a Vela"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_EXIT)
@@ -263,6 +265,7 @@ bool ComboHasHint(const int kind)
   {
    switch(kind)
      {
+      case FCV_COMBO_PARTIAL_MODE:
       case FCV_COMBO_ENTRY:
       case FCV_COMBO_EXIT:
       case FCV_COMBO_RSIEXIT:
@@ -286,6 +289,11 @@ string ComboOptionHint(const int kind,const int idx)
   {
    switch(kind)
      {
+      //--- ⚠ Sem "lotes" nem "contratos": a unidade e a do ativo, e inferi-la
+      //--- pelo passo nao e garantido pelo MT5. Diz-se "volume", so.
+      case FCV_COMBO_PARTIAL_MODE:
+         if(idx==0) return "Cada parcial fecha uma fracao da posicao, em %.";
+         return "Cada parcial fecha um volume informado por voce.";
       case FCV_COMBO_ENTRY:
          if(idx==0) return "Entra na abertura da vela seguinte ao sinal.";
          return "Espera mais uma vela antes de entrar.";

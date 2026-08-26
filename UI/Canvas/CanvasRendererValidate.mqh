@@ -55,6 +55,8 @@ int FieldTextKind(const int fid)
       case FCV_FLD_FIXED_LOT:
       case FCV_FLD_TP1_PCT:
       case FCV_FLD_TP2_PCT:
+      case FCV_FLD_TP1_VOL:
+      case FCV_FLD_TP2_VOL:
       case FCV_FLD_DAY_LOSS:
       case FCV_FLD_DAY_GAIN:
       case FCV_FLD_DD_MAX:
@@ -211,59 +213,347 @@ bool VStopsLevel(const int points)
    return (points>=lvl);
   }
 
-double VNormalizeVolume(const double volume)
+//+------------------------------------------------------------------+
+//| PLANO DE VOLUMES - agora so TRADUZ o helper.                      |
+//|                                                                    |
+//| ⚠ `VNormalizeVolume` e `VTpTotalPercent` foram REMOVIDAS, e a      |
+//| formula que vivia aqui tambem. Elas eram a terceira copia do       |
+//| normalizador e uma SEGUNDA AUTORIDADE sobre o plano: "soma dos     |
+//| percentuais <= 100" e apenas uma aproximacao do criterio real.     |
+//| Com passo grosso, uma soma de 99 pode nao deixar o minimo aberto,  |
+//| e uma de 100 pode ser recusada por outro motivo - duas portas que  |
+//| discordam justamente nas bordas.                                    |
+//|                                                                    |
+//| Quem decide e `FusionBuildPartialVolumePlan`, o MESMO que o        |
+//| RiskManager consulta. Aqui so se traduz o codigo em texto e em     |
+//| qual campo acende.                                                  |
+//+------------------------------------------------------------------+
+
+//--- O volume de entrada entregue ao helper e EXATAMENTE o que o motor usa:
+//--- `RiskManager::BuildEntryPlan` faz `NormalizeVolumeToSpec(fixedLot)`, que
+//--- delega para esta mesma funcao. Passar uma versao "da tela" reintroduziria
+//--- a divergencia que este item veio eliminar.
+//+------------------------------------------------------------------+
+//| Referencia viva do campo de volume: minimo, passo e maximo.        |
+//|                                                                    |
+//| ⚠ AQUI o `FusionFormatVolume` e o formatador certo - sao valores da |
+//| propria especificacao, e as casas do passo sao exatamente o que se  |
+//| quer mostrar. Ele NAO serve para o valor digitado, que precisa      |
+//| aparecer bruto (ver VolumeInputText).                               |
+//|                                                                    |
+//| Sem esta linha, um campo chamado "Volume" convida a digitar 1 num   |
+//| ativo de passo 0.01.                                                |
+//+------------------------------------------------------------------+
+//| RESUMO DOS VOLUMES - prestacao de contas SEQUENCIAL.               |
+//|                                                                    |
+//| ⚠ Substitui o "Max atual" que ficava na descricao de cada campo.   |
+//| Aquele desenho era circular: o teto do TP1 dependia do TP2 e o do  |
+//| TP2 dependia do TP1, entao cada dica tentava explicar a conta      |
+//| inteira sozinha - e um TP2 invalido contaminava a descricao do     |
+//| TP1, num texto que ainda era cortado pela largura.                 |
+//|                                                                    |
+//| Aqui a conta corre de cima para baixo, uma linha por etapa, e o    |
+//| operador confere somando com o dedo. As descricoes dos campos      |
+//| voltam a ser so o que e intrinseco: "Min. X | Passo Y".            |
+//|                                                                    |
+//| ⚠ Continua sendo PROJECAO VISUAL, nao autoridade. Nao aprova, nao  |
+//| recusa e nao altera valor nenhum; quem decide e o plano. Se os     |
+//| dois divergirem, quem esta errado e este resumo.                    |
+//|                                                                    |
+//| ⚠ Um valor invalido NAO apaga o que ja era conhecido: o TP2 vazio  |
+//| nao pode esconder que o TP1 fecha 0.10 e restam 0.10. So a partir  |
+//| do ponto quebrado a conta vira "indisponivel".                     |
+//+------------------------------------------------------------------+
+//--- Desce ao passo, nunca arredonda para cima: um teto arredondado para cima
+//--- anunciaria um valor que o plano recusa.
+double VFloorToStep(const double value)
   {
-   SSymbolSpec spec=m_snap.symbolSpec;
-   if(spec.volumeStep<=0.0) return volume;
-   double normalized=MathRound(volume/spec.volumeStep)*spec.volumeStep;
-   normalized=MathMax(spec.volumeMin,normalized);
-   normalized=MathMin(spec.volumeMax,normalized);
-   return NormalizeDouble(normalized,FusionVolumeDigits(spec.volumeStep));
+   double step=m_snap.symbolSpec.volumeStep;
+   if(step<=0.0) return value;
+   double steps=MathFloor(value/step + 0.0000001);
+   return NormalizeDouble(steps*step,FusionVolumeDigits(step));
   }
 
-//--- O plano de volumes precisa FECHAR: cada parcial tem de ser um lote valido
-//--- e ainda sobrar o minimo aberto. Um percentual aritmeticamente correto pode
-//--- virar um volume que a corretora recusa depois do arredondamento ao passo —
-//--- e ai o erro so apareceria na hora de operar.
-bool VPartialVolumePlan(string &err)
+struct SPartialSummary
   {
-   err="";
-   if(!m_draft.tp1.enabled) return true;
+   bool   specKnown;
+   bool   lotValid;
+   double entry;
+   double minLeft;
+   bool   partialOn;      // TP1 ligado
+   bool   tp1Valid;
+   double tp1Volume;
+   double afterTp1;
+   double availTp1;
+   bool   tp2On;
+   bool   tp2Valid;
+   double tp2Volume;
+   double afterTp2;
+   double availTp2;
+   bool   availTp2Known;  // ha saldo apos TP1 para projetar o TP2?
+  };
 
-   SSymbolSpec spec=m_snap.symbolSpec;
-   //--- Mesma pergunta que a tela Lote faz antes de sugerir "aumente o lote".
-   //--- Uma definicao so: escrita nos dois lugares, ela divergiria, e o sintoma
-   //--- seria uma tela sugerindo conserto para um plano que nem da para julgar.
-   if(!VVolumeSpecKnown())
-     { err="Especificacao de lote do ativo indisponivel."; return false; }
+void VBuildPartialSummary(SPartialSummary &s)
+  {
+   s.specKnown=VVolumeSpecKnown();
+   s.lotValid=false; s.entry=0.0; s.minLeft=0.0;
+   s.partialOn=m_draft.tp1.enabled;
+   s.tp1Valid=false; s.tp1Volume=0.0; s.afterTp1=0.0; s.availTp1=0.0;
+   s.tp2On=Tp2Params(); s.tp2Valid=false; s.tp2Volume=0.0; s.afterTp2=0.0;
+   s.availTp2=0.0; s.availTp2Known=false;
+   if(!s.specKnown)
+      return;
 
-   double entry=VNormalizeVolume(m_draft.fixedLot);
-   if(entry<spec.volumeMin || entry>spec.volumeMax)
-     { err="Lote invalido para validar TP Parcial."; return false; }
+   s.minLeft=m_snap.symbolSpec.volumeMin;
 
-   double v1=VNormalizeVolume(entry*(m_draft.tp1.percent/100.0));
-   if(v1<spec.volumeMin || v1+0.0000001>=entry)
-     { err="TP1 precisa fechar lote parcial valido e deixar saldo."; return false; }
+   //--- Lote BRUTO primeiro: normalizar antes esconderia 0.125 como 0.13.
+   if(!VLot())
+      return;
+   s.lotValid=true;
+   s.entry=FusionNormalizePartialVolume(m_draft.fixedLot,m_snap.symbolSpec);
+   s.availTp1=VFloorToStep(MathMin(s.entry-s.minLeft,m_snap.symbolSpec.volumeMax));
+   if(!s.partialOn)
+      return;
 
-   double reserved=v1;
-   if(m_draft.tp2.enabled)
+   //--- ⚠ MESMO tradutor que o plano usa para virar percentual em volume.
+   //--- Escrever a conta `entrada * pct / 100` aqui seria a terceira copia.
+   double v1=0.0;
+   if(!FusionPartialStageVolume(m_draft.partialSizeMode,m_draft.tp1,s.entry,
+                                m_snap.symbolSpec,v1))
+      return;
+   s.tp1Valid=true;
+   s.tp1Volume=v1;
+   s.afterTp1=s.entry-v1;
+   if(s.afterTp1-s.minLeft > -0.0000001)
      {
-      double v2=VNormalizeVolume(entry*(m_draft.tp2.percent/100.0));
-      if(v2<spec.volumeMin)
-        { err="TP2 precisa fechar lote parcial valido."; return false; }
-      reserved+=v2;
+      s.availTp2=VFloorToStep(MathMin(s.afterTp1-s.minLeft,m_snap.symbolSpec.volumeMax));
+      s.availTp2Known=(s.availTp2+0.0000001>=s.minLeft);
+     }
+   if(!s.tp2On)
+      return;
+
+   double v2=0.0;
+   if(!FusionPartialStageVolume(m_draft.partialSizeMode,m_draft.tp2,s.entry,
+                                m_snap.symbolSpec,v2))
+      return;
+   s.tp2Valid=true;
+   s.tp2Volume=v2;
+   s.afterTp2=s.afterTp1-v2;
+  }
+
+//--- Volume no formato do ativo, para as linhas do resumo.
+string VSummaryVol(const double v)
+  { return FusionFormatVolume(v,m_snap.symbolSpec); }
+//--- Dica do campo: SO o que e intrinseco ao ativo.
+//---
+//--- ⚠ Curta de proposito, e igual nos dois estagios. Nada que dependa do
+//--- OUTRO campo entra aqui: era isso que fazia um TP2 invalido contaminar a
+//--- descricao do TP1, num texto que a largura ainda cortava. O que depende da
+//--- sequencia mora no RESUMO DOS VOLUMES.
+string PartialFieldHint(void)
+  {
+   if(!VVolumeSpecKnown())
+      return "Especificacao de volume do ativo indisponivel.";
+   return "Min. "+FusionFormatVolume(m_snap.symbolSpec.volumeMin,m_snap.symbolSpec)+
+          " | Passo "+FusionFormatVolume(m_snap.symbolSpec.volumeStep,m_snap.symbolSpec);
+  }
+
+//--- Percentual sem zeros inuteis: "50%", nunca "50.00%". O rotulo divide a
+//--- linha com o numero da direita, e duas casas que nao dizem nada so gastam
+//--- largura - a mesma largura que faz a tabela cortar.
+string VSummaryPercentText(const double pct)
+  {
+   string text=DoubleToString(pct,2);
+   if(StringFind(text,".")<0)
+      return text;
+   int len=StringLen(text);
+   while(len>0 && StringGetCharacter(text,len-1)=='0')
+      len--;
+   if(len>0 && StringGetCharacter(text,len-1)=='.')
+      len--;
+   return StringSubstr(text,0,len);
+  }
+
+//--- "TP1" no modo volume; "TP1 50%" no percentual. O percentual aparece no
+//--- rotulo para o operador ligar o que digitou ao volume que sai.
+string VSummaryStageLabel(const bool isTp1)
+  {
+   string name=isTp1 ? "TP1" : "TP2";
+   if(m_draft.partialSizeMode!=PARTIAL_SIZE_PERCENT)
+      return name;
+   double pct=isTp1 ? m_draft.tp1.percent : m_draft.tp2.percent;
+   if(!MathIsValidNumber(pct) || pct<=0.0)
+      return name;
+   return name+" "+VSummaryPercentText(pct)+"%";
+  }
+
+//+------------------------------------------------------------------+
+//| ORIENTACAO pelo CODIGO de recusa.                                  |
+//|                                                                    |
+//| ⚠ A versao anterior escolhia a frase so pelo MODO e a colava em    |
+//| todos os motivos: um volume 0.125 desalinhado do passo 0.01 vinha  |
+//| com "ou aumente o Lote Fixo" - e aumentar o lote NAO transforma    |
+//| 0.125 em multiplo de 0.01. A tela mandava fazer o que nao resolve. |
+//|                                                                    |
+//| A divisao agora e nitida:                                          |
+//|                                                                    |
+//|   o CODIGO escolhe a NATUREZA do erro e o que se ensina;           |
+//|   o MODO escolhe apenas COMO o campo se chama - "Volume" ou        |
+//|     "percentual" -, nunca qual e o remedio;                        |
+//|   o LOTE FIXO so e citado em ENTRY_INVALID, onde o defeito e dele. |
+//|                                                                    |
+//| ⚠ Os erros de falta de saldo (TOO_BIG, NO_MIN_LEFT) NAO oferecem   |
+//| aumentar o lote, ainda que isso resolvesse a aritmetica no modo    |
+//| volume: quem le so "aumente o lote" aumenta o risco da operacao    |
+//| para contornar uma regra que nao entendeu. Esses casos ENSINAM A   |
+//| REGRA - TP1 e TP2 sao saidas parciais.                             |
+//|                                                                    |
+//| ⚠ E nao se promete que o restante SERA encerrado: TP Fixo,         |
+//| trailing, SL e saida por sinal podem estar todos desligados no     |
+//| perfil. Diz-se que o volume DEVE PERMANECER aberto para o          |
+//| mecanismo configurado - e, na sugestao, que o TP Fixo precisa ser  |
+//| CONFIGURADO.                                                       |
+//|                                                                    |
+//| Nunca se procura palavra dentro do texto do erro: o codigo e dado. |
+//+------------------------------------------------------------------+
+string PartialFixAdvice(const int code)
+  {
+   bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
+
+   switch(code)
+     {
+      case FUSION_PARTIAL_PLAN_MODE_INVALID:
+         return "Selecione Percentual ou Volume.";
+
+      //--- Nao ha o que o operador ajuste: o ativo nao respondeu.
+      case FUSION_PARTIAL_PLAN_SPEC_UNKNOWN:
+         return "";
+
+      case FUSION_PARTIAL_PLAN_ENTRY_INVALID:
+         return "Corrija o Lote Fixo, na tela Lote.";
+
+      case FUSION_PARTIAL_PLAN_TP1_INVALID:
+         return volumeMode
+                ? "Ajuste o Volume do TP1 para respeitar o minimo, o maximo e o passo do ativo."
+                : "Ajuste o percentual do TP1 para um valor entre 0 e 100.";
+      case FUSION_PARTIAL_PLAN_TP2_INVALID:
+         return volumeMode
+                ? "Ajuste o Volume do TP2 para respeitar o minimo, o maximo e o passo do ativo."
+                : "Ajuste o percentual do TP2 para um valor entre 0 e 100.";
+
+      //--- ⚠ Fala SO do TP1: aqui o TP2 pode estar desligado, e cita-lo mandaria
+      //--- conferir um estagio que nem participa do problema.
+      case FUSION_PARTIAL_PLAN_TP1_TOO_BIG:
+         return "O TP1 e uma saida parcial e precisa deixar pelo menos o volume minimo "
+                "aberto para o encerramento final. " +
+                (volumeMode ? "Reduza o Volume do TP1." : "Reduza o percentual do TP1.");
+
+      case FUSION_PARTIAL_PLAN_TP2_TOO_BIG:
+         return "TP1 e TP2 sao saidas parciais e precisam deixar pelo menos o volume "
+                "minimo aberto para o encerramento final. " +
+                (volumeMode ? "Reduza o Volume do TP2." : "Reduza o percentual do TP2.") +
+                " Se deseja apenas dois niveis de saida, use o TP1 para a primeira "
+                "parcial e configure o TP Fixo para encerrar o restante.";
+
+      //--- O motivo do helper ja diz "precisa deixar o volume minimo aberto",
+      //--- entao aqui NAO se repete a regra: diz-se para que o saldo serve.
+      case FUSION_PARTIAL_PLAN_NO_MIN_LEFT:
+         return "O volume restante deve permanecer aberto para o mecanismo de "
+                "encerramento final configurado, como TP Fixo, trailing, SL ou sinal "
+                "da estrategia. " +
+                (volumeMode ? "Reduza o total reservado pelos parciais."
+                            : "Reduza os percentuais dos parciais.") +
+                " Se deseja apenas dois niveis de saida, use o TP1 para a primeira "
+                "parcial e configure o TP Fixo para encerrar o restante.";
+     }
+   return "";
+  }
+
+int VPartialPlanCode(void)
+  {
+   SPartialVolumePlan plan;
+   double entry=FusionNormalizePartialVolume(m_draft.fixedLot,m_snap.symbolSpec);
+   FusionBuildPartialVolumePlan(entry,m_draft.partialSizeMode,
+                                m_draft.tp1,m_draft.tp2,m_snap.symbolSpec,plan);
+   return plan.code;
+  }
+
+//--- Adaptador: chama o helper UMA vez e devolve motivo E codigo. O codigo sai
+//--- junto de proposito - quem monta a mensagem precisa dele para escolher a
+//--- orientacao, e uma segunda chamada so para descobri-lo rodaria o plano
+//--- inteiro de novo.
+bool VPartialVolumePlan(string &err,int &code)
+  {
+   err=""; code=FUSION_PARTIAL_PLAN_DISABLED;
+   if(!m_draft.tp1.enabled) return true;
+   code=VPartialPlanCode();
+   if(code==FUSION_PARTIAL_PLAN_OK || code==FUSION_PARTIAL_PLAN_DISABLED)
+      return true;
+   err=FusionPartialPlanReason(code);
+   return false;
+  }
+
+//+------------------------------------------------------------------+
+//| Este codigo de recusa pertence a ESTE campo?                      |
+//|                                                                    |
+//| ⚠ `NO_MIN_LEFT`, `ENTRY_INVALID` e `SPEC_UNKNOWN` NAO marcam campo |
+//| nenhum. O primeiro nasce da COMBINACAO dos estagios - TP1 e TP2    |
+//| podem ser individualmente negociaveis, e pintar "o ultimo" de      |
+//| vermelho acusaria um campo valido. Os outros dois sao do ativo ou  |
+//| do lote, nao do que foi digitado aqui.                             |
+//+------------------------------------------------------------------+
+bool VPartialCodeBlamesField(const int code,const int fid)
+  {
+   if(code==FUSION_PARTIAL_PLAN_MODE_INVALID)
+      return (fid==FCV_FLD_PARTIAL_MODE);
+   if(code==FUSION_PARTIAL_PLAN_TP1_INVALID || code==FUSION_PARTIAL_PLAN_TP1_TOO_BIG)
+      return (fid==FCV_FLD_TP1_PCT || fid==FCV_FLD_TP1_VOL);
+   if(code==FUSION_PARTIAL_PLAN_TP2_INVALID || code==FUSION_PARTIAL_PLAN_TP2_TOO_BIG)
+      return (fid==FCV_FLD_TP2_PCT || fid==FCV_FLD_TP2_VOL);
+   return false;
+  }
+
+//--- O campo de tamanho de um estagio esta valido?
+//---
+//--- ⚠ No escopo de DUPLICAR (`!m_vSymbolRules`) o plano NAO e consultado: ele
+//--- depende da spec do ativo, e a duplicacao existe para guardar um perfil de
+//--- outro simbolo. So as regras INTRINSECAS valem ali. E nao se espera receber
+//--- MODE_INVALID do helper nesse caso: a ordem dele devolve SPEC_UNKNOWN antes
+//--- de olhar o modo, entao o modo e conferido aqui, direto.
+bool VPartialStageField(const int fid,const bool stageActive)
+  {
+   if(!stageActive) return true;
+
+   //--- ⚠ Modo fora do enum deixa o campo do estagio NEUTRO, e nao vermelho.
+   //--- Quem acusa e o proprio seletor (FCV_FLD_PARTIAL_MODE) e a mensagem de
+   //--- ScreenErrorRiskPartial. Pintar TP1 e TP2 junto mandaria corrigir dois
+   //--- campos que podem estar perfeitos, e contradiria VPartialCodeBlamesField,
+   //--- que so culpa o seletor por MODE_INVALID.
+   if(!FusionPartialSizeModeValid((int)m_draft.partialSizeMode))
+      return true;
+
+   //--- ⚠ O ESTAGIO e decidido pelo PAR de IDs, nunca por um campo so. Escrito
+   //--- como `(fid==FCV_FLD_TP1_PCT) ? tp1.percent : tp2.percent`, um TP1_VOL
+   //--- consultado no modo percentual caia no ramo do TP2 e julgava o estagio
+   //--- errado. Hoje o campo incompativel com o modo fica oculto e o defeito nao
+   //--- aparece - mas a funcao precisa estar certa para os QUATRO IDs.
+   bool isTp1=(fid==FCV_FLD_TP1_PCT || fid==FCV_FLD_TP1_VOL);
+   bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
+   double percent=isTp1 ? m_draft.tp1.percent : m_draft.tp2.percent;
+   double volume =isTp1 ? m_draft.tp1.volume  : m_draft.tp2.volume;
+
+   //--- Intrinseco: vale nos dois escopos.
+   if(volumeMode)
+     {
+      if(!MathIsValidNumber(volume) || volume<=0.0) return false;
+     }
+   else
+     {
+      if(!MathIsValidNumber(percent) || percent<=0.0 || percent>100.0) return false;
      }
 
-   if((entry-reserved)+0.0000001<spec.volumeMin)
-     { err="TP parcial precisa deixar lote minimo aberto."; return false; }
-   return true;
-  }
-
-bool VTpTotalPercent(void)
-  {
-   if(!m_draft.tp1.enabled) return true;
-   double total=m_draft.tp1.percent + (m_draft.tp2.enabled ? m_draft.tp2.percent : 0.0);
-   return (total<=100.0+0.0000001);
+   if(!m_vSymbolRules) return true;
+   return !VPartialCodeBlamesField(VPartialPlanCode(),fid);
   }
 
 //--- O TP Final Livre entrega o restante ao trailing. Sem trailing ligado, o
@@ -643,24 +933,21 @@ bool FieldValid(const int fid)
       case FCV_FLD_SLIPPAGE:   return VPoints(m_draft.slippagePoints);
       case FCV_FLD_SL_POINTS:  return (VPoints(m_draft.fixedSLPoints) && VStopsLevel(m_draft.fixedSLPoints));
       case FCV_FLD_TP_POINTS:  return (VPoints(m_draft.fixedTPPoints) && VStopsLevel(m_draft.fixedTPPoints));
+      //--- Os quatro campos de tamanho passam pelo mesmo tradutor. Nenhum deles
+      //--- soma percentual nem recalcula volume.
       case FCV_FLD_TP1_PCT:
-        {
-         if(!m_draft.tp1.enabled) return true;
-         string ignored="";
-         return (m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0 &&
-                 VTpTotalPercent() && VPartialVolumePlan(ignored));
-        }
+      case FCV_FLD_TP1_VOL:
+         return VPartialStageField(fid,m_draft.tp1.enabled);
       case FCV_FLD_TP1_DIST:
          return (!m_draft.tp1.enabled || m_draft.tp1.distancePoints>0);
       case FCV_FLD_TP2_PCT:
-        {
-         if(!Tp2Params()) return true;
-         string ignored="";
-         return (m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0 &&
-                 VTpTotalPercent() && VPartialVolumePlan(ignored));
-        }
+      case FCV_FLD_TP2_VOL:
+         return VPartialStageField(fid,Tp2Params());
       case FCV_FLD_TP2_DIST:
          return (!Tp2Params() || m_draft.tp2.distancePoints>0);
+      //--- O seletor so acende quando o proprio modo esta fora do enum.
+      case FCV_FLD_PARTIAL_MODE:
+         return FusionPartialSizeModeValid((int)m_draft.partialSizeMode);
       case FCV_FLD_BE_TRIGGER:
          return (!m_draft.useBreakeven ||
                  (VRange(m_draft.breakevenTriggerPoints,1,100000) && VBeOrder()));
@@ -825,10 +1112,16 @@ string ScreenErrorRiskLot(void)
    //--- REGRA DO ATIVO: o plano de volumes so existe contra a spec do simbolo.
    if(m_vSymbolRules && VVolumeSpecKnown())
      {
-      string volumeError="";
-      if(!VPartialVolumePlan(volumeError))
-         return "O TP Parcial nao cabe neste lote: "+volumeError+
-                " Aumente o Lote Fixo aqui ou ajuste os percentuais, na tela TP Parcial.";
+      string volumeError=""; int planCode=FUSION_PARTIAL_PLAN_DISABLED;
+      if(!VPartialVolumePlan(volumeError,planCode))
+        {
+         //--- ⚠ A orientacao vem do CODIGO, e nao colada por modo. Ver
+         //--- PartialFixAdvice: mandar "aumente o Lote Fixo" num volume
+         //--- desalinhado do passo seria mandar fazer o que nao resolve.
+         string advice=PartialFixAdvice(planCode);
+         return "O TP Parcial nao cabe neste volume de entrada: "+volumeError+
+                (advice=="" ? "" : " "+advice);
+        }
      }
    return "";
   }
@@ -850,29 +1143,55 @@ string ScreenErrorRiskSLTP(void)
 string ScreenErrorRiskPartial(void)
   {
    if(!m_draft.tp1.enabled) return "";
-   if(!(m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0))
-      return "TP1 % deve ser maior que 0 e ate 100.";
-   if(Tp2Params() && !(m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0))
-      return "TP2 % deve ser maior que 0 e ate 100.";
+
+   //--- ⚠ O modo vem antes de tudo: com ele fora do enum nao ha campo de
+   //--- tamanho que se possa julgar.
+   if(!FusionPartialSizeModeValid((int)m_draft.partialSizeMode))
+      return "Modo de tamanho do TP Parcial invalido. Escolha Percentual ou Volume.";
+
+   bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
+
+   //--- INTRINSECO: vale nos dois escopos, inclusive na duplicacao.
+   if(volumeMode)
+     {
+      if(!MathIsValidNumber(m_draft.tp1.volume) || m_draft.tp1.volume<=0.0)
+         return "Volume do TP1 deve ser maior que zero.";
+      if(Tp2Params() && (!MathIsValidNumber(m_draft.tp2.volume) || m_draft.tp2.volume<=0.0))
+         return "Volume do TP2 deve ser maior que zero.";
+     }
+   else
+     {
+      if(!(m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0))
+         return "TP1 % deve ser maior que 0 e ate 100.";
+      if(Tp2Params() && !(m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0))
+         return "TP2 % deve ser maior que 0 e ate 100.";
+     }
+
    if(m_draft.tp1.distancePoints<=0)
       return "TP1 Dist deve ser maior que 0.";
    if(Tp2Params() && m_draft.tp2.distancePoints<=0)
       return "TP2 Dist deve ser maior que 0.";
-   if(!VTpTotalPercent())
-      return "Soma de TP1 % e TP2 % deve ser ate 100.";
+
+   //--- ⚠ A soma dos percentuais NAO e mais conferida aqui. Ela era uma segunda
+   //--- autoridade sobre o plano, e aproximada: com passo grosso, 99 pode nao
+   //--- deixar o minimo e 100 pode ser recusado por outra razao. Quem decide e
+   //--- o helper, logo abaixo, com o mesmo criterio que o motor usa.
+
    //--- CRUZADA com Trailing. O texto cita so o que FALTA: o TP1 e condicao da
    //--- regra, mas so se chega aqui com ele ligado, entao nomea-lo mandaria
    //--- conferir o que ja esta certo.
    if(!VFreeTpBase())
       return "TP Final Livre exige o Trailing ativo. Ative o Trailing, na tela "
              "Trailing, ou desligue o TP Final Livre aqui.";
-   string volumeError="";
-   //--- REGRA DO ATIVO: idem. As checagens de percentual acima sao intrinsecas
-   //--- e continuam valendo nos dois escopos.
-   if(m_vSymbolRules && !VPartialVolumePlan(volumeError))
-      return volumeError+(VVolumeSpecKnown()
-                          ? " Ajuste os percentuais aqui ou aumente o Lote Fixo, na tela Lote."
-                          : "");
+
+   //--- REGRA DO ATIVO: suspensa na duplicacao, onde o perfil pode ser de outro
+   //--- simbolo. As checagens acima sao intrinsecas e continuam valendo la.
+   string volumeError=""; int planCode=FUSION_PARTIAL_PLAN_DISABLED;
+   if(m_vSymbolRules && !VPartialVolumePlan(volumeError,planCode))
+     {
+      string advice=PartialFixAdvice(planCode);
+      return volumeError+(advice=="" ? "" : " "+advice);
+     }
    return "";
   }
 
