@@ -125,6 +125,18 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - Identificadores, tipos, ordem, valores padrao e quantidade dos `input` ficaram **intactos**: os tres indicadores sao anexados por `iCustom`, que passa os argumentos por posicao, e o nome visivel nao participa desse contrato.
 - **Limitacao conhecida:** o campo `Identificador interno (nao alterar)` continua **visivel e editavel**. Ele nao e aparencia — e o primeiro argumento posicional do `iCustom` e o nome pelo qual o EA reconhece e remove a propria linha do grafico. Alterado a mao, o Fusion perde o rastro daquela linha, que deixa de ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA. O MQL5 nao oferece parametro de indicador realmente oculto — `sinput` tambem aparece na janela —, entao o aviso vai no proprio nome do campo.
 
+### Duas versoes: Completa e Demonstracao
+
+- O build passou a produzir **dois executaveis do mesmo EA**, com o mesmo motor, a mesma GUI e as mesmas estrategias: `Fusion.ex5` (Completa) e `FusionDemo.ex5` (Demonstracao).
+- **Completa**: conta demo, de contest, real e Strategy Tester — comportamento identico ao de sempre. Ela **tambem roda em demo**, entao quem a adquire pode testa-la antes de operar com dinheiro real.
+- **Demonstracao**: somente conta **demo** e **Strategy Tester**. Recusa conta de contest, conta real e **tambem o caso em que o tipo da conta nao pode ser determinado** — falha fechada, sem supor que seja demo.
+- A recusa acontece **antes de a aplicacao ser construida**: nao ha instancia registrada, indicador, handle, timer, perfil lido ou gravado, estado de grafico tocado nem ordem enviada. O diario recebe o modo detectado (`DEMO`, `CONTEST`, `REAL` ou `DESCONHECIDO`) e **nunca o numero da conta**.
+- **Nenhum `input` liga ou desliga a restricao.** A diferenca entre os dois binarios e uma linha de `#define` no `.mq5`; um parametro que o operador pudesse alterar faria o binario deixar de ser o que ele diz ser.
+- Os dois `.mq5` sao **invólucros minimos** sem nenhum handler proprio: `OnInit`, `OnTick`, `OnTimer`, `OnDeinit`, `OnChartEvent` e `OnTradeTransaction` continuam existindo uma unica vez, em `Core/EAEntryPoints.mqh`. Nenhum codigo operacional foi duplicado.
+- O `build.ps1` passou a ter **cinco alvos**: os tres indicadores visuais, o `Fusion.mq5` e o `FusionDemo.mq5`. Nenhum fonte e editado entre as duas compilacoes.
+- Os dois usam os **mesmos perfis e o mesmo formato de estado**: nada converte, migra ou invalida ao trocar de um para o outro.
+- ⚠️ Isto e **modalidade de compilacao, e nao licenciamento**. Nao ha vinculo por conta, prazo, servidor, hardware ou rede, e a versao Completa nao e protegida por nada disto.
+
 ### Revisao ortografica do portugues da interface
 
 - Todo o texto que o operador le passou a ser escrito em **portugues acentuado**: abas, subabas, titulos de carta, rotulos, notas, avisos do cabecalho, mensagens de validacao, avisos de perfil, textos das protecoes e os nomes dos parametros dos tres indicadores visuais. Ate aqui a interface escrevia `configuracao`, `posicao`, `protecao`, `media`, `periodo` e `grafico`.

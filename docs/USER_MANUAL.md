@@ -12,6 +12,30 @@ O Fusion é um Expert Advisor. Ele automatiza regras, mas não garante resultado
 
 ## 2. Instalação e distribuição
 
+### 2.1. As duas versões
+
+O build produz **dois executáveis do mesmo EA**, com o mesmo motor, a mesma GUI e as mesmas estratégias:
+
+| | `Fusion.ex5` — Completa | `FusionDemo.ex5` — Demonstração |
+|---|---|---|
+| conta demo | funciona | funciona |
+| Strategy Tester | funciona | funciona |
+| conta de contest | funciona | **recusa** |
+| conta real | funciona | **recusa** |
+| tipo de conta indeterminado | funciona | **recusa** |
+
+A versão Completa **também roda em demo** — quem a adquire pode testá-la à vontade antes de operar com dinheiro real.
+
+Na versão Demonstração a recusa acontece **antes da inicialização operacional**: o EA não registra a instância, não cria indicador nem handle, não liga o timer, não lê nem grava perfil, não toca o estado do gráfico e não envia ordem alguma. Ele apenas escreve no diário o modo detectado — `DEMO`, `CONTEST`, `REAL` ou `DESCONHECIDO`, nunca o número da conta — e sai. Se o tipo da conta não puder ser determinado com segurança, ela **recusa**: não existe suposição de que seja demo.
+
+⚠️ **Não anexe o `FusionDemo` a um gráfico em que o `Fusion` completo esteja gerenciando uma posição.** O MT5 remove o EA existente antes de inicializar o novo; se a conta não for demo, a versão de demonstração recusa a partida e a posição fica sem aquele gerenciamento.
+
+Os dois usam **os mesmos perfis e o mesmo formato de estado**, na mesma pasta. Trocar um pelo outro não converte, não migra e não invalida nada.
+
+⚠️ Essa separação é apenas a **modalidade da compilação**. Ela não licencia a versão Completa, não protege contra cópia e não a vincula a conta, prazo, servidor ou máquina.
+
+### 2.2. Instalação
+
 Para o usuário final, basta o arquivo `Fusion.ex5` produzido pelo build completo:
 
 1. No MT5, abra `Arquivo > Abrir Pasta de Dados`.
@@ -20,7 +44,9 @@ Para o usuário final, basta o arquivo `Fusion.ex5` produzido pelo build complet
 4. Anexe o Fusion ao gráfico do ativo que será operado.
 5. Mantenha a negociação algorítmica habilitada no terminal e nas propriedades do EA.
 
-Os três indicadores auxiliares já ficam incorporados no `Fusion.ex5`. Eles não precisam ser enviados nem instalados separadamente.
+O `FusionDemo.ex5` se instala do mesmo jeito e pelo mesmo caminho. Os dois têm nomes de arquivo distintos e aparecem separados no Navegador, cada um com a própria descrição na aba `Comum`; nenhum sobrescreve o outro.
+
+Os três indicadores auxiliares já ficam incorporados em cada executável. Eles não precisam ser enviados nem instalados separadamente.
 
 Para compilar o código-fonte, use o repositório completo e o `build.ps1`, conforme o README. Compilar somente `Fusion.mq5` em um clone ainda sem os EX5 auxiliares pode falhar na incorporação dos recursos.
 

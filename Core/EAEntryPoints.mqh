@@ -19,10 +19,35 @@
 
 #include "EAApplication.mqh"
 
+//--- A politica de modalidade so entra na compilacao que a usa. Sob a MESMA
+//--- condicao da porta, e nao acima dela: assim o binario completo nao carrega
+//--- o cabecalho, nao compila o predicado, o texto de recusa nem as chamadas a
+//--- AccountInfoInteger, MQL_TESTER e Alert que vem por esta rota.
+//---
+//--- Incluir sempre e chamar so no #ifdef funcionaria igual em runtime, mas
+//--- deixaria a versao completa carregando codigo de uma modalidade que nao e
+//--- a dela — e faria o comentario do Fusion.mq5, que diz que a porta "nem
+//--- chega a existir" ali, ser falso ao pe da letra.
+#ifdef FUSION_DEMO_ONLY
+#include "RuntimeModePolicy.mqh"
+#endif
+
 CFusionApplication *g_app = NULL;
 
 int OnInit()
   {
+#ifdef FUSION_DEMO_ONLY
+   //--- ⚠ PRIMEIRA coisa executada pelo EA, e tem de continuar sendo. A recusa
+   //--- acontece ANTES de construir a aplicacao, entao nao sobra instancia
+   //--- registrada, handle, timer, perfil lido ou gravado, chart state tocado
+   //--- nem ordem alguma para desfazer. Levar esta guarda para dentro do
+   //--- Initialize() trocaria "nao comecou" por "comecou e foi interrompido".
+   //---
+   //--- O OnDeinit que o terminal chama em seguida ja trata g_app == NULL.
+   if(!FusionDemoBuildStartupAllowed())
+      return INIT_FAILED;
+#endif
+
    g_app = new CFusionApplication();
    if(g_app == NULL)
       return INIT_FAILED;

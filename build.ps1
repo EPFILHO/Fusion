@@ -162,20 +162,25 @@ Write-Host ("Versao:     {0}" -f $editorItem.VersionInfo.ProductVersion)
 Write-Host ("MQL5:       {0}" -f $mql5Root)
 Write-Host ''
 
-# Quatro alvos desde a Fase 4. Foram seis durante a transicao da GUI 2.0: o
-# harness Prototype\FusionCanvasPhase1.mq5, que compilava o renderizador sozinho,
-# e FusionCanvas.mq5, o mesmo EA com o painel em canvas no lugar do classico.
-# Removido o painel antigo, nao ha mais dois paineis para comparar nem um
-# renderizador fora do EA - o Fusion.mq5 voltou a ser o unico EA, ja com a GUI
-# 2.0 dentro.
+# Cinco alvos. Foram quatro da Fase 4 ate a separacao Demo/Completa, e seis
+# durante a transicao da GUI 2.0: o harness Prototype\FusionCanvasPhase1.mq5,
+# que compilava o renderizador sozinho, e FusionCanvas.mq5, o mesmo EA com o
+# painel em canvas no lugar do classico. Removido o painel antigo, nao ha mais
+# dois paineis para comparar nem um renderizador fora do EA.
 #
-# Os indicadores vem antes do EA porque ele os embute por #resource: compilados
-# depois, o Fusion.ex5 carregaria a versao anterior deles.
+# O quinto alvo e FusionDemo.mq5: o MESMO EA, compilado com FUSION_DEMO_ONLY.
+# Nao e uma copia do fonte - e um .mq5 que define o simbolo e inclui os mesmos
+# Core/EAEntryPoints.mqh. Por isso os dois entram aqui como alvos irmaos, e
+# NENHUM fonte precisa ser editado entre as duas compilacoes.
+#
+# Os indicadores vem antes dos EAs porque ambos os embutem por #resource:
+# compilados depois, os .ex5 carregariam a versao anterior deles.
 $targets = @(
     'VisualIndicators\FusionVisualMA.mq5',
     'VisualIndicators\FusionVisualBands.mq5',
     'VisualIndicators\FusionVisualRSI.mq5',
-    'Fusion.mq5'
+    'Fusion.mq5',
+    'FusionDemo.mq5'
 )
 
 $results = foreach ($target in $targets) {

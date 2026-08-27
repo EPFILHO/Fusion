@@ -30,9 +30,24 @@ Evite criar arquivos com nomes genericos como `Helpers`, `Utils2` ou `Common` qu
 
 Arquivos novos devem nascer pequenos. Se uma tela ou modulo exigir varias responsabilidades, prefira partials com nomes explicitos em vez de crescer um arquivo unico.
 
+## Dois Executaveis, Um So EA
+
+O projeto produz `Fusion.ex5` (Completa) e `FusionDemo.ex5` (Demonstracao) a partir do MESMO codigo.
+
+- Os dois `.mq5` sao **involucros minimos**: `#property`, `#resource` e um `#include`. Nenhum dos dois define handler algum.
+- **`Core/EAEntryPoints.mqh` e a fonte unica dos seis pontos de entrada** (`OnInit`, `OnDeinit`, `OnTick`, `OnTimer`, `OnChartEvent`, `OnTradeTransaction`). Ele existe desde a Fase 3 exatamente por isto: havendo dois alvos, copiar handlers criaria duas listas para manter em sincronia, e o modo de falha seria silencioso — um handler novo esquecido no segundo alvo compila 0/0 e simplesmente nao roda.
+- A unica diferenca entre os binarios e `#define FUSION_DEMO_ONLY`, declarado **so** em `FusionDemo.mq5`.
+- **`Core/RuntimeModePolicy.mqh` e incluido apenas sob `#ifdef FUSION_DEMO_ONLY`**, e nao acima dele. Incluir sempre e chamar so dentro do `#ifdef` daria o mesmo runtime, mas faria a versao Completa carregar codigo de uma modalidade que nao e a dela. Conferido no fecho de `#include` do compilador: a Completa resolve 87 cabecalhos e **nao** contem a politica; a Demonstracao resolve 88 e a contem.
+- A politica segue o idioma de `PartialVolumePlan.mqh`: **o predicado e funcao livre e nao toca o terminal** — entram por parametro o modo da conta, se esse modo e conhecido e se e Tester. A leitura do MT5 mora numa funcao separada, que so busca os valores. A regra fica exercitavel fora do EA.
+- A porta roda como **primeira coisa executavel do `OnInit`**, antes de `new CFusionApplication()`. E isso que garante que uma recusa nao deixe instancia registrada, handle, timer, perfil lido ou gravado, estado de grafico tocado nem ordem alguma: nada chegou a ser construido. Levar a guarda para dentro do `Initialize()` trocaria "nao comecou" por "comecou e foi interrompido".
+- Falha fechada: sem saber o tipo da conta, recusa. Supor demo no escuro transformaria uma falha de leitura em permissao para operar numa conta real.
+- **Nao ha `input` de modalidade**, e nao deve haver: uma restricao que o operador pudesse desligar nao seria uma modalidade de binario.
+- Nada no codigo deriva estado do nome do programa, entao os dois executaveis compartilham perfis, estado de grafico e o namespace de objetos `Fusion2.Canvas.` sem incompatibilidade.
+- ⚠️ Isto **nao e licenciamento**. Nao ha vinculo por conta, prazo, servidor, hardware ou rede, e a versao Completa nao e protegida por nada disto.
+
 ## Fluxo Principal
 
-1. `Fusion.mq5` cria uma instancia de `CFusionApplication`.
+1. `Fusion.mq5` ou `FusionDemo.mq5` cria uma instancia de `CFusionApplication`. Na compilacao de demonstracao, a porta de modalidade decide antes disso se a criacao chega a acontecer.
 2. `CFusionApplication` carrega inputs, estado salvo do grafico e modulos principais.
 3. Estrategias e filtros sao registrados no `CSignalManager`.
 4. A cada tick, o EA sincroniza a posicao, gerencia posicao aberta e, se permitido, avalia novo sinal.
@@ -66,7 +81,7 @@ MA, BB e RSI visuais recebem short names que incluem `ChartID`. A limpeza procur
 
 ### `Core`
 
-Contem o ciclo de vida do EA, tipos compartilhados, inputs, logger, registro de instancia e a classe `CFusionApplication`.
+Contem o ciclo de vida do EA, tipos compartilhados, inputs, logger, registro de instancia, a politica de modalidade da compilacao (`RuntimeModePolicy.mqh`, so na compilacao de demonstracao) e a classe `CFusionApplication`.
 
 `CFusionApplication` e o orquestrador. Ele nao deve virar um deposito de regras especificas de estrategia. Sempre que uma regra puder pertencer a risco, protecao, execucao, persistencia ou sinal, ela deve sair do core.
 
