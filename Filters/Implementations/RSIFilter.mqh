@@ -30,13 +30,13 @@ private:
       int level = m_buyMin;
       if(signal == SIGNAL_BUY && rsi < level)
         {
-         reason = "RSI " + DoubleToString(rsi, 2) + " abaixo da linha de direcao " + IntegerToString(level);
+         reason = "RSI " + DoubleToString(rsi, 2) + " abaixo da linha de direção " + IntegerToString(level);
          return true;
         }
 
       if(signal == SIGNAL_SELL && rsi > level)
         {
-         reason = "RSI " + DoubleToString(rsi, 2) + " acima da linha de direcao " + IntegerToString(level);
+         reason = "RSI " + DoubleToString(rsi, 2) + " acima da linha de direção " + IntegerToString(level);
          return true;
         }
 
@@ -141,7 +141,7 @@ public:
          return true;
       if(m_handle == INVALID_HANDLE)
         {
-         reason = "indicador indisponivel";
+         reason = "indicador indisponível";
          return false;
         }
 

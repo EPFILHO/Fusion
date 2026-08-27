@@ -4,14 +4,14 @@
 //--- Aba Comum das Propriedades. Tem de ficar no modulo principal: #property
 //--- description dentro de include nao chega ao dialogo.
 #property description "Indicador exclusivamente visual."
-#property description "Alteracoes nesta janela afetam somente a exibicao no grafico."
-#property description "Nao alteram estrategias, filtros, perfis ou operacoes do Fusion."
-#property description "O Identificador interno e reservado ao Fusion e nao deve ser alterado."
+#property description "Alterações nesta janela afetam somente a exibição no gráfico."
+#property description "Não alteram estratégias, filtros, perfis ou operações do Fusion."
+#property description "O Identificador interno é reservado ao Fusion e não deve ser alterado."
 #property indicator_chart_window
 #property indicator_buffers 4
 #property indicator_plots   4
 
-#property indicator_label1  "MA Rapida"
+#property indicator_label1  "MA Rápida"
 #property indicator_type1   DRAW_LINE
 #property indicator_color1  clrLime
 #property indicator_style1  STYLE_SOLID
@@ -45,35 +45,35 @@
 //--- Os quatro nomes de linha ("MA Rapida", "MA Lenta", "Trend MA1",
 //--- "Trend MA2") sao os MESMOS de tres lugares: o indicator_labelN acima, a
 //--- legenda do grafico e a aba Layout do painel. Nao renomeie em um so.
-input(name="Identificador interno (nao alterar)")   string             InpShortName = "Fusion Visual MA";
+input(name="Identificador interno (não alterar)")   string             InpShortName = "Fusion Visual MA";
 
-input(name="Exibir a MA Rapida")          bool               InpFastEnabled = true;
-input(name="Cor da MA Rapida")            color              InpFastColor = clrLime;
-input(name="Estilo da MA Rapida")         ENUM_LINE_STYLE    InpFastStyle = STYLE_SOLID;
-input(name="Periodo da MA Rapida")        int                InpFastPeriod = 9;
-input(name="Metodo da MA Rapida")         ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
-input(name="Preco da MA Rapida")          ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
+input(name="Exibir a MA Rápida")          bool               InpFastEnabled = true;
+input(name="Cor da MA Rápida")            color              InpFastColor = clrLime;
+input(name="Estilo da MA Rápida")         ENUM_LINE_STYLE    InpFastStyle = STYLE_SOLID;
+input(name="Período da MA Rápida")        int                InpFastPeriod = 9;
+input(name="Método da MA Rápida")         ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
+input(name="Preço da MA Rápida")          ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
 
 input(name="Exibir a MA Lenta")           bool               InpSlowEnabled = true;
 input(name="Cor da MA Lenta")             color              InpSlowColor = clrRed;
 input(name="Estilo da MA Lenta")          ENUM_LINE_STYLE    InpSlowStyle = STYLE_SOLID;
-input(name="Periodo da MA Lenta")         int                InpSlowPeriod = 21;
-input(name="Metodo da MA Lenta")          ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
-input(name="Preco da MA Lenta")           ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
+input(name="Período da MA Lenta")         int                InpSlowPeriod = 21;
+input(name="Método da MA Lenta")          ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
+input(name="Preço da MA Lenta")           ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
 
 input(name="Exibir a Trend MA1")          bool               InpTrendEnabled = false;
 input(name="Cor da Trend MA1")            color              InpTrendColor = clrMagenta;
 input(name="Estilo da Trend MA1")         ENUM_LINE_STYLE    InpTrendStyle = STYLE_SOLID;
-input(name="Periodo da Trend MA1")        int                InpTrendPeriod = 50;
-input(name="Metodo da Trend MA1")         ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
-input(name="Preco da Trend MA1")          ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
+input(name="Período da Trend MA1")        int                InpTrendPeriod = 50;
+input(name="Método da Trend MA1")         ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
+input(name="Preço da Trend MA1")          ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
 
 input(name="Exibir a Trend MA2")          bool               InpTrend2Enabled = false;
 input(name="Cor da Trend MA2")            color              InpTrend2Color = clrOrange;
 input(name="Estilo da Trend MA2")         ENUM_LINE_STYLE    InpTrend2Style = STYLE_SOLID;
-input(name="Periodo da Trend MA2")        int                InpTrend2Period = 21;
-input(name="Metodo da Trend MA2")         ENUM_MA_METHOD     InpTrend2Method = MODE_SMA;
-input(name="Preco da Trend MA2")          ENUM_APPLIED_PRICE InpTrend2Price = PRICE_CLOSE;
+input(name="Período da Trend MA2")        int                InpTrend2Period = 21;
+input(name="Método da Trend MA2")         ENUM_MA_METHOD     InpTrend2Method = MODE_SMA;
+input(name="Preço da Trend MA2")          ENUM_APPLIED_PRICE InpTrend2Price = PRICE_CLOSE;
 
 double FastBuffer[];
 double SlowBuffer[];

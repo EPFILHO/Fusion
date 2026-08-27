@@ -189,7 +189,7 @@ private:
       if(handle == INVALID_HANDLE)
         {
          if(m_logger != NULL)
-            m_logger.Warn("VISUAL", "Nao foi possivel criar um indicador visual.");
+            m_logger.Warn("VISUAL", "Não foi possível criar um indicador visual.");
          return false;
         }
 
@@ -206,7 +206,7 @@ private:
          int errorCode = GetLastError();
          IndicatorRelease(handle);
          if(m_logger != NULL)
-            m_logger.Warn("VISUAL", "Indicador nao exibido no grafico. Erro " + IntegerToString(errorCode) + ".");
+            m_logger.Warn("VISUAL", "Indicador não exibido no gráfico. Erro " + IntegerToString(errorCode) + ".");
          return false;
         }
 
@@ -466,7 +466,7 @@ private:
         }
 
       if(!removed && handle != INVALID_HANDLE && name != "" && m_logger != NULL)
-         m_logger.Debug("VISUAL", "Indicador visual sera removido pela varredura de propriedade: " + name);
+         m_logger.Debug("VISUAL", "Indicador visual será removido pela varredura de propriedade: " + name);
 
       if(handle != INVALID_HANDLE)
          IndicatorRelease(handle);
@@ -550,14 +550,14 @@ private:
       if(fastEligible && slowEligible &&
          SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
                 settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
-         slowShared = "Rapida";
+         slowShared = "Rápida";
 
       if(trendEligible)
         {
          if(fastEligible &&
             SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
                    settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
-            trendShared = "Rapida";
+            trendShared = "Rápida";
          else if(slowEligible &&
                  SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
                         settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
@@ -569,7 +569,7 @@ private:
          if(fastEligible &&
             SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                    settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
-            trend2Shared = "Rapida";
+            trend2Shared = "Rápida";
          else if(slowEligible &&
                  SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                         settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
@@ -580,7 +580,7 @@ private:
             trend2Shared = "Trend MA1";
         }
 
-      m_legendOverlay.Update(MALegendText("MA Rapida",
+      m_legendOverlay.Update(MALegendText("MA Rápida",
                                          fastConfigured,
                                          settings.maFastTimeframe,
                                          settings.maFastPeriod,
@@ -792,7 +792,7 @@ private:
      {
       if(m_logger == NULL)
          return;
-      string message = IntegerToString(m_count) + " indicador(es) exibido(s) no grafico.";
+      string message = IntegerToString(m_count) + " indicador(es) exibido(s) no gráfico.";
       if(m_skippedTimeframes > 0)
          message += " " + IntegerToString(m_skippedTimeframes) + " omitido(s) por TF diferente.";
       m_logger.Info("VISUAL", message);

@@ -158,7 +158,7 @@ private:
       if(saved)
         {
          m_renderer.SetNotice("PERFIL SALVO",
-                              "As alteracoes foram gravadas em "+m_echoProfile+".",
+                              "As alterações foram gravadas em "+m_echoProfile+".",
                               FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          return;
         }
@@ -166,9 +166,9 @@ private:
       //--- metades do que aconteceu — a configuracao VALE agora, o arquivo NAO
       //--- foi escrito —, porque dizer so "falhou" faria o usuario procurar na
       //--- tela uma alteracao que nao se perdeu.
-      m_renderer.SetNotice("PERFIL NAO GRAVADO",
-                           "A configuracao esta valendo nesta sessao, mas o arquivo de "+
-                           m_echoProfile+" nao foi escrito. Clique SALVAR para tentar de novo.",
+      m_renderer.SetNotice("PERFIL NÃO GRAVADO",
+                           "A configuração está valendo nesta sessão, mas o arquivo de "+
+                           m_echoProfile+" não foi escrito. Clique SALVAR para tentar de novo.",
                            FCV_SEM_BAD);
      }
 
@@ -299,9 +299,9 @@ private:
             //--- versao dizia a mesma coisa duas vezes e empurrava o aviso para
             //--- uma terceira linha — que e o que faz a caixa crescer e o
             //--- conteudo pular de lugar.
-            m_renderer.SetNotice("NAO FOI POSSIVEL SALVAR",
+            m_renderer.SetNotice("NÃO FOI POSSÍVEL SALVAR",
                                  (reason!="") ? reason
-                                 : "O perfil "+profileName+" esta em uso por outro grafico.",
+                                 : "O perfil "+profileName+" está em uso por outro gráfico.",
                                  FCV_SEM_BAD);
             return false;
            }
@@ -338,9 +338,9 @@ private:
          if(!m_store.LoadProfile(profileName,target))
            {
             RefreshProfiles();
-            m_renderer.SetNotice("PERFIL NAO CARREGADO",
-                                 "O arquivo de "+profileName+" nao pode ser lido. "+
-                                 "A configuracao atual foi preservada.",FCV_SEM_BAD);
+            m_renderer.SetNotice("PERFIL NÃO CARREGADO",
+                                 "O arquivo de "+profileName+" não pode ser lido. "+
+                                 "A configuração atual foi preservada.",FCV_SEM_BAD);
             return false;
            }
          //--- Mesma recusa da 1.058: com o DD do dia em curso, trocar para um
@@ -348,7 +348,7 @@ private:
          if(m_snapshot.drawdownConfigLocked &&
             !FusionDrawdownSettingsCompatible(m_snapshot.settings,target))
            {
-            m_renderer.SetNotice("PERFIL NAO CARREGADO",
+            m_renderer.SetNotice("PERFIL NÃO CARREGADO",
                                  FusionDrawdownProfileBlockMessage(),FCV_SEM_WARN);
             return false;
            }
@@ -357,7 +357,7 @@ private:
            {
             m_renderer.SetNotice("PERFIL EM USO",
                                  (reason!="") ? reason
-                                 : "O perfil "+profileName+" esta em uso por outro grafico.",
+                                 : "O perfil "+profileName+" está em uso por outro gráfico.",
                                  FCV_SEM_BAD);
             return false;
            }
@@ -386,12 +386,12 @@ private:
             //--- o ativo, e a GUI so edita o ativo. Pior, ele nao pode virar
             //--- ativo aqui — a incompatibilidade e justamente o motivo da
             //--- recusa. A rota que existe vem de FusionProfileFixElsewhereHint.
-            m_renderer.SetNotice("PERFIL INCOMPATIVEL COM "+m_snapshot.symbol,
-                                 "O perfil "+profileName+" nao foi carregado porque "+
-                                 "sua configuracao nao e valida para "+m_snapshot.symbol+
+            m_renderer.SetNotice("PERFIL INCOMPATÍVEL COM "+m_snapshot.symbol,
+                                 "O perfil "+profileName+" não foi carregado porque "+
+                                 "sua configuração não é válida para "+m_snapshot.symbol+
                                  ": "+cfgError+" "+
                                  FusionProfileFixElsewhereHint(cfgTab,
-                                       "tente carrega-lo novamente aqui"),
+                                       "tente carregá-lo novamente aqui"),
                                  FCV_SEM_BAD);
             return false;
            }
@@ -406,12 +406,12 @@ private:
          if(!MagicFreeOnDisk(target.magicNumber,profileName,magicOwner))
            {
             RefreshProfiles();
-            m_renderer.SetNotice("PERFIL NAO CARREGADO",
+            m_renderer.SetNotice("PERFIL NÃO CARREGADO",
                                  (target.magicNumber<=0)
-                                 ? "O perfil "+profileName+" tem Magic invalido: "+
+                                 ? "O perfil "+profileName+" tem Magic inválido: "+
                                    "ele precisa ser um inteiro positivo."
                                  : "O Magic "+IntegerToString(target.magicNumber)+
-                                   " de "+profileName+" ja pertence ao perfil "+
+                                   " de "+profileName+" já pertence ao perfil "+
                                    magicOwner+". Corrija um dos dois antes de carregar.",
                                  FCV_SEM_BAD);
             return false;
@@ -448,17 +448,17 @@ private:
       if(FusionSanitizeProfileName(profileName)==
          FusionSanitizeProfileName(m_snapshot.activeProfileName))
         {
-         m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
-                              "O perfil "+profileName+" e o perfil ativo deste grafico. "+
-                              "Carregue outro antes de apaga-lo.",FCV_SEM_BAD);
+         m_renderer.SetNotice("PERFIL NÃO EXCLUÍDO",
+                              "O perfil "+profileName+" é o perfil ativo deste gráfico. "+
+                              "Carregue outro antes de apagá-lo.",FCV_SEM_BAD);
          return;
         }
       string reason="";
       if(ProfileLockedByPeer(profileName,reason))
         {
-         m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
+         m_renderer.SetNotice("PERFIL NÃO EXCLUÍDO",
                               (reason!="") ? reason
-                              : "O perfil "+profileName+" esta em uso por outro grafico.",
+                              : "O perfil "+profileName+" está em uso por outro gráfico.",
                               FCV_SEM_BAD);
          RefreshProfiles();
          return;
@@ -470,14 +470,14 @@ private:
          //--- fazer nada com a informacao, e o aviso vira sujeira depois de
          //--- alguns segundos. Recusa pede uma decisao, e some so quando o
          //--- usuario volta a agir — que e justamente quando ele decidiu.
-         m_renderer.SetNotice("PERFIL EXCLUIDO",
+         m_renderer.SetNotice("PERFIL EXCLUÍDO",
                               "O perfil "+profileName+" foi apagado do disco.",
                               FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
          return;
         }
       RefreshProfiles();
-      m_renderer.SetNotice("PERFIL NAO EXCLUIDO",
-                           "Nao foi possivel apagar o arquivo de "+profileName+".",FCV_SEM_BAD);
+      m_renderer.SetNotice("PERFIL NÃO EXCLUÍDO",
+                           "Não foi possível apagar o arquivo de "+profileName+".",FCV_SEM_BAD);
      }
 
    //+---------------------------------------------------------------+
@@ -511,7 +511,7 @@ private:
       string newName=m_store.SanitizeProfileName(rawName);
       if(newName=="")
         {
-         m_renderer.SetNotice("NOME OBRIGATORIO",
+         m_renderer.SetNotice("NOME OBRIGATÓRIO",
                               "Informe um nome para o perfil novo.",FCV_SEM_BAD);
          return;
         }
@@ -524,10 +524,10 @@ private:
       //--- quando criar funciona nao e assunto deste item.
       if(m_snapshot.drawdownConfigLocked)
         {
-         m_renderer.SetNotice("PERFIL NAO CRIADO",
+         m_renderer.SetNotice("PERFIL NÃO CRIADO",
                               (m_snapshot.drawdownConfigLockReason!="")
                               ? m_snapshot.drawdownConfigLockReason
-                              : "A protecao de drawdown esta travando a configuracao.",
+                              : "A proteção de drawdown está travando a configuração.",
                               FCV_SEM_BAD);
          return;
         }
@@ -540,8 +540,8 @@ private:
       if(!NameFreeOnDisk(newName))
         {
          RefreshProfiles();
-         m_renderer.SetNotice("NOME JA EXISTE",
-                              "Ja existe um perfil chamado "+newName+" em disco. "+
+         m_renderer.SetNotice("NOME JÁ EXISTE",
+                              "Já existe um perfil chamado "+newName+" em disco. "+
                               "Escolha outro nome.",FCV_SEM_BAD);
          return;
         }
@@ -549,11 +549,11 @@ private:
       if(!MagicFreeOnDisk(magic,newName,owner))
         {
          RefreshProfiles();
-         m_renderer.SetNotice("MAGIC JA USADO",
+         m_renderer.SetNotice("MAGIC JÁ USADO",
                               (magic<=0)
                               ? "Informe um Magic inteiro positivo."
                               : "O Magic "+IntegerToString(magic)+
-                                " ja pertence ao perfil "+owner+". Escolha outro numero.",
+                                " já pertence ao perfil "+owner+". Escolha outro número.",
                               FCV_SEM_BAD);
          return;
         }
@@ -580,9 +580,9 @@ private:
          RefreshProfiles();
          //--- Sem prazo: e recusa, e recusa pede decisao. E o texto diz o que NAO
          //--- aconteceu, porque aqui isso e a informacao principal.
-         m_renderer.SetNotice("PERFIL NAO CRIADO",
-                              "O arquivo de "+newName+" nao foi escrito. Nada mudou "+
-                              "neste grafico: o perfil ativo e a configuracao em uso "+
+         m_renderer.SetNotice("PERFIL NÃO CRIADO",
+                              "O arquivo de "+newName+" não foi escrito. Nada mudou "+
+                              "neste gráfico: o perfil ativo e a configuração em uso "+
                               "continuam como estavam. Clique de novo para tentar mais "+
                               "uma vez, ou DESCARTAR para sair.",FCV_SEM_BAD);
          return;
@@ -592,7 +592,7 @@ private:
       m_renderer.EndProfileFormSelecting(newName);
       m_renderer.SetNotice("PERFIL CRIADO",
                            "Perfil "+newName+" criado e selecionado. Clique CARREGAR "+
-                           "para ativa-lo neste grafico.",
+                           "para ativá-lo neste gráfico.",
                            FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
      }
 
@@ -603,8 +603,8 @@ private:
       if(!m_store.LoadProfile(sourceName,source))
         {
          RefreshProfiles();
-         m_renderer.SetNotice("NAO FOI POSSIVEL DUPLICAR",
-                              "O arquivo de "+sourceName+" nao pode ser lido.",FCV_SEM_BAD);
+         m_renderer.SetNotice("NÃO FOI POSSÍVEL DUPLICAR",
+                              "O arquivo de "+sourceName+" não pode ser lido.",FCV_SEM_BAD);
          return;
         }
       m_renderer.BeginDuplicate(source,SuggestedDuplicateName(sourceName));
@@ -769,9 +769,9 @@ public:
          bool landed=SaveLandedOnDisk(m_snapshot.settings);
          m_renderer.SetPersistenceFailed(!landed);
          m_staleProfile = landed ? "" : m_snapshot.activeProfileName;
-         m_renderer.SetNotice("GRAVACAO NAO CONFIRMADA",
-                              "O EA nao concluiu a gravacao do perfil "+m_echoProfile+
-                              ". O motivo esta no log.",FCV_SEM_BAD);
+         m_renderer.SetNotice("GRAVAÇÃO NÃO CONFIRMADA",
+                              "O EA não concluiu a gravação do perfil "+m_echoProfile+
+                              ". O motivo está no log.",FCV_SEM_BAD);
          ClearEcho();
         }
       m_renderer.SetSnapshot(m_snapshot);
@@ -819,7 +819,7 @@ public:
       //--- foi gravado. O aviso do ReloadFromEA descreveria uma perda que nao
       //--- houve, entao e substituido por AnnounceSaveOutcome.
       m_renderer.ReloadFromEA("Os campos passaram a mostrar o perfil "+profileName+
-                              ". O que estava sendo editado e nao foi salvo se perdeu.");
+                              ". O que estava sendo editado e não foi salvo se perdeu.");
       //+------------------------------------------------------------+
       //| Trocou o perfil ativo com um arquivo para tras.             |
       //|                                                             |
@@ -834,8 +834,8 @@ public:
       if(profileName!=m_lastActiveProfile)
         {
          if(m_staleProfile!="" && m_echoKind==0)
-            m_renderer.SetNotice("CONFIGURACAO NAO GRAVADA DESCARTADA",
-                                 "A configuracao que nao chegou ao arquivo de "+
+            m_renderer.SetNotice("CONFIGURAÇÃO NÃO GRAVADA DESCARTADA",
+                                 "A configuração que não chegou ao arquivo de "+
                                  m_staleProfile+" foi substituida pelo perfil "+
                                  profileName+".",FCV_SEM_WARN);
          m_renderer.SetPersistenceFailed(false);

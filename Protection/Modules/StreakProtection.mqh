@@ -103,7 +103,7 @@ public:
       reason = "";
       if(m_lossStopDayBlocked)
         {
-         reason = "Bloqueio por loss streak ate o proximo dia.";
+         reason = "Bloqueio por loss streak até o próximo dia.";
          return false;
         }
 
@@ -115,7 +115,7 @@ public:
 
       if(m_winStopDayBlocked)
         {
-         reason = "Bloqueio por win streak ate o proximo dia.";
+         reason = "Bloqueio por win streak até o próximo dia.";
          return false;
         }
 
@@ -136,7 +136,7 @@ public:
 
       if(m_lossStopDayBlocked)
         {
-         reason = "Bloqueio por loss streak ate o proximo dia.";
+         reason = "Bloqueio por loss streak até o próximo dia.";
          return true;
         }
 
@@ -148,7 +148,7 @@ public:
 
       if(m_winStopDayBlocked)
         {
-         reason = "Bloqueio por win streak ate o proximo dia.";
+         reason = "Bloqueio por win streak até o próximo dia.";
          return true;
         }
 

@@ -58,7 +58,7 @@
         {
          if(m_closeReconciliationPending)
            {
-            m_logger.Warn("PROFILE", "Perfil nao salvo enquanto o fechamento aguarda confirmacao do historico.");
+            m_logger.Warn("PROFILE", "Perfil não salvo enquanto o fechamento aguarda confirmação do histórico.");
             return;
            }
 
@@ -125,7 +125,7 @@
 
          if(m_closeReconciliationPending)
            {
-            m_logger.Warn("PROFILE", "Perfil nao carregado enquanto o fechamento aguarda confirmacao do historico.");
+            m_logger.Warn("PROFILE", "Perfil não carregado enquanto o fechamento aguarda confirmação do histórico.");
             return;
            }
 
@@ -158,7 +158,7 @@
          //+---------------------------------------------------------------+
          if(m_positionState.hasPosition)
            {
-            m_logger.Warn("PROFILE", "Perfil nao carregado enquanto existe posicao em gerenciamento.");
+            m_logger.Warn("PROFILE", "Perfil não carregado enquanto existe posição em gerenciamento.");
             return;
            }
 
@@ -169,7 +169,7 @@
          SEASettings loadedSettings;
          if(!m_settingsStore.LoadProfile(profileName, loadedSettings))
            {
-            m_logger.Warn("PROFILE", "Perfil " + profileName + " nao carregado: arquivo ausente, invalido ou incompleto. Configuracao atual preservada.");
+            m_logger.Warn("PROFILE", "Perfil " + profileName + " não carregado: arquivo ausente, inválido ou incompleto. Configuração atual preservada.");
             return;
            }
 

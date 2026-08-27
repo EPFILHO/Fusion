@@ -297,7 +297,7 @@ void PutButton(const int x,const int y,const int w,const int h,const string labe
    if(!m_btnFitLogged && TxtW(label,FCV_FONT_UI,FCV_FS_BODY,FCV_FW_BOLD) > w-12)
      {
       m_btnFitLogged=true;
-      PrintFormat("ATENCAO: o rotulo \"%s\" nao cabe no botao (%d px de caixa). Encurte-o.",
+      PrintFormat("ATENÇÃO: o rótulo \"%s\" não cabe no botão (%d px de caixa). Encurte-o.",
                   label,w);
      }
    if(!enabled)
@@ -537,11 +537,11 @@ bool ProfileFormReady(bool &nameBad,bool &magicBad,string &error)
    bool magicTyped=(StringLen(TrimEdges(m_stEdit[ProfileFormSlot(FCV_PROF_SLOT_MAGIC)]))>0);
 
    if(hasName && !nameFree)
-     { nameBad=true;  error="Nome ja existe. Escolha outro nome."; }
+     { nameBad=true;  error="Nome já existe. Escolha outro nome."; }
    else if(magicTyped && !magicOk)
-     { magicBad=true; error="Magic invalido. Informe um numero inteiro positivo."; }
+     { magicBad=true; error="Magic inválido. Informe um número inteiro positivo."; }
    else if(magicOk && !magicFree)
-     { magicBad=true; error="Magic ja usado pelo perfil "+owner+"."; }
+     { magicBad=true; error="Magic já usado pelo perfil "+owner+"."; }
 
    return (hasName && nameFree && magicOk && magicFree);
   }
@@ -616,8 +616,8 @@ string DuplicateMagicNote(const int idx)
       peers+=m_profName[j];
      }
    return "Magic "+IntegerToString(shared)+" usado por "+m_profName[idx]+
-          " e "+peers+". O EA reconhece as proprias ordens pelo Magic: "+
-          "dois perfis com o mesmo numero em dois graficos fazem cada um "+
+          " e "+peers+". O EA reconhece as próprias ordens pelo Magic: "+
+          "dois perfis com o mesmo número em dois gráficos fazem cada um "+
           "adotar as ordens do outro.";
   }
 
@@ -852,15 +852,15 @@ SEntryRestriction ResolveEntryRestriction(void)
 
    //--- Protecao travada: sem guarda de chave (ver o cabecalho).
    if(m_snap.streakProtectionBlocked)
-     { r.active=true; r.cause="SEQUENCIA"; r.reason=m_snap.streakProtectionBlockReason; return r; }
+     { r.active=true; r.cause="SEQUÊNCIA"; r.reason=m_snap.streakProtectionBlockReason; return r; }
    //--- Filtros: so falam ligados.
    if(m_snap.settings.enableSessionFilter && m_snap.sessionProtectionBlocked)
-     { r.active=true; r.cause="SESSAO";    r.reason=m_snap.sessionProtectionBlockReason; return r; }
+     { r.active=true; r.cause="SESSÃO";    r.reason=m_snap.sessionProtectionBlockReason; return r; }
    if(FusionHasEnabledNewsWindow(m_snap.settings) && m_snap.newsProtectionBlocked)
-     { r.active=true; r.cause="NOTICIAS";  r.reason=m_snap.newsProtectionBlockReason; return r; }
+     { r.active=true; r.cause="NOTÍCIAS";  r.reason=m_snap.newsProtectionBlockReason; return r; }
    //--- Protecao travada, as duas ultimas.
    if(m_snap.dailyLimitsBlocked)
-     { r.active=true; r.cause="LIMITE DIARIO"; r.reason=m_snap.dailyLimitsBlockReason; return r; }
+     { r.active=true; r.cause="LIMITE DIÁRIO"; r.reason=m_snap.dailyLimitsBlockReason; return r; }
    if(m_snap.drawdownLimitReached)
      { r.active=true; r.cause="DRAWDOWN";  r.reason=m_snap.drawdownConfigLockReason; return r; }
    return r;
@@ -918,7 +918,7 @@ SHeaderAction ResolveHeaderActionState(void)
       else if(m_snap.drawdownConfigLocked)
         {
          s.band=(m_snap.drawdownLimitReached ? "DD ATINGIDO" : "DD ATIVO");
-         s.band+=" — parametros protegidos; perfil incompativel nao pode ser carregado";
+         s.band+=" — parâmetros protegidos; perfil incompatível não pode ser carregado";
          s.bandSem=FCV_SEM_WARN;
         }
      }
@@ -1019,7 +1019,7 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //| "posicao em gerenciamento" sem posicao nenhuma.                 |
    //+---------------------------------------------------------------+
    bool reconciling = (m_snap.hasPosition && !m_snap.hasOpenPosition);
-   string reconcileBand="FECHAMENTO EM RECONCILIACAO — aguarde a confirmacao do historico";
+   string reconcileBand="FECHAMENTO EM RECONCILIAÇÃO — aguarde a confirmação do histórico";
 
    //=== EA rodando COM posicao aberta: nao ha acao ===================
    if(m_snap.started && m_snap.hasOpenPosition)
@@ -1031,7 +1031,7 @@ SHeaderAction ResolveHeaderActionLadder(void)
       s.label="PAUSAR";  s.action=FCV_HACT_PAUSE;
       s.enabled=false;   s.block=FCV_HBLK_POSITION;
       //--- Se o card critico estiver no ar, a fachada apaga esta faixa.
-      s.band="POSICAO ABERTA — a saida e pela estrategia ou pela protecao";
+      s.band="POSIÇÃO ABERTA — a saída é pela estratégia ou pela proteção";
       s.bandSem=FCV_SEM_NEUTRAL;
       return s;
      }
@@ -1057,7 +1057,7 @@ SHeaderAction ResolveHeaderActionLadder(void)
       if(formOpen)
         {
          s.block=FCV_HBLK_PROFFORM;
-         s.band="FORMULARIO DE PERFIL ABERTO — conclua ou descarte";
+         s.band="FORMULÁRIO DE PERFIL ABERTO — conclua ou descarte";
          return s;
         }
       s.enabled=true;
@@ -1102,7 +1102,7 @@ SHeaderAction ResolveHeaderActionLadder(void)
    if(reconciling)
      { s.block=FCV_HBLK_RECONCILE; s.band=reconcileBand; s.bandSem=FCV_SEM_NEUTRAL; return s; }
    if(formOpen)
-     { s.block=FCV_HBLK_PROFFORM; s.band="FORMULARIO DE PERFIL ABERTO — conclua ou descarte"; return s; }
+     { s.block=FCV_HBLK_PROFFORM; s.band="FORMULÁRIO DE PERFIL ABERTO — conclua ou descarte"; return s; }
    //--- Antes de CONFIG de proposito: preso, o perfil ativo fica so-leitura
    //--- (AccActiveProfileEditable), entao mandar corrigir a configuracao
    //--- apontaria para campos que nao aceitam digitacao. CARREGAR segue
@@ -1174,13 +1174,13 @@ SHeaderAction ResolveHeaderActionLadder(void)
       //--- dele. O que preserva a configuracao ali e o arquivo original.
       s.band=ConfigInputsValid()
              ? "PERFIL EM USO SEM ARQUIVO — grave antes de iniciar ou trocar de perfil"
-             : "PERFIL SEM ARQUIVO E INVALIDO NESTE ATIVO — restaure o arquivo para preservar";
+             : "PERFIL SEM ARQUIVO E INVÁLIDO NESTE ATIVO — restaure o arquivo para preservar";
       return s;
      }
    if(!ConfigInputsValid())
-     { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURACAO INVALIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
+     { s.block=FCV_HBLK_CONFIG; s.band="CONFIGURAÇÃO INVÁLIDA — corrija ou cancele"; s.bandSem=FCV_SEM_BAD; return s; }
    if(HasPending())
-     { s.block=FCV_HBLK_PENDING; s.band="ALTERACOES PENDENTES — salve ou cancele"; return s; }
+     { s.block=FCV_HBLK_PENDING; s.band="ALTERAÇÕES PENDENTES — salve ou cancele"; return s; }
    //--- Por ultimo: e o unico que nao se resolve dentro do painel. Aqui o texto
    //--- do motor vale LITERAL — com o EA parado, "Habilite para iniciar" e
    //--- exatamente o que o usuario precisa fazer. E ele distingue as cinco
@@ -1214,7 +1214,7 @@ SHeaderAction ResolveHeaderActionLadder(void)
    //--- e aquele estado ja saiu acima com texto proprio.
    if(m_snap.hasOpenPosition)
      {
-      s.band="POSICAO EM GERENCIAMENTO — clique INICIAR para liberar novas entradas futuras";
+      s.band="POSIÇÃO EM GERENCIAMENTO — clique INICIAR para liberar novas entradas futuras";
       s.bandSem=FCV_SEM_WARN;
      }
    return s;
@@ -1281,25 +1281,25 @@ bool AccCanLoadProfile(void)
 string LoadBlockedWhy(void)
   {
    if(m_profSel>=0 && m_profDup[m_profSel])
-      return "Ele tem Magic repetido em disco e por isso nao carrega: DUPLICAR com outro Magic, ou EXCLUIR.";
+      return "Ele tem Magic repetido em disco e por isso não carrega: DUPLICAR com outro Magic, ou EXCLUIR.";
    if(m_selRuntimeLocked || m_selProfileLocked)
-      return "Ele esta em uso por outro Fusion em execucao.";
+      return "Ele está em uso por outro Fusion em execução.";
    if(AccSaveFirstLock())
-      return "Antes, grave o perfil em uso: a configuracao dele nao esta no disco.";
+      return "Antes, grave o perfil em uso: a configuração dele não está no disco.";
    if(EditingNow())
-      return "Ha um campo em edicao: conclua com SALVAR ou CANCELAR.";
+      return "Há um campo em edição: conclua com SALVAR ou CANCELAR.";
    if(m_snap.started)
       return "Carregar exige o EA parado.";
    if(m_snap.hasPosition)
       return m_snap.hasOpenPosition
-             ? "Ha posicao em gerenciamento: carregar trocaria os parametros sob a operacao."
-             : "O fechamento aguarda a confirmacao do historico.";
+             ? "Há posição em gerenciamento: carregar trocaria os parâmetros sob a operação."
+             : "O fechamento aguarda a confirmação do histórico.";
    //--- A excecao do peer lock vem depois do que trava de verdade e ANTES da
    //--- pendencia, igual em AccCanLoadProfile: com o perfil preso por outro
    //--- grafico, carregar outro E a saida, e ali a pendencia deixa de pesar.
    if(AccPeerLock()) return "";
    if(HasPending())
-      return "Salve ou cancele as alteracoes pendentes primeiro.";
+      return "Salve ou cancele as alterações pendentes primeiro.";
    return "";
   }
 
@@ -1477,13 +1477,13 @@ void DrawHeader(void)
    //--- alteracao ainda nao gravada. Os dois primeiros sao vermelhos porque
    //--- descrevem um perfil que nao existe em disco como o usuario acredita.
    if(m_snap.activeProfileFileMissing)
-      Txt(tailX,76,"· arquivo do perfil nao encontrado",m_t.bad,
+      Txt(tailX,76,"· arquivo do perfil não encontrado",m_t.bad,
           FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
    else if(m_notSaved)
-      Txt(tailX,76,"· nao gravado no disco",m_t.bad,
+      Txt(tailX,76,"· não gravado no disco",m_t.bad,
           FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
    else if(HasPending())
-      Txt(tailX,76,"· alteracoes nao salvas",m_t.faint,
+      Txt(tailX,76,"· alterações não salvas",m_t.faint,
           FCV_FONT_UI,FCV_FS_BODY,FCV_FW_NORMAL,TA_LEFT|TA_VCENTER);
 
    //--- Cada acao com a propria cor, como no painel 1.058: verde para iniciar,

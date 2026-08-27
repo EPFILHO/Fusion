@@ -88,7 +88,7 @@ private:
      reason = "";
       if(spec.point <= 0.0 || bid <= 0.0 || ask <= 0.0)
         {
-         reason = "Especificacao/preco indisponivel.";
+         reason = "Especificação/preço indisponível.";
          return false;
         }
 
@@ -99,12 +99,12 @@ private:
         {
          if(stopLoss > 0.0 && stopLoss >= bid)
            {
-            reason = "SL fora do lado valido do Bid atual.";
+            reason = "SL fora do lado válido do Bid atual.";
             return false;
            }
          if(takeProfit > 0.0 && takeProfit <= bid)
            {
-            reason = "TP fora do lado valido do Bid atual.";
+            reason = "TP fora do lado válido do Bid atual.";
             return false;
            }
          if(stopLoss > 0.0)
@@ -116,12 +116,12 @@ private:
         {
          if(stopLoss > 0.0 && stopLoss <= ask)
            {
-            reason = "SL fora do lado valido do Ask atual.";
+            reason = "SL fora do lado válido do Ask atual.";
             return false;
            }
          if(takeProfit > 0.0 && takeProfit >= ask)
            {
-            reason = "TP fora do lado valido do Ask atual.";
+            reason = "TP fora do lado válido do Ask atual.";
             return false;
            }
          if(stopLoss > 0.0)
@@ -193,10 +193,10 @@ public:
       bool pricesReady = CurrentPrices(spec, bid, ask);
       if(!pricesReady && (settings.fixedSLPoints > 0 || settings.fixedTPPoints > 0))
         {
-         runtimeStopsError = "Entrada bloqueada: SL/TP sem Bid/Ask valido.";
-         runtimeStopsDetail = "Bid/Ask indisponivel para validar os stops.";
+         runtimeStopsError = "Entrada bloqueada: SL/TP sem Bid/Ask válido.";
+         runtimeStopsDetail = "Bid/Ask indisponível para validar os stops.";
          if(m_logger != NULL)
-            m_logger.Warn("RISK", "SL/TP nao pode ser validado com Bid/Ask atual.");
+            m_logger.Warn("RISK", "SL/TP não pode ser validado com Bid/Ask atual.");
          return false;
         }
 
@@ -220,12 +220,12 @@ public:
          double tpDistance = TakeProfitDistancePoints(settings, spreadPoints);
          if(tpDistance <= 0.0)
            {
-            runtimeStopsError = "Entrada bloqueada: TP invalido para o spread atual.";
+            runtimeStopsError = "Entrada bloqueada: TP inválido para o spread atual.";
             runtimeStopsDetail = "TP " + IntegerToString(settings.fixedTPPoints) +
                                  " pts | Spread " + DoubleToString(spreadPoints, 1) +
-                                 " pts | Compensar Spread TP esta ON.";
+                                 " pts | Compensar Spread TP está ON.";
             if(m_logger != NULL)
-               m_logger.Warn("RISK", "TP fixo menor que o spread atual com compensacao ativa.");
+               m_logger.Warn("RISK", "TP fixo menor que o spread atual com compensação ativa.");
             return false;
            }
          plan.takeProfit = NormalizeDouble(effectiveEntryPrice + (direction * tpDistance * spec.point), spec.digits);
@@ -235,11 +235,11 @@ public:
       if(pricesReady && !PlannedStopsAllowed(signal, spec, bid, ask, plan.stopLoss, plan.takeProfit, stopsReason))
         {
          bool slIssue = (StringFind(stopsReason, "SL ") == 0);
-         runtimeStopsError = slIssue ? "Entrada bloqueada: SL invalido no preco atual."
-                                     : "Entrada bloqueada: TP invalido no preco atual.";
+         runtimeStopsError = slIssue ? "Entrada bloqueada: SL inválido no preço atual."
+                                     : "Entrada bloqueada: TP inválido no preço atual.";
          runtimeStopsDetail = RuntimeStopsDetail(settings, spreadPoints, stopsReason);
          if(m_logger != NULL)
-            m_logger.Warn("RISK", "SL/TP invalido para stopsLevel/spread atual: " + stopsReason);
+            m_logger.Warn("RISK", "SL/TP inválido para stopsLevel/spread atual: " + stopsReason);
          return false;
         }
 
@@ -289,7 +289,7 @@ public:
          //--- `runtimeStopsError` vazio, e o chamador so publica aviso quando ele
          //--- vem preenchido: a entrada era bloqueada em silencio, sem nada na
          //--- tela dizendo por que.
-         runtimeStopsError  = "Entrada bloqueada: TP parcial invalido.";
+         runtimeStopsError  = "Entrada bloqueada: TP parcial inválido.";
          runtimeStopsDetail = FusionPartialPlanReason(partial.code);
          if(m_logger != NULL)
             m_logger.Warn("RISK", "Plano de TP parcial recusado: " + FusionPartialPlanReason(partial.code));

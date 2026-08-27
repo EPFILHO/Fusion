@@ -15,7 +15,7 @@
 
    bool                    IsSessionProtectionNotice(const string notice) const
      {
-      return (notice == "Fora da janela de sessao." || notice == "Sessao encerrada.");
+      return (notice == "Fora da janela de sessão." || notice == "Sessão encerrada.");
      }
 
    bool                    IsNewsProtectionNotice(const string notice) const
@@ -73,11 +73,11 @@
 
    bool                    IsPersistentDailyProtectionNotice(const string notice) const
      {
-      return (notice == "Limite de drawdown diario atingido." ||
-              notice == "Limite diario de trades atingido." ||
-              notice == "Limite diario de perda atingido." ||
-              notice == "Limite diario de perda projetada atingido." ||
-              notice == "Meta diaria de ganho atingida.");
+      return (notice == "Limite de drawdown diário atingido." ||
+              notice == "Limite diário de trades atingido." ||
+              notice == "Limite diário de perda atingido." ||
+              notice == "Limite diário de perda projetada atingido." ||
+              notice == "Meta diária de ganho atingida.");
      }
 
    int                     ProtectionWarnDayKey(void) const
@@ -173,7 +173,7 @@
      {
       if(IsSessionProtectionNotice(notice))
         {
-         m_logger.Info("PROTECT", "Bloqueio de sessao removido.");
+         m_logger.Info("PROTECT", "Bloqueio de sessão removido.");
          return;
         }
 

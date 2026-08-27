@@ -292,7 +292,7 @@ private:
 
             if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
               {
-               ApplyRuntimeBlock("Ativo do grafico mudou. Volte para " + restoredContext.symbol + ". Nao troque o ativo com o EA anexado. Isso pode causar prejuizo financeiro.");
+               ApplyRuntimeBlock("Ativo do gráfico mudou. Volte para " + restoredContext.symbol + ". Não troque o ativo com o EA anexado. Isso pode causar prejuízo financeiro.");
               }
             else
               {
@@ -306,19 +306,19 @@ private:
          }
       else if(chartStateLoadError != "" && !m_settings.isTester)
          ApplyRuntimeNotice("Estado operacional salvo rejeitado: " + chartStateLoadError +
-                            ". O Fusion manteve o boot seguro e vai ressincronizar posicao e historico.");
+                            ". O Fusion manteve o boot seguro e vai ressincronizar posição e histórico.");
 
       if(restoredStateApplied &&
          restoredContext.deinitReason == REASON_CHARTCHANGE &&
          restoredContext.discardedUnsavedDraft)
-         ApplyRuntimeNotice("Alteracoes nao salvas foram descartadas na troca de timeframe.");
+         ApplyRuntimeNotice("Alterações não salvas foram descartadas na troca de timeframe.");
 
       if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
         {
          string profileIssue = m_settingsStore.ProfileExists(m_settings.defaultProfileName)
-                               ? "esta invalido ou incompleto"
-                               : "nao foi encontrado";
-         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
+                               ? "está inválido ou incompleto"
+                               : "não foi encontrado";
+         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais até você carregar ou salvar um perfil.");
         }
 
       // O estado de runtime pode ser descartado com seguranca, mas a identidade do
@@ -342,7 +342,7 @@ private:
             // O aviso do painel corta em 174 caracteres. A instrucao acionavel
             // vem primeiro; o porque completo esta em docs/DECISIONS.md (20).
             ApplyRuntimeBlock("Perfil " + restoredProfile +
-                              " do grafico nao pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operacao. Assumir outro mudaria lote e Magic.");
+                              " do gráfico não pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operação. Assumir outro mudaria lote e Magic.");
             m_runtimeBlockedByChartProfile = true;
            }
         }
@@ -360,10 +360,10 @@ private:
                            IntegerToString(restoredContext.deinitReason) + ")";
 
          if(restoredStateApplied)
-            profileResolution = "Perfil restaurado do estado do grafico. " + activeNow;
+            profileResolution = "Perfil restaurado do estado do gráfico. " + activeNow;
          else if(m_runtimeBlocked && restoredProfile != "")
            {
-            profileResolution = "Perfil " + restoredProfile + " do grafico nao pode ser carregado; " +
+            profileResolution = "Perfil " + restoredProfile + " do gráfico não pode ser carregado; " +
                                 discardCause + ". EA bloqueado sem assumir outro perfil.";
             profileResolutionIsWarning = true;
            }
@@ -372,16 +372,16 @@ private:
             // O runtime foi descartado, mas a identidade do perfil sobreviveu: o EA
             // segue no perfil do grafico, com o lote e o Magic corretos.
             profileResolution = "Runtime descartado (" + discardCause +
-                                "), perfil do grafico preservado. " + activeNow;
+                                "), perfil do gráfico preservado. " + activeNow;
             profileResolutionIsWarning = true;
            }
          else if(discardCause != "")
            {
-            profileResolution = "Estado do grafico nao aplicado: " + discardCause + ". " + activeNow;
+            profileResolution = "Estado do gráfico não aplicado: " + discardCause + ". " + activeNow;
             profileResolutionIsWarning = true;
            }
          else if(defaultProfileLoaded)
-            profileResolution = "Sem estado salvo para este grafico. " + activeNow;
+            profileResolution = "Sem estado salvo para este gráfico. " + activeNow;
          else
            {
             profileResolution = "Nenhum perfil carregado do disco; operando com os inputs. " + activeNow;
@@ -427,7 +427,7 @@ private:
          SPositionRuntimeState stateBeforeSync = m_positionState;
          bool positionSynced = m_executionService.SyncPosition(m_positionState);
          if(positionSynced && m_positionState.hasPosition)
-            m_logger.Info("SYNC", "Posicao aberta detectada e ressincronizada.");
+            m_logger.Info("SYNC", "Posição aberta detectada e ressincronizada.");
          else if(stateBeforeSync.hasPosition)
             BeginCloseReconciliation(stateBeforeSync, true);
          if(!m_closeReconciliationPending)

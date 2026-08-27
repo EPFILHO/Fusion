@@ -345,7 +345,7 @@ void HandlePress(const int cx,const int cy,const bool endedByTerminal)
       if(!m_minimized && lx>=FCV_PANEL_W-64 && lx<FCV_PANEL_W-40)
         {
          m_ph=DecidePanelHeight(); m_scroll=0; Render();
-         Print("Altura reajustada ao grafico: ",m_ph," (unidade logica)");
+         Print("Altura reajustada ao gráfico: ",m_ph," (unidade lógica)");
          return;
         }
       if(lx>=FCV_PANEL_W-90 && lx<FCV_PANEL_W-64)

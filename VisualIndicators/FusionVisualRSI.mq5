@@ -4,9 +4,9 @@
 //--- Aba Comum das Propriedades. Tem de ficar no modulo principal: #property
 //--- description dentro de include nao chega ao dialogo.
 #property description "Indicador exclusivamente visual."
-#property description "Alteracoes nesta janela afetam somente a exibicao no grafico."
-#property description "Nao alteram estrategias, filtros, perfis ou operacoes do Fusion."
-#property description "O Identificador interno e reservado ao Fusion e nao deve ser alterado."
+#property description "Alterações nesta janela afetam somente a exibição no gráfico."
+#property description "Não alteram estratégias, filtros, perfis ou operações do Fusion."
+#property description "O Identificador interno é reservado ao Fusion e não deve ser alterado."
 #property indicator_separate_window
 #property indicator_buffers 1
 #property indicator_plots   1
@@ -26,15 +26,15 @@
 //--- OnInit so desenha os primeiros "Niveis exibidos". Um valor deixado num
 //--- nivel acima da contagem fica dormente, e por isso o rotulo diz de onde
 //--- vem o corte.
-input(name="Identificador interno (nao alterar)")      string             InpShortName = "Fusion Visual RSI";
-input(name="Periodo do RSI")                 int                InpPeriod = 14;
-input(name="Preco do RSI")                   ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
-input(name="Niveis exibidos (0 a 5)")        int                InpLevelCount = 0;
-input(name="Nivel 1 (0 a 100)")              int                InpLevel1 = 0;
-input(name="Nivel 2 (0 a 100)")              int                InpLevel2 = 0;
-input(name="Nivel 3 (0 a 100)")              int                InpLevel3 = 0;
-input(name="Nivel 4 (0 a 100)")              int                InpLevel4 = 0;
-input(name="Nivel 5 (0 a 100)")              int                InpLevel5 = 0;
+input(name="Identificador interno (não alterar)")      string             InpShortName = "Fusion Visual RSI";
+input(name="Período do RSI")                 int                InpPeriod = 14;
+input(name="Preço do RSI")                   ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
+input(name="Níveis exibidos (0 a 5)")        int                InpLevelCount = 0;
+input(name="Nível 1 (0 a 100)")              int                InpLevel1 = 0;
+input(name="Nível 2 (0 a 100)")              int                InpLevel2 = 0;
+input(name="Nível 3 (0 a 100)")              int                InpLevel3 = 0;
+input(name="Nível 4 (0 a 100)")              int                InpLevel4 = 0;
+input(name="Nível 5 (0 a 100)")              int                InpLevel5 = 0;
 
 double RSIBuffer[];
 int    RSIHandle = INVALID_HANDLE;

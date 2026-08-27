@@ -125,6 +125,14 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - Identificadores, tipos, ordem, valores padrao e quantidade dos `input` ficaram **intactos**: os tres indicadores sao anexados por `iCustom`, que passa os argumentos por posicao, e o nome visivel nao participa desse contrato.
 - **Limitacao conhecida:** o campo `Identificador interno (nao alterar)` continua **visivel e editavel**. Ele nao e aparencia — e o primeiro argumento posicional do `iCustom` e o nome pelo qual o EA reconhece e remove a propria linha do grafico. Alterado a mao, o Fusion perde o rastro daquela linha, que deixa de ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA. O MQL5 nao oferece parametro de indicador realmente oculto — `sinput` tambem aparece na janela —, entao o aviso vai no proprio nome do campo.
 
+### Revisao ortografica do portugues da interface
+
+- Todo o texto que o operador le passou a ser escrito em **portugues acentuado**: abas, subabas, titulos de carta, rotulos, notas, avisos do cabecalho, mensagens de validacao, avisos de perfil, textos das protecoes e os nomes dos parametros dos tres indicadores visuais. Ate aqui a interface escrevia `configuracao`, `posicao`, `protecao`, `media`, `periodo` e `grafico`.
+- A revisao foi **estritamente textual**: nenhuma frase foi reescrita, encurtada ou reordenada, e severidade, titulo, prioridade e instrucao operacional de cada mensagem continuam as mesmas. O que mudou esta inteiramente **dentro das aspas** — nenhuma condicao, chamada, atribuicao, enum, estrutura ou assinatura foi tocada.
+- ⚠️ **Alguns avisos de protecao sao classificados pelo proprio texto**, por igualdade ou por prefixo. A acentuacao alcancou produtor e consumidor no mesmo passo, mantendo os pares identicos: nenhum aviso deixou de ser reconhecido, limpo ou priorizado.
+- Mensagens que existem **apenas no diario** e nao chegam ao painel nao foram alteradas, para a mudanca ficar restrita ao que o operador ve.
+- Nomes de campo persistido, chaves de perfil e de chart state, identificadores de `input`, tags de log e nomes de objeto de grafico **nao foram tocados**: o formato dos arquivos e o `schemaVersion` seguem iguais, e perfis gravados antes continuam carregando sem conversao.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.

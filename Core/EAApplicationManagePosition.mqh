@@ -35,7 +35,7 @@
             if(!m_pendingPartialForceCloseWaitLogged)
               {
                m_pendingPartialForceCloseWaitLogged = true;
-               m_logger.Warn("PROTECT", "Saida forcada aguardando a ordem parcial ativa terminar para evitar sobre-execucao.");
+               m_logger.Warn("PROTECT", "Saída forçada aguardando a ordem parcial ativa terminar para evitar sobre-execução.");
               }
             return;
            }
@@ -116,7 +116,7 @@
             if(reverseExit)
               {
                m_pendingReverseExit.Arm(exitSignal, ownerStrategyId, ownerStrategyName, shortName);
-               m_runtimeNotice = "VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
+               m_runtimeNotice = "VM armada: reversão direta sem filtros/direção; guards operacionais ativos.";
               }
            }
         }

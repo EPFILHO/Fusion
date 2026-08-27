@@ -97,14 +97,14 @@
            {
             m_logger.Info("SIGNAL",
                           m_positionState.hasPosition
-                          ? "Troca de timeframe concluida. A posicao aberta continua sendo gerenciada normalmente; nenhuma nova entrada sera aberta enquanto ela permanecer ativa."
-                          : "Troca de timeframe concluida. O fechamento da posicao continua sendo conferido; novas entradas permanecem suspensas ate a conclusao.");
+                          ? "Troca de timeframe concluida. A posição aberta continua sendo gerenciada normalmente; nenhuma nova entrada será aberta enquanto ela permanecer ativa."
+                          : "Troca de timeframe concluida. O fechamento da posição continua sendo conferido; novas entradas permanecem suspensas até a conclusão.");
 
             if(m_settings.debugLogs)
                m_logger.Debug("SIGNAL",
                               m_positionState.hasPosition
-                              ? "Novos sinais de entrada nao foram preservados porque ja havia uma posicao aberta no momento da troca de timeframe."
-                              : "Novos sinais de entrada nao foram preservados porque o fechamento da posicao ainda estava em reconciliacao.");
+                              ? "Novos sinais de entrada não foram preservados porque já havia uma posição aberta no momento da troca de timeframe."
+                              : "Novos sinais de entrada não foram preservados porque o fechamento da posição ainda estava em reconciliação.");
            }
          //--- Bloco ausente numa troca visual real: houve descarte de sinais, e
          //--- isso merece registro — mas nao e anomalia, entao fica em INFO e
@@ -116,8 +116,8 @@
          else
            {
             m_logger.Warn("SIGNAL",
-                          "Estado de entrada nao pode ser restaurado apos troca do timeframe visual; " +
-                          "sinais atuais descartados por seguranca: " + why + ".");
+                          "Estado de entrada não pode ser restaurado após troca do timeframe visual; " +
+                          "sinais atuais descartados por segurança: " + why + ".");
             ApplyHandoffNotice("Sinais descartados na troca de timeframe: " + why + ".");
            }
          return;
@@ -154,22 +154,22 @@
       if(activeImported > 0 && activeFailed == 0)
         {
          m_logger.Info("SIGNAL",
-                       "Estado logico de entrada preservado apos troca do timeframe visual; " +
-                       "estrategias ativas compativeis restauradas.");
+                       "Estado lógico de entrada preservado após troca do timeframe visual; " +
+                       "estratégias ativas compatíveis restauradas.");
         }
       else if(activeImported > 0 && activeFailed > 0)
         {
          m_logger.Warn("SIGNAL",
-                       "Estado de entrada restaurado parcialmente apos troca do timeframe visual — " +
+                       "Estado de entrada restaurado parcialmente após troca do timeframe visual — " +
                        "restauradas: " + importedList + "; primeadas: " + failedList + ".");
          ApplyHandoffNotice("Estado de entrada restaurado parcialmente na troca de timeframe.");
         }
       else if(activeFailed > 0)
         {
          m_logger.Warn("SIGNAL",
-                       "Nao foi possivel restaurar nenhuma estrategia ativa apos a troca do timeframe " +
-                       "visual; sinais atuais descartados por seguranca — primeadas: " + failedList + ".");
-         ApplyHandoffNotice("Sinais descartados na troca de timeframe: nao foi possivel restaurar nenhuma estrategia ativa.");
+                       "Não foi possível restaurar nenhuma estratégia ativa após a troca do timeframe " +
+                       "visual; sinais atuais descartados por segurança — primeadas: " + failedList + ".");
+         ApplyHandoffNotice("Sinais descartados na troca de timeframe: não foi possível restaurar nenhuma estratégia ativa.");
         }
       else
         {
@@ -177,7 +177,7 @@
          //--- ha o que restaurar e nao ha alerta a dar — o proprio perfil sem
          //--- estrategia ja impede operar.
          m_logger.Info("SIGNAL",
-                       "Troca de timeframe sem estrategia de entrada ativa; " +
+                       "Troca de timeframe sem estratégia de entrada ativa; " +
                        "estados mantidos em espera segura.");
         }
 
@@ -264,7 +264,7 @@
       string text = "Entrada " + SignalToString(decision.signal);
       if(strategyName != "")
          text += " da " + strategyName;
-      text += " bloqueada por Direcao";
+      text += " bloqueada por Direção";
       if(reason != "")
          text += ": " + reason;
       return text;
@@ -292,7 +292,7 @@
             //--- barreira sao coisas distintas - o priming consome o [1] atual, a
             //--- barreira recusa tambem o candle que ja estava aberto na liberacao.
             m_signalManager.SuspendEntriesUntilFreshCandle();
-            DiscardBlockedEntrySignals("Permissao de trading restaurada.");
+            DiscardBlockedEntrySignals("Permissão de trading restaurada.");
            }
          return true;
         }
@@ -337,7 +337,7 @@
       if(currentBarTime != m_lastClosedStrategyBarTime)
          return false;
 
-      reason = "Ja operou neste candle da estrategia - aguardando proximo.";
+      reason = "Já operou neste candle da estratégia - aguardando próximo.";
       return true;
      }
 

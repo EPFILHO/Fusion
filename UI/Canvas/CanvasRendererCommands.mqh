@@ -100,9 +100,9 @@ void RejectTypedText(const string typed,const int kind)
    //--- so nao serve naquele campo. Dizer "invalido" cobre os dois casos — o
    //--- que nao e numero e o que e numero do tipo errado — sem o painel ter de
    //--- explicar qual dos dois foi.
-   SetNotice("VALOR NAO ACEITO",
-             "\""+shown+"\" nao e um valor valido"+
-             ((kind==FCV_FTYPE_DEC) ? " (use ponto ou virgula para decimais)" : "")+
+   SetNotice("VALOR NÃO ACEITO",
+             "\""+shown+"\" não é um valor válido"+
+             ((kind==FCV_FTYPE_DEC) ? " (use ponto ou vírgula para decimais)" : "")+
              ". O campo voltou ao valor anterior.",
              FCV_SEM_WARN,FCV_NOTICE_TTL_MS);
   }
@@ -129,9 +129,9 @@ void ArmDeleteConfirm(void)
    m_delConfirm=true;
    //--- Sem prazo: este aviso descreve um ESTADO em vigor. Sumindo sozinho,
    //--- deixaria os dois botoes na tela sem a frase que diz o que eles fazem.
-   SetNotice("CONFIRMAR EXCLUSAO",
-             "O perfil "+SelectedProfileName()+" sera apagado DEFINITIVAMENTE. "+
-             "Clique SIM para confirmar ou NAO para cancelar.",FCV_SEM_BAD);
+   SetNotice("CONFIRMAR EXCLUSÃO",
+             "O perfil "+SelectedProfileName()+" será apagado DEFINITIVAMENTE. "+
+             "Clique SIM para confirmar ou NÃO para cancelar.",FCV_SEM_BAD);
   }
 
 void CancelDeleteConfirm(void)
@@ -187,12 +187,12 @@ void ArmAbandonConfirm(const int op,const string target)
    m_abandonTarget=target;
    //--- Sem prazo, como a do EXCLUIR: descreve um ESTADO em vigor, e sumindo
    //--- sozinha deixaria SIM e NAO na tela sem a frase que diz o que fazem.
-   SetNotice("ISTO DESCARTA A CONFIGURACAO EM USO",
-             "Carregar "+target+" ativa outro perfil neste grafico. O perfil "+
-             m_snap.activeProfileName+" esta sem arquivo em disco e nao pode ser "+
-             "gravado aqui — a configuracao dele existe SO na memoria e sera "+
+   SetNotice("ISTO DESCARTA A CONFIGURAÇÃO EM USO",
+             "Carregar "+target+" ativa outro perfil neste gráfico. O perfil "+
+             m_snap.activeProfileName+" está sem arquivo em disco e não pode ser "+
+             "gravado aqui — a configuração dele existe SÓ na memória e será "+
              "perdida. Restaurar o arquivo dele preserva tudo. Clique SIM para "+
-             "abandonar mesmo assim, ou NAO para voltar.",FCV_SEM_BAD);
+             "abandonar mesmo assim, ou NÃO para voltar.",FCV_SEM_BAD);
   }
 
 void CancelAbandonConfirm(void)
@@ -448,8 +448,8 @@ bool HandleButtonClick(const int lx,const int ly,const bool editJustEnded)
          //--- descartar edicao e voltar ao que esta salvo.
          case FCV_BTN_CANCELCFG:
             ReloadDraft();
-            SetNotice("ALTERACOES DESCARTADAS",
-                      "Os campos voltaram ao que esta gravado no perfil "+
+            SetNotice("ALTERAÇÕES DESCARTADAS",
+                      "Os campos voltaram ao que está gravado no perfil "+
                       m_snap.activeProfileName+".",FCV_SEM_GOOD,FCV_NOTICE_TTL_MS);
             break;
         }

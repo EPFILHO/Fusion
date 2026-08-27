@@ -119,18 +119,18 @@ void RunPerfSuite(void)
    m_stress=savStress; m_minimized=savMin;
    Render();
 
-   PrintFormat("=== Medicao de desenho — painel %dx%d ===",FCV_PANEL_W,m_ph);
-   PrintFormat("Quadro de estresse: %d textos emitidos, %d deles dentro da area visivel · %d retangulos",
+   PrintFormat("=== Medição de desenho — painel %dx%d ===",FCV_PANEL_W,m_ph);
+   PrintFormat("Quadro de estresse: %d textos emitidos, %d deles dentro da área visível · %d retângulos",
                stressTexts,stressVis,stressRects);
-   PrintFormat("TextOut unitario: %.1f us com fonte fixa · %.1f us trocando fonte a cada chamada",
+   PrintFormat("TextOut unitário: %.1f us com fonte fixa · %.1f us trocando fonte a cada chamada",
                usFix,usSwap);
-   PrintFormat("Quadro cheio (pior caso sintetico): mediana %.2f ms · media %.2f ms · pior %.2f ms · %d quadros",
+   PrintFormat("Quadro cheio (pior caso sintético): mediana %.2f ms · média %.2f ms · pior %.2f ms · %d quadros",
                medFrame,avgFrame,worst,frames);
-   PrintFormat("Update do bitmap: media %.2f ms",avgUpdate);
-   PrintFormat("Render() completo (desenho+Update+campos+ChartRedraw): mediana %.2f ms · media %.2f ms · pior %.2f ms",
+   PrintFormat("Update do bitmap: média %.2f ms",avgUpdate);
+   PrintFormat("Render() completo (desenho+Update+campos+ChartRedraw): mediana %.2f ms · média %.2f ms · pior %.2f ms",
                medFull,avgFull,worstFull);
-   PrintFormat("Passo de arrasto (sem repintura): media %.3f ms",avgMove);
-   PrintFormat("Quadro+Update continuos a 5 Hz: %.1f%% de um nucleo",budget5Hz);
-   PrintFormat("Arrasto continuo a 100 eventos/s: %.1f%% de um nucleo",budgetDrag);
+   PrintFormat("Passo de arrasto (sem repintura): média %.3f ms",avgMove);
+   PrintFormat("Quadro+Update continuos a 5 Hz: %.1f%% de um núcleo",budget5Hz);
+   PrintFormat("Arrasto continuo a 100 eventos/s: %.1f%% de um núcleo",budgetDrag);
   }
 private:

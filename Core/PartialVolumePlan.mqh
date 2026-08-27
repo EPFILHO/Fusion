@@ -224,14 +224,14 @@ string FusionPartialPlanReason(const int code)
      {
       case FUSION_PARTIAL_PLAN_OK:            return "";
       case FUSION_PARTIAL_PLAN_DISABLED:      return "";
-      case FUSION_PARTIAL_PLAN_SPEC_UNKNOWN:  return "Especificacao de volume do ativo indisponivel.";
-      case FUSION_PARTIAL_PLAN_ENTRY_INVALID: return "Volume de entrada invalido para validar TP Parcial (faixa ou passo do ativo).";
-      case FUSION_PARTIAL_PLAN_MODE_INVALID:  return "Modo de tamanho do TP Parcial invalido.";
-      case FUSION_PARTIAL_PLAN_TP1_INVALID:   return "TP1 precisa fechar um volume negociavel.";
+      case FUSION_PARTIAL_PLAN_SPEC_UNKNOWN:  return "Especificação de volume do ativo indisponível.";
+      case FUSION_PARTIAL_PLAN_ENTRY_INVALID: return "Volume de entrada inválido para validar TP Parcial (faixa ou passo do ativo).";
+      case FUSION_PARTIAL_PLAN_MODE_INVALID:  return "Modo de tamanho do TP Parcial inválido.";
+      case FUSION_PARTIAL_PLAN_TP1_INVALID:   return "TP1 precisa fechar um volume negociável.";
       case FUSION_PARTIAL_PLAN_TP1_TOO_BIG:   return "TP1 precisa deixar saldo aberto.";
-      case FUSION_PARTIAL_PLAN_TP2_INVALID:   return "TP2 precisa fechar um volume negociavel.";
-      case FUSION_PARTIAL_PLAN_TP2_TOO_BIG:   return "TP2 nao cabe no volume restante.";
-      case FUSION_PARTIAL_PLAN_NO_MIN_LEFT:   return "TP parcial precisa deixar o volume minimo aberto.";
+      case FUSION_PARTIAL_PLAN_TP2_INVALID:   return "TP2 precisa fechar um volume negociável.";
+      case FUSION_PARTIAL_PLAN_TP2_TOO_BIG:   return "TP2 não cabe no volume restante.";
+      case FUSION_PARTIAL_PLAN_NO_MIN_LEFT:   return "TP parcial precisa deixar o volume mínimo aberto.";
      }
    return "Motivo desconhecido.";
   }

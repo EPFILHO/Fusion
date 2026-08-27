@@ -431,9 +431,9 @@ bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const S
 
 string FusionDrawdownProfileBlockMessage(void)
   {
-   return "Perfil nao carregado: DD diario ativo. " +
-          "O novo perfil deve manter a mesma regra ate o novo dia. " +
-          "A consistencia no trade comeca por obedecer ao gerenciamento inicial.";
+   return "Perfil não carregado: DD diário ativo. " +
+          "O novo perfil deve manter a mesma regra até o novo dia. " +
+          "A consistência no trade começa por obedecer ao gerenciamento inicial.";
   }
 
 struct SSignalCandidate
@@ -713,7 +713,7 @@ string FusionLevelChangeText(const string label,const int change,
    if(change == FUSION_SLTP_MODIFIED)
       return label + " " + FusionLevelText(before, digits) + " -> " +
              FusionLevelText(after, digits);
-   return label + " sem alteracao";
+   return label + " sem alteração";
   }
 
 string FusionProtectionChangeText(const SProtectionChangeEvent &event,const int digits)
@@ -1028,16 +1028,16 @@ string FusionEntryHandoffReason(const ENUM_ENTRY_HANDOFF_RESULT result)
    switch(result)
      {
       case ENTRY_HANDOFF_ACCEPTED:         return "";
-      case ENTRY_HANDOFF_NO_BLOCK:         return "estado anterior nao trazia bloco de sinais";
-      case ENTRY_HANDOFF_INVALID_BLOCK:    return "bloco de sinais invalido";
-      case ENTRY_HANDOFF_NOT_ELIGIBLE:     return "novas entradas nao estavam liberadas no momento da troca";
+      case ENTRY_HANDOFF_NO_BLOCK:         return "estado anterior não trazia bloco de sinais";
+      case ENTRY_HANDOFF_INVALID_BLOCK:    return "bloco de sinais inválido";
+      case ENTRY_HANDOFF_NOT_ELIGIBLE:     return "novas entradas não estavam liberadas no momento da troca";
       case ENTRY_HANDOFF_STALE:            return "estado antigo demais para continuidade";
-      case ENTRY_HANDOFF_NOT_CHART_CHANGE: return "reinicio nao foi troca de timeframe";
-      case ENTRY_HANDOFF_SYMBOL_CHANGED:   return "ativo do grafico mudou";
-      case ENTRY_HANDOFF_NOT_STARTED:      return "EA nao estava iniciado";
-      case ENTRY_HANDOFF_POSITION:         return "posicao ou fechamento pendente";
-      case ENTRY_HANDOFF_BLOCKED:          return "bloqueio operacional, de permissao ou de protecao";
-      case ENTRY_HANDOFF_ORIGIN_UNKNOWN:   return "configuracao de origem do estado desconhecida";
+      case ENTRY_HANDOFF_NOT_CHART_CHANGE: return "reinicio não foi troca de timeframe";
+      case ENTRY_HANDOFF_SYMBOL_CHANGED:   return "ativo do gráfico mudou";
+      case ENTRY_HANDOFF_NOT_STARTED:      return "EA não estava iniciado";
+      case ENTRY_HANDOFF_POSITION:         return "posição ou fechamento pendente";
+      case ENTRY_HANDOFF_BLOCKED:          return "bloqueio operacional, de permissão ou de proteção";
+      case ENTRY_HANDOFF_ORIGIN_UNKNOWN:   return "configuração de origem do estado desconhecida";
      }
    return "motivo desconhecido";
   }

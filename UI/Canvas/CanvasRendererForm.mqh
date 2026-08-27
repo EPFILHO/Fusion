@@ -182,7 +182,7 @@ int ComboItems(const int kind,string &out[])
      { string a[7]={"Close","Open","High","Low","Median","Typical","Weighted"};
        ArrayResize(out,7); ArrayCopy(out,a); return 7; }
    if(kind==FCV_COMBO_SIDE)
-     { string a[3]={"Ambas","So Compra","So Venda"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+     { string a[3]={"Ambas","Só Compra","Só Venda"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    //--- Ordem do ENUM_NEWS_WINDOW_ACTION: BLOCK_ENTRIES=0, CLOSE_AND_BLOCK=1.
    //--- Abreviado porque a caixa do combo e estreita: "Fechar + Bloquear" por
    //--- extenso vazava para fora dela. O verbo fica INTEIRO — "Fechar" e a
@@ -194,20 +194,20 @@ int ComboItems(const int kind,string &out[])
    if(kind==FCV_COMBO_PARTIAL_MODE)
      { string a[2]={"Percentual","Volume"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_ENTRY)
-     { string a[2]={"Proxima Vela","2a Vela"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
+     { string a[2]={"Próxima Vela","2a Vela"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_EXIT)
-     { string a[3]={"TP/SL","Sinal Oposto","Virar Mao (VM)"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+     { string a[3]={"TP/SL","Sinal Oposto","Virar Mão (VM)"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    if(kind==FCV_COMBO_RSIEXIT)
-     { string a[4]={"TP/SL","Sinal Oposto","Virar Mao (VM)","Cruz. Media"};
+     { string a[4]={"TP/SL","Sinal Oposto","Virar Mão (VM)","Cruz. Média"};
        ArrayResize(out,4); ArrayCopy(out,a); return 4; }
    if(kind==FCV_COMBO_RSIMODE)
-     { string a[3]={"Saida da Zona","Dentro da Zona","Cruz. Media"};
+     { string a[3]={"Saída da Zona","Dentro da Zona","Cruz. Média"};
        ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    if(kind==FCV_COMBO_RSIFILTER)
-     { string a[3]={"Direcao","Neutro","Extremos"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+     { string a[3]={"Direção","Neutro","Extremos"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    //--- Ordem do ENUM_BB_SIGNAL_MODE: FFFD e o indice 0 e o padrao do EA.
    if(kind==FCV_COMBO_BBMODE)
-     { string a[3]={"FFFD","Toque/Rejeicao","Rompimento"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+     { string a[3]={"FFFD","Toque/Rejeição","Rompimento"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    if(kind==FCV_COMBO_BBWIDTH)
      { string a[2]={"Absoluto","Relativo %"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
    if(kind==FCV_COMBO_STREAK)
@@ -238,9 +238,9 @@ int ComboItems(const int kind,string &out[])
       return FCV_PALETTE_COUNT;
      }
    if(kind==FCV_COMBO_THEMEMODE)
-     { string a[3]={"Automatico","Escuro","Claro"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
+     { string a[3]={"Automático","Escuro","Claro"}; ArrayResize(out,3); ArrayCopy(out,a); return 3; }
    if(kind==FCV_COMBO_SCALE)
-     { string a[FCV_SCALE_COUNT]={"Menor","Padrao","Maior"};
+     { string a[FCV_SCALE_COUNT]={"Menor","Padrão","Maior"};
        ArrayResize(out,FCV_SCALE_COUNT); ArrayCopy(out,a); return FCV_SCALE_COUNT; }
    if(kind==FCV_COMBO_CONFLICT)
      { string a[2]={"Prioridade","Cancelar"}; ArrayResize(out,2); ArrayCopy(out,a); return 2; }
@@ -292,44 +292,44 @@ string ComboOptionHint(const int kind,const int idx)
       //--- ⚠ Sem "lotes" nem "contratos": a unidade e a do ativo, e inferi-la
       //--- pelo passo nao e garantido pelo MT5. Diz-se "volume", so.
       case FCV_COMBO_PARTIAL_MODE:
-         if(idx==0) return "Cada parcial fecha uma fracao da posicao, em %.";
-         return "Cada parcial fecha um volume informado por voce.";
+         if(idx==0) return "Cada parcial fecha uma fração da posição, em %.";
+         return "Cada parcial fecha um volume informado por você.";
       case FCV_COMBO_ENTRY:
          if(idx==0) return "Entra na abertura da vela seguinte ao sinal.";
          return "Espera mais uma vela antes de entrar.";
       case FCV_COMBO_EXIT:
          if(idx==0) return "Sai apenas no alvo ou no stop.";
-         if(idx==1) return "Sai quando a estrategia sinaliza o lado contrario.";
-         return "Sai e ja abre no lado contrario.";
+         if(idx==1) return "Sai quando a estratégia sinaliza o lado contrário.";
+         return "Sai e já abre no lado contrário.";
       case FCV_COMBO_RSIEXIT:
          if(idx==0) return "Sai apenas no alvo ou no stop.";
-         if(idx==1) return "Sai quando a estrategia sinaliza o lado contrario.";
-         if(idx==2) return "Sai e ja abre no lado contrario.";
-         return "Sai quando o RSI cruza a linha media.";
+         if(idx==1) return "Sai quando a estratégia sinaliza o lado contrário.";
+         if(idx==2) return "Sai e já abre no lado contrário.";
+         return "Sai quando o RSI cruza a linha média.";
       case FCV_COMBO_RSIMODE:
          if(idx==0) return "Sinal quando o RSI deixa a zona extrema.";
          if(idx==1) return "Sinal enquanto o RSI permanece na zona.";
-         return "Sinal quando o RSI cruza a linha media.";
+         return "Sinal quando o RSI cruza a linha média.";
       //--- Textos da 1.058 (UI/RSIFilterPanel.mqh). Os meus estavam errados nos
       //--- modos Neutro e Extremos, e o de Extremos dizia o INVERSO do que o
       //--- filtro faz — ele bloqueia nas zonas extremas, nao libera.
       case FCV_COMBO_RSIFILTER:
-         if(idx==0) return "Direcao: BUY so acima da linha; SELL so abaixo.";
-         if(idx==1) return "Neutro: bloqueia o meio; BUY so acima, SELL so abaixo.";
+         if(idx==0) return "Direção: BUY só acima da linha; SELL só abaixo.";
+         if(idx==1) return "Neutro: bloqueia o meio; BUY só acima, SELL só abaixo.";
          return "Extremos: bloqueia qualquer entrada nas zonas extremas.";
       case FCV_COMBO_BBMODE:
          if(idx==0) return "Fechou fora, fechou dentro: entra no retorno para dentro das bandas.";
-         if(idx==1) return "Entra quando o preco toca a banda e e rejeitado.";
-         return "Entra quando o preco fecha fora da banda.";
+         if(idx==1) return "Entra quando o preço toca a banda e é rejeitado.";
+         return "Entra quando o preço fecha fora da banda.";
       case FCV_COMBO_BBWIDTH:
-         if(idx==0) return "Absoluto: mede largura das bandas em pontos do simbolo.";
-         return "Relativo: mede largura das bandas como % da linha media.";
+         if(idx==0) return "Absoluto: mede largura das bandas em pontos do símbolo.";
+         return "Relativo: mede largura das bandas como % da linha média.";
       case FCV_COMBO_STREAK:
          if(idx==0) return "Para por alguns minutos e volta sozinho.";
-         return "Encerra o dia; so volta no proximo.";
+         return "Encerra o dia; só volta no próximo.";
       case FCV_COMBO_TARGET:
          if(idx==0) return "Ao bater a meta, encerra o dia.";
-         return "Ao bater a meta, liga a protecao de drawdown.";
+         return "Ao bater a meta, liga a proteção de drawdown.";
       //--- "Financeiro: valor; Percentual: % da base." (UIPanelProtectionSync).
       case FCV_COMBO_DDTYPE:
          if(idx==0) return "Limite medido em dinheiro.";
@@ -337,14 +337,14 @@ string ComboOptionHint(const int kind,const int idx)
       //--- A dica diz de ONDE vem a base, que e o que o nome curto nao cabe:
       //--- Max.Ganho e o campo da tela Limites Diarios.
       case FCV_COMBO_DDPEAK:
-         if(idx==0) return "Base fixa: o Max.Ganho definido em Limites Diarios.";
+         if(idx==0) return "Base fixa: o Max.Ganho definido em Limites Diários.";
          return "Pico Ganho acompanha o maior P/L bruto projetado.";
       case FCV_COMBO_CONFLICT:
-         if(idx==0) return "Em sinais opostos, o maior numero vence.";
+         if(idx==0) return "Em sinais opostos, o maior número vence.";
          return "Sinais opostos cancelam a entrada.";
       case FCV_COMBO_NEWS:
          if(idx==0) return "Impede novas entradas durante a janela.";
-         return "Fecha posicoes abertas e impede novas entradas.";
+         return "Fecha posições abertas e impede novas entradas.";
       case FCV_COMBO_SIDE:
          if(idx==0) return "Aceita compra e venda.";
          if(idx==1) return "Recusa vendas.";

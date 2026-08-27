@@ -581,12 +581,12 @@ CFusionCanvasRenderer::CFusionCanvasRenderer(void)
    SetDefaultSettings(m_committed);
    m_stress=false; m_frameTexts=0; m_frameTextsVis=0; m_frameRects=0;
 
-   string tn[FCV_TAB_COUNT]={"Status","Resultados","Estrategias","Filtros",
-                             "Gestao","Perfis","Layout"};
+   string tn[FCV_TAB_COUNT]={"Status","Resultados","Estratégias","Filtros",
+                             "Gestão","Perfis","Layout"};
    ArrayCopy(m_tabNames,tn);
    string rr[5]={"Lote","SL/TP","TP Parcial","BreakEven","Trailing"};
    ArrayCopy(m_railRisco,rr);
-   string rp[FCV_RAIL_MAX]={"Geral","Spread/Lado","Sessao","Noticias","Limites Diarios","Drawdown","Sequencias"};
+   string rp[FCV_RAIL_MAX]={"Geral","Spread/Lado","Sessão","Notícias","Limites Diários","Drawdown","Sequências"};
    ArrayCopy(m_railProt,rp);
 
    for(int i=0;i<FCV_TAB_COUNT;++i) { m_tabX[i]=0; m_tabW[i]=0; }
@@ -722,7 +722,7 @@ bool CFusionCanvasRenderer::Create(const long chart,const string prefix,
    int stripEnd=m_tabX[FCV_TAB_COUNT-1]+m_tabW[FCV_TAB_COUNT-1];
    int stripRoom=FCV_PANEL_W-10-stripEnd;
    if(stripRoom<0)
-      PrintFormat("ATENCAO: a faixa de abas estourou %d px. Encurte um rotulo.",-stripRoom);
+      PrintFormat("ATENÇÃO: a faixa de abas estourou %d px. Encurte um rótulo.",-stripRoom);
    else
       PrintFormat("Faixa de abas: %d px usados, %d px de folga.",stripEnd,stripRoom);
    return true;

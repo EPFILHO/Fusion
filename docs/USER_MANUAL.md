@@ -465,16 +465,16 @@ Abaixo do TP2 há uma tabela recalculada a cada alteração, **sempre em quantid
 
 ```
 Lote inicial             0.20
-Maximo TP1               0.19
+Máximo TP1               0.19
 TP1 50% fecha            0.10
-Saldo apos TP1           0.10
-Maximo TP2               0.09
+Saldo após TP1           0.10
+Máximo TP2               0.09
 TP2 45% fecha            0.09
 Saldo final              0.01
-Saldo minimo             0.01
+Saldo mínimo             0.01
 ```
 
-`Maximo TP1` e `Maximo TP2` são o teto de cada estágio **mantendo o mínimo aberto**. Um valor inválido não apaga o que já era conhecido: a conta só vira `indisponivel` a partir do ponto quebrado.
+`Máximo TP1` e `Máximo TP2` são o teto de cada estágio **mantendo o mínimo aberto**. Um valor inválido não apaga o que já era conhecido: a conta só vira `indisponível` a partir do ponto quebrado.
 
 O resumo é **informativo**. Quem aceita ou recusa a configuração é a validação; ele apenas mostra os números.
 
@@ -655,9 +655,9 @@ Regras visuais:
 
 ### 13.1. Propriedades dos indicadores visuais
 
-As três linhas desenhadas no gráfico são indicadores próprios — `Fusion Visual MA`, `Fusion Visual BB` e `Fusion Visual RSI` —, e o MetaTrader permite abrir as **Propriedades** de cada um por `Ctrl+I`. Os campos aparecem com **nomes em linguagem comum** (`Cor da MA Rapida`, `Periodo do RSI`, `Desvio padrao das bandas`), e a aba `Comum` traz o aviso de que se trata de indicador **exclusivamente visual**: o que se muda ali afeta só o desenho, e **não altera estratégias, filtros, perfis ou operações do Fusion**.
+As três linhas desenhadas no gráfico são indicadores próprios — `Fusion Visual MA`, `Fusion Visual BB` e `Fusion Visual RSI` —, e o MetaTrader permite abrir as **Propriedades** de cada um por `Ctrl+I`. Os campos aparecem com **nomes em linguagem comum** (`Cor da MA Rápida`, `Período do RSI`, `Desvio padrão das bandas`), e a aba `Comum` traz o aviso de que se trata de indicador **exclusivamente visual**: o que se muda ali afeta só o desenho, e **não altera estratégias, filtros, perfis ou operações do Fusion**.
 
-⚠️ **Uma exceção nessa janela: `Identificador interno (nao alterar)`.** Esse campo não é aparência — é o nome pelo qual o Fusion reconhece e remove a própria linha do gráfico. O EA o calcula sozinho e o entrega ao indicador. Alterá-lo à mão faz o Fusion perder o rastro daquela linha, que passa a não ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA — sobra uma linha órfã no gráfico, que aí só sai pelo `Ctrl+I`. O MQL5 não oferece parâmetro de indicador realmente oculto, por isso o campo continua visível, com o aviso no próprio nome.
+⚠️ **Uma exceção nessa janela: `Identificador interno (não alterar)`.** Esse campo não é aparência — é o nome pelo qual o Fusion reconhece e remove a própria linha do gráfico. O EA o calcula sozinho e o entrega ao indicador. Alterá-lo à mão faz o Fusion perder o rastro daquela linha, que passa a não ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA — sobra uma linha órfã no gráfico, que aí só sai pelo `Ctrl+I`. O MQL5 não oferece parâmetro de indicador realmente oculto, por isso o campo continua visível, com o aviso no próprio nome.
 
 Nada digitado nessa janela **volta para o perfil**: o Fusion escreve nos indicadores, nunca lê deles. Cor e estilo pertencem à aba `Layout`, e é ela que passa por `SALVAR`. Ao religar os indicadores ou recarregar o perfil, o Fusion redesenha a partir do que está gravado — que é o que faz um ajuste feito por ali ser temporário.
 

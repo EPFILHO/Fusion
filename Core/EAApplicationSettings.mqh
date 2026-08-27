@@ -84,7 +84,7 @@
          string drawdownLockReason = "";
          if(m_protectionManager.IsDrawdownConfigLocked(drawdownLockReason))
            {
-            m_logger.Warn("PROFILE", "Magic nao alterado enquanto o DD diario esta ativo.");
+            m_logger.Warn("PROFILE", "Magic não alterado enquanto o DD diário está ativo.");
             return false;
            }
         }

@@ -22,9 +22,9 @@ int Level2Count(const int tab) { return (tab==FCV_TAB_GESTAO) ? 2 : 4; }
 
 int Level2Names(const int tab,string &out[])
   {
-   if(tab==2) { ArrayResize(out,4); string a[4]={"Geral","Medias","IFR / RSI","Bollinger"};    ArrayCopy(out,a); return 4; }
-   if(tab==3) { ArrayResize(out,4); string a[4]={"Geral","Tendencia","IFR / RSI","Bollinger"}; ArrayCopy(out,a); return 4; }
-   ArrayResize(out,2); string a[2]={"Risco","Protecao"}; ArrayCopy(out,a); return 2;
+   if(tab==2) { ArrayResize(out,4); string a[4]={"Geral","Médias","IFR / RSI","Bollinger"};    ArrayCopy(out,a); return 4; }
+   if(tab==3) { ArrayResize(out,4); string a[4]={"Geral","Tendência","IFR / RSI","Bollinger"}; ArrayCopy(out,a); return 4; }
+   ArrayResize(out,2); string a[2]={"Risco","Proteção"}; ArrayCopy(out,a); return 2;
   }
 
 //--- Identidade da tela: cada combinacao de abas tem um id proprio, e o
@@ -108,7 +108,7 @@ bool ScreenAlert(string &title,string &body,int &sem)
    //+---------------------------------------------------------------+
    if(m_hdr.critical)
      {
-      title="TRADING INDISPONIVEL COM POSICAO ABERTA";
+      title="TRADING INDISPONÍVEL COM POSIÇÃO ABERTA";
       body=m_snap.tradePermissionReason;
       sem=FCV_SEM_BAD;
       return true;
@@ -136,7 +136,7 @@ bool ScreenAlert(string &title,string &body,int &sem)
    //--- perfil e a excecao — ScreenErrorProfileEdit usa a mesma caixa, mas a
    //--- validacao dele fica LOCAL de proposito, para nao contaminar a
    //--- configuracao do perfil ativo. Ver a nota daquela funcao.
-   title="CONFIGURACAO INVALIDA"; body=err; sem=FCV_SEM_BAD;
+   title="CONFIGURAÇÃO INVÁLIDA"; body=err; sem=FCV_SEM_BAD;
    return true;
   }
 
@@ -328,21 +328,21 @@ bool ProtectionChangeNotice(string &title,string &guidance,int &sem)
    if(slGone && tpGone)
      {
       title="SL E TP REMOVIDOS";
-      guidance="Recoloque o Stop Loss imediatamente e restabeleca o Take Profit da posicao.";
+      guidance="Recoloque o Stop Loss imediatamente e restabeleça o Take Profit da posição.";
       sem=FCV_SEM_BAD;
       return true;
      }
    if(slGone)
      {
       title="SL REMOVIDO";
-      guidance="Recoloque o Stop Loss imediatamente para limitar o risco da posicao.";
+      guidance="Recoloque o Stop Loss imediatamente para limitar o risco da posição.";
       sem=FCV_SEM_BAD;
       return true;
      }
    if(tpGone)
      {
       title="TP REMOVIDO";
-      guidance="Recoloque o Take Profit o quanto antes para restabelecer o alvo da posicao.";
+      guidance="Recoloque o Take Profit o quanto antes para restabelecer o alvo da posição.";
       sem=FCV_SEM_BAD;
       return true;
      }
@@ -350,8 +350,8 @@ bool ProtectionChangeNotice(string &title,string &guidance,int &sem)
    //--- ⚠ Sem "alteracao manual" nem "feita pelo usuario": a origem pode ser
    //--- desktop, celular, corretora ou outro programa, e o Fusion nao distingue.
    title="SL/TP ALTERADO";
-   guidance="A protecao da posicao foi alterada. Evite mudar SL/TP enquanto o "
-            "Fusion gerencia a operacao.";
+   guidance="A proteção da posição foi alterada. Evite mudar SL/TP enquanto o "
+            "Fusion gerencia a operação.";
    sem=FCV_SEM_WARN;
    return true;
   }
@@ -371,18 +371,18 @@ bool StatusNotice(string &title,string &body,int &sem)
   {
    sem=FCV_SEM_WARN;
    if(m_snap.runtimeBlocked)
-     { title="ATENCAO OPERACIONAL"; body=m_snap.runtimeBlockReason; sem=FCV_SEM_BAD; return true; }
+     { title="ATENÇÃO OPERACIONAL"; body=m_snap.runtimeBlockReason; sem=FCV_SEM_BAD; return true; }
    if(HasText(m_snap.startBlockedReason))
-     { title="INICIO BLOQUEADO"; body=m_snap.startBlockedReason; return true; }
+     { title="INÍCIO BLOQUEADO"; body=m_snap.startBlockedReason; return true; }
    //--- Logo apos os bloqueios que o EA informa, porque ele tambem impede
    //--- INICIAR — e um botao apagado sem motivo escrito e pior que o problema
    //--- que ele evita: manda procurar sem dizer onde.
    if(ActiveMagicConflicts())
      {
       title="MAGIC EM CONFLITO";
-      body="O Magic do perfil ativo esta repetido em disco. E por ele que o EA "
-           "reconhece as proprias ordens, entao operar assim e operar sem saber "
-           "quais ordens sao suas. Resolva em Perfis antes de iniciar.";
+      body="O Magic do perfil ativo está repetido em disco. É por ele que o EA "
+           "reconhece as próprias ordens, então operar assim é operar sem saber "
+           "quais ordens são suas. Resolva em Perfis antes de iniciar.";
       sem=FCV_SEM_BAD;
       return true;
      }
@@ -396,11 +396,11 @@ bool StatusNotice(string &title,string &body,int &sem)
    //--- um titulo falso sobre um corpo que fala de conexao. A causa concreta ja
    //--- vem no corpo, escrita pelo motor.
    if(m_snap.tradePermissionBlocked)
-     { title="TRADING INDISPONIVEL"; body=m_snap.tradePermissionReason; return true; }
+     { title="TRADING INDISPONÍVEL"; body=m_snap.tradePermissionReason; return true; }
    if(m_snap.pendingReverseExit)
      {
-      title="VIRADA DE MAO";
-      body="VM armada: reversao direta sem filtros/direcao; guards operacionais ativos.";
+      title="VIRADA DE MÃO";
+      body="VM armada: reversão direta sem filtros/direção; guards operacionais ativos.";
       return true;
      }
    //--- ⚠ REMOCAO acima de PERFIL SEM ARQUIVO, que e informativo — o proprio
@@ -417,7 +417,7 @@ bool StatusNotice(string &title,string &body,int &sem)
      {
       title="PERFIL SEM ARQUIVO";
       body="Perfil "+m_snap.activeProfileName+" sem arquivo em disco. O EA segue com os "
-           "valores do estado do grafico. Salve para recriar o arquivo.";
+           "valores do estado do gráfico. Salve para recriar o arquivo.";
       return true;
      }
    //--- ⚠ ANTES do "entradas suspensas", porque era ali que este estado se
@@ -428,8 +428,8 @@ bool StatusNotice(string &title,string &body,int &sem)
    //--- descreve o que esta acontecendo, nao o que o botao faz.
    if(m_snap.hasPosition && !m_snap.hasOpenPosition)
      {
-      title="FECHAMENTO EM RECONCILIACAO";
-      body="Aguardando a confirmacao do historico. O estado sera atualizado automaticamente.";
+      title="FECHAMENTO EM RECONCILIAÇÃO";
+      body="Aguardando a confirmação do histórico. O estado será atualizado automaticamente.";
       return true;
      }
    //--- `hasOpenPosition`: aqui a frase afirma posicao ABERTA, e so este campo
@@ -437,7 +437,7 @@ bool StatusNotice(string &title,string &body,int &sem)
    if(m_snap.hasOpenPosition && !m_snap.started)
      {
       title="ENTRADAS SUSPENSAS";
-      body="Posicao aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas futuras.";
+      body="Posição aberta segue em gerenciamento. Clique INICIAR para liberar novas entradas futuras.";
       return true;
      }
    if(m_snap.entryBlockIsRiskStops)
@@ -500,7 +500,7 @@ bool StatusNotice(string &title,string &body,int &sem)
    //--- Sem ponto final: o titulo vira SELO, e selo e rotulo, nao frase. Os
    //--- outros titulos da escada ("ENTRADA BLOQUEADA", "DRAWDOWN") tambem nao
    //--- tem. O corpo, esse sim, e frase e mantem a pontuacao.
-   title="Sem alertas"; body="Contexto do grafico estavel."; sem=FCV_SEM_NEUTRAL;
+   title="Sem alertas"; body="Contexto do gráfico estável."; sem=FCV_SEM_NEUTRAL;
    return false;
   }
 
@@ -517,7 +517,7 @@ void ScreenStatus(void)
    //--- mesma palavra, em toda aba — e o tamanho grande virou um eco gritado,
    //--- roubando atencao dos numeros que so existem AQUI.
    Txt(x1+14,y+38,RunStateText(),RunStateColor(),FCV_FONT_UI,FCV_FS_LG,FCV_FW_SEMI,TA_LEFT|TA_VCENTER);
-   Txt(x2-14,y+18,"POSICAO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
+   Txt(x2-14,y+18,"POSIÇÃO",m_t.faint,FCV_FONT_UI,FCV_FS_SM,FCV_FW_SEMI,TA_RIGHT|TA_VCENTER);
    //--- "Aberta" e afirmacao sobre a posicao, entao le `hasOpenPosition`. Com
    //--- `hasPosition` o cartao dizia Aberta durante a reconciliacao, quando ela
    //--- ja tinha fechado — e a caixa de aviso logo abaixo dizia o contrario.
@@ -529,7 +529,7 @@ void ScreenStatus(void)
    //--- Tres blocos, nao quatro: o TF operacional saiu daqui. Ele e um resumo
    //--- por estrategia ("MA M1/M5 | RSI M15") e nao cabe num bloco estreito —
    //--- foi para uma linha de largura inteira no cartao abaixo.
-   string tk[3]={"ESTRATEGIAS","FILTROS","MAGIC"};
+   string tk[3]={"ESTRATÉGIAS","FILTROS","MAGIC"};
    string tv[3]={IntegerToString(m_snap.activeStrategies),
                  IntegerToString(m_snap.activeFilters),
                  IntegerToString(m_snap.magicNumber)};
@@ -561,12 +561,12 @@ void ScreenStatus(void)
    RowStatic("TF Operacional",m_snap.timeframe=="" ? "—" : m_snap.timeframe);
    //--- Sem responsavel definido o campo mostra travessao, nao vazio: espaco em
    //--- branco parece falha de desenho, travessao diz "nao ha".
-   RowStatic("Responsavel pela operacao atual",
+   RowStatic("Responsável pela operação atual",
              m_snap.ownerStrategyName=="" ? "—" : m_snap.ownerStrategyName);
    //--- "Resolucao de conflito", e nao "Conflito": o valor e a POLITICA escolhida
    //--- (PRIORIDADE ou CANCELAR), nao a existencia de um conflito. Lido curto,
    //--- "Conflito: CANCELAR" parecia anunciar um conflito em curso.
-   RowStatic("Resolucao de conflito",
+   RowStatic("Resolução de conflito",
              m_snap.conflictMode==CONFLICT_PRIORITY ? "PRIORIDADE" : "CANCELAR");
    //--- Titulo em selo colorido pela gravidade, corpo em nota. A 1.058 pinta os
    //--- dois com a cor do aviso; aqui a cor fica no selo, que e o que se le
@@ -575,7 +575,7 @@ void ScreenStatus(void)
    StatusNotice(ntTitle,ntBody,ntSem);
    RowBadge("Alerta",ntTitle,ntSem);
    RowNote (ntBody);
-   Card("SESSAO");
+   Card("SESSÃO");
   }
 
 //+------------------------------------------------------------------+
@@ -674,7 +674,7 @@ void ScreenResults(void)
    //--- casos (ver a nota de rodape).
    RowStatic("Max Perda", DailyCapText(m_snap.settings.maxDailyLoss));
    RowStatic("Max Ganho", DailyCapText(m_snap.settings.maxDailyGain));
-   RowStatic("Sequencia Loss/Win Atual","Loss "+ls+" | Win "+ws);
+   RowStatic("Sequência Loss/Win Atual","Loss "+ls+" | Win "+ws);
    //--- ⚠ A nota existe porque o motor usa DUAS referencias para os mesmos
    //--- dois limites: CanOpen() barra entrada nova comparando com o P/L
    //--- FECHADO, e ShouldForceClose() encerra posicao aberta comparando com o
@@ -682,7 +682,7 @@ void ScreenResults(void)
    //--- teto com a linha errada — e com posicao aberta e o projetado que pode
    //--- encerrar o trade dele.
    if(dayOn)
-      RowNote("Entrada usa o P/L fechado; fechamento de posicao usa o projetado.");
+      RowNote("Entrada usa o P/L fechado; fechamento de posição usa o projetado.");
    Card("CONTAGEM");
 
    //--- Sem base de drawdown os numeros nao significam nada ainda: a 1.058
@@ -765,11 +765,11 @@ void CardActiveOutOfList(const int activeIdx)
   {
    if(activeIdx>=0) return;
    RowsReset();
-   RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
+   RowFieldF("Magic Number","Identifica as ordens deste perfil no gráfico",
              FCV_FLD_MAGIC);
-   RowNoteSem("O perfil "+m_snap.activeProfileName+" esta em uso neste grafico mas nao "+
-              "aparece na lista: o arquivo dele sumiu ou nao pode ser lido. "+
-              "SALVAR grava a configuracao em uso de volta nesse nome.",FCV_SEM_WARN);
+   RowNoteSem("O perfil "+m_snap.activeProfileName+" está em uso neste gráfico mas não "+
+              "aparece na lista: o arquivo dele sumiu ou não pode ser lido. "+
+              "SALVAR grava a configuração em uso de volta nesse nome.",FCV_SEM_WARN);
    Card("PERFIL ATIVO");
   }
 
@@ -823,16 +823,16 @@ void ScreenProfiles(void)
       if(m_profSkipped>0)
         {
          RowNoteSem(IntegerToString(m_profSkipped)+
-                    " arquivo(s) de perfil em disco nao puderam ser lidos.",FCV_SEM_BAD);
-         RowNote("A pasta nao esta vazia: os arquivos existem, mas nenhum abriu.");
+                    " arquivo(s) de perfil em disco não puderam ser lidos.",FCV_SEM_BAD);
+         RowNote("A pasta não está vazia: os arquivos existem, mas nenhum abriu.");
         }
       //--- ⚠ "Use NOVO" so enquanto o NOVO existir. Com a trava no ar ele esta
       //--- apagado, e o texto mandaria usar o botao que a propria tela impede —
       //--- licao 1. O que fazer primeiro e gravar, e quem diz como e o cartao
       //--- do perfil ativo, logo abaixo.
       else if(saveFirstEmpty)
-         RowNoteSem("Nenhum perfil em disco, e o perfil em uso e um deles: grave-o "+
-                    "primeiro (SALVAR), e o NOVO volta a ficar disponivel.",FCV_SEM_BAD);
+         RowNoteSem("Nenhum perfil em disco, e o perfil em uso é um deles: grave-o "+
+                    "primeiro (SALVAR), e o NOVO volta a ficar disponível.",FCV_SEM_BAD);
       else
          RowNote("Nenhum perfil em disco. Use NOVO para criar o primeiro.");
       Card("PERFIS");
@@ -1010,7 +1010,7 @@ void ScreenProfiles(void)
      {
       int lw=(aw-6)/2;
       PutButton(ax,y+0*34,lw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_ABANDONOK,true);
-      PutButton(ax+lw+6,y+0*34,aw-lw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
+      PutButton(ax+lw+6,y+0*34,aw-lw-6,30,"NÃO",false,m_t.muted,m_t.onAcc,
                 FCV_BTN_ABANDONNO,true);
      }
    else
@@ -1030,7 +1030,7 @@ void ScreenProfiles(void)
      {
       int hw=(aw-6)/2;
       PutButton(ax,y+3*34,hw,30,"SIM",true,m_t.bad,m_t.onAcc,FCV_BTN_DELOK,true);
-      PutButton(ax+hw+6,y+3*34,aw-hw-6,30,"NAO",false,m_t.muted,m_t.onAcc,
+      PutButton(ax+hw+6,y+3*34,aw-hw-6,30,"NÃO",false,m_t.muted,m_t.onAcc,
                 FCV_BTN_DELNO,true);
      }
    else
@@ -1126,16 +1126,16 @@ void ScreenProfiles(void)
       //--- enquanto ha edicao ou pendencia, entao nunca captura alteracao nao
       //--- gravada — a frase prometia algo que o botao nao consegue fazer.
       RowNote (m_profEdit==FCV_PROF_DUP
-               ? "Cria em disco uma copia do perfil "+
+               ? "Cria em disco uma cópia do perfil "+
                  ((m_profSel>=0) ? m_profName[m_profSel] : "selecionado")+
-                 ", com a configuracao lida do arquivo dele. O perfil atual "+
-                 "continuara ativo. Informe outro Magic livre e clique CRIAR "+
-                 "COPIA. A compatibilidade com o ativo deste grafico so e "+
+                 ", com a configuração lida do arquivo dele. O perfil atual "+
+                 "continuará ativo. Informe outro Magic livre e clique CRIAR "+
+                 "CÓPIA. A compatibilidade com o ativo deste gráfico só é "+
                  "verificada ao CARREGAR."
-               : "Cria em disco um perfil novo a partir da configuracao "+
+               : "Cria em disco um perfil novo a partir da configuração "+
                  "atualmente em uso por "+
-                 (m_snap.activeProfileName=="" ? "este grafico" : m_snap.activeProfileName)+
-                 ". O perfil atual continuara ativo; use CARREGAR se quiser "+
+                 (m_snap.activeProfileName=="" ? "este gráfico" : m_snap.activeProfileName)+
+                 ". O perfil atual continuará ativo; use CARREGAR se quiser "+
                  "ativar o novo. Informe nome e Magic livre, e clique CRIAR "+
                  "PERFIL.");
       //+---------------------------------------------------------------+
@@ -1160,9 +1160,9 @@ void ScreenProfiles(void)
       //| que da e avisar antes, que e o que falta para a decisao ser     |
       //| informada.                                                      |
       //+---------------------------------------------------------------+
-      RowNoteSem("Trocar de aba descarta este formulario — inclusive para corrigir "
-                 "a configuracao. O que voce ajustar nas outras abas pertence ao "
-                 "perfil EM USO, nao a este.",FCV_SEM_WARN);
+      RowNoteSem("Trocar de aba descarta este formulário — inclusive para corrigir "
+                 "a configuração. O que você ajustar nas outras abas pertence ao "
+                 "perfil EM USO, não a este.",FCV_SEM_WARN);
       //--- Assimetria honesta com arquivo ilegivel: o NOME dele e conhecido pela
       //--- enumeracao e entra na conferencia; o MAGIC esta dentro do arquivo que
       //--- nao abriu, e portanto nao ha como conferir. Dizer isso e melhor que
@@ -1170,8 +1170,8 @@ void ScreenProfiles(void)
       //--- criacao ate ele consertar um arquivo que a GUI nem sabe apagar.
       if(m_profSkipped>0)
          RowNoteSem(IntegerToString(m_profSkipped)+
-                    " arquivo(s) ilegivel(is): o nome deles e respeitado, mas o "+
-                    "Magic nao pode ser conferido enquanto nao abrirem.",FCV_SEM_WARN);
+                    " arquivo(s) ilegível(is): o nome deles é respeitado, mas o "+
+                    "Magic não pode ser conferido enquanto não abrirem.",FCV_SEM_WARN);
       Card(m_profEdit==FCV_PROF_DUP ? "DUPLICAR COMO" : "NOVO PERFIL");
 
       //--- Os rotulos nomeiam a acao, nao a categoria. "SALVAR" e "CANCELAR"
@@ -1189,7 +1189,7 @@ void ScreenProfiles(void)
       //--- a causa dela. Criar grava em disco e nao substitui a configuracao em
       //--- uso, entao nao ha nada a abandonar para perguntar.
       PutButton(m_fx1,m_fy,bw,30,
-                m_profEdit==FCV_PROF_DUP ? "CRIAR COPIA" : "CRIAR PERFIL",
+                m_profEdit==FCV_PROF_DUP ? "CRIAR CÓPIA" : "CRIAR PERFIL",
                 true,m_t.good,m_t.onGood,FCV_BTN_SAVE,formReady && ProfileFormConfigValid());
       PutButton(m_fx1+bw+8,m_fy,bw,30,"DESCARTAR",
                 false,m_t.warn,m_t.onAcc,FCV_BTN_CANCEL,true);
@@ -1213,13 +1213,13 @@ void ScreenProfiles(void)
    RowsReset();
    if(isActive)
      {
-      RowFieldF("Magic Number","Identifica as ordens deste perfil no grafico",
+      RowFieldF("Magic Number","Identifica as ordens deste perfil no gráfico",
                 FCV_FLD_MAGIC);
-      RowNote  ("Dois perfis nao podem dividir o mesmo Magic: e por ele que o EA reconhece as proprias ordens.");
+      RowNote  ("Dois perfis não podem dividir o mesmo Magic: é por ele que o EA reconhece as próprias ordens.");
      }
    else
      {
-      RowField("Magic Number","Identifica as ordens deste perfil no grafico",
+      RowField("Magic Number","Identifica as ordens deste perfil no gráfico",
                (m_profSel>=0) ? IntegerToString(m_profMagic[m_profSel]) : "--",
                true,false);
       //--- Com o ativo fora da lista, o Magic dele ja esta no cartao acima; dizer
@@ -1234,13 +1234,13 @@ void ScreenProfiles(void)
       if(activeIdx>=0)
         {
          string why=LoadBlockedWhy();
-         RowNote("Somente o perfil ativo tem o Magic editavel, e so com o EA parado."+
+         RowNote("Somente o perfil ativo tem o Magic editável, e só com o EA parado."+
                  (canLoad ? " Use CARREGAR para ativar o selecionado."
                           : (StringLen(why)>0 ? " "+why : "")));
         }
      }
    if(isDefault)
-      RowNote("Perfil default: ele e a base do EA e nao pode ser excluido.");
+      RowNote("Perfil default: ele é a base do EA e não pode ser excluído.");
    //--- O aviso nomeia quem colide e diz o caminho de volta. Um alerta que so
    //--- acusa deixa o usuario preso: aqui CARREGAR esta desligado, e sem a
    //--- instrucao ele nao tem como adivinhar que a saida e DUPLICAR/EXCLUIR.
@@ -1252,8 +1252,8 @@ void ScreenProfiles(void)
    if(selDup)
      {
       RowNoteSem(DuplicateMagicNote(m_profSel),FCV_SEM_BAD);
-      RowNoteSem("Por isso CARREGAR esta bloqueado nos dois. Para resolver: "
-                 "DUPLICAR com outro Magic e EXCLUIR o antigo, ou apagar a copia sobrando.",
+      RowNoteSem("Por isso CARREGAR está bloqueado nos dois. Para resolver: "
+                 "DUPLICAR com outro Magic e EXCLUIR o antigo, ou apagar a cópia sobrando.",
                  FCV_SEM_BAD);
      }
    //--- Arquivo de perfil que existe e nao abriu. Dizer que ele existe e o
@@ -1261,7 +1261,7 @@ void ScreenProfiles(void)
    //--- justamente o que esta com problema.
    if(m_profSkipped>0)
       RowNoteSem(IntegerToString(m_profSkipped)+
-                 " arquivo(s) de perfil em disco nao puderam ser lidos e ficaram fora da lista.",
+                 " arquivo(s) de perfil em disco não puderam ser lidos e ficaram fora da lista.",
                  FCV_SEM_BAD);
    Card(isActive ? "PERFIL ATIVO" : "PERFIL SELECIONADO");
   }
@@ -1284,8 +1284,8 @@ void ScreenStrategies(void)
       RowState("MA Cross" ,FCV_FLD_USE_MACROSS);
       RowState("IFR / RSI",FCV_FLD_USE_RSI);
       RowState("Bollinger",FCV_FLD_USE_BB);
-      RowNote ("Ligue ou desligue em cada subaba, junto dos parametros.");
-      Card("ESTRATEGIAS");
+      RowNote ("Ligue ou desligue em cada subaba, junto dos parâmetros.");
+      Card("ESTRATÉGIAS");
 
       //--- Resolver Conflito mora aqui, e nao em Config > Sistema como na
       //--- 1.058: e uma regra entre estrategias, e le-se junto de quais estao
@@ -1297,57 +1297,57 @@ void ScreenStrategies(void)
       //--- em PRIORIDADE, opostos de MESMA prioridade tambem cancelam; e em
       //--- CANCELAR a prioridade continua valendo entre sinais que CONCORDAM,
       //--- para eleger a estrategia dona — que e quem manda na saida.
-      RowNote ("PRIORIDADE: em sinais opostos, o maior numero vence; empate na maior prioridade cancela.");
-      RowNote ("CANCELAR: sinais opostos cancelam a entrada. A prioridade segue valendo quando os sinais concordam: ela elege a estrategia dona da posicao, e e a saida dela que vale.");
+      RowNote ("PRIORIDADE: em sinais opostos, o maior número vence; empate na maior prioridade cancela.");
+      RowNote ("CANCELAR: sinais opostos cancelam a entrada. A prioridade segue valendo quando os sinais concordam: ela elege a estratégia dona da posição, e é a saída dela que vale.");
       Card("CONFLITO");
       return;
      }
    if(s==1)
      {
       RowsReset();
-      RowNote   ("Cruza medias rapida e lenta com parametros independentes.");
+      RowNote   ("Cruza médias rápida e lenta com parâmetros independentes.");
       RowToggleF("Ativo",FCV_FLD_USE_MACROSS);
-      RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_MA_PRIORITY);
+      RowFieldF ("Prioridade","Em sinais opostos, o maior número vence",FCV_FLD_MA_PRIORITY);
       Card("MA CROSS");
 
       RowsReset();
-      RowFieldF("Periodo","Numero de velas",FCV_FLD_MA_FAST_PERIOD);
+      RowFieldF("Período","Número de velas",FCV_FLD_MA_FAST_PERIOD);
       RowComboF("Timeframe",FCV_COMBO_TF    ,FCV_FLD_MA_FAST_TF);
       RowComboF("Tipo"     ,FCV_COMBO_METHOD,FCV_FLD_MA_FAST_METHOD);
-      RowComboF("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_FAST_PRICE);
-      Card("MEDIA RAPIDA");
+      RowComboF("Preço"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_FAST_PRICE);
+      Card("MÉDIA RÁPIDA");
 
       RowsReset();
-      RowFieldF("Periodo","Numero de velas",FCV_FLD_MA_SLOW_PERIOD);
+      RowFieldF("Período","Número de velas",FCV_FLD_MA_SLOW_PERIOD);
       RowComboF("Timeframe",FCV_COMBO_TF    ,FCV_FLD_MA_SLOW_TF);
       RowComboF("Tipo"     ,FCV_COMBO_METHOD,FCV_FLD_MA_SLOW_METHOD);
-      RowComboF("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_SLOW_PRICE);
-      Card("MEDIA LENTA");
+      RowComboF("Preço"    ,FCV_COMBO_PRICE ,FCV_FLD_MA_SLOW_PRICE);
+      Card("MÉDIA LENTA");
 
       RowsReset();
-      RowFieldF("Dist. Min","Distancia minima entre as medias, em pontos",FCV_FLD_MA_MIN_DIST);
+      RowFieldF("Dist. Min","Distância mínima entre as médias, em pontos",FCV_FLD_MA_MIN_DIST);
       RowComboF("Modo",FCV_COMBO_ENTRY,FCV_FLD_MA_ENTRY_MODE);
       Card("ENTRADA");
 
       RowsReset();
       RowComboF("Modo",FCV_COMBO_EXIT,FCV_FLD_MA_EXIT_MODE);
-      RowNote  ("Saida usa SL/TP globais; 0 desliga cada nivel.");
-      Card("SAIDA");
+      RowNote  ("Saída usa SL/TP globais; 0 desliga cada nível.");
+      Card("SAÍDA");
       return;
      }
    if(s==2)
      {
       RowsReset();
-      RowNote   ("Sinais: Saida da Zona, Dentro da Zona ou Cruz. Media.");
+      RowNote   ("Sinais: Saída da Zona, Dentro da Zona ou Cruz. Média.");
       RowToggleF("Ativo",FCV_FLD_USE_RSI);
-      RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_RSI_PRIORITY);
+      RowFieldF ("Prioridade","Em sinais opostos, o maior número vence",FCV_FLD_RSI_PRIORITY);
       Card("RSI");
 
       RowsReset();
-      RowFieldF("Periodo","Numero de velas",FCV_FLD_RSI_PERIOD);
+      RowFieldF("Período","Número de velas",FCV_FLD_RSI_PERIOD);
       RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_RSI_TF);
-      RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_RSI_PRICE);
-      Card("PARAMETROS");
+      RowComboF("Preço"    ,FCV_COMBO_PRICE,FCV_FLD_RSI_PRICE);
+      Card("PARÂMETROS");
 
       //--- Sobrevenda antes de sobrecompra, como na 1.058: a ordem segue a
       //--- escala do indicador, de baixo para cima.
@@ -1358,28 +1358,28 @@ void ScreenStrategies(void)
       RowComboF("Modo",FCV_COMBO_RSIMODE,FCV_FLD_RSI_MODE);
       RowFieldF("Sobrevenda" ,"Abaixo disso, procura compra",FCV_FLD_RSI_OVERSOLD  ,true,RsiUsesZones());
       RowFieldF("Sobrecompra","Acima disso, procura venda"  ,FCV_FLD_RSI_OVERBOUGHT,true,RsiUsesZones());
-      RowFieldF("Linha media","Referencia para cruzamento"  ,FCV_FLD_RSI_MIDDLE    ,true,RsiUsesMiddle());
+      RowFieldF("Linha média","Referência para cruzamento"  ,FCV_FLD_RSI_MIDDLE    ,true,RsiUsesMiddle());
       Card("SINAL");
 
       RowsReset();
       RowComboF("Modo",FCV_COMBO_RSIEXIT,FCV_FLD_RSI_EXIT_MODE);
-      Card("SAIDA");
+      Card("SAÍDA");
       return;
      }
    //--- A descricao existe nas outras duas e faltava aqui; e ela que diz de
    //--- saida quais sao os tres modos de sinal.
    RowsReset();
-   RowNote   ("Sinais: FFFD, Toque/Rejeicao ou Rompimento.");
+   RowNote   ("Sinais: FFFD, Toque/Rejeição ou Rompimento.");
    RowToggleF("Ativo",FCV_FLD_USE_BB);
-   RowFieldF ("Prioridade","Em sinais opostos, o maior numero vence",FCV_FLD_BB_PRIORITY);
+   RowFieldF ("Prioridade","Em sinais opostos, o maior número vence",FCV_FLD_BB_PRIORITY);
    Card("BOLLINGER");
 
    RowsReset();
-   RowFieldF("Periodo","Numero de velas",FCV_FLD_BB_PERIOD);
-   RowFieldF("Desvio" ,"Multiplicador do desvio padrao",FCV_FLD_BB_DEVIATION);
+   RowFieldF("Período","Número de velas",FCV_FLD_BB_PERIOD);
+   RowFieldF("Desvio" ,"Multiplicador do desvio padrão",FCV_FLD_BB_DEVIATION);
    RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_BB_TF);
-   RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_BB_PRICE);
-   Card("PARAMETROS");
+   RowComboF("Preço"    ,FCV_COMBO_PRICE,FCV_FLD_BB_PRICE);
+   Card("PARÂMETROS");
 
    RowsReset();
    RowComboF("Modo",FCV_COMBO_BBMODE,FCV_FLD_BB_MODE);
@@ -1388,7 +1388,7 @@ void ScreenStrategies(void)
 
    RowsReset();
    RowComboF("Modo",FCV_COMBO_EXIT,FCV_FLD_BB_EXIT_MODE);
-   Card("SAIDA");
+   Card("SAÍDA");
   }
 
 //+------------------------------------------------------------------+
@@ -1403,14 +1403,14 @@ void ScreenFilters(void)
       //--- caso especial: e resumo das duas medias (ligado com qualquer uma
       //--- delas ligada), nao uma chave — nem existe o que clicar.
       RowsReset();
-      RowState("Tendencia",FCV_FLD_USE_TREND);
+      RowState("Tendência",FCV_FLD_USE_TREND);
       RowState("IFR / RSI",FCV_FLD_USE_RSIF);
       RowState("Bollinger",FCV_FLD_USE_BBF);
-      RowNote ("Ligue ou desligue em cada subaba. Tendencia fica ligado quando ao menos uma das duas medias esta ligada.");
+      RowNote ("Ligue ou desligue em cada subaba. Tendência fica ligado quando ao menos uma das duas médias está ligada.");
       Card("FILTROS");
 
       RowsReset();
-      RowNote("Um filtro desligado nao bloqueia nada. Com todos desligados, a estrategia entra sempre que der sinal.");
+      RowNote("Um filtro desligado não bloqueia nada. Com todos desligados, a estratégia entra sempre que der sinal.");
       Card("COMO FUNCIONA");
       return;
      }
@@ -1430,20 +1430,20 @@ void ScreenFilters(void)
       //--- e passa a ser cobrado no instante em que a media liga.
       RowNote   ("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
       RowToggleF("Ativo",FCV_FLD_TR_MA1_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD);
+      RowFieldF ("Período","Número de velas",FCV_FLD_TR_MA1_PERIOD);
       RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE);
-      Card("MEDIA 1");
+      RowComboF ("Método"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD);
+      RowComboF ("Preço"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE);
+      Card("MÉDIA 1");
 
       RowsReset();
       RowToggleF("Ativo",FCV_FLD_TR_MA2_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD);
+      RowFieldF ("Período","Número de velas",FCV_FLD_TR_MA2_PERIOD);
       RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE);
-      RowNote   ("Com ambas ON, MA1 deve ser mais longa que MA2 (periodo x TF).");
-      Card("MEDIA 2");
+      RowComboF ("Método"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD);
+      RowComboF ("Preço"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE);
+      RowNote   ("Com ambas ON, MA1 deve ser mais longa que MA2 (período x TF).");
+      Card("MÉDIA 2");
       return;
      }
    if(s==2)
@@ -1454,10 +1454,10 @@ void ScreenFilters(void)
       Card("RSI FILTER");
 
       RowsReset();
-      RowFieldF("Periodo","Numero de velas",FCV_FLD_RF_PERIOD);
+      RowFieldF("Período","Número de velas",FCV_FLD_RF_PERIOD);
       RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_RF_TF);
-      RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_RF_PRICE);
-      Card("PARAMETROS");
+      RowComboF("Preço"    ,FCV_COMBO_PRICE,FCV_FLD_RF_PRICE);
+      Card("PARÂMETROS");
 
       //--- Sao dois limites, nao quatro: sobrecompra e sobrevenda aparecem na
       //--- 1.058 como legenda que muda com o modo, nao como campo proprio.
@@ -1467,13 +1467,13 @@ void ScreenFilters(void)
       //--- passa a ser o nivel BAIXO). Por isso a 1.058 renomeia os rotulos:
       //--- um nome fixo estaria errado nos tres modos. Era o caso de
       //--- "Min Compra", que nao existe no modo Direcao nem em Extremos.
-      string rfLbl1="Linha", rfLbl2="Nao usado";
-      string rfHint1="Acima dela so compra; abaixo so venda";
-      string rfHint2="O modo Direcao usa uma linha so";
+      string rfLbl1="Linha", rfLbl2="Não usado";
+      string rfHint1="Acima dela só compra; abaixo só venda";
+      string rfHint2="O modo Direção usa uma linha só";
       if(m_draft.rsiFilterMode==RSI_FILTER_NEUTRAL)
         {
-         rfLbl1="Compra >="; rfHint1="RSI minimo para liberar compra";
-         rfLbl2="Venda <=";  rfHint2="RSI maximo para liberar venda";
+         rfLbl1="Compra >="; rfHint1="RSI mínimo para liberar compra";
+         rfLbl2="Venda <=";  rfHint2="RSI máximo para liberar venda";
         }
       else if(m_draft.rsiFilterMode==RSI_FILTER_EXTREMES)
         {
@@ -1483,29 +1483,29 @@ void ScreenFilters(void)
       RowComboF("Modo",FCV_COMBO_RSIFILTER,FCV_FLD_RF_MODE);
       RowFieldF(rfLbl1,rfHint1,FCV_FLD_RF_BUYMIN);
       RowFieldF(rfLbl2,rfHint2,FCV_FLD_RF_SELLMAX,true,RsiFilterUsesSecondLevel());
-      RowNote  ("Filtro nao abre ordem; apenas aprova ou bloqueia entradas.");
+      RowNote  ("Filtro não abre ordem; apenas aprova ou bloqueia entradas.");
       Card("FAIXA");
       return;
      }
    RowsReset();
-   RowNote   ("Anti-squeeze: nao abre trade; apenas bloqueia sinais.");
+   RowNote   ("Anti-squeeze: não abre trade; apenas bloqueia sinais.");
    RowToggleF("Ativo",FCV_FLD_USE_BBF);
    Card("BOLLINGER FILTER");
 
    RowsReset();
-   RowFieldF("Periodo","Numero de velas",FCV_FLD_BF_PERIOD);
-   RowFieldF("Desvio" ,"Multiplicador do desvio padrao",FCV_FLD_BF_DEV);
+   RowFieldF("Período","Número de velas",FCV_FLD_BF_PERIOD);
+   RowFieldF("Desvio" ,"Multiplicador do desvio padrão",FCV_FLD_BF_DEV);
    RowComboF("Timeframe",FCV_COMBO_TF   ,FCV_FLD_BF_TF);
-   RowComboF("Preco"    ,FCV_COMBO_PRICE,FCV_FLD_BF_PRICE);
-   Card("PARAMETROS");
+   RowComboF("Preço"    ,FCV_COMBO_PRICE,FCV_FLD_BF_PRICE);
+   Card("PARÂMETROS");
 
    RowsReset();
    //--- A largura minima e medida em pontos OU em porcento, nunca nos dois: o
    //--- modo escolhe qual dos campos vale, e o outro fica apagado.
    RowComboF("Modo",FCV_COMBO_BBWIDTH,FCV_FLD_BF_MODE);
-   RowFieldF("Min Pts","Largura minima em pontos do simbolo",FCV_FLD_BF_MINPTS,
+   RowFieldF("Min Pts","Largura mínima em pontos do símbolo",FCV_FLD_BF_MINPTS,
              true, BbFilterAbsolute());
-   RowFieldF("Min %"  ,"Largura minima como % da linha media",FCV_FLD_BF_MINPCT,
+   RowFieldF("Min %"  ,"Largura mínima como % da linha média",FCV_FLD_BF_MINPCT,
              true,!BbFilterAbsolute());
    Card("LARGURA");
 
@@ -1514,13 +1514,13 @@ void ScreenFilters(void)
    RowsReset();
    //--- A inclinacao pertence ao filtro: sem ele ligado nao ha o que inclinar.
    //--- E seus parametros so valem com a propria chave de direcao ligada.
-   RowToggleF("Nao operar contra a inclinacao",FCV_FLD_BF_SLOPE_ON,BbFilterSlopeEditable());
-   RowFieldF ("Candles","Velas fechadas usadas para medir a inclinacao",FCV_FLD_BF_SLOPE_BACK,
+   RowToggleF("Não operar contra a inclinação",FCV_FLD_BF_SLOPE_ON,BbFilterSlopeEditable());
+   RowFieldF ("Candles","Velas fechadas usadas para medir a inclinação",FCV_FLD_BF_SLOPE_BACK,
               true,BbFilterSlopeParams());
-   RowFieldF ("Incl. min.","Pontos por candle a partir dos quais bloqueia; zero bloqueia a qualquer inclinacao",
+   RowFieldF ("Incl. min.","Pontos por candle a partir dos quais bloqueia; zero bloqueia a qualquer inclinação",
               FCV_FLD_BF_SLOPE_MINPTS,true,BbFilterSlopeParams());
    RowNote   ("Mede para onde aponta a linha central das bandas. Subindo, bloqueia venda; descendo, bloqueia compra.");
-   Card("INCLINACAO");
+   Card("INCLINAÇÃO");
   }
 
 //+------------------------------------------------------------------+
@@ -1564,7 +1564,7 @@ string SpreadCompensationNote(void)
       return prefix+"SL soma; TP subtrai.";
    if(m_draft.compensateSLSpread) return prefix+"SL ON soma; risco aumenta.";
    if(m_draft.compensateTPSpread) return prefix+"TP ON subtrai; alvo diminui.";
-   return prefix+"EA valida o minimo da corretora.";
+   return prefix+"EA valida o mínimo da corretora.";
   }
 
 //--- Panorama de protecao: os seis resumos da subaba GERAL da 1.058.
@@ -1656,15 +1656,15 @@ void ScreenRisk(void)
          RowsReset();
          RowNote  ("Define o volume base usado nas novas entradas.");
          RowFieldF("Lote Fixo","",FCV_FLD_FIXED_LOT);
-         RowFieldF("Slippage (pts)","Tolerancia de execucao, nao garantia de preco",
+         RowFieldF("Slippage (pts)","Tolerância de execução, não garantia de preço",
                    FCV_FLD_SLIPPAGE);
-         RowNote  ("Use 0 para enviar sem desvio; valido de 0 a 100000 pontos.");
+         RowNote  ("Use 0 para enviar sem desvio; válido de 0 a 100000 pontos.");
          Card("TAMANHO DO LOTE");
          return;
 
       case 1:
          RowsReset();
-         RowNote   ("Distancias fixas aplicadas no envio da ordem.");
+         RowNote   ("Distâncias fixas aplicadas no envio da ordem.");
          RowFieldF ("SL Fixo (pts MT5)","Zero desliga o stop fixo",FCV_FLD_SL_POINTS);
          RowFieldF ("TP Fixo (pts MT5)","Zero desliga o alvo fixo",FCV_FLD_TP_POINTS);
          RowToggleF("Compensar Spread SL",FCV_FLD_COMP_SL);
@@ -1673,10 +1673,10 @@ void ScreenRisk(void)
          //--- substitui a instrucao normal, e nao se soma a ela: sem SL, o que
          //--- precisa ser dito nao e como preencher o campo.
          if(m_draft.fixedSLPoints<=0)
-            RowNoteSem("ATENCAO: operar sem SL e ARRISCADO.",FCV_SEM_BAD);
+            RowNoteSem("ATENÇÃO: operar sem SL é ARRISCADO.",FCV_SEM_BAD);
          else
             RowNote   ("Informe SL/TP em pontos do MT5; 0 desliga.");
-         RowNote   ("Use a mesma contagem exibida pela regua do grafico.");
+         RowNote   ("Use a mesma contagem exibida pela régua do gráfico.");
          RowNote   (SpreadCompensationNote());
          Card("STOP LOSS E TAKE PROFIT");
          //+---------------------------------------------------------------+
@@ -1709,7 +1709,7 @@ void ScreenRisk(void)
                RowsReset();
                RowNote(m_snap.protectionChangeDetail);
                RowNoteSem(pcGuidance,pcSem);
-               Card("ALTERACAO NA POSICAO");
+               Card("ALTERAÇÃO NA POSIÇÃO");
               }
            }
          return;
@@ -1725,9 +1725,9 @@ void ScreenRisk(void)
          bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
 
          RowsReset();
-         RowNote   ("Fecha partes da posicao em alvos globais antes do TP final.");
+         RowNote   ("Fecha partes da posição em alvos globais antes do TP final.");
          RowComboF ("Tamanho",FCV_COMBO_PARTIAL_MODE,FCV_FLD_PARTIAL_MODE);
-         RowNote   ("Vale para TP1 e TP2 ao mesmo tempo. Trocar o modo nao apaga "
+         RowNote   ("Vale para TP1 e TP2 ao mesmo tempo. Trocar o modo não apaga "
                     "o valor guardado do outro.");
          Card("TAMANHO DO PARCIAL");
 
@@ -1736,8 +1736,8 @@ void ScreenRisk(void)
          if(volumeMode)
             RowFieldF ("Volume",PartialFieldHint(),FCV_FLD_TP1_VOL,true,Tp1Params());
          else
-            RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP1_PCT,true,Tp1Params());
-         RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP1_DIST,true,Tp1Params());
+            RowFieldF ("Volume %","Fração da posição encerrada",FCV_FLD_TP1_PCT,true,Tp1Params());
+         RowFieldF ("Dist pts","Distância do preço de entrada",FCV_FLD_TP1_DIST,true,Tp1Params());
          Card("TP1");
 
          RowsReset();
@@ -1745,8 +1745,8 @@ void ScreenRisk(void)
          if(volumeMode)
             RowFieldF ("Volume",PartialFieldHint(),FCV_FLD_TP2_VOL,true,Tp2Params());
          else
-            RowFieldF ("Volume %","Fracao da posicao encerrada",FCV_FLD_TP2_PCT,true,Tp2Params());
-         RowFieldF ("Dist pts","Distancia do preco de entrada",FCV_FLD_TP2_DIST,true,Tp2Params());
+            RowFieldF ("Volume %","Fração da posição encerrada",FCV_FLD_TP2_PCT,true,Tp2Params());
+         RowFieldF ("Dist pts","Distância do preço de entrada",FCV_FLD_TP2_DIST,true,Tp2Params());
          RowNote   ("TP1 ON ativa o TP parcial; TP2 depende dele.");
          Card("TP2");
 
@@ -1769,47 +1769,47 @@ void ScreenRisk(void)
          RowsReset();
 
          if(!sum.specKnown)
-            RowNote("Especificacao de volume do ativo indisponivel.");
+            RowNote("Especificação de volume do ativo indisponível.");
          else if(!sum.lotValid)
            {
-            RowStatic("Lote inicial","invalido",FCV_SEM_BAD);
-            RowStatic("Calculo","indisponivel");
+            RowStatic("Lote inicial","inválido",FCV_SEM_BAD);
+            RowStatic("Cálculo","indisponível");
            }
          else if(!sum.partialOn)
            {
             RowStatic("TP Parcial","desativado");
             RowStatic("Lote inicial",VSummaryVol(sum.entry));
-            RowStatic("Saldo minimo",VSummaryVol(sum.minLeft));
+            RowStatic("Saldo mínimo",VSummaryVol(sum.minLeft));
            }
          else
            {
             RowStatic("Lote inicial",VSummaryVol(sum.entry));
-            RowStatic("Maximo TP1",VSummaryVol(sum.availTp1));
+            RowStatic("Máximo TP1",VSummaryVol(sum.availTp1));
 
             if(!sum.tp1Valid)
               {
-               RowStatic(VSummaryStageLabel(true),"valor invalido",FCV_SEM_BAD);
-               RowStatic("Saldo final","indisponivel");
+               RowStatic(VSummaryStageLabel(true),"valor inválido",FCV_SEM_BAD);
+               RowStatic("Saldo final","indisponível");
               }
             else
               {
                RowStatic(VSummaryStageLabel(true)+" fecha",VSummaryVol(sum.tp1Volume));
-               RowStatic("Saldo apos TP1",VSummaryVol(sum.afterTp1));
+               RowStatic("Saldo após TP1",VSummaryVol(sum.afterTp1));
 
                if(!sum.tp2On)
                  {
                   RowStatic("TP2","desativado");
                   if(sum.availTp2Known)
-                     RowStatic("Maximo se ativado",VSummaryVol(sum.availTp2));
+                     RowStatic("Máximo se ativado",VSummaryVol(sum.availTp2));
                  }
                else
                  {
                   if(sum.availTp2Known)
-                     RowStatic("Maximo TP2",VSummaryVol(sum.availTp2));
+                     RowStatic("Máximo TP2",VSummaryVol(sum.availTp2));
                   if(!sum.tp2Valid)
                     {
-                     RowStatic(VSummaryStageLabel(false),"valor invalido",FCV_SEM_BAD);
-                     RowStatic("Saldo final","indisponivel");
+                     RowStatic(VSummaryStageLabel(false),"valor inválido",FCV_SEM_BAD);
+                     RowStatic("Saldo final","indisponível");
                     }
                   else
                     {
@@ -1818,49 +1818,49 @@ void ScreenRisk(void)
                     }
                  }
               }
-            RowStatic("Saldo minimo",VSummaryVol(sum.minLeft));
+            RowStatic("Saldo mínimo",VSummaryVol(sum.minLeft));
            }
          Card("RESUMO DOS VOLUMES");
         }
 
          RowsReset();
          RowToggleF("TP Final Livre",FCV_FLD_FREE_TP,FreeTpEditable());
-         RowNote   ("Remove o TP final apos o ultimo parcial. Requer trailing ativo; "
+         RowNote   ("Remove o TP final após o último parcial. Requer trailing ativo; "
                     "o restante passa a sair pelo trailing.");
          //--- ⚠ Texto dependente do modo. "Volumes sao ajustados ao lote minimo
          //--- e passo do ativo" fica FALSO no modo Volume, onde o valor digitado
          //--- e RECUSADO, nao ajustado - e a frase mandaria esperar um conserto
          //--- que nao vem. Sempre "volume": nunca "lote" nem "contratos".
          if(volumeMode)
-            RowNote("O volume informado precisa respeitar minimo, maximo e passo do ativo.");
+            RowNote("O volume informado precisa respeitar mínimo, máximo e passo do ativo.");
          else
-            RowNote("O volume calculado e ajustado ao minimo e ao passo do ativo.");
+            RowNote("O volume calculado é ajustado ao mínimo e ao passo do ativo.");
          Card("TP FINAL");
          return;
         }
 
       case 3:
          RowsReset();
-         RowNote   ("Ajusta o SL apos a posicao atingir o gatilho em lucro.");
+         RowNote   ("Ajusta o SL após a posição atingir o gatilho em lucro.");
          RowToggleF("Ativo",FCV_FLD_BE_ON);
-         RowFieldF ("Gatilho (pts)","Lucro necessario para mover o stop",
+         RowFieldF ("Gatilho (pts)","Lucro necessário para mover o stop",
                     FCV_FLD_BE_TRIGGER,true,BreakevenParams());
-         RowFieldF ("Offset (pts)","Onde o stop fica em relacao a entrada",
+         RowFieldF ("Offset (pts)","Onde o stop fica em relação a entrada",
                     FCV_FLD_BE_OFFSET,true,BreakevenParams());
-         RowNote   ("BE apenas ajusta o SL da posicao aberta.");
+         RowNote   ("BE apenas ajusta o SL da posição aberta.");
          RowNote   ("Offset 0 move o SL para a entrada; offset maior protege lucro.");
          Card("BREAKEVEN");
          return;
 
       default:
          RowsReset();
-         RowNote   ("Move o SL acompanhando o preco apos atingir o inicio em lucro.");
+         RowNote   ("Move o SL acompanhando o preço após atingir o início em lucro.");
          RowToggleF("Ativo",FCV_FLD_TRAIL_ON);
-         RowFieldF ("Inicio (pts)","Lucro a partir do qual o trailing liga",
+         RowFieldF ("Início (pts)","Lucro a partir do qual o trailing liga",
                     FCV_FLD_TRAIL_START,true,TrailingParams());
-         RowFieldF ("Passo (pts)","Distancia entre preco atual e novo SL",
+         RowFieldF ("Passo (pts)","Distância entre preço atual e novo SL",
                     FCV_FLD_TRAIL_STEP,true,TrailingParams());
-         RowNote   ("Trailing apenas ajusta o SL da posicao aberta.");
+         RowNote   ("Trailing apenas ajusta o SL da posição aberta.");
          Card("TRAILING");
          return;
      }
@@ -1903,13 +1903,13 @@ void ScreenProtection(void)
          //---         horario, contagem. Num selo, um horario pareceria estado.
          RowsReset();
          RowStatic("Spread/Lado",ProtEntryText());
-         RowStatic("Sessao",ProtSessionText());
-         RowStatic("Noticias",ProtNewsText());
-         RowBadge ("Limites Diarios",day,semDay);
+         RowStatic("Sessão",ProtSessionText());
+         RowStatic("Notícias",ProtNewsText());
+         RowBadge ("Limites Diários",day,semDay);
          RowBadge ("Drawdown",dd,semDD);
-         RowBadge ("Sequencias",st,semStreak);
-         RowNote  ("Sinais surgidos durante bloqueios sao descartados.");
-         Card("RESUMO DE PROTECAO");
+         RowBadge ("Sequências",st,semStreak);
+         RowNote  ("Sinais surgidos durante bloqueios são descartados.");
+         Card("RESUMO DE PROTEÇÃO");
          return;
         }
 
@@ -1917,12 +1917,12 @@ void ScreenProtection(void)
          RowsReset();
          RowNote   ("Regras globais aplicadas antes de enviar uma nova ordem.");
          RowToggleF("Max Spread",FCV_FLD_SPREAD_ON);
-         RowFieldF ("Limite (pts)","Acima disso a entrada e recusada",
+         RowFieldF ("Limite (pts)","Acima disso a entrada é recusada",
                     FCV_FLD_SPREAD_MAX,true,SpreadLimitEditable());
-         RowComboF ("Direcao",FCV_COMBO_SIDE,FCV_FLD_DIRECTION);
-         RowNote   ("Sinais surgidos durante bloqueios sao descartados.");
-         RowNote   ("Direcao nao bloqueia estrategia em VM; guards continuam ativos.");
-         Card("PROTECAO DE ENTRADA");
+         RowComboF ("Direção",FCV_COMBO_SIDE,FCV_FLD_DIRECTION);
+         RowNote   ("Sinais surgidos durante bloqueios são descartados.");
+         RowNote   ("Direção não bloqueia estratégia em VM; guards continuam ativos.");
+         Card("PROTEÇÃO DE ENTRADA");
          return;
 
       //--- Horarios seguem editaveis com o filtro desligado: configurar a
@@ -1930,9 +1930,9 @@ void ScreenProtection(void)
       //--- apaga (so o `editable` geral alcanca esses campos).
       case 2:
          RowsReset();
-         RowNote   ("Controla horario de operacao do EA no mercado.");
+         RowNote   ("Controla horário de operação do EA no mercado.");
          RowToggleF("Ativo",FCV_FLD_SESSION_ON);
-         RowTimeF  ("Inicio","Hora e minuto de abertura",
+         RowTimeF  ("Início","Hora e minuto de abertura",
                     FCV_FLD_SESS_START_H,FCV_FLD_SESS_START_M);
          RowTimeF  ("Fim","Hora e minuto de fechamento",
                     FCV_FLD_SESS_END_H,FCV_FLD_SESS_END_M);
@@ -1941,13 +1941,13 @@ void ScreenProtection(void)
          //--- As duas primeiras notas mudam com a escolha: dizem a regra que
          //--- VALE agora, e nao as duas possiveis. Textos da 1.058.
          RowNote   (m_draft.sessionOvernight
-                    ? "Overnight ON: Inicio > Fim e cruza meia-noite."
-                    : "Overnight OFF: Fim > Inicio no mesmo dia.");
+                    ? "Overnight ON: Início > Fim e cruza meia-noite."
+                    : "Overnight OFF: Fim > Início no mesmo dia.");
          RowNote   (m_draft.closeOnSessionEnd
-                    ? "Fechar no fim ON: fecha posicoes ao termino da sessao."
-                    : "Fechar no fim OFF: nao fecha posicoes pelo fim da sessao.");
+                    ? "Fechar no fim ON: fecha posições ao término da sessão."
+                    : "Fechar no fim OFF: não fecha posições pelo fim da sessão.");
          RowNote   ("Fora da janela, novas entradas ficam bloqueadas.");
-         Card("PROTECAO DE SESSAO");
+         Card("PROTEÇÃO DE SESSÃO");
          return;
 
       //--- Sao tres janelas (FUSION_NEWS_WINDOW_COUNT), iguais entre si. O laco
@@ -1956,13 +1956,13 @@ void ScreenProtection(void)
       case 3:
         {
          RowsReset();
-         RowNote("Cada janela pode so bloquear entradas ou fechar posicoes abertas.");
-         Card("JANELAS DE NOTICIAS");
+         RowNote("Cada janela pode só bloquear entradas ou fechar posições abertas.");
+         Card("JANELAS DE NOTÍCIAS");
          for(int w=0;w<FUSION_NEWS_WINDOW_COUNT;++w)
            {
             RowsReset();
             RowToggleF("Ativo",FCV_FLD_NEWS(w,FCV_FLD_NEWS_ON));
-            RowTimeF  ("Inicio","Hora e minuto de abertura",
+            RowTimeF  ("Início","Hora e minuto de abertura",
                        FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_H),
                        FCV_FLD_NEWS(w,FCV_FLD_NEWS_START_M));
             RowTimeF  ("Fim","Hora e minuto de fechamento",
@@ -1982,15 +1982,15 @@ void ScreenProtection(void)
         {
          bool dayOpen=!DailyConfigLocked();
          RowsReset();
-         RowNote   ("Controla trades, perda diaria e meta diaria de ganho.");
+         RowNote   ("Controla trades, perda diária e meta diária de ganho.");
          RowToggleF("Ativo",FCV_FLD_DAY_ON,dayOpen);
-         RowFieldF ("Max Trades","Quantidade de operacoes no dia",
+         RowFieldF ("Max Trades","Quantidade de operações no dia",
                     FCV_FLD_DAY_TRADES,true,dayOpen);
          RowFieldF ("Max Perda","Perda acumulada que encerra o dia",
                     FCV_FLD_DAY_LOSS,true,dayOpen);
          RowFieldF ("Max Ganho","Ganho acumulado que encerra o dia",
                     FCV_FLD_DAY_GAIN,true,dayOpen);
-         RowComboF ("Acao Ganho",FCV_COMBO_TARGET,FCV_FLD_DAY_ACTION,
+         RowComboF ("Ação Ganho",FCV_COMBO_TARGET,FCV_FLD_DAY_ACTION,
                     dayOpen && DayActionEditable());
          if(dayOpen)
            {
@@ -2000,12 +2000,12 @@ void ScreenProtection(void)
            }
          else
            {
-            RowNoteSem("DAY em bloqueio: edicao suspensa ate o novo dia.",FCV_SEM_WARN);
-            RowNoteSem("Pausar o EA nao remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
+            RowNoteSem("DAY em bloqueio: edição suspensa até o novo dia.",FCV_SEM_WARN);
+            RowNoteSem("Pausar o EA não remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
             if(HasText(m_snap.dailyLimitsBlockReason))
                RowNoteSem(m_snap.dailyLimitsBlockReason,FCV_SEM_WARN);
            }
-         Card("LIMITES DIARIOS");
+         Card("LIMITES DIÁRIOS");
          return;
         }
 
@@ -2015,9 +2015,9 @@ void ScreenProtection(void)
         {
          bool ddOpen=!DrawdownConfigLocked();
          RowsReset();
-         RowNote   ("Protege o lucro do dia depois que a meta diaria e atingida.");
+         RowNote   ("Protege o lucro do dia depois que a meta diária é atingida.");
          RowToggleF("Ativo",FCV_FLD_DD_ON,ddOpen);
-         RowFieldF ("Max DD","Recuo maximo aceito a partir da base",
+         RowFieldF ("Max DD","Recuo máximo aceito a partir da base",
                     FCV_FLD_DD_MAX,true,ddOpen);
          RowComboF ("Tipo DD",FCV_COMBO_DDTYPE,FCV_FLD_DD_TYPE,
                     ddOpen && DrawdownCombosEditable());
@@ -2025,22 +2025,22 @@ void ScreenProtection(void)
                     ddOpen && DrawdownCombosEditable());
          if(ddOpen)
            {
-            RowNoteSem("Requer DAY ON, Max Ganho > 0 e Acao ATIVAR DD.",FCV_SEM_WARN);
+            RowNoteSem("Requer DAY ON, Max Ganho > 0 e Ação ATIVAR DD.",FCV_SEM_WARN);
             RowNote   ("Financeiro: valor; Percentual: % da base.");
            }
          else if(m_snap.drawdownLimitReached)
            {
             RowNoteSem(HasText(m_snap.drawdownConfigLockReason)
                        ? m_snap.drawdownConfigLockReason
-                       : "DD atingido: edicao suspensa ate o novo dia.",FCV_SEM_WARN);
+                       : "DD atingido: edição suspensa até o novo dia.",FCV_SEM_WARN);
            }
          else
            {
-            RowNote("DD ativo: protecao de lucro ligada.");
-            RowNote("Novas entradas seguem permitidas ate tocar o Piso DD.");
-            RowNote("Edicao do DD fica suspensa ate o novo dia.");
+            RowNote("DD ativo: proteção de lucro ligada.");
+            RowNote("Novas entradas seguem permitidas até tocar o Piso DD.");
+            RowNote("Edição do DD fica suspensa até o novo dia.");
            }
-         Card("PROTECAO DE DRAWDOWN (DD)");
+         Card("PROTEÇÃO DE DRAWDOWN (DD)");
 
          //--- Leitura ao vivo dentro de uma tela de configuracao: sao os
          //--- numeros que o EA calcula, nao campos. Ficam em cartao proprio
@@ -2071,35 +2071,35 @@ void ScreenProtection(void)
         {
          bool stOpen=!StreakConfigLocked();
          RowsReset();
-         RowNote   ("Bloqueia novas entradas apos sequencias configuradas.");
+         RowNote   ("Bloqueia novas entradas após sequências configuradas.");
          RowToggleF("Ativo",FCV_FLD_LOSS_STREAK_ON,stOpen);
-         RowFieldF ("Max Loss","Perdas seguidas ate agir",
+         RowFieldF ("Max Loss","Perdas seguidas até agir",
                     FCV_FLD_LOSS_STREAK_MAX,true,stOpen && LossStreakParams());
-         RowComboF ("Acao",FCV_COMBO_STREAK,FCV_FLD_LOSS_STREAK_ACT,
+         RowComboF ("Ação",FCV_COMBO_STREAK,FCV_FLD_LOSS_STREAK_ACT,
                     stOpen && LossStreakParams());
-         RowFieldF ("Pausa min","Minutos parado apos a sequencia",
+         RowFieldF ("Pausa min","Minutos parado após a sequência",
                     FCV_FLD_LOSS_STREAK_PAUSE,true,stOpen && LossStreakPauseEditable());
-         Card("SEQUENCIA DE LOSS");
+         Card("SEQUÊNCIA DE LOSS");
 
          RowsReset();
          RowToggleF("Ativo",FCV_FLD_WIN_STREAK_ON,stOpen);
-         RowFieldF ("Max Win","Ganhos seguidos ate agir",
+         RowFieldF ("Max Win","Ganhos seguidos até agir",
                     FCV_FLD_WIN_STREAK_MAX,true,stOpen && WinStreakParams());
-         RowComboF ("Acao",FCV_COMBO_STREAK,FCV_FLD_WIN_STREAK_ACT,
+         RowComboF ("Ação",FCV_COMBO_STREAK,FCV_FLD_WIN_STREAK_ACT,
                     stOpen && WinStreakParams());
-         RowFieldF ("Pausa min","Minutos parado apos a sequencia",
+         RowFieldF ("Pausa min","Minutos parado após a sequência",
                     FCV_FLD_WIN_STREAK_PAUSE,true,stOpen && WinStreakPauseEditable());
          if(stOpen)
            {
-            RowNote("Loss e Win sao independentes; cada lado pode ficar OFF.");
-            RowNote("PAUSAR bloqueia por minutos; PARAR DIA libera no proximo dia.");
+            RowNote("Loss e Win são independentes; cada lado pode ficar OFF.");
+            RowNote("PAUSAR bloqueia por minutos; PARAR DIA libera no próximo dia.");
            }
          else
            {
-            RowNoteSem("Streak em bloqueio: edicao suspensa ate liberar.",FCV_SEM_WARN);
-            RowNoteSem("Pausar o EA nao remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
+            RowNoteSem("Streak em bloqueio: edição suspensa até liberar.",FCV_SEM_WARN);
+            RowNoteSem("Pausar o EA não remove nem permite alterar este bloqueio.",FCV_SEM_WARN);
            }
-         Card("SEQUENCIA DE WIN");
+         Card("SEQUÊNCIA DE WIN");
          return;
         }
      }
@@ -2122,14 +2122,14 @@ void ScreenVisual(void)
    //---     para todo grafico, vive em variavel global do terminal e e aplicada
    //---     no ato. Nao entra no perfil e nao cria pendencia.
    RowsReset();
-   RowToggleF("Indicadores no Grafico",FCV_FLD_SHOW_INDICATORS);
-   RowNote   ("Desenha as medias e as bandas no grafico. Nao altera nenhuma decisao do EA.");
+   RowToggleF("Indicadores no Gráfico",FCV_FLD_SHOW_INDICATORS);
+   RowNote   ("Desenha as médias e as bandas no gráfico. Não altera nenhuma decisão do EA.");
    Card("INDICADORES VISUAIS");
 
    //--- Cor e estilo seguem editaveis com os indicadores desligados: configurar
    //--- antes de ligar e uso legitimo, a mesma regra das Estrategias.
    RowsReset();
-   RowColorStyleF("MA Rapida",FCV_FLD_VIS_MAFAST_COLOR,FCV_FLD_VIS_MAFAST_STYLE);
+   RowColorStyleF("MA Rápida",FCV_FLD_VIS_MAFAST_COLOR,FCV_FLD_VIS_MAFAST_STYLE);
    RowColorStyleF("MA Lenta", FCV_FLD_VIS_MASLOW_COLOR,FCV_FLD_VIS_MASLOW_STYLE);
    RowColorStyleF("Trend MA1", FCV_FLD_VIS_TREND1_COLOR,FCV_FLD_VIS_TREND1_STYLE);
    RowColorStyleF("Trend MA2", FCV_FLD_VIS_TREND2_COLOR,FCV_FLD_VIS_TREND2_STYLE);
@@ -2145,8 +2145,8 @@ void ScreenVisual(void)
    RowComboFree("Paleta",FCV_COMBO_PALETTE);
    RowComboFree("Tema",FCV_COMBO_THEMEMODE);
    RowComboFree("Tamanho do texto",FCV_COMBO_SCALE);
-   RowNote ("Valem para o painel inteiro e mudam assim que voce escolhe.");
-   Card("APARENCIA DO PAINEL");
+   RowNote ("Valem para o painel inteiro e mudam assim que você escolhe.");
+   Card("APARÊNCIA DO PAINEL");
   }
 
 //+------------------------------------------------------------------+

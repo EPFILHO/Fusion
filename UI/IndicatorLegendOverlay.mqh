@@ -351,7 +351,7 @@ private:
 
    int RequiredWidth(const string fastText,const string slowText,const string trendText,const string trend2Text) const
      {
-      int longest = MathMax(StringLen("Legenda Medias"), StringLen(fastText));
+      int longest = MathMax(StringLen("Legenda Médias"), StringLen(fastText));
       longest = MathMax(longest, StringLen(slowText));
       longest = MathMax(longest, StringLen(trendText));
       longest = MathMax(longest, StringLen(trend2Text));
@@ -415,7 +415,7 @@ public:
          return false;
         }
 
-      ObjectSetString(m_chartId, ObjectName("title"), OBJPROP_TEXT, "Legenda Medias");
+      ObjectSetString(m_chartId, ObjectName("title"), OBJPROP_TEXT, "Legenda Médias");
       m_created = true;
 
       //--- ⚠ Sem isto o arrasto simplesmente nao acontece. Hoje quem liga o

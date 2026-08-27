@@ -36,11 +36,11 @@ string FusionTPSLExitZeroNotice(const SEASettings &settings)
    bool slZero = (settings.fixedSLPoints <= 0);
    bool tpZero = (settings.fixedTPPoints <= 0);
    if(slZero && tpZero)
-      return "ATENCAO: saida TP/SL ativa com SL e TP zerados.";
+      return "ATENÇÃO: saída TP/SL ativa com SL e TP zerados.";
    if(slZero)
-      return "ATENCAO: operar sem SL e ARRISCADO.";
+      return "ATENÇÃO: operar sem SL é ARRISCADO.";
    if(tpZero)
-      return "Saida TP/SL ativa com TP fixo zerado.";
+      return "Saída TP/SL ativa com TP fixo zerado.";
    return "";
   }
 
@@ -71,8 +71,8 @@ bool FusionHasEnabledNewsWindow(const SEASettings &settings)
 //+------------------------------------------------------------------+
 string FusionProfileFixElsewhereHint(const string tabName,const string retryAction)
   {
-   return "Para corrigi-lo pela interface, carregue-o em um grafico de ativo "
-          "compativel, faca o ajuste em " + tabName + " e salve; depois " +
+   return "Para corrigi-lo pela interface, carregue-o em um gráfico de ativo "
+          "compatível, faça o ajuste em " + tabName + " e salve; depois " +
           retryAction + ".";
   }
 

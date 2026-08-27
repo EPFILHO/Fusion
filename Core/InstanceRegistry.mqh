@@ -84,7 +84,7 @@ public:
       //--- verdade sao os dois fatos verdadeiros ao mesmo tempo.
       //--- "Em execucao" tambem descreve melhor o que HasLivePeer confere: um
       //--- registro com batida recente, dentro do TTL.
-      reason = "Magic " + IntegerToString(magicNumber) + " ja esta em uso por outro Fusion em execucao.";
+      reason = "Magic " + IntegerToString(magicNumber) + " já está em uso por outro Fusion em execução.";
       return true;
      }
 
@@ -93,7 +93,7 @@ public:
       reason = "";
       if(magicNumber <= 0)
         {
-         reason = "Magic Number invalido para registrar instancia.";
+         reason = "Magic Number inválido para registrar instância.";
          return false;
         }
 
@@ -113,7 +113,7 @@ public:
       m_key = key;
       m_registered = (GlobalVariableSet(m_key, (double)now) > 0.0);
       if(!m_registered)
-         reason = "Nao foi possivel registrar a instancia do Fusion.";
+         reason = "Não foi possível registrar a instância do Fusion.";
       return m_registered;
      }
 

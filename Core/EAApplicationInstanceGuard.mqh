@@ -85,7 +85,7 @@
          if(positionMagic == m_settings.magicNumber)
             continue;
 
-         reason = "Conta netting/exchange: existe posicao em " + _Symbol +
+         reason = "Conta netting/exchange: existe posição em " + _Symbol +
                   " com Magic " + IntegerToString(positionMagic) +
                   " fora do perfil atual.";
          return true;
@@ -111,7 +111,7 @@
          return true;
 
       m_logger.Error("PROFILE", "Magic " + IntegerToString(settings.magicNumber) +
-                              " ja esta em uso pelo perfil " + conflictProfile + ".");
+                              " já está em uso pelo perfil " + conflictProfile + ".");
       return false;
      }
 

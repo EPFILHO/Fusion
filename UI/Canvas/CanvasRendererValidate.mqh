@@ -353,7 +353,7 @@ string VSummaryVol(const double v)
 string PartialFieldHint(void)
   {
    if(!VVolumeSpecKnown())
-      return "Especificacao de volume do ativo indisponivel.";
+      return "Especificação de volume do ativo indisponível.";
    return "Min. "+FusionFormatVolume(m_snap.symbolSpec.volumeMin,m_snap.symbolSpec)+
           " | Passo "+FusionFormatVolume(m_snap.symbolSpec.volumeStep,m_snap.symbolSpec);
   }
@@ -434,25 +434,25 @@ string PartialFixAdvice(const int code)
 
       case FUSION_PARTIAL_PLAN_TP1_INVALID:
          return volumeMode
-                ? "Ajuste o Volume do TP1 para respeitar o minimo, o maximo e o passo do ativo."
+                ? "Ajuste o Volume do TP1 para respeitar o mínimo, o máximo e o passo do ativo."
                 : "Ajuste o percentual do TP1 para um valor entre 0 e 100.";
       case FUSION_PARTIAL_PLAN_TP2_INVALID:
          return volumeMode
-                ? "Ajuste o Volume do TP2 para respeitar o minimo, o maximo e o passo do ativo."
+                ? "Ajuste o Volume do TP2 para respeitar o mínimo, o máximo e o passo do ativo."
                 : "Ajuste o percentual do TP2 para um valor entre 0 e 100.";
 
       //--- ⚠ Fala SO do TP1: aqui o TP2 pode estar desligado, e cita-lo mandaria
       //--- conferir um estagio que nem participa do problema.
       case FUSION_PARTIAL_PLAN_TP1_TOO_BIG:
-         return "O TP1 e uma saida parcial e precisa deixar pelo menos o volume minimo "
+         return "O TP1 é uma saída parcial e precisa deixar pelo menos o volume mínimo "
                 "aberto para o encerramento final. " +
                 (volumeMode ? "Reduza o Volume do TP1." : "Reduza o percentual do TP1.");
 
       case FUSION_PARTIAL_PLAN_TP2_TOO_BIG:
-         return "TP1 e TP2 sao saidas parciais e precisam deixar pelo menos o volume "
-                "minimo aberto para o encerramento final. " +
+         return "TP1 e TP2 são saídas parciais e precisam deixar pelo menos o volume "
+                "mínimo aberto para o encerramento final. " +
                 (volumeMode ? "Reduza o Volume do TP2." : "Reduza o percentual do TP2.") +
-                " Se deseja apenas dois niveis de saida, use o TP1 para a primeira "
+                " Se deseja apenas dois níveis de saída, use o TP1 para a primeira "
                 "parcial e configure o TP Fixo para encerrar o restante.";
 
       //--- O motivo do helper ja diz "precisa deixar o volume minimo aberto",
@@ -460,10 +460,10 @@ string PartialFixAdvice(const int code)
       case FUSION_PARTIAL_PLAN_NO_MIN_LEFT:
          return "O volume restante deve permanecer aberto para o mecanismo de "
                 "encerramento final configurado, como TP Fixo, trailing, SL ou sinal "
-                "da estrategia. " +
+                "da estratégia. " +
                 (volumeMode ? "Reduza o total reservado pelos parciais."
                             : "Reduza os percentuais dos parciais.") +
-                " Se deseja apenas dois niveis de saida, use o TP1 para a primeira "
+                " Se deseja apenas dois níveis de saída, use o TP1 para a primeira "
                 "parcial e configure o TP Fixo para encerrar o restante.";
      }
    return "";
@@ -742,18 +742,18 @@ bool VVolumeSpecKnown(void)
 //--- o predicado nao esta reprovando.
 string DrawdownDependencyMissing(void)
   {
-   if(!m_draft.enableDailyLimits)          return "os Limites Diarios estao desligados";
-   if(m_draft.maxDailyGain<=0.0)           return "o Max Ganho esta em zero";
+   if(!m_draft.enableDailyLimits)          return "os Limites Diários estão desligados";
+   if(m_draft.maxDailyGain<=0.0)           return "o Max Ganho está em zero";
    if(m_draft.profitTargetAction!=PROFIT_ACTION_ATIVAR_DD)
-      return "a acao do Ganho nao e Ativar DD";
+      return "a ação do Ganho não é Ativar DD";
    return "";
   }
 
 //--- E o que falta do outro lado do mesmo par.
 string ProfitActionMissing(void)
   {
-   if(!m_draft.enableDrawdown) return "o DD esta desligado";
-   return "o Max DD esta em zero";
+   if(!m_draft.enableDrawdown) return "o DD está desligado";
+   return "o Max DD está em zero";
   }
 
 bool VLossStreakLimit(void)
@@ -986,29 +986,29 @@ bool FieldValid(const int fid)
 //| e listar sete de uma vez nao ajudaria a corrigir nenhum.          |
 //+------------------------------------------------------------------+
 string ScreenErrorStrategyGeneral(void)
-  { return VHasStrategy() ? "" : "Selecione ao menos uma estrategia."; }
+  { return VHasStrategy() ? "" : "Selecione ao menos uma estratégia."; }
 
 string ScreenErrorMA(void)
   {
    if(!VPriority(m_draft.maCrossPriority))
       return "MA Prioridade: use valor de 0 a 1000.";
    if(!VPeriod(m_draft.maFastPeriod))
-      return "MA Rapida: use periodo de 1 a 1000.";
+      return "MA Rápida: use período de 1 a 1000.";
    if(!VPeriod(m_draft.maSlowPeriod))
-      return "MA Lenta: use periodo de 1 a 1000.";
+      return "MA Lenta: use período de 1 a 1000.";
    //--- Uma causa, uma mensagem. A antiga ("MA Rapida deve ser menor que MA
    //--- Lenta") dizia ao usuario para consertar o periodo mesmo quando o
    //--- problema era o timeframe, e ensinava a regra errada.
    ENUM_MA_CROSS_CONFIG maState = FusionMACrossConfigState(m_draft);
    if(maState == MA_CROSS_CONFIG_IDENTICAL)
-      return "MA Rapida e MA Lenta precisam diferir em periodo, timeframe, metodo ou preco.";
+      return "MA Rápida e MA Lenta precisam diferir em período, timeframe, método ou preço.";
    if(maState == MA_CROSS_CONFIG_FAST_LONGER)
-      return "Horizonte da MA Rapida nao pode ser maior que o da MA Lenta (periodo x TF).";
+      return "Horizonte da MA Rápida não pode ser maior que o da MA Lenta (período x TF).";
    //--- PERIOD_RANGE nao chega aqui: os dois VPeriod acima ja devolveram a
    //--- mensagem de faixa, que tem prioridade. A guarda generica fica porque o
    //--- predicado e compartilhado e pode ganhar estados novos.
    if(maState != MA_CROSS_CONFIG_OK)
-      return "MA Cross: periodo ou timeframe das medias nao produzem horizonte valido.";
+      return "MA Cross: período ou timeframe das médias não produzem horizonte válido.";
    if(!VPoints(m_draft.maMinDistancePoints))
       return "MA Dist. Min: use 0 a 100000 pontos.";
    return "";
@@ -1019,20 +1019,20 @@ string ScreenErrorRSI(void)
    if(!VPriority(m_draft.rsiPriority))
       return "RSI: prioridade deve ser 0 a 1000.";
    if(!VPeriod(m_draft.rsiPeriod))
-      return "RSI: periodo deve ser 1 a 1000.";
+      return "RSI: período deve ser 1 a 1000.";
    if(RsiUsesZones())
      {
       if(!VLevel(m_draft.rsiOversold) || !VLevel(m_draft.rsiOverbought))
-         return "RSI: niveis devem ser 0 a 100.";
+         return "RSI: níveis devem ser 0 a 100.";
       if(!VRsiZoneOrder())
          return "RSI: sobrevenda < sobrecompra.";
      }
    if(RsiUsesMiddle() && !VLevel(m_draft.rsiMiddle))
-      return "RSI: linha media deve ser 0 a 100.";
+      return "RSI: linha média deve ser 0 a 100.";
    if(!VRsiMiddleOrder())
-      return "RSI: use sobrevenda < media < sobrecompra.";
+      return "RSI: use sobrevenda < média < sobrecompra.";
    if(!VRsiExitCombo())
-      return "RSI: entrada/saida Cruz. Media invalidas.";
+      return "RSI: entrada/saída Cruz. Média inválidas.";
    return "";
   }
 
@@ -1041,32 +1041,32 @@ string ScreenErrorBB(void)
    if(!VPriority(m_draft.bbPriority))
       return "Bollinger: prioridade deve ser 0 a 1000.";
    if(!VPeriod(m_draft.bbPeriod))
-      return "Bollinger: periodo deve ser 1 a 1000.";
+      return "Bollinger: período deve ser 1 a 1000.";
    if(!VDeviation(m_draft.bbDeviation))
-      return "Bollinger: desvio deve ser maior que 0 e ate 10.";
+      return "Bollinger: desvio deve ser maior que 0 e até 10.";
    return "";
   }
 
 string ScreenErrorTrend(void)
   {
    if(m_draft.trendMA1Enabled && !VPeriod(m_draft.trendMAPeriod))
-      return "Trend Filter: periodo da MA1 deve ser 1 a 1000.";
+      return "Trend Filter: período da MA1 deve ser 1 a 1000.";
    if(m_draft.trendMA2Enabled && !VPeriod(m_draft.trendSellMAPeriod))
-      return "Trend Filter: periodo da MA2 deve ser 1 a 1000.";
+      return "Trend Filter: período da MA2 deve ser 1 a 1000.";
    if(!FusionTrendMAOrderValid(m_draft))
-      return "Trend Filter: MA1 deve ser mais longa que MA2 (periodo x TF).";
+      return "Trend Filter: MA1 deve ser mais longa que MA2 (período x TF).";
    return "";
   }
 
 string ScreenErrorRSIFilter(void)
   {
    if(!VRsiFilterMode())
-      return "RSI Filter: modo invalido.";
+      return "RSI Filter: modo inválido.";
    if(!VPeriod(m_draft.rsiFilterPeriod))
-      return "RSI Filter: periodo 1..1000.";
+      return "RSI Filter: período 1..1000.";
    if(!VLevel(m_draft.rsiFilterBuyMin) ||
       (RsiFilterUsesSecondLevel() && !VLevel(m_draft.rsiFilterSellMax)))
-      return "RSI Filter: niveis 0..100.";
+      return "RSI Filter: níveis 0..100.";
    if(!VRsiFilterOrder())
       return (m_draft.rsiFilterMode==RSI_FILTER_NEUTRAL) ? "RSI: venda < compra."
                                                          : "RSI: sobrevenda < sobrecompra.";
@@ -1076,19 +1076,19 @@ string ScreenErrorRSIFilter(void)
 string ScreenErrorBBFilter(void)
   {
    if(!VBbFilterMode())
-      return "BB Filter: modo invalido.";
+      return "BB Filter: modo inválido.";
    if(!VPeriod(m_draft.bbFilterPeriod))
-      return "BB Filter: periodo deve ser 1 a 1000.";
+      return "BB Filter: período deve ser 1 a 1000.";
    if(!VDeviation(m_draft.bbFilterDeviation))
-      return "BB Filter: desvio deve ser maior que 0 e ate 10.";
+      return "BB Filter: desvio deve ser maior que 0 e até 10.";
    if(!FieldValid(FCV_FLD_BF_MINPTS))
-      return "BB Filter: largura minima em pontos deve ser 1 a 100000.";
+      return "BB Filter: largura mínima em pontos deve ser 1 a 100000.";
    if(!FieldValid(FCV_FLD_BF_MINPCT))
-      return "BB Filter: largura relativa deve ser maior que 0 e ate 100%.";
+      return "BB Filter: largura relativa deve ser maior que 0 e até 100%.";
    if(!FieldValid(FCV_FLD_BF_SLOPE_BACK))
-      return "BB Filter: inclinacao deve usar 1 a 100 candles.";
+      return "BB Filter: inclinação deve usar 1 a 100 candles.";
    if(!FieldValid(FCV_FLD_BF_SLOPE_MINPTS))
-      return "BB Filter: inclinacao minima deve ser 0 a 100000 pontos.";
+      return "BB Filter: inclinação mínima deve ser 0 a 100000 pontos.";
    return "";
   }
 
@@ -1099,9 +1099,9 @@ string ScreenErrorRiskLot(void)
       return "Lote Fixo deve ser maior que 0.";
    //--- REGRA DO ATIVO: faixa e alinhamento ao step, suspensas no DUPLICAR.
    if(m_vSymbolRules && !VLotFitsSymbol())
-      return "Lote Fixo invalido para o ativo atual.";
+      return "Lote Fixo inválido para o ativo atual.";
    if(!VPoints(m_draft.slippagePoints))
-      return "Slippage invalido. Use 0 a 100000 pontos.";
+      return "Slippage inválido. Use 0 a 100000 pontos.";
    //--- CRUZADA com TP Parcial: o plano de volumes depende do lote, e a saida
    //--- pode estar aqui. Num ativo cujo minimo e 1 contrato, nenhuma divisao
    //--- percentual fecha — e a tela do TP Parcial dizia isso sem nunca citar o
@@ -1119,7 +1119,7 @@ string ScreenErrorRiskLot(void)
          //--- PartialFixAdvice: mandar "aumente o Lote Fixo" num volume
          //--- desalinhado do passo seria mandar fazer o que nao resolve.
          string advice=PartialFixAdvice(planCode);
-         return "O TP Parcial nao cabe neste volume de entrada: "+volumeError+
+         return "O TP Parcial não cabe neste volume de entrada: "+volumeError+
                 (advice=="" ? "" : " "+advice);
         }
      }
@@ -1129,14 +1129,14 @@ string ScreenErrorRiskLot(void)
 string ScreenErrorRiskSLTP(void)
   {
    if(!VPoints(m_draft.fixedSLPoints))
-      return "SL Fixo invalido. Use 0 a 100000 pontos.";
+      return "SL Fixo inválido. Use 0 a 100000 pontos.";
    if(!VPoints(m_draft.fixedTPPoints))
-      return "TP Fixo invalido. Use 0 a 100000 pontos.";
+      return "TP Fixo inválido. Use 0 a 100000 pontos.";
    //--- REGRA DO ATIVO: stops level e do simbolo do grafico.
    if(m_vSymbolRules && !VStopsLevel(m_draft.fixedSLPoints))
-      return "SL Fixo abaixo do minimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
+      return "SL Fixo abaixo do mínimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
    if(m_vSymbolRules && !VStopsLevel(m_draft.fixedTPPoints))
-      return "TP Fixo abaixo do minimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
+      return "TP Fixo abaixo do mínimo do ativo: "+IntegerToString(m_snap.symbolSpec.stopsLevel)+" pts.";
    return "";
   }
 
@@ -1147,7 +1147,7 @@ string ScreenErrorRiskPartial(void)
    //--- ⚠ O modo vem antes de tudo: com ele fora do enum nao ha campo de
    //--- tamanho que se possa julgar.
    if(!FusionPartialSizeModeValid((int)m_draft.partialSizeMode))
-      return "Modo de tamanho do TP Parcial invalido. Escolha Percentual ou Volume.";
+      return "Modo de tamanho do TP Parcial inválido. Escolha Percentual ou Volume.";
 
    bool volumeMode=(m_draft.partialSizeMode==PARTIAL_SIZE_VOLUME);
 
@@ -1162,9 +1162,9 @@ string ScreenErrorRiskPartial(void)
    else
      {
       if(!(m_draft.tp1.percent>0.0 && m_draft.tp1.percent<=100.0))
-         return "TP1 % deve ser maior que 0 e ate 100.";
+         return "TP1 % deve ser maior que 0 e até 100.";
       if(Tp2Params() && !(m_draft.tp2.percent>0.0 && m_draft.tp2.percent<=100.0))
-         return "TP2 % deve ser maior que 0 e ate 100.";
+         return "TP2 % deve ser maior que 0 e até 100.";
      }
 
    if(m_draft.tp1.distancePoints<=0)
@@ -1199,11 +1199,11 @@ string ScreenErrorRiskBreakeven(void)
   {
    if(!m_draft.useBreakeven) return "";
    if(!VRange(m_draft.breakevenTriggerPoints,1,100000))
-      return "BE Gatilho deve ser maior que 0 e ate 100000.";
+      return "BE Gatilho deve ser maior que 0 e até 100000.";
    if(!VPoints(m_draft.breakevenOffsetPoints))
       return "BE Offset deve ficar entre 0 e 100000.";
    if(!VBeOrder())
-      return "BE Offset nao pode ser maior que o gatilho.";
+      return "BE Offset não pode ser maior que o gatilho.";
    return "";
   }
 
@@ -1217,9 +1217,9 @@ string ScreenErrorRiskTrailing(void)
              "Ative-o aqui ou desligue o TP Final Livre la.";
    if(!m_draft.useTrailing) return "";
    if(!VRange(m_draft.trailingStartPoints,1,100000))
-      return "Trailing Inicio deve ser maior que 0 e ate 100000.";
+      return "Trailing Início deve ser maior que 0 e até 100000.";
    if(!VRange(m_draft.trailingStepPoints,1,100000))
-      return "Trailing Passo deve ser maior que 0 e ate 100000.";
+      return "Trailing Passo deve ser maior que 0 e até 100000.";
    return "";
   }
 
@@ -1234,10 +1234,10 @@ string ScreenErrorProtSpread(void)
 string ScreenErrorProtSession(void)
   {
    if(!VSessionTimeValid())
-      return "Horario da sessao invalido: hora 0..23, minuto 0..59.";
+      return "Horário da sessão inválido: hora 0..23, minuto 0..59.";
    if(!VSessionOrder())
-      return m_draft.sessionOvernight ? "Sessao: ajuste Inicio/Fim para o modo Overnight."
-                                      : "Sessao: Fim deve ser maior que Inicio.";
+      return m_draft.sessionOvernight ? "Sessão: ajuste Início/Fim para o modo Overnight."
+                                      : "Sessão: Fim deve ser maior que Início.";
    return "";
   }
 
@@ -1246,10 +1246,10 @@ string ScreenErrorProtNews(void)
    for(int w=0;w<FUSION_NEWS_WINDOW_COUNT;++w)
      {
       if(!VNewsTimeValid(w))
-         return "Horario da News "+IntegerToString(w+1)+
-                " invalido: hora 0..23, minuto 0..59.";
+         return "Horário da News "+IntegerToString(w+1)+
+                " inválido: hora 0..23, minuto 0..59.";
       if(!VNewsOrder(w))
-         return "News "+IntegerToString(w+1)+": Fim deve ser maior que Inicio.";
+         return "News "+IntegerToString(w+1)+": Fim deve ser maior que Início.";
      }
    return "";
   }
@@ -1260,13 +1260,13 @@ string ScreenErrorProtDay(void)
    //--- impossivel de gravar, e apontar um erro de faixa mandaria corrigir o
    //--- campo errado.
    if(DailyConfigLocked() && VDayPending())
-      return "DAY em bloqueio: edicao suspensa ate o novo dia.";
+      return "DAY em bloqueio: edição suspensa até o novo dia.";
    if(m_draft.maxDailyTrades<0)
       return "Max Trades deve ser zero ou inteiro positivo.";
    if(m_draft.maxDailyLoss<0.0)
-      return "Max Perda diario invalido.";
+      return "Max Perda diário inválido.";
    if(m_draft.maxDailyGain<0.0)
-      return "Max Ganho diario invalido.";
+      return "Max Ganho diário inválido.";
    //--- CRUZADAS com Drawdown, as tres. Antes elas so acusavam de um lado: com
    //--- o DD ligado e os Limites Diarios desligados, so a tela do Drawdown
    //--- acendia — e a correcao estava AQUI.
@@ -1274,13 +1274,13 @@ string ScreenErrorProtDay(void)
    //--- VDayNeedsGain vem primeiro por ser o caso mais estreito (esta contido em
    //--- VDrawdownDependency) e por isso rende a frase mais precisa.
    if(!VDayNeedsGain())
-      return "O DD depende do Max Ganho desta tela, que esta em zero. Informe um "
+      return "O DD depende do Max Ganho desta tela, que está em zero. Informe um "
              "valor aqui ou desligue o DD, na tela Drawdown.";
    if(!VDrawdownDependency())
-      return "O DD esta ligado e depende desta tela: "+DrawdownDependencyMissing()+
+      return "O DD está ligado e depende desta tela: "+DrawdownDependencyMissing()+
              ". Ajuste aqui ou desligue o DD, na tela Drawdown.";
    if(!VProfitAction())
-      return "A acao do Ganho e Ativar DD, mas "+ProfitActionMissing()+
+      return "A ação do Ganho é Ativar DD, mas "+ProfitActionMissing()+
              ". Configure o DD, na tela Drawdown, ou escolha Parar aqui.";
    return "";
   }
@@ -1288,7 +1288,7 @@ string ScreenErrorProtDay(void)
 string ScreenErrorProtDrawdown(void)
   {
    if(DrawdownConfigLocked() && VDrawdownPending())
-      return "DD ativo: edicao suspensa ate liberar.";
+      return "DD ativo: edição suspensa até liberar.";
    if(!VDrawdownValue())
      {
       if(m_draft.enableDrawdown && m_draft.drawdownType==DD_TIPO_PERCENTUAL)
@@ -1300,18 +1300,18 @@ string ScreenErrorProtDrawdown(void)
    //--- VDayNeedsGain, entao a frase dele ja cobre o Max Ganho em zero por
    //--- aqui — nao ha checagem separada a acrescentar.
    if(!VProfitAction())
-      return "Limites Diarios pede Ativar DD, mas "+ProfitActionMissing()+
-             ". Ajuste aqui ou mude a acao do Ganho, na tela Limites Diarios.";
+      return "Limites Diários pede Ativar DD, mas "+ProfitActionMissing()+
+             ". Ajuste aqui ou mude a ação do Ganho, na tela Limites Diários.";
    if(!VDrawdownDependency())
-      return "O DD so entra em acao depois da meta do dia, e "+DrawdownDependencyMissing()+
-             ". Ajuste em Limites Diarios ou desligue o DD aqui.";
+      return "O DD só entra em ação depois da meta do dia, e "+DrawdownDependencyMissing()+
+             ". Ajuste em Limites Diários ou desligue o DD aqui.";
    return "";
   }
 
 string ScreenErrorProtStreak(void)
   {
    if(StreakConfigLocked() && VStreakPending())
-      return "Streak em bloqueio: edicao suspensa ate liberar.";
+      return "Streak em bloqueio: edição suspensa até liberar.";
    if(m_draft.maxLossStreak<0)
       return "Max Loss deve ser zero ou inteiro positivo.";
    if(!VLossStreakLimit())
@@ -1319,7 +1319,7 @@ string ScreenErrorProtStreak(void)
    if(m_draft.lossStreakPauseMinutes<0)
       return "Pausa Loss deve ser zero ou inteiro positivo.";
    if(!VLossStreakPause())
-      return "Pausa Loss deve ser maior que 0 quando acao for PAUSAR.";
+      return "Pausa Loss deve ser maior que 0 quando ação for PAUSAR.";
    if(m_draft.maxWinStreak<0)
       return "Max Win deve ser zero ou inteiro positivo.";
    if(!VWinStreakLimit())
@@ -1327,7 +1327,7 @@ string ScreenErrorProtStreak(void)
    if(m_draft.winStreakPauseMinutes<0)
       return "Pausa Win deve ser zero ou inteiro positivo.";
    if(!VWinStreakPause())
-      return "Pausa Win deve ser maior que 0 quando acao for PAUSAR.";
+      return "Pausa Win deve ser maior que 0 quando ação for PAUSAR.";
    return "";
   }
 
@@ -1364,10 +1364,10 @@ string ScreenErrorProfiles(void)
    //--- Fora do formulario, o rascunho E o perfil ativo: aqui as duas regras
    //--- valem inteiras.
    if(m_draft.magicNumber<=0)
-      return "Magic invalido. Informe um numero inteiro positivo.";
+      return "Magic inválido. Informe um número inteiro positivo.";
    string owner="";
    if(VMagicTakenByOther(m_draft.magicNumber,owner))
-      return "Magic ja usado pelo perfil "+owner+".";
+      return "Magic já usado pelo perfil "+owner+".";
    return "";
   }
 
@@ -1417,14 +1417,14 @@ string ScreenErrorProfileEdit(void)
       //--- ⚠ MESMA orientacao inexequivel do CARREGAR, e pelo mesmo motivo: o
       //--- perfil de ORIGEM nao e o ativo, entao nao ha onde edita-lo aqui. A
       //--- rota real e a mesma, e vem da mesma funcao.
-      return "A configuracao do perfil de origem tem um problema proprio, que "
-             "nao depende do ativo: "+cfgError+" "+
-             FusionProfileFixElsewhereHint(cfgTab,"tente duplica-lo de novo");
+      return "A configuração do perfil de origem tem um problema próprio, que "
+             "não depende do ativo: "+cfgError+" "+
+             FusionProfileFixElsewhereHint(cfgTab,"tente duplicá-lo de novo");
    //--- Aqui, sim, "Corrija em <aba>" e executavel: o rascunho do NOVO E a
    //--- configuracao do perfil ATIVO, que a GUI edita. Sair do formulario o
    //--- descarta — a nota da tela ja avisa — e o NOVO fica esperando.
-   return "O perfil novo nasce da configuracao em uso neste grafico, entao ela "
-          "precisa ser valida para o "+m_snap.symbol+". Corrija em "+
+   return "O perfil novo nasce da configuração em uso neste gráfico, então ela "
+          "precisa ser válida para o "+m_snap.symbol+". Corrija em "+
           cfgTab+": "+cfgError;
   }
 
