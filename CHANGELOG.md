@@ -105,6 +105,26 @@ Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GU
 - **Correcao junto:** uma recusa do plano parcial bloqueava a entrada **sem publicar motivo** — o campo de erro ia vazio e a tela nao dizia nada. Agora o motivo sai sempre.
 - **Schema do perfil na versao 15**, com tres chaves novas: `partial.sizeMode`, `tp1.volume` e `tp2.volume`. Perfis ate a versao 14 **carregam normalmente em `Percentual`**, com os percentuais preservados e os volumes inativos. Um perfil da versao 15 exige as tres chaves explicitamente: ausencia ou conteudo invalido **recusa o arquivo**, nunca vira percentual em silencio.
 
+### TP Parcial por quantidade tambem no Strategy Tester
+
+- O modo `Volume` do TP Parcial existia na tela e no perfil, mas **nao existia como `input`** — e o agente do Tester nao enxerga os arquivos `.cfg`. Na pratica, o Tester so conseguia executar o modo `Percentual`, e um backtest que se supunha "por quantidade" media outra coisa. Nada disso alcancava operacao no grafico, onde a GUI e o perfil sempre estiveram corretos; o que estava comprometido era a **paridade do Strategy Tester**.
+- Tres `input` novos fecham a lacuna: `inp_PartialSizeMode`, `inp_TP1Volume` e `inp_TP2Volume`. Eles apenas transportam valor — o modo `Volume` do Tester percorre o **mesmo plano de volumes em fonte unica** ja usado pela tela e pelo `RiskManager`, sem formula duplicada.
+- Os defaults sao `Percentual`, `0.0` e `0.0`. **Nao ha rotina de conversao automatica de presets `.set` para o modo `Volume`.** Ao carregar um `.set` criado antes desses campos, confira explicitamente `Modo do tamanho`, `Volume TP1` e `Volume TP2` antes de rodar o teste.
+- Nada mudou no calculo, no schema do perfil, na persistencia, no fechamento parcial nem na GUI do TP Parcial.
+
+### Medias do Trend Filter editaveis com a chave desligada
+
+- Periodo, timeframe, metodo e preco das duas medias do `Trend Filter` passam a ser **editaveis com a respectiva chave desligada**. Era a unica tela do produto em que uma chave apagava os proprios parametros — MA Cross, RSI, Bollinger e os filtros de RSI e Bollinger sempre deixaram tudo editavel. Agora da para preparar uma media antes de liga-la, e para corrigir um valor sem precisar liga-la para isso.
+- **A chave continua sendo a unica porta operacional.** Com a media desligada os valores ficam **dormentes**: nao criam handle nem indicador, nao entram em calculo algum, nao bloqueiam entrada e **nao impedem `SALVAR`, ainda que invalidos**. Podem ser gravados no perfil e restaurados de la.
+- Ao ligar a chave, a validacao normal passa a valer de imediato — um periodo fora de `1..1000` so e cobrado a partir dai. Com as duas ligadas continua exigido que o horizonte da `MA1` seja estritamente maior que o da `MA2`.
+
+### Propriedades dos indicadores visuais em linguagem comum
+
+- Os `input` dos tres indicadores visuais — `Fusion Visual MA`, `Fusion Visual BB` e `Fusion Visual RSI` — ganharam **nomes legiveis** na janela de Propriedades (`Ctrl+I`): `Cor da MA Rapida`, `Periodo do RSI`, `Desvio padrao das bandas`, e assim por diante.
+- A aba `Comum` dos tres passou a avisar que sao indicadores **exclusivamente visuais**: o que se altera ali afeta somente o desenho no grafico e **nao altera estrategias, filtros, perfis ou operacoes do Fusion**.
+- Identificadores, tipos, ordem, valores padrao e quantidade dos `input` ficaram **intactos**: os tres indicadores sao anexados por `iCustom`, que passa os argumentos por posicao, e o nome visivel nao participa desse contrato.
+- **Limitacao conhecida:** o campo `Identificador interno (nao alterar)` continua **visivel e editavel**. Ele nao e aparencia — e o primeiro argumento posicional do `iCustom` e o nome pelo qual o EA reconhece e remove a propria linha do grafico. Alterado a mao, o Fusion perde o rastro daquela linha, que deixa de ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA. O MQL5 nao oferece parametro de indicador realmente oculto — `sinput` tambem aparece na janela —, entao o aviso vai no proprio nome do campo.
+
 ### Limitacoes a conhecer
 
 - Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.

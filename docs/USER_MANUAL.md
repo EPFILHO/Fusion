@@ -318,6 +318,10 @@ Possui duas médias independentes:
 | `Média 1` | ON/OFF, período, timeframe, método e preço. Default SMA 50, M15, Close. |
 | `Média 2` | ON/OFF, período, timeframe, método e preço. Default SMA 21, M15, Close. |
 
+**A chave ON/OFF decide se a média participa do filtro, não se ela pode ser ajustada.** Período, timeframe, método e preço seguem **editáveis com a média desligada**, como em todos os outros filtros e estratégias — dá para preparar uma média antes de ligá-la, e para corrigir um valor sem ter de ligá-la para isso.
+
+Com a média desligada, esses valores ficam **dormentes**: não criam indicador nem handle, não entram em cálculo nenhum, não bloqueiam entrada e **não impedem `SALVAR`, ainda que inválidos**. Ao ligar a chave passam a ser validados e aplicados normalmente — um período fora de `1..1000` só é cobrado a partir daí.
+
 Cada média ativa funciona como barreira completa:
 
 - BUY exige preço atual estritamente acima de todas as médias ON.
@@ -441,6 +445,10 @@ Um seletor **global** decide como os dois estágios são medidos. Não há mistu
 No modo `Volume`, o valor informado é o mesmo número enviado na ordem. Ele precisa respeitar **mínimo, máximo e passo** do ativo — e **não é ajustado em silêncio**: `0,125` num ativo de passo `0,01` é recusado, não arredondado para `0,13`. O campo mostra exatamente o que foi digitado, inclusive quando está recusado.
 
 **Trocar o modo não apaga nada.** O percentual e o volume de cada estágio são guardados separadamente; só o do modo vigente entra no cálculo. Quem experimenta `Volume` e volta para `Percentual` reencontra o que tinha.
+
+**No Strategy Tester, os três campos são `input`.** O agente do Tester não enxerga os perfis `.cfg`, então o modo e os dois volumes chegam por `inp_PartialSizeMode`, `inp_TP1Volume` e `inp_TP2Volume` (seção 18.5). Sem eles o Tester só conseguiria rodar percentual.
+
+Os três inputs novos têm como defaults `Percentual`, `0.0` e `0.0`. O Fusion **não contém rotina de conversão automática** de presets `.set` para o modo `Volume`. Ao carregar um `.set` criado antes desses campos, **confira explicitamente** `Modo do tamanho`, `Volume TP1` e `Volume TP2` antes de executar o teste.
 
 #### Sempre sobra volume aberto
 
@@ -644,6 +652,14 @@ Regras visuais:
 - num gráfico **pequeno demais** para acomodar os dois pode haver sobreposição. Nesse caso o painel **sempre conserva a prioridade de clique**: abas, botões, campos, comboboxes e barra de rolagem respondem normalmente, mesmo com a legenda por cima;
 - a posição escolhida é **independente por gráfico** e sobrevive a troca de timeframe, a desligar e religar os indicadores e a reanexar o EA. É preferência visual: não pertence ao perfil, não passa por `SALVAR` e não cria pendência;
 - os handles visuais são separados dos handles operacionais.
+
+### 13.1. Propriedades dos indicadores visuais
+
+As três linhas desenhadas no gráfico são indicadores próprios — `Fusion Visual MA`, `Fusion Visual BB` e `Fusion Visual RSI` —, e o MetaTrader permite abrir as **Propriedades** de cada um por `Ctrl+I`. Os campos aparecem com **nomes em linguagem comum** (`Cor da MA Rapida`, `Periodo do RSI`, `Desvio padrao das bandas`), e a aba `Comum` traz o aviso de que se trata de indicador **exclusivamente visual**: o que se muda ali afeta só o desenho, e **não altera estratégias, filtros, perfis ou operações do Fusion**.
+
+⚠️ **Uma exceção nessa janela: `Identificador interno (nao alterar)`.** Esse campo não é aparência — é o nome pelo qual o Fusion reconhece e remove a própria linha do gráfico. O EA o calcula sozinho e o entrega ao indicador. Alterá-lo à mão faz o Fusion perder o rastro daquela linha, que passa a não ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA — sobra uma linha órfã no gráfico, que aí só sai pelo `Ctrl+I`. O MQL5 não oferece parâmetro de indicador realmente oculto, por isso o campo continua visível, com o aviso no próprio nome.
+
+Nada digitado nessa janela **volta para o perfil**: o Fusion escreve nos indicadores, nunca lê deles. Cor e estilo pertencem à aba `Layout`, e é ela que passa por `SALVAR`. Ao religar os indicadores ou recarregar o perfil, o Fusion redesenha a partir do que está gravado — que é o que faz um ajuste feito por ali ser temporário.
 
 ## 14. Perfis
 
@@ -860,10 +876,13 @@ Em `inp_News1ClosePositions`, `inp_News2ClosePositions` e `inp_News3ClosePositio
 | `inp_CompensateSLSpread` | `false` | Soma spread à distância do SL. |
 | `inp_CompensateTPSpread` | `false` | Subtrai spread da distância do TP. |
 | `inp_EnableTP1` | `false` | Liga TP1 e o sistema parcial. |
-| `inp_TP1Percent` | `50.0` | Percentual do TP1. |
+| `inp_PartialSizeMode` | `Percentual` | Modo do tamanho, válido para TP1 e TP2 ao mesmo tempo. |
+| `inp_TP1Percent` | `50.0` | Percentual do TP1; vale no modo `Percentual`. |
+| `inp_TP1Volume` | `0.0` | Volume fixo do TP1; vale no modo `Volume`. |
 | `inp_TP1DistancePoints` | `150` | Distância do TP1. |
 | `inp_EnableTP2` | `false` | Liga TP2; depende de TP1. |
-| `inp_TP2Percent` | `25.0` | Percentual do TP2. |
+| `inp_TP2Percent` | `25.0` | Percentual do TP2; vale no modo `Percentual`. |
+| `inp_TP2Volume` | `0.0` | Volume fixo do TP2; vale no modo `Volume`. |
 | `inp_TP2DistancePoints` | `300` | Distância do TP2. |
 | `inp_FreeFinalTP` | `false` | Remove TP final depois do último parcial; depende de TP1 e trailing. |
 | `inp_UseTrailing` | `false` | Liga trailing. |

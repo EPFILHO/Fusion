@@ -1,6 +1,12 @@
 #property copyright "Copyright 2026, EP Filho"
 #property link      "https://github.com/EPFILHO/Fusion"
 #property version   "2.000"
+//--- Aba Comum das Propriedades. Tem de ficar no modulo principal: #property
+//--- description dentro de include nao chega ao dialogo.
+#property description "Indicador exclusivamente visual."
+#property description "Alteracoes nesta janela afetam somente a exibicao no grafico."
+#property description "Nao alteram estrategias, filtros, perfis ou operacoes do Fusion."
+#property description "O Identificador interno e reservado ao Fusion e nao deve ser alterado."
 #property indicator_chart_window
 #property indicator_buffers 3
 #property indicator_plots   3
@@ -23,12 +29,19 @@
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  1
 
-input string             InpShortName = "Fusion Visual BB";
-input color              InpLineColor = clrDodgerBlue;
-input ENUM_LINE_STYLE    InpLineStyle = STYLE_SOLID;
-input int                InpPeriod = 20;
-input double             InpDeviation = 2.0;
-input ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
+//--- ⚠ CONTRATO POSICIONAL. O Fusion anexa este indicador por iCustom
+//--- (UI/ChartIndicatorVisualizer.mqh), que passa os 6 argumentos por POSICAO e
+//--- nunca por nome. Ordem, tipo e quantidade sao o contrato; o
+//--- input(name="...") e so o rotulo do dialogo e nao entra nele.
+//---
+//--- As tres linhas compartilham cor e estilo de proposito: a aba Layout do
+//--- painel tem uma unica entrada "Bandas", nao tres.
+input(name="Identificador interno (nao alterar)")   string             InpShortName = "Fusion Visual BB";
+input(name="Cor das bandas")              color              InpLineColor = clrDodgerBlue;
+input(name="Estilo das bandas")           ENUM_LINE_STYLE    InpLineStyle = STYLE_SOLID;
+input(name="Periodo das bandas")          int                InpPeriod = 20;
+input(name="Desvio padrao das bandas")    double             InpDeviation = 2.0;
+input(name="Preco das bandas")            ENUM_APPLIED_PRICE InpPrice = PRICE_CLOSE;
 
 double MiddleBuffer[];
 double UpperBuffer[];

@@ -1419,23 +1419,29 @@ void ScreenFilters(void)
       //--- Cada media tem a propria chave: a 1.058 permite usar so a MA1, e
       //--- uma chave unica no topo esconderia isso.
       RowsReset();
-      //--- Cada media governa os proprios parametros: com ela desligada, o EA
-      //--- nao a consulta. E o unico caso em que uma chave apaga o bloco dela.
-      bool ma1=m_draft.trendMA1Enabled, ma2=m_draft.trendMA2Enabled;
+      //--- A chave diz se a media PARTICIPA do filtro, nao se ela pode ser
+      //--- ajustada: os parametros seguem editaveis com ela desligada, como em
+      //--- todo o resto das telas de filtro e estrategia. Preparar uma media
+      //--- antes de liga-la e o caso comum, e desligar para consertar um valor
+      //--- era a unica saida quando o bloco apagava.
+      //---
+      //--- O que a chave governa e a COBRANCA: valor dormente invalido nao
+      //--- bloqueia SALVAR (FieldValid e ScreenErrorTrend saem cedo pela chave),
+      //--- e passa a ser cobrado no instante em que a media liga.
       RowNote   ("BUY: acima de todas as MAs ON. SELL: abaixo de todas.");
       RowToggleF("Ativo",FCV_FLD_TR_MA1_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD,true,ma1);
-      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF    ,ma1);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD,ma1);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE ,ma1);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA1_PERIOD);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA1_TF);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA1_METHOD);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA1_PRICE);
       Card("MEDIA 1");
 
       RowsReset();
       RowToggleF("Ativo",FCV_FLD_TR_MA2_ON);
-      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD,true,ma2);
-      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF    ,ma2);
-      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD,ma2);
-      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE ,ma2);
+      RowFieldF ("Periodo","Numero de velas",FCV_FLD_TR_MA2_PERIOD);
+      RowComboF ("Timeframe",FCV_COMBO_TF    ,FCV_FLD_TR_MA2_TF);
+      RowComboF ("Metodo"   ,FCV_COMBO_METHOD,FCV_FLD_TR_MA2_METHOD);
+      RowComboF ("Preco"    ,FCV_COMBO_PRICE ,FCV_FLD_TR_MA2_PRICE);
       RowNote   ("Com ambas ON, MA1 deve ser mais longa que MA2 (periodo x TF).");
       Card("MEDIA 2");
       return;
