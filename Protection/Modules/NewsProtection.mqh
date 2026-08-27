@@ -57,7 +57,7 @@ public:
          if(m_settings.newsWindows[index].action != NEWS_ACTION_CLOSE_AND_BLOCK)
             continue;
 
-         reason = "Janela de news " + IntegerToString(index + 1) + " configurada para fechar posicoes.";
+         reason = "Janela de news " + IntegerToString(index + 1) + " configurada para fechar posições.";
          return true;
         }
 

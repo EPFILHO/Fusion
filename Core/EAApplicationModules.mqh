@@ -16,11 +16,28 @@
 
    bool                    ShouldShowPanel(void) const
      {
-      // O input do usuario manda em qualquer contexto; no tester o modo visual
-      // e um pre-requisito adicional, nunca um motivo para forcar o painel.
-      if(!m_settings.panelEnabled)
-         return false;
-      return (!m_settings.isTester || IsVisualTester());
+      //+---------------------------------------------------------------+
+      //| NO GRAFICO O PAINEL SEMPRE APARECE. `inp_ShowPanel` vale so no |
+      //| tester.                                                        |
+      //|                                                                |
+      //| Decisao do usuario, e o argumento e que a necessidade que o    |
+      //| input atendia ja tem resposta melhor: o painel MINIMIZA. Quem  |
+      //| quer o grafico livre encolhe para a barra de titulo, que custa |
+      //| quase nada para desenhar e continua a um clique de voltar.     |
+      //|                                                                |
+      //| Esconder por input nao tinha esse caminho de volta — e, pior,  |
+      //| a GUI e o unico lugar de onde se opera o EA: iniciar, pausar,  |
+      //| salvar, trocar de perfil. Um grafico com o EA anexado e sem    |
+      //| painel e um EA sem controle.                                   |
+      //|                                                                |
+      //| No tester o input continua mandando, e por um motivo concreto: |
+      //| desenhar o painel a cada tick de uma otimizacao custa tempo de |
+      //| verdade. O modo visual segue como pre-requisito adicional —    |
+      //| sem ele nao ha grafico onde desenhar.                          |
+      //+---------------------------------------------------------------+
+      if(!m_settings.isTester)
+         return true;
+      return (m_settings.panelEnabled && IsVisualTester());
      }
 
    void                    UpdatePanelIfVisible(void)

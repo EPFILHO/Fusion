@@ -1,9 +1,17 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
+    # Ambos opcionais: omitidos, sao descobertos por build-paths.ps1, e a raiz
+    # MQL5 sai PAREADA com o MetaEditor escolhido (via origin.txt).
+    #
+    # Eram obrigatorios ate a Etapa 2b, e informar a raiz errada era facil:
+    # existem dezenas de pastas de dados na maquina e todas parecem validas.
+    # Escolher uma que nao fosse a do MetaEditor fazia os #resource do Fusion.mq5
+    # falharem com "invalid resource path" - erro que aponta para o projeto e
+    # nao para o argumento, e por isso custa caro para diagnosticar.
+    [Parameter(Mandatory = $false)]
     [string]$MetaEditor,
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [string]$Mql5,
 
     # Mantem o vinculo apos compilar. Util para abrir o projeto no MetaEditor
@@ -27,11 +35,22 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'build-paths.ps1')
+
 $projectRoot = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 $versionName = Split-Path -Leaf $projectRoot
 
+if ([string]::IsNullOrWhiteSpace($MetaEditor)) {
+    $MetaEditor = Find-MetaEditor
+}
 if (-not (Test-Path -LiteralPath $MetaEditor -PathType Leaf)) {
     throw "MetaEditor nao encontrado: $MetaEditor"
+}
+
+# A raiz precisa ser a do MetaEditor acima: e nela que o compilador resolve os
+# #resource, e e nela que o vinculo tem de nascer para o projeto ser visto.
+if ([string]::IsNullOrWhiteSpace($Mql5)) {
+    $Mql5 = Find-Mql5RootForEditor -EditorPath (Resolve-Path -LiteralPath $MetaEditor).Path
 }
 if (-not (Test-Path -LiteralPath $Mql5 -PathType Container)) {
     throw "Raiz MQL5 nao encontrada: $Mql5"

@@ -73,12 +73,12 @@ private:
      {
       if(signal == SIGNAL_BUY && currentPrice <= maValue)
         {
-         reason = "preco atual nao esta acima da " + label + " (" + IntegerToString(period) + ")";
+         reason = "preço atual não está acima da " + label + " (" + IntegerToString(period) + ")";
          return true;
         }
       if(signal == SIGNAL_SELL && currentPrice >= maValue)
         {
-         reason = "preco atual nao esta abaixo da " + label + " (" + IntegerToString(period) + ")";
+         reason = "preço atual não está abaixo da " + label + " (" + IntegerToString(period) + ")";
          return true;
         }
       return false;
@@ -172,7 +172,7 @@ public:
          long ma2Horizon = FusionMAHorizonSeconds(m_sellPeriod, m_sellTimeframe);
          if(ma1Horizon <= 0 || ma2Horizon <= 0 || ma1Horizon <= ma2Horizon)
            {
-            reason = "configuracao invalida: M1 deve ser mais longa que M2";
+            reason = "configuração inválida: MA1 deve ser mais longa que MA2";
             return false;
            }
         }
@@ -180,14 +180,14 @@ public:
       MqlTick tick;
       if(!SymbolInfoTick(m_symbol, tick))
         {
-         reason = "preco atual indisponivel";
+         reason = "preço atual indisponível";
          return false;
         }
 
       double currentPrice = (tick.last > 0.0) ? tick.last : tick.bid;
       if(currentPrice <= 0.0)
         {
-         reason = "preco atual indisponivel";
+         reason = "preço atual indisponível";
          return false;
         }
 
@@ -196,10 +196,10 @@ public:
          double ma1Value = 0.0;
          if(!CurrentMAValue(m_ma1Handle, ma1Value))
            {
-            reason = "M1 indisponivel";
+            reason = "MA1 indisponível";
             return false;
            }
-         if(BlocksSignal(signal, currentPrice, ma1Value, "M1", m_period, reason))
+         if(BlocksSignal(signal, currentPrice, ma1Value, "MA1", m_period, reason))
             return false;
         }
 
@@ -208,10 +208,10 @@ public:
          double ma2Value = 0.0;
          if(!CurrentMAValue(m_ma2Handle, ma2Value))
            {
-            reason = "M2 indisponivel";
+            reason = "MA2 indisponível";
             return false;
            }
-         if(BlocksSignal(signal, currentPrice, ma2Value, "M2", m_sellPeriod, reason))
+         if(BlocksSignal(signal, currentPrice, ma2Value, "MA2", m_sellPeriod, reason))
             return false;
         }
 

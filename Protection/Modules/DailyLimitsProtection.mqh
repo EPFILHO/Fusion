@@ -104,19 +104,19 @@ private:
       reason = "";
       if(m_lossLimitReached)
         {
-         reason = "Limite diario de perda atingido.";
+         reason = "Limite diário de perda atingido.";
          return true;
         }
 
       if(m_gainLimitReached)
         {
-         reason = "Meta diaria de ganho atingida.";
+         reason = "Meta diária de ganho atingida.";
          return true;
         }
 
       if(m_tradesLimitReached)
         {
-         reason = "Limite diario de trades atingido.";
+         reason = "Limite diário de trades atingido.";
          return true;
         }
 
@@ -225,14 +225,14 @@ public:
       if(m_settings.maxDailyTrades > 0 && m_dailyTradeCount >= m_settings.maxDailyTrades)
         {
          LatchTradesLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
-         reason = "Limite diario de trades atingido.";
+         reason = "Limite diário de trades atingido.";
          return false;
         }
 
       if(m_settings.maxDailyLoss > 0.0 && m_dailyClosedProfit <= -m_settings.maxDailyLoss)
         {
          LatchLossLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
-         reason = "Limite diario de perda atingido.";
+         reason = "Limite diário de perda atingido.";
          return false;
         }
 
@@ -244,7 +244,7 @@ public:
             return true;
            }
 
-         reason = "Meta diaria de ganho atingida.";
+         reason = "Meta diária de ganho atingida.";
          LatchGainLimit("DAY bloqueado", 0.0, m_dailyClosedProfit);
          return false;
         }
@@ -260,19 +260,19 @@ public:
 
       if(m_lossLimitReached)
         {
-         reason = "Limite diario de perda projetada atingido.";
+         reason = "Limite diário de perda projetada atingido.";
          return true;
         }
 
       if(m_gainLimitReached)
         {
-         reason = "Meta diaria de ganho atingida.";
+         reason = "Meta diária de ganho atingida.";
          return true;
         }
 
       if(m_tradesLimitReached)
         {
-         reason = "Limite diario de trades atingido.";
+         reason = "Limite diário de trades atingido.";
          return false;
         }
 
@@ -281,8 +281,8 @@ public:
 
       if(m_settings.maxDailyLoss > 0.0 && projectedProfit <= -m_settings.maxDailyLoss)
         {
-         LatchLossLimit("DAY forcou fechamento", floatingProfit, projectedProfit);
-         reason = "Limite diario de perda projetada atingido.";
+         LatchLossLimit("DAY forçou fechamento", floatingProfit, projectedProfit);
+         reason = "Limite diário de perda projetada atingido.";
          return true;
         }
 
@@ -294,8 +294,8 @@ public:
             return false;
            }
 
-         reason = "Meta diaria de ganho atingida.";
-         LatchGainLimit("DAY forcou fechamento", floatingProfit, projectedProfit);
+         reason = "Meta diária de ganho atingida.";
+         LatchGainLimit("DAY forçou fechamento", floatingProfit, projectedProfit);
          return true;
         }
 

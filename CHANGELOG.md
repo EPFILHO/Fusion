@@ -1,5 +1,163 @@
 # Changelog
 
+## 2.000 - 2026-08-20
+
+### A GUI 2.0 substitui o painel classico
+
+- O painel construido sobre a biblioteca `Controls` foi **removido**. O EA passa a desenhar a interface inteira em `CCanvas`, com hit-test, edicao e rolagem proprios. Nao ha caminho para voltar ao painel antigo dentro do produto.
+- A navegacao de nivel 1 passa a ser `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`. A aba `CONFIG` deixou de existir: Risco e Protecao foram para `Gestao`, com trilho lateral proprio; indicadores visuais e aparencia do painel foram para `Layout`; o `Magic Number` foi para `Perfis`, ao lado do nome; e `Resolver Conflito` foi para `Estrategias > Geral`, junto de quais estrategias estao ligadas.
+- `Estrategias` e `Filtros` ganharam a subaba `Geral`, um panorama somente-leitura de quais modulos estao ativos. Ligar e desligar continua em cada subaba, junto dos parametros.
+- A aparencia do painel — paleta, tema e tamanho do texto — e preferencia de quem opera: vale para todos os graficos, e aplicada no ato, nao entra no perfil e continua disponivel com a configuracao bloqueada.
+- `Fusion.mq5` volta a ser o **unico EA de producao**, agora com a GUI 2.0 dentro. O harness de prototipo e o `FusionCanvas.mq5`, que existiram para rodar os dois paineis lado a lado durante a migracao, foram removidos.
+- A **base arquitetural da 1.058 foi preservada**: modulos, formatos e fluxo operacional continuam os mesmos. Isso nao significa que o motor tenha ficado intocado — a 2.000 tambem contem as correcoes operacionais enumeradas nas secoes seguintes, e elas mudam quando uma entrada acontece.
+
+### Seguranca descoberta durante a migracao
+
+Portar cada regra obrigou a rele-la, e isso expos caminhos que ja existiam na GUI antiga:
+
+- carregar perfil com **posicao aberta** passou a ser recusado, com a leitura de posicao sincronizada **antes** da decisao. Sem essa guarda, trocar de perfil em operacao trocava tambem o `Magic`, que e como o EA reconhece as proprias ordens.
+- `RESTAURAR PERFIL ATIVO` virou um verbo proprio: "voltar ao que eu ja tinha" era indistinguivel de "adotar outro perfil" e herdava recusas que so fazem sentido no segundo caso.
+- os logs detalhados de debug sairam do arquivo de perfil e voltaram a ser governados pelo `input` — sao diagnostico de sessao, nao configuracao de estrategia.
+
+### Sinal represado apos reconexao ou volta de permissao
+
+- Quando a permissao de negociacao volta — reconexao com o servidor, AutoTrading religado, permissao da conta restaurada —, o Fusion **descarta o estado de entrada acumulado e exige um sinal novo**. Antes, um cruzamento formado durante a queda podia virar ordem no primeiro tick de volta, com atraso de minutos.
+- Nao basta consumir o sinal vigente: o candle que estava aberto no instante da liberacao tambem nao vale como entrada, porque sua formacao comecou enquanto o EA nao estava acompanhando. O primeiro sinal elegivel vem de um candle iniciado **depois** da liberacao. O criterio e o candle, nunca um prazo em milissegundos.
+- Enquanto a serie de precos nao responder, a quarentena **bloqueia tudo** e se recupera sozinha, sem contador nem tempo limite.
+- Vale para MA Cross, RSI e Bollinger, por uma transicao unica. Uma posicao ja aberta continua sendo gerenciada normalmente.
+- Com os logs detalhados ligados, uma recusa aparece no diario como `Sinal bloqueado pela quarentena`, com o candle do sinal e a barreira — uma linha por candle, nunca por tick.
+
+### Validacao das medias da MA Cross
+
+- A validade das duas medias passa a ser decidida pelo **horizonte efetivo** (`periodo x duracao do timeframe`), e nao pelo periodo isolado. A regra anterior errava dos dois lados: recusava `SMA 9` contra `EMA 9`, que sao curvas diferentes e uma configuracao legitima, e aceitava `EMA 9 H4` como rapida contra `EMA 21 M1` como lenta, em que a rapida cobre um horizonte 96 vezes maior.
+- **Horizontes iguais sao validos** quando as curvas diferem em periodo, timeframe, metodo ou preco aplicado. So e recusada a configuracao em que os quatro campos coincidem, porque ai as duas curvas sao a mesma linha e nao existe cruzamento possivel.
+- A tela e o motor usam **a mesma validacao**. Configuracao invalida que chegue por `input` ou por perfil antigo suspende apenas as **entradas da MA Cross** e registra o motivo: painel, gerenciamento da posicao aberta, protecoes, execucao e as demais estrategias seguem funcionando.
+- A faixa de periodo `1..1000` passou a ser verificada tambem no motor, e nao so na tela.
+- Quando os oito campos participantes ficam em desacordo, os oito sinalizam na tela — a correcao pode ser em qualquer um deles.
+
+### Nomenclatura e diagnostico
+
+- As duas medias do `Trend Filter` passam a se chamar **`MA1`** e **`MA2`** na tela, na legenda do grafico e nas mensagens. `M1` e `M2` eram ambiguos com os timeframes de 1 e 2 minutos do MT5. `MA1` continua sendo a barreira longa e `MA2` a curta, com regra estrita e independente da MA Cross.
+- As curvas do indicador visual passam a se chamar `Trend MA1` e `Trend MA2`.
+- A tecla `M`, que rodava a suite de medicao de desenho, foi **removida do painel de producao**. Nenhuma tecla de diagnostico sobra na interface: o renderizador roda num grafico com dinheiro, e um atalho nao distingue quem desenvolve de quem opera.
+- O aviso de volta de permissao deixou de dizer "EA pronto para operar", que era falso enquanto a quarentena de candle estivesse de pe.
+
+### Legenda das medias movel
+
+- A legenda dos indicadores visuais passou a ser **arrastavel pelo fundo**, movendo-se como bloco unico com os textos junto. Ela continua nascendo no canto superior direito, com as mesmas margens, e nao mudou de aparencia, conteudo, cores nem tamanho.
+- A posicao e **limitada automaticamente as bordas**: a legenda permanece integralmente visivel **sempre que as dimensoes do grafico permitirem**. Enquanto houver espaco, o redimensionamento a mantem inteira na tela; quando o grafico voltar a crescer, ela retorna a posicao desejada — o limite muda onde ela e desenhada, nao o que o usuario escolheu.
+- A legenda tambem **evita automaticamente a area visivel do painel**: arrastada contra ele, para ou desliza pela borda em vez de passar por baixo, e sai da area ocupada se o painel for movido, minimizado ou restaurado sobre ela.
+- Num grafico **pequeno demais** para acomodar painel e legenda pode haver sobreposicao. Nesse caso o painel **sempre conserva a prioridade de clique**: abas, botoes, campos, comboboxes e barra de rolagem respondem normalmente mesmo com a legenda por cima.
+- A escolha e **independente por grafico** e sobrevive a troca de timeframe, a desligar e religar os indicadores, a reanexar o EA e a reiniciar o terminal. E preferencia visual: nao entra no perfil, nao passa por `SALVAR`, nao cria pendencia e nao toca schema nem chart state.
+
+### Estado de entrada preservado na troca do timeframe visual
+
+- Trocar o timeframe do grafico **deixou de descartar automaticamente os sinais ja reconhecidos**. Quando o EA estava iniciado e o contexto continua compativel, o estado logico de entrada atravessa a reinicializacao. O caso que motivou a mudanca: uma pendencia de **segundo candle** da MA Cross, reconhecida antes da troca, era perdida e o cruzamento nunca virava ordem.
+- A preservacao vale **somente** para `REASON_CHARTCHANGE` e dentro de uma **janela de 120 segundos**. Reinicio do terminal, recompilacao, reanexo, troca de ativo e intervalos maiores continuam com o comportamento conservador de sempre.
+- **Sinal formado durante o intervalo cego nao atravessa.** Enquanto o EA e recarregado ninguem acompanha o mercado, entao so vale sinal de candle iniciado depois da volta. Um contracruzamento nascido nesse vao **cancela a pendencia anterior** e tambem nao opera — o resultado e nenhuma entrada, em nenhuma direcao.
+- A barreira do intervalo cego e **independente** da quarentena de reconexao, que continua tendo prioridade. Enquanto a barreira nao conhece o horario do candle, ela bloqueia.
+- **Com posicao aberta nada e preservado, e nada muda no gerenciamento.** A posicao e ressincronizada, SL, TP, trailing, breakeven e parcial seguem valendo, e nenhuma nova entrada e aberta enquanto ela permanecer ativa. O diario registra isso em `INFO`; nao vai aviso ao painel, porque a existencia da posicao ja e o motivo esperado.
+- Causam **fallback conservador**: posicao aberta ou fechamento em reconciliacao, configuracao operacional incompativel, bloqueio operacional, de permissao ou de protecao, estado invalido ou vencido, ativo trocado e EA nao iniciado.
+- A restauracao e **por estrategia**: uma que falha e primeada com seguranca sem desfazer as demais. Estrategia desligada e resetada e nunca contada como falha.
+- O aviso do handoff passou a ter **propriedade exclusiva do texto** e limpeza por comparacao exata, para nunca apagar um aviso acionavel — AutoTrading, protecao ou perfil — e para nao ficar preso na tela depois que deixa de valer.
+- Mensagens ao operador deixaram de falar em "continuidade nao autorizada no desligamento": quem troca o timeframe nao desligou nada.
+
+### Criar perfil deixou de ativar o perfil criado
+
+- **`NOVO` e `DUPLICAR` passaram a somente gravar em disco.** Ate aqui os dois eram traduzidos para o MESMO comando do `SALVAR`, que **aplica a configuracao antes de gravar** — e o perfil nascia ativo sem ninguem ter pedido. Foi assim que um usuario clicou `NOVO` e viu o perfil `WIN` deixar de existir.
+- **`CARREGAR` e agora o unico verbo que ativa um perfil.** O perfil recem-criado fica **selecionado** na lista; o grafico continua no perfil anterior.
+- Criar **nao toca no motor**: nao ha `ApplySettings`, recarga de estrategias, protecoes ou execucao, nem alteracao do perfil ativo, do estado do grafico ou do registro de instancia. A consequencia pratica e que **uma gravacao que falha nao precisa de desfazer** — antes ela deixava a configuracao do perfil que nao nasceu valendo sob o nome do perfil anterior, e abandonar exigia um verbo proprio de rollback, que foi removido junto.
+- **`DUPLICAR` deixou de exigir compatibilidade com o ativo do grafico.** Um perfil de ouro, com lote que nenhum indice aceita, pode ser duplicado num grafico de indice. Continuam valendo todas as regras que **nao** dependem do simbolo — faixas, dependencias entre campos, MA Cross, requisitos de trailing e TP parcial —, e **lote positivo** entre elas. `NOVO` continua exigindo validacao completa, porque nasce da configuracao que roda neste grafico.
+- **`CARREGAR` passou a validar o perfil alvo contra o ativo** antes de aplicar: lote, stops e plano de parciais. A lacuna era anterior, e so ficou alcancavel porque agora e possivel guardar em disco um perfil destinado a outro ativo. O alvo e validado **ja normalizado**, com o mesmo fallback de timeframe que o motor usa, para um perfil legado nao ser recusado por algo que o EA consertaria sozinho.
+- **O Magic do alvo e reconferido no disco no instante do clique**, tanto ao criar quanto ao carregar. Isso recusa `Magic <= 0` e fecha a janela em que outro grafico cria uma colisao depois do ultimo `Atualizar lista`.
+- Um perfil de origem com **Magic invalido** voltou a poder ser **duplicado** com um Magic novo — antes a tela recusava justamente a operacao que recupera o arquivo.
+- As travas existentes foram preservadas: EA iniciado, posicao em gerenciamento, reconciliacao de fechamento e drawdown com configuracao travada continuam impedindo a criacao.
+- Mensagem de recusa do `CARREGAR` deixou de mandar "Corrija em <aba>": a tela so edita o perfil ATIVO, e o perfil recusado nao pode virar ativo ali. Agora ela aponta a rota que existe — carregar num grafico de ativo compativel, ajustar, salvar e voltar.
+
+### Correcao: SALVAR podia deixar as medias da MA Cross inoperantes
+
+- **Salvar o perfil podia parar as entradas da MA Cross em silencio.** A troca de handles das medias recriava o par e liberava o anterior; como o `iMA()` do MT5 **devolve o mesmo identificador** quando a configuracao nao muda, a liberacao atingia os handles recem-publicados. A estrategia continuava se declarando operacional, mas toda leitura de buffer falhava — **nenhum cruzamento era avaliado, e nao havia log de bloqueio**.
+- Bastava salvar com os parametros das medias inalterados. O caso mais comum: mudar **so o modo de entrada** entre `Proximo candle` e `Segundo candle`. Trocar o timeframe do grafico "curava", porque reinicializava o EA e criava handles novos.
+- A liberacao passou a ser **condicional**: sai apenas o handle que nao faz parte do par novo, e nenhum identificador e liberado duas vezes.
+- **Vale tambem quando a criacao falha.** Esse caminho existe para preservar o par ativo — do qual depende a saida por cruzamento de uma posicao aberta — e podia justamente destrui-lo quando o handle que nascia era o proprio par vivo.
+- A politica de recriacao de handles **nao mudou**: `RELOAD_COLD` e `RELOAD_WARM` continuam recriando. E por esse caminho que um par degradado, numericamente valido mas morto no terminal, volta a ser recriado.
+
+### Alteracao de SL/TP passa a ser observada e informada
+
+- O Fusion **detecta, registra e informa** quando o SL ou o TP da posicao aberta muda por fora do ultimo ajuste que ele proprio reconheceu. O recurso e **somente observabilidade**: ele **nao restaura os valores anteriores, nao trava os niveis e nao reenvia modificacao**. A decisao de quem opera e respeitada, e o gerenciamento — SL, TP, trailing, breakeven e TP parcial — continua ativo exatamente como antes.
+- Sao distinguidos quatro desfechos por nivel: **criado**, **alterado**, **removido** e sem alteracao. Remocao aparece como `removido`, nunca como o numero zero, e criacao aparece como `criado em`.
+- **Trailing e breakeven do proprio Fusion nao geram alerta.** A comparacao usa uma tolerancia derivada do **grid do ativo** — metade do maior entre `tickSize` e `point` —, porque o servidor arredonda o preco enviado para o grid negociavel. Sem ela, pedir 77002 num ativo de tick 5 e receber 77000 de volta faria o proprio ajuste do EA acusar alteracao externa.
+- Quando o ativo nao informa `tickSize` nem `point`, a tolerancia fica indefinida e **nenhuma diferenca entre precos e acusada**. Remocao continua sendo detectada, porque nao depende de grid.
+- O `Status` mostra um **aviso compacto**; o detalhe numerico fica em `Gestao > Risco > SL/TP`. Remocao sobe na prioridade do `Status` e recebe orientacao urgente, porque deixa a posicao exposta.
+- O texto **nao atribui autoria**: diz que houve alteracao, nao que ela foi manual ou feita pelo usuario. A origem pode ser desktop, celular, corretora ou outro programa, e o Fusion nao tem como distinguir.
+- O evento e **somente runtime**. Ele desaparece no fechamento confirmado da posicao, na troca de posicao e na reinicializacao provocada por troca de timeframe do grafico. **O registro no diario permanece**, e e por ele que o historico e reconstruido. Nada disso entra em perfil, chart state ou schema.
+
+### TP Parcial por quantidade
+
+- O tamanho de cada parcial passa a ter **dois modos**, escolhidos por um seletor **global**: `Percentual` (fracao da posicao, como sempre foi) e **`Volume`** (um volume negociavel, na unidade do ativo). Nao ha mistura — TP1 e TP2 usam sempre o mesmo modo, porque "50% mais 0.30" nao se confere de cabeca.
+- **Percentual nao mudou.** As mesmas configuracoes produzem exatamente os mesmos volumes de antes, conferidos caso a caso contra a formula anterior.
+- No modo `Volume`, o valor informado e o mesmo numero enviado na ordem e **nao e ajustado em silencio**: um volume desalinhado do passo do ativo e **recusado**, nao arredondado. O campo tambem passou a **mostrar o que foi digitado** — `0.125` continua `0.125`, e nao vira `0.13` enquanto a validacao o recusa. O mesmo vale agora para o `Lote Fixo`.
+- **Os dois tamanhos convivem.** Percentual e volume sao guardados separadamente por estagio; so o do modo vigente entra no calculo. Trocar de modo nao converte nem apaga o valor do outro.
+- **TP1 e TP2 continuam sendo sempre saidas parciais**, e o plano exige que reste ao menos o **volume minimo do ativo** aberto. O saldo remanescente permanece aberto para o mecanismo de encerramento configurado, **se houver** — TP Fixo, trailing, SL ou sinal da estrategia; garantir que exista uma forma adequada de encerramento e protecao e responsabilidade de quem opera. Quem quiser dois niveis de saida usa o TP1 e **configura** o TP Fixo para encerrar o restante.
+- A tela ganhou um **RESUMO DOS VOLUMES** abaixo do TP2, recalculado a cada alteracao e **sempre em quantidade**, inclusive no modo percentual: lote inicial, teto de cada estagio, o que cada um fecha, o saldo apos cada etapa e o minimo obrigatorio.
+- **A regra do plano passou a ter fonte unica.** A formula vivia duas vezes — uma na tela, outra no `RiskManager` —, e duas escritas do mesmo criterio divergem: o sintoma seria a tela aprovando o que a entrada recusa. Agora as duas consultam o mesmo helper puro.
+- As mensagens de recusa passaram a ser escolhidas pelo **motivo**, e nao coladas genericamente. Um volume desalinhado manda corrigir o volume; falta de saldo ensina a regra das saidas parciais; erro de lote manda corrigir o Lote Fixo; especificacao indisponivel nao manda alterar nada. **Aumentar o Lote Fixo deixou de ser oferecido** onde nao resolve — no percentual ele escala junto, e no volume mascara a regra.
+- **Correcao junto:** uma recusa do plano parcial bloqueava a entrada **sem publicar motivo** — o campo de erro ia vazio e a tela nao dizia nada. Agora o motivo sai sempre.
+- **Schema do perfil na versao 15**, com tres chaves novas: `partial.sizeMode`, `tp1.volume` e `tp2.volume`. Perfis ate a versao 14 **carregam normalmente em `Percentual`**, com os percentuais preservados e os volumes inativos. Um perfil da versao 15 exige as tres chaves explicitamente: ausencia ou conteudo invalido **recusa o arquivo**, nunca vira percentual em silencio.
+
+### TP Parcial por quantidade tambem no Strategy Tester
+
+- O modo `Volume` do TP Parcial existia na tela e no perfil, mas **nao existia como `input`** — e o agente do Tester nao enxerga os arquivos `.cfg`. Na pratica, o Tester so conseguia executar o modo `Percentual`, e um backtest que se supunha "por quantidade" media outra coisa. Nada disso alcancava operacao no grafico, onde a GUI e o perfil sempre estiveram corretos; o que estava comprometido era a **paridade do Strategy Tester**.
+- Tres `input` novos fecham a lacuna: `inp_PartialSizeMode`, `inp_TP1Volume` e `inp_TP2Volume`. Eles apenas transportam valor — o modo `Volume` do Tester percorre o **mesmo plano de volumes em fonte unica** ja usado pela tela e pelo `RiskManager`, sem formula duplicada.
+- Os defaults sao `Percentual`, `0.0` e `0.0`. **Nao ha rotina de conversao automatica de presets `.set` para o modo `Volume`.** Ao carregar um `.set` criado antes desses campos, confira explicitamente `Modo do tamanho`, `Volume TP1` e `Volume TP2` antes de rodar o teste.
+- Nada mudou no calculo, no schema do perfil, na persistencia, no fechamento parcial nem na GUI do TP Parcial.
+
+### Medias do Trend Filter editaveis com a chave desligada
+
+- Periodo, timeframe, metodo e preco das duas medias do `Trend Filter` passam a ser **editaveis com a respectiva chave desligada**. Era a unica tela do produto em que uma chave apagava os proprios parametros — MA Cross, RSI, Bollinger e os filtros de RSI e Bollinger sempre deixaram tudo editavel. Agora da para preparar uma media antes de liga-la, e para corrigir um valor sem precisar liga-la para isso.
+- **A chave continua sendo a unica porta operacional.** Com a media desligada os valores ficam **dormentes**: nao criam handle nem indicador, nao entram em calculo algum, nao bloqueiam entrada e **nao impedem `SALVAR`, ainda que invalidos**. Podem ser gravados no perfil e restaurados de la.
+- Ao ligar a chave, a validacao normal passa a valer de imediato — um periodo fora de `1..1000` so e cobrado a partir dai. Com as duas ligadas continua exigido que o horizonte da `MA1` seja estritamente maior que o da `MA2`.
+
+### Propriedades dos indicadores visuais em linguagem comum
+
+- Os `input` dos tres indicadores visuais — `Fusion Visual MA`, `Fusion Visual BB` e `Fusion Visual RSI` — ganharam **nomes legiveis** na janela de Propriedades (`Ctrl+I`): `Cor da MA Rapida`, `Periodo do RSI`, `Desvio padrao das bandas`, e assim por diante.
+- A aba `Comum` dos tres passou a avisar que sao indicadores **exclusivamente visuais**: o que se altera ali afeta somente o desenho no grafico e **nao altera estrategias, filtros, perfis ou operacoes do Fusion**.
+- Identificadores, tipos, ordem, valores padrao e quantidade dos `input` ficaram **intactos**: os tres indicadores sao anexados por `iCustom`, que passa os argumentos por posicao, e o nome visivel nao participa desse contrato.
+- **Limitacao conhecida:** o campo `Identificador interno (nao alterar)` continua **visivel e editavel**. Ele nao e aparencia — e o primeiro argumento posicional do `iCustom` e o nome pelo qual o EA reconhece e remove a propria linha do grafico. Alterado a mao, o Fusion perde o rastro daquela linha, que deixa de ser removida ao desligar os indicadores, ao trocar o timeframe ou ao retirar o EA. O MQL5 nao oferece parametro de indicador realmente oculto — `sinput` tambem aparece na janela —, entao o aviso vai no proprio nome do campo.
+
+### Duas versoes: Completa e Demonstracao
+
+- O build passou a produzir **dois executaveis do mesmo EA**, com o mesmo motor, a mesma GUI e as mesmas estrategias: `Fusion.ex5` (Completa) e `FusionDemo.ex5` (Demonstracao).
+- **Completa**: conta demo, de contest, real e Strategy Tester — comportamento identico ao de sempre. Ela **tambem roda em demo**, entao quem a adquire pode testa-la antes de operar com dinheiro real.
+- **Demonstracao**: somente conta **demo** e **Strategy Tester**. Recusa conta de contest, conta real e **tambem o caso em que o tipo da conta nao pode ser determinado** — falha fechada, sem supor que seja demo.
+- A recusa acontece **antes de a aplicacao ser construida**: nao ha instancia registrada, indicador, handle, timer, perfil lido ou gravado, estado de grafico tocado nem ordem enviada. O diario recebe o modo detectado (`DEMO`, `CONTEST`, `REAL` ou `DESCONHECIDO`) e **nunca o numero da conta**.
+- **Nenhum `input` liga ou desliga a restricao.** A diferenca entre os dois binarios e uma linha de `#define` no `.mq5`; um parametro que o operador pudesse alterar faria o binario deixar de ser o que ele diz ser.
+- Os dois `.mq5` sao **invólucros minimos** sem nenhum handler proprio: `OnInit`, `OnTick`, `OnTimer`, `OnDeinit`, `OnChartEvent` e `OnTradeTransaction` continuam existindo uma unica vez, em `Core/EAEntryPoints.mqh`. Nenhum codigo operacional foi duplicado.
+- O `build.ps1` passou a ter **cinco alvos**: os tres indicadores visuais, o `Fusion.mq5` e o `FusionDemo.mq5`. Nenhum fonte e editado entre as duas compilacoes.
+- Os dois usam os **mesmos perfis e o mesmo formato de estado**: nada converte, migra ou invalida ao trocar de um para o outro.
+- ⚠️ Isto e **modalidade de compilacao, e nao licenciamento**. Nao ha vinculo por conta, prazo, servidor, hardware ou rede, e a versao Completa nao e protegida por nada disto.
+
+### Revisao ortografica do portugues da interface
+
+- Todo o texto que o operador le passou a ser escrito em **portugues acentuado**: abas, subabas, titulos de carta, rotulos, notas, avisos do cabecalho, mensagens de validacao, avisos de perfil, textos das protecoes e os nomes dos parametros dos tres indicadores visuais. Ate aqui a interface escrevia `configuracao`, `posicao`, `protecao`, `media`, `periodo` e `grafico`.
+- A revisao foi **estritamente textual**: nenhuma frase foi reescrita, encurtada ou reordenada, e severidade, titulo, prioridade e instrucao operacional de cada mensagem continuam as mesmas. O que mudou esta inteiramente **dentro das aspas** — nenhuma condicao, chamada, atribuicao, enum, estrutura ou assinatura foi tocada.
+- ⚠️ **Alguns avisos de protecao sao classificados pelo proprio texto**, por igualdade ou por prefixo. A acentuacao alcancou produtor e consumidor no mesmo passo, mantendo os pares identicos: nenhum aviso deixou de ser reconhecido, limpo ou priorizado.
+- Mensagens que existem **apenas no diario** e nao chegam ao painel nao foram alteradas, para a mudanca ficar restrita ao que o operador ve.
+- Nomes de campo persistido, chaves de perfil e de chart state, identificadores de `input`, tags de log e nomes de objeto de grafico **nao foram tocados**: o formato dos arquivos e o `schemaVersion` seguem iguais, e perfis gravados antes continuam carregando sem conversao.
+
+### Limitacoes a conhecer
+
+- Se o EA **iniciar** com configuracao invalida da MA Cross, ele nunca chega a criar um par de medias ativo e, nesse caso, a **saida por cruzamento** fica indisponivel ate a correcao. SL, TP, trailing, breakeven e TP parcial continuam funcionando. Quando a configuracao era valida e so depois ficou invalida, o par em uso e preservado e a saida por cruzamento continua sendo avaliada pelas medias com que a posicao foi montada.
+
+### Compatibilidade, documentacao e build
+
+- **O chart state recebeu um bloco `entry.*` aditivo e retrocompativel. O formato textual `chave=valor` dos perfis permanece; o CONJUNTO DE CHAVES mudou e o `schemaVersion` subiu de 14 para 15** por causa das tres chaves do TP Parcial por quantidade (`partial.sizeMode`, `tp1.volume`, `tp2.volume`) — a migracao esta descrita na secao propria e nao muda o significado de nenhum perfil antigo. O bloco `entry.*` tem versao propria, independente do schema do arquivo. Um chart state gravado por versao anterior, sem o bloco, carrega normalmente e apenas nao restaura estado de entrada. Um perfil antigo tambem **carrega normalmente**. O que pode mudar e o comportamento: uma configuracao de MA Cross que a regra antiga aceitava — tipicamente com timeframes diferentes entre rapida e lenta — pode ser invalida sob a regra nova, e nesse caso o perfil carrega, mas as **entradas da MA Cross ficam suspensas** ate a configuracao ser corrigida.
+- O `Manual do Usuario` foi reescrito para a GUI 2.0, com o cabecalho e seus estados, as sete abas, o que muda ao trocar o timeframe do grafico e a referencia completa dos `input` conferida contra o codigo.
+- Versao central em `2.000`, com `Fusion.mq5` e os tres indicadores visuais lendo dela ou declarando o mesmo numero. Build limpo nos quatro alvos: `0 errors, 0 warnings`.
+- Aceite da GUI 2.0 executado no MT5 em conta demo: 89 de 89 passos do roteiro da Fase 3, mais o smoke do binario definitivo.
+- Delimitacao da prova em execucao, para nao dar a entender mais do que foi observado: o **ciclo completo de reconexao** — queda, recusa do sinal represado e entrada de um cruzamento posterior — foi observado **na MA Cross**; a validacao das medias foi exercitada contra o predicado e na tela. RSI e Bollinger passam pelo mesmo caminho central de descarte, o que e escopo de implementacao, mas **nao** receberam a mesma prova em execucao.
+
+
 ## 1.058 - 2026-07-26
 - `Persistence/SettingsStore.mqh` (1245 linhas) foi dividido em `CSettingsStore`, uma fachada fina de 10 metodos, mais cinco modulos em `Persistence/Modules/`: `SettingsFileUtils` (parsing e paths), `ProfileSettingsSerializer` (encode/decode do bloco de settings e normalizacoes), `ChartStateSerializer` (mapeamento de campos de runtime), `ProfileStore` (CRUD de arquivo de perfil) e `ChartStateStore` (save/load de chart state).
 - Reorganizacao estrutural pura: nenhuma mudanca de comportamento, formato de arquivo de perfil/chart state ou API publica de `CSettingsStore`. Cada modulo foi extraido em um commit isolado, com o `build.ps1` fechando 0 errors/0 warnings apos cada passo.
@@ -37,9 +195,9 @@
 - `Bollinger Filter` ganhou modo direcional opcional, desligado por default: calcula a inclinacao media da linha central em candles fechados e bloqueia SELL na alta ou BUY na queda, com lookback e tolerancia em pontos por candle.
 - O campo de tolerancia direcional do `Bollinger Filter` passou a identificar pontos por candle e que zero e mais sensivel; o rodape esclarece que a direcao usa a inclinacao media da linha central em candles fechados.
 - `Trend Filter` passou a expor `Media 1` (longa) e `Media 2` (curta) com ON/OFF independentes. Cada MA ativa e uma barreira completa: BUY exige preco atual acima dela e SELL exige preco atual abaixo dela; com as duas ON, o preco entre as medias bloqueia ambos os lados.
-- Com as duas medias ativas, a GUI exige que o horizonte efetivo da M1 (`periodo x duracao do timeframe`) seja estritamente maior que o da M2. A mesma guarda existe no motor e falha fechado se uma configuracao invalida chegar ao runtime.
+- Com as duas medias ativas, a GUI exige que o horizonte efetivo da MA1 (`periodo x duracao do timeframe`) seja estritamente maior que o da MA2. A mesma guarda existe no motor e falha fechado se uma configuracao invalida chegar ao runtime.
 - A comparacao do Trend Filter usa o preco atual do ativo e o valor corrente de cada MA no seu proprio timeframe, eliminando a defasagem visual causada pela antiga comparacao com candle fechado.
-- `CONFIG` ganhou a subaba `VISUAL`. O toggle global, as cores e os estilos `CHEIA`/`TRACEJADA`/`PONTILHADA` de MA Rapida, MA Lenta, Trend M1, Trend M2 e Bandas sairam de `SYSTEM`; essas preferencias continuam estritamente isoladas do motor operacional.
+- `CONFIG` ganhou a subaba `VISUAL`. O toggle global, as cores e os estilos `CHEIA`/`TRACEJADA`/`PONTILHADA` de MA Rapida, MA Lenta, Trend MA1, Trend MA2 e Bandas sairam de `SYSTEM`; essas preferencias continuam estritamente isoladas do motor operacional.
 - Os novos filtros falham fechado quando a configuracao, o handle, o preco fechado ou os buffers necessarios nao estao disponiveis.
 - Versao central do EA e indicadores visuais atualizada para `1.056`; os handles visuais continuam separados dos handles operacionais.
 

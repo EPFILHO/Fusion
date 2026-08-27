@@ -1,0 +1,364 @@
+//+------------------------------------------------------------------+
+//| CanvasLayout.mqh                                                  |
+//| Geometria da GUI 2.0. Constantes puras, sem estado.               |
+//| Prefixo FCV_ em tudo: na Fase 3 o painel novo e o antigo convivem |
+//| na mesma unidade de compilacao, e nomes crus colidiriam. A Fase 4 |
+//| removeu o antigo e o prefixo ficou, agora por clareza e nao por   |
+//| necessidade.                                                      |
+//+------------------------------------------------------------------+
+#ifndef __FUSION_CANVAS_LAYOUT_MQH__
+#define __FUSION_CANVAS_LAYOUT_MQH__
+
+#define FCV_PANEL_W        590
+#define FCV_PANEL_H_MIN    560
+#define FCV_PANEL_H_MAX    900
+//--- Onde o painel nasce no grafico, em pixels do grafico. Vieram de
+//--- UI/UIPanelTypes.mqh (FUSION_PANEL_LEFT/TOP), que a Fase 4 apagou junto com
+//--- o painel classico: e a POSICAO inicial, e posicao de painel e geometria de
+//--- painel. Nao ha largura nem altura ao lado delas de proposito — o painel as
+//--- decide sozinho (FCV_PANEL_W e DecidePanelHeight), e depois do primeiro
+//--- arrasto quem manda na posicao e o estado salvo do grafico.
+#define FCV_PANEL_X         10
+#define FCV_PANEL_Y         20
+//--- Quanto do painel tem de sobrar dentro do grafico ao arrasta-lo para a
+//--- direita. Mede a faixa da ESQUERDA, que e a que fica visivel nesse sentido:
+//--- 160 unidades cobrem "EP Fusion 2.000" e area de arrasto de sobra. Os tres
+//--- botoes da barra ocupam as ultimas 90 unidades e nao entram na conta —
+//--- sobrando so eles, o painel apareceria e mesmo assim nao daria para
+//--- trazer de volta, porque clicar num botao nao arrasta.
+#define FCV_PANEL_MIN_VIS_W 160
+#define FCV_TITLEBAR_H      32
+//--- Cresceu 16 unidades na Fase 3 para abrigar a FAIXA DE MOTIVO sob os
+//--- botoes (que terminam em 123). Antes eram 136, e a folga de 13 unidades ali
+//--- nao dava para uma linha de texto sem encostar nos botoes acima e nas abas
+//--- abaixo ao mesmo tempo.
+//---
+//--- ⚠ A altura do painel NAO acompanha: DecidePanelHeight() ja deriva do
+//--- espaco do grafico e grampeia em [MIN,MAX], entao somar aqui so empurraria
+//--- o conteudo. A area util perde as 16 unidades e a rolagem absorve — que e
+//--- o comportamento desejado, e o motivo de o piso (FCV_PANEL_H_MIN, onde o
+//--- painel ja excede graficos baixos) ser o caso obrigatorio de teste.
+//---
+//--- Tudo abaixo deriva daqui em cadeia (FCV_F1_BOTTOM -> Surf1Top -> F2Top ->
+//--- ContentTop), entao esta e a unica constante a mexer.
+#define FCV_HEADER_BOTTOM  152
+//--- Centro do texto da faixa de motivo, entre os botoes e a faixa de abas.
+#define FCV_BAND_Y         136
+#define FCV_F1_H            30
+#define FCV_F1_BOTTOM      (FCV_HEADER_BOTTOM + FCV_F1_H)
+#define FCV_F2_H            26
+//--- Folga entre os dois fichários: apertada de proposito. Sao niveis
+//--- vizinhos da mesma hierarquia e devem parecer encaixados, nao separados.
+#define FCV_F2_GAP           7
+#define FCV_PAD             13
+#define FCV_EDIT_W         112
+#define FCV_EDIT_H          26
+#define FCV_RAIL_W         136
+#define FCV_RAIL_ROW        26
+
+#define FCV_FONT_UI   "Segoe UI"
+#define FCV_FONT_MONO "Consolas"
+#define FCV_FW_NORMAL 400
+#define FCV_FW_SEMI   600
+#define FCV_FW_BOLD   700
+
+//--- Escala tipografica, em decimos de ponto. Sete degraus e nao dezoito: o
+//--- desenho anterior tinha 74, 75, 77, 78, 80, 82, 84, 85, 86, 88, 90, 92, 95,
+//--- 105, 110, 115, 120 e 150. Diferencas de um ou dois decimos nao sao vistas
+//--- como hierarquia — sao vistas como descuido, e foi isso que fez os numeros
+//--- parecerem desalinhados de tamanho.
+#define FCV_FS_HERO 150   // estado em destaque
+#define FCV_FS_XL   120   // valor grande de bloco
+#define FCV_FS_LG   110   // valor secundario de bloco
+#define FCV_FS_VAL   95   // numeros em Consolas, coluna da direita
+#define FCV_FS_BODY  88   // rotulo de linha
+#define FCV_FS_SM    82   // titulo de cartao, aba, botao
+#define FCV_FS_CAP   76   // dica, selo, legenda
+
+//--- Quatro raios, nao sete. Barras de rolagem sao a unica excecao e usam
+//--- metade da propria largura, porque um raio fixo numa barra de 4 px de
+//--- largura ou a deixaria quadrada ou a arredondaria por inteiro.
+#define FCV_RADIUS_SM    4   // caixas pequenas recuadas, item de lista
+#define FCV_RADIUS_CTRL  6   // controles, abas, botoes
+#define FCV_RADIUS_CARD  8   // cartoes e blocos
+#define FCV_RADIUS_PILL 10   // selos e capsulas de estado
+
+//--- Nivel 1: Status · Resultados · Estrategias · Filtros · Gestao · Perfis ·
+//--- Visual. Gestao reune Risco e Protecao, que decidem dinheiro; Visual cuida
+//--- de aparencia. Antes os tres moravam juntos sob "Config", um nome que
+//--- descrevia a indecisao e nao o conteudo.
+#define FCV_TAB_COUNT     7
+#define FCV_CFG_COUNT     4    // maior nivel 2 existente (Estrategias/Filtros)
+
+//--- Identidade das telas. Nomeadas porque o estado dos controles e indexado
+//--- por elas: um indice trocado nao quebra o build, so faz um controle
+//--- reaparecer com o valor de outra tela.
+#define FCV_SCREEN_STATUS    0
+#define FCV_SCREEN_RESULTS   1
+#define FCV_SCREEN_STRAT0    2    // + subaba (0..3)
+#define FCV_SCREEN_FILTER0   6    // + subaba (0..3)
+#define FCV_SCREEN_RISK0    10    // + item do trilho (0..4)
+#define FCV_SCREEN_PROT0    15    // + item do trilho (0..6)
+#define FCV_SCREEN_PROFILES 22
+//--- O formulario de criar/duplicar e uma TELA PROPRIA, nao um modo da lista.
+//--- Compartilhar a identidade fazia os campos compartilharem slot: o "Nome"
+//--- da criacao e o "Magic Number" da lista caiam no mesmo slot 0, e o nome
+//--- digitado reaparecia dentro do Magic ao voltar.
+#define FCV_SCREEN_PROFILE_EDIT 24
+#define FCV_RAIL_MAX      7
+//--- Nao ha teto de perfis: a lista e dinamica, como na 1.058. Existiu um
+//--- FCV_PROF_MAX de 64 e ele foi removido por ser perigoso, nao por ser
+//--- apertado — os perfis alem do teto tambem ficavam fora da deteccao de Magic
+//--- repetido, e uma protecao operacional nao pode ter limite silencioso.
+//--- Linhas visiveis da lista. A altura reservada e sempre esta, mesmo com
+//--- menos perfis: os quatro botoes de acao vivem ao lado e o bloco abaixo nao
+//--- pode subir e descer conforme a quantidade de perfis em disco.
+#define FCV_PROF_ROWS     6
+//--- Grade de cores: 8 MATIZES em coluna, 5 luminosidades em linha. A promessa
+//--- da Fase 1 era essa — "matiz na horizontal, luminosidade na vertical" —, mas
+//--- a ultima linha era um apanhado de sobras (ciano sob o verde, rosa sob o
+//--- roxo, marrom sob o ambar) e quebrava justamente a leitura que a grade
+//--- existe para dar: descer numa coluna e escurecer a MESMA cor.
+//--- Agora cada coluna e uma rampa de uma cor so, do claro ao escuro.
+//--- A ULTIMA linha e de cores PURAS (clrLime, clrMagenta, clrYellow...), cada
+//--- uma na coluna do seu matiz. Elas nao pertencem a rampa: nao sao "mais
+//--- escuras que a mais escura", sao outra categoria — a versao saturada
+//--- daquela cor, que sobre candles le melhor do que o tom harmonico.
+//--- Por isso ganham um VAO antes: sem ele, a leitura "descer escurece" se
+//--- quebraria sem aviso na ultima casa.
+#define FCV_SWATCH_COUNT 48
+#define FCV_SWATCH_COLS   8
+#define FCV_SWATCH_ROWS  (FCV_SWATCH_COUNT/FCV_SWATCH_COLS)
+#define FCV_SWATCH_CELL  26
+#define FCV_SWATCH_GAP    8
+
+//--- Controles publicados por passada. O limite e por tela desenhada, nao
+//--- pelo total do painel: o que nao esta na tela nao publica caixa.
+#define FCV_CTRL_MAX     24
+//--- Botoes tambem publicam caixa de clique, em vez de o hit-testing repetir a
+//--- aritmetica do desenho. A tela mais cheia e Perfis com a exclusao armada:
+//--- oito na coluna de acoes mais os tres do cabecalho.
+#define FCV_BTN_MAX      16
+
+#define FCV_BTN_NONE      0
+#define FCV_BTN_LOAD      1
+#define FCV_BTN_NEW       2
+#define FCV_BTN_DUP       3
+#define FCV_BTN_DEL       4
+#define FCV_BTN_SAVE      5
+#define FCV_BTN_CANCEL    6
+#define FCV_BTN_START     7
+#define FCV_BTN_SAVECFG   8
+#define FCV_BTN_CANCELCFG 9
+//--- Rolagem da lista de perfis. Botoes, e nao uma segunda barra arrastavel:
+//--- com um OBJ_EDIT em edicao a roda do mouse nao rola (limite do terminal),
+//--- e as setas continuam funcionando sempre. E o que a 1.058 tambem usa.
+#define FCV_BTN_PROFUP   10
+#define FCV_BTN_PROFDN   11
+//--- Reler o disco. NAO e comando do EA: quem tem o CSettingsStore e o painel,
+//--- que reenumera sozinho. A lista e estado de disco e muda por fora — outro
+//--- grafico criando perfil, ou arquivo copiado a mao —, entao sem este botao
+//--- so reanexar o EA mostraria o que apareceu.
+#define FCV_BTN_PROFREFRESH 12
+//--- Confirmacao da exclusao, no lugar do proprio EXCLUIR. Ver ArmDeleteConfirm
+//--- em CanvasRendererCommands.mqh: apagar perfil e irreversivel, e o segundo
+//--- clique cai onde o primeiro caiu — por isso a saida (o NAO) fica AO LADO,
+//--- e nao sob o cursor. DELOK e o SIM; DELNO e o NAO.
+#define FCV_BTN_DELOK    13
+#define FCV_BTN_DELNO    14
+//--- SIM/NAO da confirmacao de ABANDONO: a acao vai descartar a unica copia da
+//--- configuracao em uso. Par proprio, e nao os do EXCLUIR, porque o alvo e a
+//--- pergunta sao outros e as duas confirmacoes podem existir na mesma tela.
+#define FCV_BTN_ABANDONOK 15
+#define FCV_BTN_ABANDONNO 16
+
+//--- Qual operacao esta pendente de confirmacao. Guardar a OPERACAO, e nao so
+//--- "ha algo a confirmar": o SIM precisa saber o que executar, e o alvo precisa
+//--- viajar junto para a pergunta nomear o perfil certo.
+#define FCV_ABANDON_NONE   0
+#define FCV_ABANDON_LOAD   1
+
+//--- Quanto tempo a marca de "o terminal encerrou uma edicao" continua valendo
+//--- para o clique seguinte. MEDIDO: no log do usuario (2026-08-15) o
+//--- OBJECT_ENDEDIT precede a borda do mouse do MESMO clique em 31 ms — duas
+//--- unidades do GetTickCount, que tem resolucao de ~15,6 ms. Este valor da seis
+//--- vezes de folga sobre a medicao e continua muito abaixo do minimo humano
+//--- para soltar o ENTER, levar a mao ao mouse e clicar. Ver o tratador do mouse.
+#define FCV_ENDEDIT_CLICK_MS 200
+
+//--- Prazo do aviso que descreve um EVENTO passado. Estado em vigor nao expira
+//--- — ver a nota em ClearNotice (CanvasRendererCommands.mqh).
+#define FCV_NOTICE_TTL_MS 5000
+
+//+------------------------------------------------------------------+
+//| Estado da acao do cabecalho — UMA resposta para todos que a usam. |
+//|                                                                   |
+//| Botao, faixa de motivo, distintivo, marcador da aba Status e card |
+//| critico leem daqui. A alternativa — cada um perguntar por conta —  |
+//| ja mostrou como falha neste projeto: predicado de acesso escrito   |
+//| por extenso em dois lugares diverge, e o usuario ve um motivo que  |
+//| nao e o que desabilitou o botao.                                   |
+//|                                                                   |
+//| ⚠ Absorve TAMBEM o `headerLive` (formulario de perfil aberto).    |
+//| Ele ficava fora, multiplicando o predicado no ponto do desenho:    |
+//| `headerLive && (started ? AccCanPause() : AccCanStart())`. Com o   |
+//| formulario aberto o botao apagava sem que nada soubesse explicar.  |
+//|                                                                   |
+//| NAO se confunde com StatusNotice(), e a separacao e deliberada:    |
+//| aquele responde "o que esta acontecendo" (inclui avisos que NAO    |
+//| desabilitam nada); este responde "por que este botao nao aceita    |
+//| clique". Fundi-los recria a divergencia que a estrutura evita.     |
+//+------------------------------------------------------------------+
+#define FCV_HACT_NONE   0
+#define FCV_HACT_START  1
+#define FCV_HACT_PAUSE  2
+
+//--- Motivo do bloqueio, em ordem de PRECEDENCIA da faixa. A ordem nao e de
+//--- gravidade: e "primeiro o que o usuario resolve aqui", com uma regra que
+//--- vem antes dela — bloqueio que torna um campo inalcancavel vence qualquer
+//--- instrucao para editar esse campo. Por isso PEERLOCK fica acima de CONFIG:
+//--- com o perfil preso os campos ficam so-leitura, e "corrija a configuracao"
+//--- apontaria para o que nao aceita digitacao.
+#define FCV_HBLK_NONE       0
+#define FCV_HBLK_RUNTIME    1   // bloqueio estrutural: o EA recusa alternar
+#define FCV_HBLK_PROFFORM   2   // formulario de criar/duplicar aberto
+#define FCV_HBLK_PEERLOCK   3   // perfil ou Magic preso por outro grafico
+#define FCV_HBLK_CONFIG     4   // configuracao invalida
+#define FCV_HBLK_PENDING    5   // alteracoes nao gravadas
+#define FCV_HBLK_MAGIC      6   // Magic do perfil ativo repetido em disco
+#define FCV_HBLK_PERMISSION 7   // AutoTrading/conexao/permissao de conta
+#define FCV_HBLK_POSITION   8   // posicao aberta: nao ha o que pausar
+//--- Fechamento aguardando o historico confirmar. Nao e posicao aberta, e o EA
+//--- recusa INICIAR e PAUSAR enquanto durar — os dois ramos de TOGGLE_RUNNING
+//--- voltam sem executar. Distinguido de POSITION porque a mensagem e outra e
+//--- porque a espera passa sozinha.
+#define FCV_HBLK_RECONCILE  9
+//--- O arquivo do perfil ativo sumiu do disco: a configuracao em uso so existe
+//--- na memoria. Depois de CONFIG e antes de PENDING, pela mesma regra que rege
+//--- a escada inteira — a faixa manda GRAVAR, e o SALVAR precisa estar aceso
+//--- para que essa instrucao seja executavel. Ele exige ConfigInputsValid, entao
+//--- a configuracao invalida vem primeiro; e vence PENDING porque arquivo
+//--- inexistente e pior que arquivo desatualizado, e o mesmo SALVAR resolve os
+//--- dois. Nao cobre a gravacao FALHADA (m_notSaved) — ver AccSaveFirstLock.
+#define FCV_HBLK_NOFILE    10
+
+struct SHeaderAction
+  {
+   int    action;      // FCV_HACT_*
+   string label;       // INICIAR ou PAUSAR — a ACAO, nunca o motivo nem o estado
+   bool   enabled;
+   int    block;       // FCV_HBLK_*
+   string band;        // texto da faixa; "" = sem faixa
+   int    bandSem;     // FCV_SEM_*
+   //--- Precedencia:
+   //--- BLOQUEADO > IMPEDIDO > OPERANDO > SEM ENTRADAS > RODANDO > PAUSADO
+   string badge;
+   int    badgeSem;
+   bool   statusMark;  // marcador na aba Status (ambar, forma propria)
+   bool   critical;    // card global: trading indisponivel COM posicao aberta
+  };
+
+//+------------------------------------------------------------------+
+//| Restricao PERSISTENTE de novas entradas.                          |
+//|                                                                   |
+//| Pergunta diferente da que SHeaderAction responde, e por isso vive |
+//| em estrutura propria: aquela responde "por que o botao do         |
+//| cabecalho aceita ou recusa clique"; esta responde "o EA vai       |
+//| procurar uma entrada agora?". Sao independentes — com DD atingido |
+//| o PAUSAR continua aceso, e o EA continua gerenciando posicao.     |
+//|                                                                   |
+//| ⚠ NAO e o CanOpen() do motor, e o codigo nao pode fingir que e.   |
+//| ProtectionManager::CanOpen() confere SEIS coisas, nesta ordem:    |
+//| streak, sessao, noticias, SPREAD, limites diarios e drawdown; e o |
+//| risco ainda pode recusar depois, ja com o sinal em maos. Destas,  |
+//| so cinco tem estado PERSISTENTE no snapshot. Ficam de fora:       |
+//|                                                                   |
+//|  - SPREAD: instantaneo, medido com o simbolo no momento da        |
+//|    tentativa. Nao ha campo, e inventar um na GUI seria            |
+//|    reimplementar o motor;                                         |
+//|  - RISCO (entryBlockReason/entryBlockDetail): e o resultado de    |
+//|    UMA tentativa, nao um estado. Tratado como permanente, diria   |
+//|    "sem entradas" para sempre depois de uma recusa isolada.       |
+//|                                                                   |
+//| Consequencia honesta: `active` falso significa "nenhuma restricao |
+//| PERSISTENTE conhecida", e nunca "a proxima entrada vai passar".   |
+//+------------------------------------------------------------------+
+struct SEntryRestriction
+  {
+   bool   active;
+   string cause;   // rotulo curto para a faixa: SEQUENCIA, SESSAO, ...
+   string reason;  // a frase do motor, sem reescrita
+  };
+
+//--- Altura MINIMA da caixa de aviso, em linhas de texto.
+//---
+//--- A caixa cresce com o conteudo desde a Fase 1, e isso continua valendo: e o
+//--- que evita o corte em 174 caracteres da 1.058. O que incomodava era ela
+//--- ENCOLHER — a area util mudava de tamanho entre um aviso de uma linha e
+//--- outro de duas, e o conteudo pulava de lugar sem o usuario ter feito nada.
+//--- Com o piso em duas linhas, o caso comum passa a ter altura constante e o
+//--- texto e centralizado na caixa; so um aviso realmente longo cresce.
+#define FCV_ALERT_MIN_LINES 2
+
+//--- Modo de edicao da aba Perfis
+#define FCV_PROF_VIEW     0
+#define FCV_PROF_NEW      1
+#define FCV_PROF_DUP      2
+//--- Estado persistente dos controles, indexado por tela. Cada combinacao de
+//--- abas tem faixa propria para que um toggle nao vaze de uma subaba a outra.
+#define FCV_SCREEN_MAX   32
+//--- A tela mais densa hoje (Estrategias > Medias) usa 11 slots. A folga
+//--- existe para que uma linha nova nao faca dois controles compartilharem
+//--- estado silenciosamente.
+#define FCV_SLOT_MAX     20
+#define FCV_STATE_MAX    (FCV_SCREEN_MAX*FCV_SLOT_MAX)
+
+#define FCV_SB_W      6
+#define FCV_SB_ARROW 14
+#define FCV_SB_X    (FCV_PANEL_W-11)
+
+#define FCV_VK_ESC   27
+#define FCV_VK_PRIOR 33
+#define FCV_VK_NEXT  34
+#define FCV_VK_END   35
+#define FCV_VK_HOME  36
+#define FCV_VK_UP    38
+#define FCV_VK_DOWN  40
+//--- Nao existe mais NENHUMA tecla de diagnostico no painel de producao. S (tela
+//--- de estresse) e B (perfil bloqueado simulado) sairam na Fase 3; M (suite de
+//--- medicao) saiu depois, pelo mesmo motivo levado ate o fim: o renderizador
+//--- roda num grafico com dinheiro, e atalho de teclado nao distingue quem
+//--- desenvolve de quem opera. RunPerfSuite() e a tela de estresse continuam no
+//--- codigo, disponiveis para desenvolvimento; o que saiu foi o caminho
+//--- acionavel a mao.
+
+//--- Escala do painel, em porcento das unidades logicas. Nomeada por efeito
+//--- (Menor/Padrao/Maior) e nao por numero: o usuario escolhe o que enxerga
+//--- melhor, e o porcento nao significa nada para ele.
+#define FCV_SCALE_MIN      105
+#define FCV_SCALE_STEP       5
+#define FCV_SCALE_DEFAULT  110
+#define FCV_SCALE_COUNT      3
+
+//--- A tela Visual e a unica cujo estado e lido de fora do desenho (o input
+//--- inicial e o botao de tema da barra escrevem nela). Os slots ficam
+//--- nomeados aqui para que a ordem das linhas e quem escreve nelas nao se
+//--- desencontrem em silencio: mexeu na ordem da tela, mexa aqui.
+#define FCV_SCREEN_VISUAL          23
+//--- Status e a primeira aba. Nomeada porque a faixa de abas precisa aponta-la
+//--- para o marcador operacional, e indice cru ali nao quebraria o build se a
+//--- ordem mudasse — so passaria a marcar a aba errada.
+#define FCV_TAB_STATUS              0
+#define FCV_TAB_GESTAO              4
+#define FCV_TAB_PERFIS              5
+#define FCV_TAB_VISUAL              6
+//--- Cada indicador consome DOIS slots (cor e estilo), dai o passo 2.
+#define FCV_VISUAL_SLOT_INDICATORS  0
+#define FCV_VISUAL_SLOT_COLOR0      1
+#define FCV_VISUAL_SLOT_STRIDE      2
+#define FCV_VISUAL_SLOT_PALETTE    11
+#define FCV_VISUAL_SLOT_THEME      12
+#define FCV_VISUAL_SLOT_SCALE      13
+#define FCV_VISUAL_STATE(slot)     (FCV_SCREEN_VISUAL*FCV_SLOT_MAX+(slot))
+
+#endif

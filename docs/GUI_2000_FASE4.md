@@ -1,0 +1,440 @@
+# Fase 4 — remocao do painel classico
+
+**ENCERRADA em 2026-08-16.** Arvore limpa, gate 0/0 nos quatro alvos.
+
+A fase estava condicionada, desde a escrita do plano, a "confianca no novo". Os
+88 passos de aceite da Fase 3 foram o que a comprou — em especial os blocos D e
+E, os caminhos em que a gravacao de perfil FALHA, que ate ali nunca tinham rodado
+fora do compilador.
+
+---
+
+## 1. O que saiu
+
+| | |
+|---|---|
+| `.mqh` alcancaveis somente pelo painel antigo | **61** |
+| Linhas neles | **13.068** |
+| Alvos de build removidos | `FusionCanvas.mq5`, `Prototype/FusionCanvasPhase1.mq5` |
+| Pasta removida | `Prototype/` (harness + prototipo congelado) |
+| Alvos do gate | de **6** para **4** |
+
+Sobraram em `UI/`, fora de `Canvas/`, apenas `ChartIndicatorVisualizer.mqh` e
+`IndicatorLegendOverlay.mqh` — que desenham os indicadores no grafico e nunca
+foram painel.
+
+### A lista nao foi escrita a mao
+
+Foi calculada: o fecho transitivo de `#include` a partir de `UI/UIPanel.mqh`,
+menos o fecho a partir do que fica (`UI/Canvas/CanvasPanel.mqh` e
+`UI/ChartIndicatorVisualizer.mqh`). Deu 61, e a conferencia inversa e a que
+importa de verdade:
+
+⚠️ **Nenhum arquivo de `UI/Canvas/` inclui coisa alguma da raiz de `UI/`.**
+
+Essa separacao nao apareceu nesta fase. Foi construida na Fase 2, quando
+`Core/VolumeFormat.mqh`, `Core/TextParse.mqh` e `Core/SettingsNotices.mqh` foram
+**extraidos** de `UI/PanelUtils.mqh` em vez de copiados — justamente para que a
+remocao fosse uma exclusao de arquivos e nao uma cirurgia. O gate passou 0/0 na
+primeira tentativa por causa daquele trabalho, nao por sorte.
+
+## 2. O que mudou no codigo que fica
+
+**O interruptor sumiu.** `Core/EAApplication.mqh` incluia `CanvasPanel.mqh` ou
+`UIPanel.mqh` conforme `FUSION_USE_CANVAS_PANEL`; agora inclui o primeiro e
+pronto. Era o combinado desde a Fase 1, e a razao de ter sido escolhida troca em
+tempo de compilacao em vez de indirecao de runtime: a indirecao sobreviveria a
+transicao sem uso, o `#define` nao.
+
+**`UI/UIPanelTypes.mqh` deixou de existir.** Seus seis enums de aba e pagina e
+tres structs de estado de acesso eram vocabulario do painel classico. Os quatro
+defines de geometria que sobreviveram viraram `FCV_PANEL_X` e `FCV_PANEL_Y` em
+`UI/Canvas/CanvasLayout.mqh`, ao lado de `FCV_PANEL_W`.
+
+**`CreatePanel` perdeu quatro parametros:** `name`, `subwin`, `x2` e `y2`.
+Nenhum era lido — conferido um a um. Existiam porque `CFusionPanel` herdava de
+`CAppDialog`: `name` era a legenda do dialogo, `subwin` a subjanela, `x2,y2`
+fechavam o retangulo. O canvas usa `FCV_OBJ_NAMESPACE` como prefixo, desenha o
+proprio titulo, vive sempre na janela 0, tem largura `FCV_PANEL_W` e tira a
+altura de `DecidePanelHeight()`.
+
+> ⚠️ Enquanto os dois paineis conviviam a assinatura **tinha** de ser identica
+> nos dois lados: era ela que fazia o compilador garantir a troca (secao 5 do
+> plano). Com um painel so, ela passou a afirmar que o painel aceita coisas que
+> ignora.
+
+**Tres funcoes mortas em `Core/Version.mqh`:** `FusionWindowTitle()`,
+`FusionDialogProgramName()` e `FusionHeaderTitle()`. So alimentavam a legenda e o
+cabecalho do dialogo antigo. `FUSION_APP_VERSION` fica — e o `#property version`
+do `Fusion.mq5` e o numero que o canvas escreve na barra de titulo.
+
+**Sete blocos de comentario** citavam `UI/PanelUtils.mqh`, `UI/Pages/StatusPage.mqh`,
+`UI/Pages/ResultsPage.mqh` ou `Prototype/FusionCanvasPrototype.mq5` como fonte de
+uma regra. A citacao continua valendo — e dali que as regras sairam —, mas o
+caminho deixou de resolver nesta arvore; agora dizem "da 1.058" ou apontam para o
+historico. Um deles estava simplesmente **falso**: `VolumeFormat.mqh` afirmava no
+presente que "PanelUtils passa a incluir este arquivo".
+
+## 3. Decisao registrada: nenhuma varredura das sobras do painel classico
+
+O painel antigo deixava no grafico controles sob nomes fixos `Fusion_*` (cerca de
+270 deles) e a casca do dialogo sob um prefixo numerico aleatorio do `CAppDialog`.
+Removido o painel, nao sobra codigo capaz de varrer aquilo.
+
+**Decisao do usuario: nao acrescentar limpeza.** As razoes:
+
+- na troca normal o assunto nao existe — trocar o EA do grafico roda o
+  `Destroy()` do painel que sai, conferido nos passos `J2` e `J3` da Fase 3;
+- o caso descoberto e estreito: terminal encerrado de forma **anormal** com o
+  painel antigo no ar, e so depois a atualizacao. Ali as sobras se apagam **uma
+  vez**, pela lista de objetos do grafico;
+- escrever limpeza nova dentro da fase que existe para remover codigo seria
+  trocar o problema de lugar. A auditoria da Fase 3 ja tinha ensinado que
+  inventario incompleto vira limpeza ampla, que e o defeito removido no P1.
+
+⚠️⚠️ **CORRECAO: a primeira versao deste documento dizia que uma varredura por
+`Fusion_` seria "tecnicamente estreita, sem interseccao". ISSO ERA FALSO E
+PERIGOSO** — sob aquele prefixo vive um objeto legitimo:
+
+- **`Fusion_indicator_legend_*`** — a **legenda das medias**: seis objetos, um
+  `OBJ_RECTANGLE_LABEL` de fundo e cinco `OBJ_LABEL`, criados por
+  `UI/IndicatorLegendOverlay.mqh`. Esse arquivo **sobreviveu a Fase 4** justamente
+  porque nunca foi painel: desenha no grafico.
+
+`ObjectsDeleteAll(chart,"Fusion_")` apagaria a legenda de quem estivesse com os
+indicadores visuais ligados. **A unica limpeza automatica permitida e pelo
+namespace exato `Fusion2.Canvas.`** (`FCV_OBJ_NAMESPACE`). Nao alargar.
+
+> ⚠️ **SEGUNDA CORRECAO, da rodada seguinte da auditoria — e ela derrubou tambem
+> a versao corrigida acima.** A primeira correcao listava um segundo prefixo,
+> `Fusion_visual_ma_*`, como "as linhas das medias". **Errado nas duas metades:**
+>
+> - **nada cria `Fusion_visual_ma_*`.** E o nome ANTIGO da legenda, e sobrevive so
+>   dentro de `DeleteLegacyLegend()`, que o apaga por compatibilidade.
+>   `LegacyLegendName()` e `DeleteLegacyLegend()` sao os unicos usos, e todos sao
+>   `ObjectDelete`. Uma varredura por `Fusion_` nao teria o que apagar ali;
+> - **as linhas nao sao objeto de grafico.** Sao **indicadores**, anexados por
+>   `ChartIndicatorAdd()` com os nomes curtos `Fusion Visual MA|BB|RSI <chartId>`.
+>   Aparecem em `Ctrl+I`, nunca em `Ctrl+B`, e nenhuma varredura de objeto as
+>   alcanca — quem as remove e `ChartIndicatorDelete()`.
+>
+> **A conclusao operacional nao mudou:** varredura por `Fusion_` continua proibida,
+> por causa da legenda. Mudou o motivo, e e por isso que a correcao vale registro.
+>
+> ⚠️ **A LICAO NOVA: um nome que so aparece sendo APAGADO nao prova que esteja
+> vivo. Antes de classificar um prefixo de objeto, localize quem o CRIA** —
+> `ObjectCreate`, `ObjectSetString`, qualquer escrita. Eu vi `Fusion_visual_ma_`
+> num `ObjectDelete` e concluí que algo o criava. "Isto aparece no codigo?" e
+> "quem escreve isto?" sao perguntas diferentes, e so a segunda responde.
+>
+> ⚠️⚠️ **E a primeira redacao desta licao estava ESCRITA AO CONTRARIO** — dizia
+> "um nome que so aparece sendo apagado se le como um nome vivo", que descreve o
+> erro em voz de regra e, lido como instrucao, manda comete-lo. Pego pela
+> auditoria. **E a mesma familia do defeito mais reincidente da migracao:** texto
+> que instrui a acao errada, ou que instrui acao que a interface impede — apareceu
+> quatro vezes na Fase 2 e mais duas no aceite da Fase 3. Vale para licao escrita
+> tanto quanto para mensagem de tela: **reler perguntando "se eu seguir isto ao pe
+> da letra, faco a coisa certa?"**
+
+> **Como o erro entrou, porque vale mais que a correcao.** Eu levantei os
+> prefixos com um `grep` sobre `UI/`, **agrupei por prefixo e joguei fora a
+> atribuicao de arquivo**. `Fusion_visual` e `Fusion_indicator` apareceram na
+> saida, uma ocorrencia cada, e eu os li como mais dois nomes do painel classico
+> no meio de `Fusion_cfg` (100x) e `Fusion_protect` (96x). A evidencia estava na
+> tela; o agrupamento e que destruiu a informacao que decidia.
+>
+> ⚠️ **Contar ocorrencias por prefixo responde "qual e comum", nao "de quem e".**
+> Quando a pergunta e de propriedade, a resposta tem de sair por arquivo.
+>
+> E o pior: isto e **exatamente** o defeito que o P1 da auditoria da Fase 3
+> removeu — uma limpeza ampla apagando o que nao devia. A decisao de nao
+> implementar nada foi o que impediu o dano; a justificativa e que estava errada.
+
+Se o caso das sobras aparecer na pratica, o caminho e um inventario explicito dos
+nomes do painel antigo — nunca um prefixo compartilhado.
+
+## 4. ⚠️ Reverter mudou de natureza
+
+Ate a Fase 3, voltar ao painel antigo era **trocar o EA do grafico**, sem
+recompilar nada (`J3`, conferido em execucao). A partir daqui e **operacao de
+Git**:
+
+> **`5f9524a`** — publicado em `origin/gui-2.0`, e o ultimo commit em que os dois
+> paineis coexistem.
+
+Foi exatamente para isso que a branch foi publicada **antes** desta fase.
+
+E o `Fusion.ex5` mudou de significado: ate ontem era o caminho seguro com o
+painel classico dentro; agora e o painel novo. Quem deployar por cima de uma
+instalacao antiga esta trocando de GUI, nao atualizando o motor.
+
+## 5. Pendencias que atravessaram a fase
+
+### ✅ `H4` — EXECUTADO E APROVADO em 2026-08-17
+
+> Com protecao de drawdown **em curso**, carregar um perfil de parametros de DD
+> diferentes. Esperado: recusa com a mensagem de drawdown.
+
+**Passou.** Com o DD diario ativo, o CARREGAR foi recusado e a frase do motor
+chegou a tela nova: *"Perfil nao carregado: DD diario ativo. O novo perfil deve
+manter a mesma regra ate o novo dia."*
+
+**Adendo ao encerramento da Fase 3, e o numero muda.** A fase foi encerrada em
+2026-08-16 com **88** passos e o `H4` deliberadamente sem marca — ele exige a
+meta do dia **batida** e o DD **armado**, estado que o mercado produz e nao a
+interface, e passo marcado sem ter rodado mente. Foi executado no dia seguinte,
+ja **depois** de a Fase 4 remover o painel classico, e o roteiro fecha em
+**89 de 89**.
+
+⚠️ **A ordem tem uma consequencia que vale registrar:** o `H4` rodou contra o
+`Fusion.ex5` ja sem o painel antigo, entao o que ele conferiu foi o EA definitivo
+— nao a configuracao de transicao com dois executaveis. E melhor evidencia do que
+teria sido antes.
+
+### A matriz `I2` do roteiro
+
+`I2.1` a `I2.19` e uma **tabela**, nao lista de caixas: so `I2.13` e `I2.14`
+viraram passos marcaveis, e os outros 17 estados foram conferidos ao longo do
+aceite **sem registro individual**. O rotulo `I2` tambem aparece com dois
+sentidos no documento.
+
+Se um roteiro novo reaproveitar a matriz, transformar as linhas em caixas e
+renumerar. **Documento de aceite que nao registra o que foi conferido so funciona
+enquanto quem conferiu esta na sala.**
+
+## 6. Smoke test do `Fusion.ex5` definitivo
+
+Pequeno, mas obrigatorio: o gate compila, e nao prova que o binario de producao
+sobe. Cinco minutos, contando a preparacao.
+
+⚠️ **Duas listas diferentes do terminal, e confundi-las invalida o teste:**
+`Ctrl+B` lista **objetos** de grafico; `Ctrl+I` lista **indicadores**. As linhas
+visuais do Fusion sao indicadores; a legenda e a barra do painel sao objetos.
+
+**Pre-condicao (senao os passos visuais sao impossiveis).** `showChartIndicators`
+nasce **`false`** (`Core/Types.mqh:611`), entao o perfil de teste precisa ser
+preparado. ⚠️ **Determinada de proposito, e nao "algum visual ligado":** RSI e
+Bollinger podem cair em **subjanela**, e timeframe divergente do grafico produz
+"nao apareceu" que se confunde com defeito. A estrategia de Medias desenha na
+janela principal e e a unica combinacao sem ambiguidade.
+
+- [x] **0a.** `Indicadores no Grafico` **ligado** (aba `Layout`);
+- [x] **0b.** estrategia de **Medias ligada**;
+- [x] **0c.** MA **rapida** e MA **lenta** no **mesmo timeframe do grafico**;
+- [x] **0d.** **salvar o perfil**, para o estado sobreviver a reanexacao.
+
+**O teste:**
+
+- [x] **1.** No grafico, criar uma linha horizontal e renomea-la para
+  **`EP Fusion MinhaLinha`**. ⚠️ **Este passo e o teste, nao preparacao.** O nome
+  comeca por "EP Fusion" de proposito: era o prefixo que a **primeira** versao da
+  limpeza do canvas varria, e apagar anotacao do usuario foi o P1 da auditoria da
+  Fase 3. Se a linha desaparecer, a limpeza voltou a ser ampla.
+- [x] **2.** Copiar o `Fusion.ex5` novo para `<terminal>\MQL5\Experts\`, atualizar
+  o Navegador, e anexar **esse** EA a um grafico com `inp_ShowPanel = true`.
+- [x] **3.** No log do terminal, confirmar `Painel: canvas (GUI 2.0)`. Dizendo
+  outra coisa, o `.ex5` que subiu nao e o deste build — **parar aqui**.
+- [x] **4.** Navegar entre as abas e editar um campo (o valor volta ao sair, ou
+  fica, conforme a regra da tela — o que importa e o campo responder).
+- [x] **5.** **Aguardar alguns segundos** — a construcao dos indicadores nao e
+  sincrona com a do painel, e conferir antes da hora produz falso negativo. Depois,
+  **antes de remover**, confirmar que existem as tres coisas: as **duas linhas de
+  media** no grafico, a **legenda das medias**, e em **`Ctrl+I`** o indicador
+  **`Fusion Visual MA <chartId>`**.
+- [x] **6.** Remover o EA do grafico.
+- [x] **7.** Em **`Ctrl+I`**, confirmar que **nenhum `Fusion Visual ...` sobrou**.
+- [x] **8.** Em **`Ctrl+B`**, confirmar que **nao sobrou objeto comecando por
+  `Fusion2.Canvas.`** (o painel) **nem por `Fusion_indicator_legend_`** (a
+  legenda).
+- [x] **9.** Confirmar que **`EP Fusion MinhaLinha` continua la**.
+
+⚠️ **Os passos 7 e 8 perguntam por sobras NOMEADAS, e nao se o grafico ficou
+vazio.** Um grafico normal tem objetos do usuario, e exigir "nenhum objeto"
+transformaria o passo em falso negativo garantido.
+
+⚠️ **Nao ha passo procurando `Fusion_visual_ma_*`**, e a ausencia e deliberada:
+nada cria esse nome (ver a segunda correcao da secao 3). Um passo que procura o
+que nunca existe passa sempre, e passo que passa sempre nao testa nada.
+
+### 6.1 Restricao de entradas no cabecalho — validacao propria
+
+O commit que trouxe `SEM ENTRADAS` e a faixa de restricao **nao teve nenhum
+destes estados visto em execucao**. O `H4` provou a recusa do CARREGAR, que e
+outra coisa. Estes passos dependem de estados que o mercado produz, entao valem
+como roteiro a cumprir ao longo dos proximos pregoes, e nao numa sentada.
+
+⚠️⚠️ **R1 e R2 sao SEQUENCIAS, nao fotografias — e e por isso que a primeira
+versao deles era impossivel.** Ela exigia "sem posicao aberta" **e** o projetado
+tocando o piso; sem posicao o projetado nao oscila e nunca toca nada. Os dois
+estados de DD **nascem com posicao aberta** (a meta do dia se bate operando), e e
+so **depois** que o distintivo pode ser conferido: enquanto houver posicao, o
+correto e `OPERANDO`, por precedencia.
+
+⚠️ **R4 exige o EA iniciado e SEM posicao aberta.** R3 e justamente o caso com
+posicao.
+
+- [x] **R1. DD armado** — sequencia:
+  1. bater a meta do dia com `ATIVAR DD`, operando normalmente;
+  2. **esperar a posicao fechar** e a reconciliacao terminar;
+  3. **so entao conferir:** distintivo **`RODANDO`** (verde) e faixa
+     **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
+     carregado`** em ambar.
+  ⚠️ Distintivo **`SEM ENTRADAS` no passo 3 e ERRO**: com o DD apenas armado as
+  entradas seguem permitidas ate o piso. `OPERANDO` no passo 1 e **correto**.
+
+
+  **EXECUTADO E APROVADO EM 2026-08-19.** Distintivo **`RODANDO`** em verde e
+  faixa **`DD ATIVO — parametros protegidos; perfil incompativel nao pode ser
+  carregado`** em ambar, com `Estado DD = ATIVO` e sem posicao aberta. Era o
+  ultimo estado do painel que nunca tinha sido visto em execucao.
+
+  > ⚠ **O usuario resolveu o problema do "dia bom" trocando de ATIVO, e nao
+  > esperando o mercado.** Rodou em `US100Cash` com `Max Ganho 1.00` e
+  > `Max DD 0.50`: pico 1,23, piso 0,73. Numa escala dessas a meta bate na
+  > primeira operacao e a folga ate o piso e enorme em termos relativos, entao a
+  > posicao fecha muito antes de o preco voltar la. **A receita geral, portanto,
+  > nao e "Max DD 100" — e "Max DD grande o bastante para a operacao fechar antes
+  > de o piso ser tocado", e o tamanho disso depende do ativo.**
+  >
+  > De quebra, a captura confirma o rotulo movel da folga nos DOIS sentidos: aqui
+  > ele diz **`Folga DD`** (armado), e nas capturas do dia 18 dizia
+  > **`Folga atual`** (atingido).
+
+  > ⚠⚠ **POR QUE A PRIMEIRA TENTATIVA NAO PRODUZIU A JANELA — o que faltava nao
+  > era um dia bom, e FOLGA ENTRE A META E O `Max DD`.** Tentativa de 2026-08-18:
+  > `Max Ganho 50`, `Max DD 25`. O DD armou,
+  > o pico foi a 66, o piso (66−25 = 41) foi tocado e a protecao ATINGIU — tudo
+  > **dentro da mesma posicao**. Quando ela fechou (+42), o estado ja era
+  > `ATINGIDO`. O momento que o R1 confere **nunca existiu**.
+  >
+  > **O DD ARMA POR DOIS CAMINHOS**, e e isso que faz a janela do R1 sumir:
+  >
+  > | onde | contra o que compara | quando |
+  > |---|---|---|
+  > | `CanOpen()` | P/L **FECHADO** | entre operacoes |
+  > | `ShouldForceClose()` | P/L **PROJETADO** (fechado + flutuante) | **com posicao aberta** |
+  >
+  > ⚠ `UsesDrawdownActivation()` **nao e o gatilho** — e so o porteiro da
+  > CONFIGURACAO, e exige as quatro coisas juntas: `Acao Ganho = ATIVAR DD`,
+  > `Drawdown` ligado, `Max DD > 0` e `Max Ganho > 0`. Uma versao anterior desta
+  > nota dizia que o DD arma "quando o P/L fechado alcanca a meta", omitindo o
+  > segundo caminho; foi por ele que a protecao armou no dia 18, e e ele que
+  > coloca o DD armado **debaixo de uma posicao aberta**, onde o distintivo diz
+  > `OPERANDO` e nao `RODANDO`.
+  >
+  > **RECEITA QUE PRODUZ A JANELA:** `Max DD` grande o bastante **para aquele
+  > ativo** para a posicao fechar por TP/SL/sinal **antes** de o piso ser tocado.
+  > Aí o DD fica so ARMADO com a posicao ja fechada, que e o estado do passo.
+  >
+  > ⚠ **Sem numero, de proposito.** Uma versao anterior desta linha dizia
+  > "`Max DD` largo (100 ou mais)" — um valor tirado do WIN, que nao generaliza e
+  > que contradizia o paragrafo acima nesta mesma nota. Quem fechou o R1 foi
+  > `Max DD 0.50` no US100Cash: o que decide nao e a grandeza do numero, e a
+  > relacao dele com a oscilacao normal do instrumento.
+  >
+  > ⚠ `Max Ganho = 0` mata o ramo inteiro (a config exige `> 0`), entao "sem
+  > limite" nunca arma o DD por esta via.
+  >
+  > **E foi assim que a metade restante do R5 fechou**, na mesma janela e sem
+  > operacao extra: com o DD **armado**, apertar PAUSAR e conferir que a faixa
+  > `DD ATIVO` permanece. Executado em 2026-08-19.
+- [x] **R2. DD atingido** — sequencia, e ela **comeca com posicao aberta**:
+  1. com o DD armado (R1) e uma posicao em gerenciamento, deixar o **projetado
+     tocar o piso**;
+  2. o motor pede o fechamento na hora
+     (`DrawdownProtection::ShouldForceClose`);
+  3. **esperar a posicao sumir** e a reconciliacao terminar;
+  4. **so entao conferir:** distintivo **`SEM ENTRADAS`** em ambar, faixa
+     **`DRAWDOWN — ...`** e o `Status` com a mesma frase — os dois **nao podem
+     discordar**.
+- [x] **R3. Restricao COM posicao aberta.** Encenar com **filtro de sessao ligado,
+  `Fechar no fim` DESLIGADO, e o horario fora da janela** — ou com uma janela
+  de noticia configurada so para bloquear entradas —, mantendo uma posicao em
+  gerenciamento. **Esperado:** distintivo **`OPERANDO`**; a faixa **continua
+  explicando a posicao aberta** (`POSICAO ABERTA — ...`); **marcador ambar** na
+  aba `Status`; e a causa da restricao detalhada **dentro do `Status`**.
+
+  > ⚠️ **A faixa NAO mostra a causa aqui, e isto e o comportamento correto** — a
+  > restricao so ocupa a faixa quando ela esta livre, e a posicao aberta ja a
+  > ocupa. Quem garante que a causa nao se perde e o marcador.
+  >
+  > ⚠️ **E NAO usar "DD atingido + posicao aberta" para este passo.**
+  > `DrawdownProtection::ShouldForceClose` devolve `true` assim que
+  > `m_limitReached` liga, entao o motor pede o fechamento na hora: o estado se
+  > desfaz sozinho e o passo vira uma corrida contra o EA — e e justamente esse
+  > fechamento que o **R2** aproveita, em vez de tentar evita-lo. Sessao com
+  > `Fechar no fim` desligado nao fecha posicao — conferido em
+  > `SessionProtection::ShouldForceClose`, que sai cedo sem essa chave.
+
+  **EXECUTADO E APROVADO EM 2026-08-18**, com a variante de **noticia** (Janela 1,
+  modo `Bloquear` — "Impede novas entradas durante a janela"). Os quatro itens
+  bateram: distintivo `OPERANDO`, faixa em `POSICAO ABERTA — ...`, marcador ambar
+  no `Status` e `Alerta: NOTICIAS` com "Janela de news 1 ativa." dentro dele.
+
+  > ⚠ **O usuario fechou a operacao logo depois e provou de brinde o que o passo
+  > nao pedia: a TRANSICAO.** Sem posicao, o mesmo estado virou distintivo
+  > `SEM ENTRADAS` e faixa `NOTICIAS — Janela de news 1 ativa.` — ou seja, a
+  > precedencia foi conferida nos DOIS sentidos, e nao so no lado com posicao.
+  > Ate aqui esse comportamento so tinha argumento de codigo.
+- [x] **R4. Uma restricao que passa sozinha** *(iniciado, sem posicao)*. Sessao
+  fora da janela, ou janela de noticia, ou pausa de sequencia: distintivo
+  `SEM ENTRADAS` com a causa certa na faixa **e a liberacao acontecendo sozinha**
+  quando a condicao termina — sem precisar de clique. ⚠️ Este e o passo que pega
+  restricao que nao se desarma.
+
+  **EXECUTADO E APROVADO EM 2026-08-18.** Janela de noticia 1 configurada
+  14:30–17:00, modo `Bloquear`. As 17:03 o distintivo tinha voltado sozinho a
+  `RODANDO` e a faixa estava vazia, **sem clique nenhum**.
+
+  > ⚠ **O que torna a evidencia forte:** na mesma captura a janela continua
+  > **ligada**, com os mesmos 14:30–17:00 e os campos so-leitura porque o EA esta
+  > rodando. Ou seja, nada foi desligado — quem liberou foi o **relogio**. Se a
+  > liberacao dependesse de interacao, este e o passo que teria mostrado.
+- [x] **R5. EA pausado.** Com qualquer restricao valendo, PAUSAR o EA: o
+  distintivo tem de dizer **`PAUSADO`**, e nao `SEM ENTRADAS` — parado, ninguem
+  espera entrada. A faixa de **DD armado**, essa, **continua aparecendo**, de
+  proposito: e o estado em que o usuario vai a aba Perfis e leva a recusa.
+
+  **EXECUTADO EM 2026-08-18**, com a janela de noticia ativa: distintivo
+  `PAUSADO` (ambar), faixa vazia, e o `Alerta: NOTICIAS` seguindo visivel dentro
+  do `Status`. A restricao nao sumiu da tela; ela deixou de ocupar o cabecalho,
+  que e o combinado.
+
+  > ⚠ **AS DUAS METADES, e elas foram em dias diferentes.** O passo cobre
+  > duas afirmacoes distintas, e cada uma exigiu um estado que o mercado produz:
+  >
+  > | metade | encenada com | quando |
+  > |---|---|---|
+  > | distintivo `PAUSADO`, e nao `SEM ENTRADAS` | janela de noticia | 2026-08-18 |
+  > | a faixa de **DD armado** PERMANECE com o EA parado | DD armado em US100Cash | 2026-08-19 |
+  >
+  > A segunda e a que mais importa: e o estado do **`H4`** — o usuario parado, indo
+  > a aba Perfis, levando a recusa no CARREGAR. Ate 2026-08-19 a unica pista vinha
+  > DEPOIS do clique; agora a faixa avisa antes, e foi visto em execucao.
+  >
+  > ⚠ Ela tambem confirma o conserto de `f5788be` no outro sentido: em 18/08 a
+  > faixa aparecia com o DD **atingido** e o EA parado; aqui aparece com o DD
+  > apenas **armado**. Os dois ramos de `drawdownConfigLocked` estao vistos.
+
+> ⚠️ **A primeira versao do R3 estava ERRADA, e ficou registrado porque o erro se
+> repete.** Ela mandava usar DD atingido com posicao aberta e afirmava que "a
+> causa desce para a faixa" — as duas coisas contrariam o codigo, e eu as escrevi
+> RACIOCINANDO em vez de conferir. E a licao da Fase 3 outra vez: **receita de
+> teste que eu escrevo tem de ser executada, ou ao menos lida contra a fonte,
+> nunca deduzida.** Um passo impossivel gasta a rodada do testador e, pior,
+> ensina a desconfiar do painel certo.
+
+## 7. Dividas de projeto, inalteradas
+
+Seguem na **secao 6 do `GUI_2000_PLANO.md`**, todas conscientes e nenhuma tocada
+por esta fase: criar perfil sempre ATIVA, `ApplySettings` nao transacional,
+corrida de unicidade de nome/Magic entre graficos, perfil com espaco no nome
+(`FusionListProfiles` lista o nome cru e `FusionLoadProfile` saneia antes de
+abrir — vale para a 1.058 tambem), e a mensagem "o motivo esta no log", esta
+ultima com o conserto ja escrito e ordenado.
+
+---
+
+Relacionado: `GUI_2000_PLANO.md` (o plano; secao 6 para as dividas, secao 8 para
+as licoes), `GUI_2000_FASE3_TESTES.md` (o roteiro de aceite),
+`GUI_2000_FASE3_PENDENTES.md` (o fechamento da fase anterior).

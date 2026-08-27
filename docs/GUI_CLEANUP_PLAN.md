@@ -1,5 +1,12 @@
 # Fusion GUI Cleanup Plan
 
+> ⚠️ **DOCUMENTO HISTORICO (linha 1.048/1.049).** Ele planeja a limpeza do painel
+> **classico**, que a Fase 4 da migracao da GUI removeu em 2026-08-16. Os
+> guardrails abaixo estao escritos em imperativo e, lidos hoje, instruem a
+> preservar coisas que nao existem mais — `CFusionHitGroup`, a criacao de
+> controles apos `Run()`, os `CComboBox` da biblioteca `Controls`. Nada aqui se
+> aplica a GUI 2.0, que desenha em `CCanvas`. Ver `GUI_2000_FASE4.md`.
+
 Baseline before this document: version 1.048, commit `b5549e5`, pushed to `origin/main`.
 Current stable line: version 1.049.
 

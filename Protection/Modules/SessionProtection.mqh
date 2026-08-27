@@ -26,7 +26,7 @@ public:
       if(IsInsideSession(TimeCurrent()))
          return true;
 
-      reason = "Fora da janela de sessao.";
+      reason = "Fora da janela de sessão.";
       return false;
      }
 
@@ -43,7 +43,7 @@ public:
       if(IsInsideSession(TimeCurrent()))
          return false;
 
-      reason = "Sessao encerrada.";
+      reason = "Sessão encerrada.";
       return true;
      }
   };

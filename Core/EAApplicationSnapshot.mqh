@@ -7,6 +7,10 @@
       snapshot.settings         = m_settings;
       snapshot.started          = m_started;
       snapshot.hasPosition      = HasManagedOrPendingPosition();
+      //--- MESMO booleano que o guard de permissao recebe em EAApplicationEntryBlock
+      //--- (`Refresh(m_positionState.hasPosition)`). Sao conceitos diferentes de
+      //--- proposito: ver a nota dos dois campos em Core/Types.mqh.
+      snapshot.hasOpenPosition  = m_positionState.hasPosition;
       snapshot.activeProfileName= m_activeProfileName;
       snapshot.activeProfileFileMissing = m_activeProfileFileMissing;
       snapshot.symbol           = (m_chartContext.symbol == "" ? _Symbol : m_chartContext.symbol);
@@ -28,6 +32,24 @@
       snapshot.useRSIFilter     = m_settings.useRSIFilter;
       snapshot.bbFilterEnabled  = m_settings.bbFilterEnabled;
       snapshot.runtimeBlocked   = m_runtimeBlocked;
+      snapshot.operationalFallbackTimeframe = OperationalFallbackTimeframe();
+      //--- ⚠ Publicado SO com posicao aberta e SO se o evento for dela. O card
+      //--- descreve a protecao de uma posicao viva; sobreviver a ela, ou migrar
+      //--- para outra, seria afirmar algo que nao existe.
+      snapshot.protectionChanged = (m_protectionChangeEvent.detected &&
+                                    m_positionState.hasPosition &&
+                                    m_protectionChangeEvent.positionId == m_positionState.positionId);
+      snapshot.protectionChangeDetail = snapshot.protectionChanged
+                                        ? FusionProtectionChangeText(m_protectionChangeEvent, SymbolSpec().digits)
+                                        : "";
+      //--- A classificacao segue a mesma porta: sem evento publicado, nada a
+      //--- classificar. Assim a tela nunca le um enum orfao.
+      snapshot.protectionSlChange = snapshot.protectionChanged
+                                    ? m_protectionChangeEvent.slChange
+                                    : FUSION_SLTP_UNCHANGED;
+      snapshot.protectionTpChange = snapshot.protectionChanged
+                                    ? m_protectionChangeEvent.tpChange
+                                    : FUSION_SLTP_UNCHANGED;
       snapshot.runtimeBlockReason = m_runtimeBlockReason;
       snapshot.startBlockedReason = m_startBlockedReason;
       snapshot.activeProfileBlockedReason = m_activeProfileBlockedReason;
@@ -116,6 +138,32 @@
             context.periodValue = m_chartContext.periodValue;
         }
 
+      //--- ⚠ ORDEM CRITICA NESTE BLOCO.
+      //---
+      //--- PersistChartState roda em muitos caminhos normais, com
+      //--- deinitReason=-1. `CanOpen()` NAO e uma consulta inocente: ele pode
+      //--- fixar limite diario, armar drawdown e produzir diagnostico. Chama-lo
+      //--- em toda persistencia era efeito colateral gratuito; e chama-lo DEPOIS
+      //--- de exportar streak/dia/drawdown gravaria um snapshot velho, perdendo
+      //--- exatamente a alteracao que ele acabou de fazer.
+      //---
+      //--- Por isso: primeiro o que nao tem efeito colateral, depois o CanOpen
+      //--- so quando ele pode mudar a decisao, e so entao a exportacao das
+      //--- protecoes.
+      bool entryBaseEligible = (deinitReason == REASON_CHARTCHANGE &&
+                                m_started &&
+                                context.symbol == _Symbol &&
+                                !m_runtimeBlocked &&
+                                !m_tradePermissionGuard.IsBlocked() &&
+                                !HasManagedOrPendingPosition());
+
+      bool entryProtectionBlocked = false;
+      if(entryBaseEligible)
+        {
+         string entryProtectionReason = "";
+         entryProtectionBlocked = !m_protectionManager.CanOpen(_Symbol, entryProtectionReason);
+        }
+
       SStreakRuntimeState streakState;
       SDailyLimitsRuntimeState dailyState;
       SDrawdownRuntimeState drawdownState;
@@ -128,6 +176,20 @@
       SPositionRuntimeState stateToPersist = m_closeReconciliationPending
                                              ? m_closeReconciliationState
                                              : m_positionState;
+
+      //--- Estado logico das estrategias. Roda ANTES de m_signalManager.Shutdown()
+      //--- (ver EAApplication::Shutdown): depois dele o estado ja nao existe.
+      //---
+      //--- `eligible` e decidido AQUI, com a fonte de verdade do motor: se
+      //--- qualquer condicao de descarte conservador valia no desligamento, a
+      //--- continuidade nasce proibida — preservar um sinal atraves de um
+      //--- bloqueio seria contrabandea-lo para a sessao seguinte.
+      SEntryStateSnapshot entryState;
+      ResetEntryStateSnapshot(entryState);
+      entryState.capturedAt = TimeLocal();
+      entryState.eligible   = (entryBaseEligible && !entryProtectionBlocked);
+      m_signalManager.ExportEntryStates(entryState);
+
       bool saved = m_settingsStore.SaveChartState(context,
                                                    m_activeProfileName,
                                                    m_started,
@@ -135,7 +197,8 @@
                                                    stateToPersist,
                                                    streakState,
                                                    dailyState,
-                                                   drawdownState);
+                                                   drawdownState,
+                                                   entryState);
       if(!saved)
          m_logger.Error("PERSIST", "Falha ao salvar o estado operacional do grafico.");
       return saved;

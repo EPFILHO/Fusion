@@ -3,8 +3,14 @@
 
 #define FUSION_DEFAULT_TIMEFRAME PERIOD_M15
 #define FUSION_NEWS_WINDOW_COUNT 3
-#define FUSION_SETTINGS_SCHEMA_VERSION 14
-#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 142
+#define FUSION_SETTINGS_SCHEMA_VERSION 15
+//--- Quantas linhas o FusionSaveSettingsBlock grava. A validacao usa >=, entao
+//--- arquivos de versoes anteriores com mais linhas continuam aceitos — mas
+//--- ACRESCENTAR OU REMOVER UMA LINHA DO GRAVADOR EXIGE ATUALIZAR ESTE NUMERO.
+//--- Esquecer faz todo perfil recem-salvo ser recusado como incompleto no
+//--- carregamento seguinte, sem erro de compilacao para avisar. Ja aconteceu
+//--- ao tirar debugLogs do perfil: 142 virou 141.
+#define FUSION_SETTINGS_SCHEMA_LINE_COUNT 144
 
 enum ENUM_SIGNAL_TYPE
   {
@@ -134,10 +140,30 @@ enum ENUM_UI_COMMAND
    UI_COMMAND_LOAD_PROFILE
   };
 
+//+------------------------------------------------------------------+
+//| Como o tamanho de cada parcial e expresso. GLOBAL para os dois     |
+//| estagios: nao existe TP1 em percentual com TP2 em volume.          |
+//|                                                                    |
+//| Misturar as duas unidades no mesmo plano tornaria a soma ilegivel: |
+//| "50% mais 0.30" nao se confere de cabeca, e a recusa por falta de  |
+//| minimo apareceria sem que ninguem soubesse qual estagio corrigir.  |
+//+------------------------------------------------------------------+
+enum ENUM_PARTIAL_SIZE_MODE
+  {
+   PARTIAL_SIZE_PERCENT = 0,   // Fracao da posicao, em %
+   PARTIAL_SIZE_VOLUME  = 1    // Volume negociavel, na unidade do ativo
+  };
+
+//--- ⚠ `percent` e `volume` COEXISTEM de proposito. Guardar os dois permite
+//--- alternar o modo sem destruir o valor anterior: quem experimenta volume e
+//--- volta ao percentual reencontra o que tinha. Reaproveitar um campo so
+//--- daria uma chave cujo significado depende de outra chave — e um perfil
+//--- lido sem o modo passaria a valer coisa diferente do que foi gravado.
 struct SPartialTPConfig
   {
    bool   enabled;
-   double percent;
+   double percent;          // vale quando o modo e PARTIAL_SIZE_PERCENT
+   double volume;           // vale quando o modo e PARTIAL_SIZE_VOLUME
    int    distancePoints;
   };
 
@@ -221,6 +247,8 @@ struct SEASettings
    bool                     compensateTPSpread;
    bool                     usePartialTP;
    bool                     freeFinalTP;
+   //--- Vale para TP1 e TP2 ao mesmo tempo. Ver ENUM_PARTIAL_SIZE_MODE.
+   ENUM_PARTIAL_SIZE_MODE   partialSizeMode;
    SPartialTPConfig         tp1;
    SPartialTPConfig         tp2;
    bool                     useTrailing;
@@ -292,6 +320,16 @@ struct SEASettings
    bool                     isTester;
   };
 
+//--- Faixa normativa de periodo de indicador, uma so para a tela e para o
+//--- motor. O VPeriod da GUI le daqui.
+#define FUSION_INDICATOR_PERIOD_MIN 1
+#define FUSION_INDICATOR_PERIOD_MAX 1000
+
+bool FusionIndicatorPeriodInRange(const int period)
+  {
+   return (period >= FUSION_INDICATOR_PERIOD_MIN && period <= FUSION_INDICATOR_PERIOD_MAX);
+  }
+
 long FusionMAHorizonSeconds(const int period,const ENUM_TIMEFRAMES timeframe)
   {
    int timeframeSeconds = PeriodSeconds(timeframe);
@@ -300,6 +338,10 @@ long FusionMAHorizonSeconds(const int period,const ENUM_TIMEFRAMES timeframe)
    return ((long)period * (long)timeframeSeconds);
   }
 
+//--- ⚠ Regra do TREND FILTER, nao da MA Cross. Aqui a ordem e ESTRITA: a MA1 e a
+//--- barreira longa e a MA2 a curta, e horizontes iguais nao servem porque as
+//--- duas barreiras coincidiriam. A MA Cross tem outra semantica e outro
+//--- predicado (FusionMACrossConfigState, abaixo) - nao unifique os dois.
 bool FusionTrendMAOrderValid(const SEASettings &settings)
   {
    if(!settings.trendMA1Enabled || !settings.trendMA2Enabled)
@@ -308,6 +350,70 @@ bool FusionTrendMAOrderValid(const SEASettings &settings)
    long ma1Horizon = FusionMAHorizonSeconds(settings.trendMAPeriod, settings.trendMATimeframe);
    long ma2Horizon = FusionMAHorizonSeconds(settings.trendSellMAPeriod, settings.trendSellMATimeframe);
    return (ma1Horizon > 0 && ma2Horizon > 0 && ma1Horizon > ma2Horizon);
+  }
+
+//+------------------------------------------------------------------+
+//| Validade da configuracao das medias da estrategia MA Cross.       |
+//|                                                                    |
+//| FONTE UNICA: a GUI e o motor leem daqui. Nao replique a compara-  |
+//| cao em outro arquivo — a regra antiga vivia so na tela, era       |
+//| `maFastPeriod < maSlowPeriod`, e errava dos dois lados:           |
+//|   · recusava SMA 9 contra EMA 9, que sao curvas diferentes e uma  |
+//|     configuracao legitima;                                        |
+//|   · aceitava EMA 9 H4 como "rapida" contra EMA 21 M1 como         |
+//|     "lenta", em que a rapida tem horizonte 96x maior.             |
+//|                                                                    |
+//| O que decide e o HORIZONTE (periodo x duracao do timeframe), nao  |
+//| o periodo cru. Horizontes IGUAIS sao validos desde que as curvas  |
+//| difiram em algum campo: EMA 10 M1 e EMA 5 M2 cobrem o mesmo tempo |
+//| por caminhos diferentes e cruzam de verdade. So e invalido quando |
+//| os quatro campos coincidem — ai as duas curvas sao a MESMA linha  |
+//| e nao existe cruzamento possivel.                                 |
+//+------------------------------------------------------------------+
+enum ENUM_MA_CROSS_CONFIG
+  {
+   MA_CROSS_CONFIG_OK = 0,           // valida
+   MA_CROSS_CONFIG_PERIOD_RANGE,     // periodo fora de 1..1000
+   MA_CROSS_CONFIG_HORIZON_INVALID,  // periodo ou timeframe nao dao horizonte
+   MA_CROSS_CONFIG_IDENTICAL,        // as duas curvas sao a mesma linha
+   MA_CROSS_CONFIG_FAST_LONGER       // rapida com horizonte maior que a lenta
+  };
+
+ENUM_MA_CROSS_CONFIG FusionMACrossConfigState(const SEASettings &settings)
+  {
+   //--- A faixa normativa tambem mora aqui, e nao so no VPeriod da tela. Sem
+   //--- isto, um periodo 1001 vindo do F7 ou de um perfil antigo produzia
+   //--- horizonte positivo, passava por valido e chegava ao iMA - a tela
+   //--- recusava e o motor aceitava, que e a assimetria que este item veio
+   //--- fechar.
+   if(!FusionIndicatorPeriodInRange(settings.maFastPeriod) ||
+      !FusionIndicatorPeriodInRange(settings.maSlowPeriod))
+      return MA_CROSS_CONFIG_PERIOD_RANGE;
+
+   long fastHorizon = FusionMAHorizonSeconds(settings.maFastPeriod, settings.maFastTimeframe);
+   long slowHorizon = FusionMAHorizonSeconds(settings.maSlowPeriod, settings.maSlowTimeframe);
+
+   //--- Falha fechada: sem horizonte calculavel nao ha como afirmar a ordem.
+   if(fastHorizon <= 0 || slowHorizon <= 0)
+      return MA_CROSS_CONFIG_HORIZON_INVALID;
+
+   if(fastHorizon > slowHorizon)
+      return MA_CROSS_CONFIG_FAST_LONGER;
+
+   //--- Identidade e conferida nos QUATRO campos, nao pelo horizonte: dois
+   //--- horizontes iguais podem vir de curvas bem diferentes.
+   if(settings.maFastPeriod    == settings.maSlowPeriod &&
+      settings.maFastTimeframe == settings.maSlowTimeframe &&
+      settings.maFastMethod    == settings.maSlowMethod &&
+      settings.maFastPrice     == settings.maSlowPrice)
+      return MA_CROSS_CONFIG_IDENTICAL;
+
+   return MA_CROSS_CONFIG_OK;
+  }
+
+bool FusionMACrossConfigValid(const SEASettings &settings)
+  {
+   return (FusionMACrossConfigState(settings) == MA_CROSS_CONFIG_OK);
   }
 
 bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const SEASettings &candidateSettings)
@@ -325,9 +431,9 @@ bool FusionDrawdownSettingsCompatible(const SEASettings &currentSettings,const S
 
 string FusionDrawdownProfileBlockMessage(void)
   {
-   return "Perfil nao carregado: DD diario ativo. " +
-          "O novo perfil deve manter a mesma regra ate o novo dia. " +
-          "A consistencia no trade comeca por obedecer ao gerenciamento inicial.";
+   return "Perfil não carregado: DD diário ativo. " +
+          "O novo perfil deve manter a mesma regra até o novo dia. " +
+          "A consistência no trade começa por obedecer ao gerenciamento inicial.";
   }
 
 struct SSignalCandidate
@@ -396,6 +502,226 @@ struct SPositionRuntimeState
    datetime           pendingPartialSince;
    double             dayPeakProjectedProfit;
   };
+
+//+------------------------------------------------------------------+
+//| ALTERACAO EXTERNA DE PROTECAO — observabilidade, e SO isso.       |
+//|                                                                   |
+//| O Fusion NAO desfaz a decisao de quem opera. Nada aqui restaura,   |
+//| trava ou reenvia SL/TP: e leitura, comparacao e aviso.             |
+//|                                                                   |
+//| ⚠ "Externa", e nunca "manual". A alteracao pode vir do MT5 do      |
+//| desktop, do aplicativo, da corretora ou de outro programa — o      |
+//| Fusion nao tem como distinguir, e afirmar "manual" seria inventar  |
+//| um fato tecnico que ele nao possui.                                |
+//+------------------------------------------------------------------+
+#define FUSION_SLTP_UNCHANGED 0
+#define FUSION_SLTP_CREATED   1   // 0 -> preco
+#define FUSION_SLTP_MODIFIED  2   // preco A -> preco B
+#define FUSION_SLTP_REMOVED   3   // preco -> 0
+
+struct SProtectionChangeEvent
+  {
+   bool     detected;      // ha evento a exibir
+   ulong    positionId;    // dono do evento; troca de posicao o descarta
+   int      slChange;      // FUSION_SLTP_*
+   double   slBefore;
+   double   slAfter;
+   int      tpChange;
+   double   tpBefore;
+   double   tpAfter;
+   datetime at;
+  };
+
+void ResetProtectionChangeEvent(SProtectionChangeEvent &event)
+  {
+   event.detected   = false;
+   event.positionId = 0;
+   event.slChange   = FUSION_SLTP_UNCHANGED;
+   event.slBefore   = 0.0;
+   event.slAfter    = 0.0;
+   event.tpChange   = FUSION_SLTP_UNCHANGED;
+   event.tpBefore   = 0.0;
+   event.tpAfter    = 0.0;
+   event.at         = 0;
+  }
+
+//--- Nivel AUSENTE e zero, e zero nao e um preco. O terminal devolve 0.0 exato
+//--- quando nao ha SL ou TP, entao a pergunta e binaria e nao precisa de
+//--- tolerancia — misturar as duas coisas faria "removido" virar "alterado para
+//--- um preco muito baixo".
+bool FusionLevelPresent(const double level)
+  {
+   return (level > 0.0);
+  }
+
+//+------------------------------------------------------------------+
+//| Tolerancia de comparacao, derivada do ATIVO.                      |
+//|                                                                   |
+//| ⚠ Existe por um falso positivo concreto, e nao por preciosismo com |
+//| double: ModifyStops guarda o valor SOLICITADO, e o Fusion          |
+//| normaliza apenas para digits, nunca para tickSize. Num ativo cujo  |
+//| tick nao e o point — indices e futuros com passo de varios pontos, |
+//| cripto —, o servidor arredonda ao grid e devolve um valor          |
+//| diferente do que ficou guardado. Sem tolerancia, o proprio         |
+//| TRAILING seria acusado de alteracao externa, que e exatamente o    |
+//| susto que este recurso existe para nao dar.                        |
+//|                                                                   |
+//| Meio tick: diferenca de ATE meio tick e arredondamento ao grid e   |
+//| entra na tolerancia; alteracao real move um tick INTEIRO, e        |
+//| continua detectada.                                                |
+//|                                                                   |
+//| ⚠ Spec desconhecida FALHA PARA "IGUAL", e nao para "alterado". Sem |
+//| saber o grid do ativo nao da para separar ruido de decisao, e num  |
+//| recurso puramente informativo o erro caro e o alarme falso.        |
+//+------------------------------------------------------------------+
+double FusionLevelEpsilon(const SSymbolSpec &spec)
+  {
+   double grid = MathMax(spec.tickSize, spec.point);
+   if(grid <= 0.0)
+      return 0.0;
+   return (grid / 2.0);
+  }
+
+bool FusionLevelEqual(const double a,const double b,const SSymbolSpec &spec)
+  {
+   bool aPresent = FusionLevelPresent(a);
+   bool bPresent = FusionLevelPresent(b);
+   if(aPresent != bPresent)
+      return false;
+   if(!aPresent)
+      return true;
+
+   double epsilon = FusionLevelEpsilon(spec);
+   //--- Grid desconhecido: nao ha como julgar, entao nao se acusa.
+   if(epsilon <= 0.0)
+      return true;
+   //--- `<=`, e nao `<`: exatamente meio tick ainda pode ser arredondamento ao
+   //--- grid. Uma alteracao real anda pelo menos um tick inteiro.
+   return (MathAbs(a - b) <= epsilon);
+  }
+
+//--- Classifica UM nivel. before/after na ordem cronologica.
+int FusionClassifyLevelChange(const double before,const double after,const SSymbolSpec &spec)
+  {
+   if(FusionLevelEqual(before, after, spec))
+      return FUSION_SLTP_UNCHANGED;
+   if(!FusionLevelPresent(before))
+      return FUSION_SLTP_CREATED;
+   if(!FusionLevelPresent(after))
+      return FUSION_SLTP_REMOVED;
+   return FUSION_SLTP_MODIFIED;
+  }
+
+//+------------------------------------------------------------------+
+//| A PRECONDICAO de identidade, separada e testavel.                 |
+//|                                                                   |
+//| Comparar so faz sentido sobre a MESMA posicao, com base anterior   |
+//| real. Fora disso nao ha alteracao: ha outra posicao, ou nenhuma.   |
+//| Entrada e volta de reconciliacao caem aqui sem caso especial —     |
+//| em ambas o estado anterior nao tinha posicao.                      |
+//+------------------------------------------------------------------+
+bool FusionProtectionChangeComparable(const bool prevHasPosition,const bool curHasPosition,
+                                      const ulong prevPositionId,const ulong curPositionId)
+  {
+   if(!prevHasPosition || !curHasPosition)
+      return false;
+   if(prevPositionId == 0 || curPositionId == 0)
+      return false;
+   return (prevPositionId == curPositionId);
+  }
+//+------------------------------------------------------------------+
+//| O predicado inteiro, puro e sem acesso ao terminal.               |
+//|                                                                   |
+//| Compara EXCLUSIVAMENTE `previous` contra `current` da MESMA        |
+//| sincronizacao. As precondicoes de identidade ficam com quem chama  |
+//| — e nao sao detalhe: comparar posicoes diferentes inventaria       |
+//| eventos, e a primeira sincronizacao de uma posicao nao tem base    |
+//| anterior nenhuma.                                                  |
+//|                                                                   |
+//| ⚠ NAO existe deduplicacao contra o ultimo evento anunciado, e a    |
+//| ausencia e deliberada. Houve aqui uma guarda que comparava com o   |
+//| evento anterior, justificada por uma premissa FALSA: a de que a    |
+//| divergencia reapareceria a cada tick porque o Fusion nao restaura  |
+//| o valor. Nao reaparece — depois da sincronizacao, `m_positionState`|
+//| passa a SER o valor do servidor, entao o `previous` da vez         |
+//| seguinte ja nasce igual a ele e nada e detectado. A propria        |
+//| atualizacao da baseline elimina a repeticao.                       |
+//|                                                                   |
+//| E a guarda nao era so redundante: ela PERDIA um evento legitimo.   |
+//| Alteracao externa leva A -> B e e anunciada; o trailing do Fusion  |
+//| leva B -> C, corretamente em silencio; entao outra alteracao       |
+//| externa leva C -> B. O terceiro evento e real e precisa aparecer,  |
+//| mas o valor final voltou a ser B — e a guarda o recusaria por      |
+//| "ja anunciado".                                                    |
+//|                                                                   |
+//| O ultimo evento continua existindo, mas so como ESTADO DO CARD.    |
+//| Ele nunca e porta da deteccao.                                     |
+//+------------------------------------------------------------------+
+bool FusionDetectProtectionChange(const double prevSL,const double prevTP,
+                                  const double curSL,const double curTP,
+                                  const SSymbolSpec &spec,
+                                  const ulong positionId,
+                                  SProtectionChangeEvent &event)
+  {
+   //--- ⚠ ANTES de qualquer retorno. Sem isto, um `false` deixaria o evento
+   //--- ANTERIOR de pe na variavel de quem chama, e um chamador que reusa a
+   //--- mesma variavel exibiria um card velho como se fosse novo.
+   ResetProtectionChangeEvent(event);
+
+   int slChange = FusionClassifyLevelChange(prevSL, curSL, spec);
+   int tpChange = FusionClassifyLevelChange(prevTP, curTP, spec);
+
+   if(slChange == FUSION_SLTP_UNCHANGED && tpChange == FUSION_SLTP_UNCHANGED)
+      return false;
+
+   event.detected   = true;
+   event.positionId = positionId;
+   event.slChange   = slChange;
+   event.slBefore   = prevSL;
+   event.slAfter    = curSL;
+   event.tpChange   = tpChange;
+   event.tpBefore   = prevTP;
+   event.tpAfter    = curTP;
+   return true;
+  }
+
+//--- Texto de UM nivel, para log e card. Zero vira "removido": imprimir
+//--- 0.00000 faria quem le procurar um preco que nao existe.
+string FusionLevelText(const double level,const int digits)
+  {
+   if(!FusionLevelPresent(level))
+      return "removido";
+   return DoubleToString(level, digits);
+  }
+
+//+------------------------------------------------------------------+
+//| ⚠ O TEXTO SEGUE A CLASSIFICACAO, e nao os numeros crus.           |
+//|                                                                   |
+//| Formatar os dois lados sempre pelo mesmo caminho produzia frase    |
+//| sem sentido na CRIACAO: como zero vira "removido", um SL que       |
+//| nasceu do nada aparecia como "SL removido -> 77000.00" — que le    |
+//| como o oposto do que aconteceu.                                    |
+//+------------------------------------------------------------------+
+string FusionLevelChangeText(const string label,const int change,
+                             const double before,const double after,
+                             const int digits)
+  {
+   if(change == FUSION_SLTP_CREATED)
+      return label + " criado em " + FusionLevelText(after, digits);
+   if(change == FUSION_SLTP_REMOVED)
+      return label + " " + FusionLevelText(before, digits) + " -> removido";
+   if(change == FUSION_SLTP_MODIFIED)
+      return label + " " + FusionLevelText(before, digits) + " -> " +
+             FusionLevelText(after, digits);
+   return label + " sem alteração";
+  }
+
+string FusionProtectionChangeText(const SProtectionChangeEvent &event,const int digits)
+  {
+   return FusionLevelChangeText("SL", event.slChange, event.slBefore, event.slAfter, digits) +
+          "; " +
+          FusionLevelChangeText("TP", event.tpChange, event.tpBefore, event.tpAfter, digits) + ".";
+  }
 
 struct SStreakRuntimeState
   {
@@ -469,11 +795,438 @@ struct SChartStateContext
    bool   discardedUnsavedDraft;
   };
 
+//+------------------------------------------------------------------+
+//| Estado LOGICO de entrada das estrategias, para atravessar a troca |
+//| do timeframe visual.                                              |
+//|                                                                    |
+//| ⚠ Nao e uma ordem pronta nem um sinal armado. E o que cada        |
+//| estrategia ja tinha OBSERVADO antes do desligamento: qual candle  |
+//| ja foi contado, qual cruzamento ja disparou, qual espera de        |
+//| segundo candle estava em curso. Depois da restauracao, qualquer    |
+//| entrada ainda precisa nascer num tick normal e passar de novo por  |
+//| permissao, protecoes, spread, sessao, noticias, resolvedor,        |
+//| filtros, direcao, risco e execucao.                               |
+//|                                                                    |
+//| ⚠ `eligible` e decidido na EXPORTACAO, nao na leitura: so uma      |
+//| troca controlada de grafico, mesmo simbolo, EA iniciado e sem      |
+//| bloqueio conhecido produz continuidade. Fora disso o bloco e       |
+//| gravado inelegivel e o boot cai no caminho conservador.            |
+//|                                                                    |
+//| A quarentena do item 12 viaja junto, por estrategia, para que a    |
+//| continuidade NAO possa ser usada para burlar a exigencia de sinal  |
+//| fresco depois de uma volta de permissao.                          |
+//+------------------------------------------------------------------+
+#define FUSION_ENTRY_STATE_VERSION           1
+//--- Janela de validade do handoff. Estado mais velho que isto nunca
+//--- ressuscita sinal: uma troca de timeframe leva segundos, e o que
+//--- passa disso ja nao e "a mesma sessao".
+#define FUSION_ENTRY_STATE_HANDOFF_SECONDS 120
+
+struct SEntryStateSnapshot
+  {
+   //--- ⚠ NAO SERIALIZADO. Diz se o arquivo TRAZIA bloco `entry.*`, e nao se ele
+   //--- prestava. Sem isto, arquivo antigo (bloco ausente) e bloco corrompido
+   //--- chegavam identicos ao predicado — os dois com valid=false e
+   //--- capturedAt=0 — e o diagnostico saia errado, ainda que o fallback fosse
+   //--- igualmente seguro. O loader publica `present=true` mesmo quando recusa o
+   //--- bloco, sem publicar os campos parciais.
+   bool     present;
+   //--- Integridade e origem
+   bool     valid;                 // bloco presente, completo e semanticamente sao
+   bool     eligible;              // continuidade autorizada na exportacao
+   int      version;
+   datetime capturedAt;            // TimeLocal() do desligamento
+   //--- MA Cross
+   datetime maLastCrossTime;
+   int      maLastCrossSignal;     // ENUM_SIGNAL_TYPE serializado como int
+   int      maCandlesAfterCross;
+   datetime maLastCheckBarTime;
+   bool     maPendingObserved;     // havia E2C_WAIT realmente observado
+   bool     maQuarantine;
+   datetime maBarrier;
+   //--- RSI
+   datetime rsiLastSignalBarTime;
+   bool     rsiQuarantine;
+   datetime rsiBarrier;
+   //--- Bollinger
+   datetime bbLastSignalBarTime;
+   bool     bbQuarantine;
+   datetime bbBarrier;
+  };
+
+void ResetEntryStateSnapshot(SEntryStateSnapshot &snapshot)
+  {
+   snapshot.present              = false;
+   snapshot.valid                = false;
+   snapshot.eligible             = false;
+   snapshot.version              = FUSION_ENTRY_STATE_VERSION;
+   snapshot.capturedAt           = 0;
+   snapshot.maLastCrossTime      = 0;
+   snapshot.maLastCrossSignal    = (int)SIGNAL_NONE;
+   snapshot.maCandlesAfterCross  = 0;
+   snapshot.maLastCheckBarTime   = 0;
+   snapshot.maPendingObserved    = false;
+   snapshot.maQuarantine         = false;
+   snapshot.maBarrier            = 0;
+   snapshot.rsiLastSignalBarTime = 0;
+   snapshot.rsiQuarantine        = false;
+   snapshot.rsiBarrier           = 0;
+   snapshot.bbLastSignalBarTime  = 0;
+   snapshot.bbQuarantine         = false;
+   snapshot.bbBarrier            = 0;
+  }
+
+//--- Janela do handoff. Fora dela o estado nunca ressuscita sinal.
+//---
+//--- ⚠ Relogio que anda para tras tambem reprova: `now` anterior a captura e
+//--- sinal de ajuste de hora ou de arquivo de outra maquina, e nenhum dos dois
+//--- autoriza continuidade.
+bool FusionEntryStateHandoffFresh(const SEntryStateSnapshot &entry,const datetime now)
+  {
+   if(!entry.valid)          return false;
+   if(entry.capturedAt <= 0) return false;
+   if(now <= 0)              return false;
+   if(now < entry.capturedAt) return false;
+   return ((long)(now - entry.capturedAt) <= FUSION_ENTRY_STATE_HANDOFF_SECONDS);
+  }
+
+//+------------------------------------------------------------------+
+//| Compatibilidade da configuracao, POR ESTRATEGIA.                  |
+//|                                                                    |
+//| O estado so pode ser importado quando a configuracao final for a   |
+//| mesma que produziu o estado — nos campos que afetam ENTRADA.       |
+//|                                                                    |
+//| ⚠ Por estrategia, e nao global: mexer na MA nao pode invalidar o   |
+//| estado do RSI e do Bollinger, que continuam coerentes.            |
+//|                                                                    |
+//| ⚠ Diferenca puramente VISUAL ou de sessao nao entra aqui. Cor de   |
+//| linha, tema, painel e logs de debug nao mudam sinal nenhum, e      |
+//| trata-los como incompatibilidade jogaria fora estado bom.         |
+//+------------------------------------------------------------------+
+bool FusionMACrossEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   return (origin.useMACross          == current.useMACross &&
+           origin.maCrossPriority     == current.maCrossPriority &&
+           origin.maFastPeriod        == current.maFastPeriod &&
+           origin.maSlowPeriod        == current.maSlowPeriod &&
+           origin.maFastTimeframe     == current.maFastTimeframe &&
+           origin.maSlowTimeframe     == current.maSlowTimeframe &&
+           origin.maFastMethod        == current.maFastMethod &&
+           origin.maSlowMethod        == current.maSlowMethod &&
+           origin.maFastPrice         == current.maFastPrice &&
+           origin.maSlowPrice         == current.maSlowPrice &&
+           origin.maMinDistancePoints == current.maMinDistancePoints &&
+           origin.maEntryMode         == current.maEntryMode);
+  }
+
+bool FusionRSIEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   //--- rsiExitMode entra de proposito: o modo de saida por linha media muda a
+   //--- elegibilidade da propria ENTRADA (SignalAlreadyReachedMiddleTarget).
+   return (origin.useRSI       == current.useRSI &&
+           origin.rsiPriority  == current.rsiPriority &&
+           origin.rsiPeriod    == current.rsiPeriod &&
+           origin.rsiTimeframe == current.rsiTimeframe &&
+           origin.rsiOversold  == current.rsiOversold &&
+           origin.rsiOverbought== current.rsiOverbought &&
+           origin.rsiMiddle    == current.rsiMiddle &&
+           origin.rsiMode      == current.rsiMode &&
+           origin.rsiPrice     == current.rsiPrice &&
+           origin.rsiExitMode  == current.rsiExitMode);
+  }
+
+bool FusionBollingerEntryStateCompatible(const SEASettings &origin,const SEASettings &current)
+  {
+   return (origin.useBollinger == current.useBollinger &&
+           origin.bbPriority   == current.bbPriority &&
+           origin.bbPeriod     == current.bbPeriod &&
+           origin.bbTimeframe  == current.bbTimeframe &&
+           origin.bbDeviation  == current.bbDeviation &&
+           origin.bbPrice      == current.bbPrice &&
+           origin.bbMode       == current.bbMode);
+  }
+
+//+------------------------------------------------------------------+
+//| Aceite GLOBAL do handoff.                                         |
+//|                                                                    |
+//| ⚠ Funcao PURA e UNICA. O EA e a sonda chamam esta mesma decisao —  |
+//| uma sonda que reimplementasse a regra provaria a copia, nao o      |
+//| produto, e as duas divergiriam no primeiro ajuste.                |
+//|                                                                    |
+//| Os bloqueios chegam ja resolvidos pelo motor (posicao, contexto,   |
+//| permissao, protecao). Nao se deriva elegibilidade de texto de      |
+//| aviso nem de estado visual da GUI: mensagem e consequencia, nao    |
+//| fonte de verdade.                                                 |
+//+------------------------------------------------------------------+
+enum ENUM_ENTRY_HANDOFF_RESULT
+  {
+   ENTRY_HANDOFF_ACCEPTED = 0,
+   ENTRY_HANDOFF_NO_BLOCK,        // arquivo antigo, sem bloco entry.*
+   ENTRY_HANDOFF_INVALID_BLOCK,   // bloco presente porem invalido
+   ENTRY_HANDOFF_NOT_ELIGIBLE,    // exportado sem continuidade autorizada
+   ENTRY_HANDOFF_STALE,           // fora da janela de 120 s
+   ENTRY_HANDOFF_NOT_CHART_CHANGE,
+   ENTRY_HANDOFF_SYMBOL_CHANGED,
+   ENTRY_HANDOFF_NOT_STARTED,
+   ENTRY_HANDOFF_POSITION,        // posicao ou pendencia: caminho conservador
+   ENTRY_HANDOFF_BLOCKED,         // contexto, permissao ou protecao
+   ENTRY_HANDOFF_ORIGIN_UNKNOWN   // settings que produziram o estado nao chegaram
+  };
+
+struct SEntryHandoffContext
+  {
+   bool     originSettingsKnown;
+   bool     wasChartChange;
+   bool     sameSymbol;
+   bool     wasStarted;
+   bool     hasPositionOrPending;
+   bool     operationalBlocked;   // contexto/runtime bloqueado
+   bool     permissionBlocked;
+   bool     protectionBlocked;
+   datetime now;
+  };
+
+ENUM_ENTRY_HANDOFF_RESULT FusionEvaluateEntryHandoff(const SEntryStateSnapshot &entry,
+                                                     const SEntryHandoffContext &context)
+  {
+   //--- Ordem deliberada: primeiro o que e AUSENCIA (arquivo antigo), depois o
+   //--- que e DEFEITO, depois o que e CONTEXTO. Assim o motivo relatado e o mais
+   //--- especifico, e nao o primeiro que por acaso reprovou.
+   //---
+   //--- ⚠ `present` e a UNICA fonte de "o arquivo trazia bloco". Deduzir isso de
+   //--- capturedAt/version confundia arquivo antigo com bloco corrompido, porque
+   //--- os dois chegam resetados.
+   if(!entry.present)
+      return ENTRY_HANDOFF_NO_BLOCK;
+   if(!entry.valid)
+      return ENTRY_HANDOFF_INVALID_BLOCK;
+   if(!entry.eligible)
+      return ENTRY_HANDOFF_NOT_ELIGIBLE;
+   //--- Sem as settings que produziram o estado nao ha como julgar
+   //--- compatibilidade por estrategia, e importar as cegas seria pior que
+   //--- primear.
+   if(!context.originSettingsKnown)
+      return ENTRY_HANDOFF_ORIGIN_UNKNOWN;
+   if(!context.wasChartChange)
+      return ENTRY_HANDOFF_NOT_CHART_CHANGE;
+   if(!context.sameSymbol)
+      return ENTRY_HANDOFF_SYMBOL_CHANGED;
+   if(!context.wasStarted)
+      return ENTRY_HANDOFF_NOT_STARTED;
+   if(!FusionEntryStateHandoffFresh(entry, context.now))
+      return ENTRY_HANDOFF_STALE;
+   if(context.hasPositionOrPending)
+      return ENTRY_HANDOFF_POSITION;
+   if(context.operationalBlocked || context.permissionBlocked || context.protectionBlocked)
+      return ENTRY_HANDOFF_BLOCKED;
+
+   return ENTRY_HANDOFF_ACCEPTED;
+  }
+
+string FusionEntryHandoffReason(const ENUM_ENTRY_HANDOFF_RESULT result)
+  {
+   switch(result)
+     {
+      case ENTRY_HANDOFF_ACCEPTED:         return "";
+      case ENTRY_HANDOFF_NO_BLOCK:         return "estado anterior não trazia bloco de sinais";
+      case ENTRY_HANDOFF_INVALID_BLOCK:    return "bloco de sinais inválido";
+      case ENTRY_HANDOFF_NOT_ELIGIBLE:     return "novas entradas não estavam liberadas no momento da troca";
+      case ENTRY_HANDOFF_STALE:            return "estado antigo demais para continuidade";
+      case ENTRY_HANDOFF_NOT_CHART_CHANGE: return "reinicio não foi troca de timeframe";
+      case ENTRY_HANDOFF_SYMBOL_CHANGED:   return "ativo do gráfico mudou";
+      case ENTRY_HANDOFF_NOT_STARTED:      return "EA não estava iniciado";
+      case ENTRY_HANDOFF_POSITION:         return "posição ou fechamento pendente";
+      case ENTRY_HANDOFF_BLOCKED:          return "bloqueio operacional, de permissão ou de proteção";
+      case ENTRY_HANDOFF_ORIGIN_UNKNOWN:   return "configuração de origem do estado desconhecida";
+     }
+   return "motivo desconhecido";
+  }
+
+//+------------------------------------------------------------------+
+//| Maquina de estados do cruzamento da MA — LOGICA PURA.             |
+//|                                                                    |
+//| Nao conhece handle, buffer, iTime, logger, ordem, filtro nem       |
+//| protecao. Recebe estado + evento, devolve acao. O caminho de       |
+//| producao detecta o cruzamento, consulta as barreiras e emite os    |
+//| logs conforme a acao devolvida.                                   |
+//|                                                                    |
+//| ⚠ Existe para a sonda exercitar a MESMA transicao que o EA usa.    |
+//| Uma sonda com maquina de estados paralela provaria a copia.        |
+//|                                                                    |
+//| ⚠ As barreiras chegam como resultado JA calculado, e nao como      |
+//| dependencia, porque consulta-las tem efeito colateral: desarmam ao |
+//| passar e logam ao recusar. Chama-las fora da hora certa gastaria a |
+//| quarentena. Por isso as duas pre-condicoes que decidem QUANDO      |
+//| consultar sao funcoes proprias, usadas pela producao e por este    |
+//| helper — uma definicao, dois chamadores, sem duplicar a regra.     |
+//+------------------------------------------------------------------+
+enum ENUM_MA_CROSS_ACTION
+  {
+   MA_ACTION_NONE = 0,
+   MA_ACTION_NEXT_CANDLE_FIRE,     // modo Candle seguinte: dispara na deteccao
+   MA_ACTION_E2C_ARM,              // Segundo candle: espera armada
+   MA_ACTION_E2C_FIRE,             // disparo de pendencia local
+   MA_ACTION_E2C_FIRE_IMPORTED,    // disparo de pendencia vinda do chart state
+   MA_ACTION_NEW_CROSS_BLOCKED,    // cruzamento novo recusado por barreira
+   MA_ACTION_PENDING_BLOCKED       // pendencia recusada pela quarentena do item 12
+  };
+
+struct SMACrossTrackingState
+  {
+   datetime lastCrossTime;
+   int      lastCrossSignal;      // ENUM_SIGNAL_TYPE serializado
+   int      candlesAfterCross;
+   datetime lastCheckBarTime;
+   bool     pendingImported;
+  };
+
+struct SMACrossEvent
+  {
+   bool     crossDetected;
+   int      crossSignal;
+   datetime crossBarTime;         // abertura do candle [1]
+   datetime currentBarTime;       // abertura do candle [0]
+   bool     secondCandleMode;
+  };
+
+struct SMACrossOutcome
+  {
+   ENUM_MA_CROSS_ACTION action;
+   int                  signal;            // sinal a devolver, ou SIGNAL_NONE
+   bool                 importedCancelled; // pendencia importada morreu neste passo
+  };
+
+//--- Pre-condicao 1: ha cruzamento novo, ainda nao consumido?
+bool FusionMACrossHasNewCross(const SMACrossTrackingState &state,const SMACrossEvent &event)
+  {
+   return (event.crossDetected &&
+           event.crossSignal != (int)SIGNAL_NONE &&
+           event.crossBarTime != state.lastCrossTime);
+  }
+
+//--- Pre-condicao 2: a pendencia armada dispararia NESTE passo?
+//---
+//--- ⚠ Inclui a virada de candle que ainda nao foi contada. Sem isso, a
+//--- producao consultaria a quarentena em passos em que nada dispara — e cada
+//--- consulta indevida pode desarma-la cedo demais.
+bool FusionMACrossPendingWouldFire(const SMACrossTrackingState &state,const SMACrossEvent &event)
+  {
+   if(!event.secondCandleMode)
+      return false;
+   if(state.lastCrossSignal == (int)SIGNAL_NONE)
+      return false;
+   if(FusionMACrossHasNewCross(state, event))
+      return false;
+
+   int advanced = state.candlesAfterCross;
+   if(event.currentBarTime != state.lastCheckBarTime)
+      advanced++;
+   return (advanced >= 1);
+  }
+
+void FusionMACrossApply(SMACrossTrackingState &state,
+                        const SMACrossEvent &event,
+                        const bool newCrossBlocked,
+                        const bool pendingBlocked,
+                        SMACrossOutcome &outcome)
+  {
+   outcome.action            = MA_ACTION_NONE;
+   outcome.signal            = (int)SIGNAL_NONE;
+   outcome.importedCancelled = false;
+
+   if(FusionMACrossHasNewCross(state, event))
+     {
+      //--- Contracruzamento: a identidade importada morre antes de qualquer
+      //--- decisao, nos dois desfechos.
+      if(state.pendingImported)
+        {
+         state.pendingImported     = false;
+         outcome.importedCancelled = true;
+        }
+
+      state.lastCrossTime     = event.crossBarTime;
+      state.candlesAfterCross = 0;
+      state.lastCheckBarTime  = event.currentBarTime;
+
+      if(newCrossBlocked)
+        {
+         //--- Cruzamento do intervalo cego (ou da quarentena): descartado, e a
+         //--- pendencia antiga cai junto.
+         state.lastCrossSignal = (int)SIGNAL_NONE;
+         outcome.action        = MA_ACTION_NEW_CROSS_BLOCKED;
+         return;
+        }
+
+      state.lastCrossSignal = event.crossSignal;
+
+      if(!event.secondCandleMode)
+        {
+         state.lastCrossSignal = (int)SIGNAL_NONE;
+         outcome.action        = MA_ACTION_NEXT_CANDLE_FIRE;
+         outcome.signal        = event.crossSignal;
+         return;
+        }
+
+      outcome.action = MA_ACTION_E2C_ARM;
+      return;
+     }
+
+   if(event.secondCandleMode && state.lastCrossSignal != (int)SIGNAL_NONE)
+     {
+      if(event.currentBarTime != state.lastCheckBarTime)
+        {
+         state.lastCheckBarTime = event.currentBarTime;
+         state.candlesAfterCross++;
+        }
+
+      if(state.candlesAfterCross >= 1)
+        {
+         if(pendingBlocked)
+           {
+            state.lastCrossSignal   = (int)SIGNAL_NONE;
+            state.candlesAfterCross = 0;
+            state.pendingImported   = false;
+            outcome.action          = MA_ACTION_PENDING_BLOCKED;
+            return;
+           }
+
+         outcome.signal = state.lastCrossSignal;
+         outcome.action = state.pendingImported ? MA_ACTION_E2C_FIRE_IMPORTED
+                                                : MA_ACTION_E2C_FIRE;
+         //--- Disparou: o tracking inteiro zera, inclusive a marca de importado.
+         state.lastCrossTime     = 0;
+         state.lastCrossSignal   = (int)SIGNAL_NONE;
+         state.candlesAfterCross = 0;
+         state.lastCheckBarTime  = 0;
+         state.pendingImported   = false;
+        }
+     }
+  }
+
 struct SUIPanelSnapshot
   {
    SEASettings settings;
    bool   started;
+   //--- "ha posicao gerenciada OU fechamento aguardando o historico confirmar"
+   //--- (HasManagedOrPendingPosition). E o conceito certo para BLOQUEAR EDICAO:
+   //--- nos dois casos o EA nao esta livre.
+   //--- ⚠ NAO serve para o distintivo OPERANDO nem para dizer "posicao aberta":
+   //--- durante a reconciliacao a posicao ja fechou, e anunciar operacao em
+   //--- curso ali seria falso. Para isso existe o campo abaixo.
    bool   hasPosition;
+   //--- Posicao REALMENTE aberta agora (m_positionState.hasPosition), sem a
+   //--- reconciliacao pendente.
+   //---
+   //--- ⚠ Existe porque e ESTE o booleano que o CTradePermissionGuard recebe
+   //--- (`Refresh(m_positionState.hasPosition)`), e e ele que decide a forma
+   //--- GRAVE da mensagem — "Gerenciamento da posicao interrompido" em vez de
+   //--- "Habilite para iniciar". Um consumidor que decida "isto e critico" pelo
+   //--- `hasPosition` acima anuncia posicao aberta durante uma reconciliacao em
+   //--- que ela ja fechou, e ainda por cima com o texto na forma branda, porque
+   //--- o guard recebeu false. Os dois conceitos precisam vir separados.
+   //---
+   //--- Aditivo: o painel 1.058 nao le este campo.
+   bool   hasOpenPosition;
    string activeProfileName;
    bool   activeProfileFileMissing;
    string symbol;
@@ -532,6 +1285,23 @@ struct SUIPanelSnapshot
    double drawdownTriggerProfit;
    double drawdownTriggerDrawdown;
    double drawdownTriggerBuffer;
+   //--- Fallback operacional CONCRETO, calculado pelo EA (periodo do contexto
+   //--- do grafico, ou o default). Existe porque a criacao de perfil grava do
+   //--- lado do painel e precisa normalizar timeframe legado (valor zero vindo
+   //--- de arquivo antigo) pela MESMA regra do EA. Escolher outro fallback aqui
+   //--- — Period(), ou uma constante — faria dois caminhos de gravacao
+   //--- discordarem sobre a mesma configuracao.
+   ENUM_TIMEFRAMES operationalFallbackTimeframe;
+   //--- Alteracao externa de SL/TP observada na posicao ATUAL. Publicado so
+   //--- quando ha posicao aberta e o evento pertence a ela.
+   bool   protectionChanged;
+   string protectionChangeDetail;
+   //--- ⚠ A CLASSIFICACAO vem pronta do EA, em FUSION_SLTP_*. A tela precisa
+   //--- distinguir remocao de alteracao — remover o SL deixa a posicao exposta
+   //--- e pede outra urgencia —, e procurar a palavra "removido" dentro do
+   //--- detalhe seria decidir gravidade lendo texto formatado.
+   int    protectionSlChange;
+   int    protectionTpChange;
   };
 
 struct SUICommand
@@ -619,11 +1389,20 @@ void SetDefaultSettings(SEASettings &settings)
    settings.compensateTPSpread    = false;
    settings.usePartialTP          = false;
    settings.freeFinalTP           = false;
+   //--- ⚠ O default do modo e PERCENT, e nao por gosto: e o significado que
+   //--- todo perfil ate o schema 14 ja tem. Um perfil antigo que carregue sem
+   //--- a chave precisa continuar valendo exatamente o que valia.
+   settings.partialSizeMode       = PARTIAL_SIZE_PERCENT;
    settings.tp1.enabled           = false;
    settings.tp1.percent           = 50.0;
+   //--- Volume nasce INATIVO (zero). Um default negociavel faria um perfil
+   //--- antigo, migrado para o schema novo, ganhar um volume que ninguem pediu
+   //--- caso alguem trocasse o modo depois.
+   settings.tp1.volume            = 0.0;
    settings.tp1.distancePoints    = 150;
    settings.tp2.enabled           = false;
    settings.tp2.percent           = 25.0;
+   settings.tp2.volume            = 0.0;
    settings.tp2.distancePoints    = 300;
    settings.useTrailing           = false;
    settings.trailingStartPoints   = 150;

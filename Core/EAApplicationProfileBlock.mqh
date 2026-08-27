@@ -79,7 +79,7 @@
       string reason = "";
       if(!ProfileBlockedByActiveProfilePeer(profileName, reason))
          return false;
-      m_logger.Error("PROFILE", "Perfil " + profileName + " nao carregado: " + reason);
+      m_logger.Error("PROFILE", "Perfil " + profileName + " não carregado: " + reason);
       return true;
      }
 
@@ -88,7 +88,7 @@
       string reason = "";
       if(!ProfileBlockedByActiveProfilePeer(profileName, reason))
          return false;
-      m_logger.Error("PROFILE", "Perfil " + profileName + " nao salvo: " + reason);
+      m_logger.Error("PROFILE", "Perfil " + profileName + " não salvo: " + reason);
       return true;
      }
 
@@ -113,7 +113,7 @@
       if(!m_instanceRegistry.HasActiveConflict(settings.magicNumber, ChartID(), reason))
          return false;
 
-      m_logger.Error("PROFILE", "Perfil " + profileName + " nao carregado: " + reason);
+      m_logger.Error("PROFILE", "Perfil " + profileName + " não carregado: " + reason);
       return true;
      }
 

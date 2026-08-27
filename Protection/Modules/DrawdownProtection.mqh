@@ -170,7 +170,7 @@ public:
       reason = "";
       if(m_limitReached)
         {
-         reason = "Limite de drawdown diario atingido.";
+         reason = "Limite de drawdown diário atingido.";
          return false;
         }
 
@@ -185,7 +185,7 @@ public:
       reason = "";
       if(m_limitReached)
         {
-         reason = "Limite de drawdown diario atingido.";
+         reason = "Limite de drawdown diário atingido.";
          return true;
         }
 
@@ -200,7 +200,7 @@ public:
 
       CaptureTrigger(projectedProfit);
       m_limitReached = true;
-      reason = "Limite de drawdown diario atingido.";
+      reason = "Limite de drawdown diário atingido.";
       return true;
      }
 
@@ -234,13 +234,13 @@ public:
       reason = "";
       if(m_limitReached)
         {
-         reason = "Limite de drawdown diario atingido.";
+         reason = "Limite de drawdown diário atingido.";
          return true;
         }
 
       if(m_protectionActive)
         {
-         reason = "DD ativo: protecao de lucro ligada; novas entradas permitidas.";
+         reason = "DD ativo: proteção de lucro ligada; novas entradas permitidas.";
          return true;
         }
 

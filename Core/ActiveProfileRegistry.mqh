@@ -148,7 +148,7 @@ public:
       if(!HasLivePeer(prefix, key, now, peerKey))
          return false;
 
-      reason = "Perfil " + profileName + " ja esta carregado em outro grafico.";
+      reason = "Perfil " + profileName + " já está carregado em outro gráfico.";
       return true;
      }
 

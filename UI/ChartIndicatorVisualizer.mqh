@@ -189,7 +189,7 @@ private:
       if(handle == INVALID_HANDLE)
         {
          if(m_logger != NULL)
-            m_logger.Warn("VISUAL", "Nao foi possivel criar um indicador visual.");
+            m_logger.Warn("VISUAL", "Não foi possível criar um indicador visual.");
          return false;
         }
 
@@ -206,7 +206,7 @@ private:
          int errorCode = GetLastError();
          IndicatorRelease(handle);
          if(m_logger != NULL)
-            m_logger.Warn("VISUAL", "Indicador nao exibido no grafico. Erro " + IntegerToString(errorCode) + ".");
+            m_logger.Warn("VISUAL", "Indicador não exibido no gráfico. Erro " + IntegerToString(errorCode) + ".");
          return false;
         }
 
@@ -466,7 +466,7 @@ private:
         }
 
       if(!removed && handle != INVALID_HANDLE && name != "" && m_logger != NULL)
-         m_logger.Debug("VISUAL", "Indicador visual sera removido pela varredura de propriedade: " + name);
+         m_logger.Debug("VISUAL", "Indicador visual será removido pela varredura de propriedade: " + name);
 
       if(handle != INVALID_HANDLE)
          IndicatorRelease(handle);
@@ -550,14 +550,14 @@ private:
       if(fastEligible && slowEligible &&
          SameMA(settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice,
                 settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
-         slowShared = "Rapida";
+         slowShared = "Rápida";
 
       if(trendEligible)
         {
          if(fastEligible &&
             SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
                    settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
-            trendShared = "Rapida";
+            trendShared = "Rápida";
          else if(slowEligible &&
                  SameMA(settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice,
                         settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
@@ -569,7 +569,7 @@ private:
          if(fastEligible &&
             SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                    settings.maFastTimeframe, settings.maFastPeriod, settings.maFastMethod, settings.maFastPrice))
-            trend2Shared = "Rapida";
+            trend2Shared = "Rápida";
          else if(slowEligible &&
                  SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                         settings.maSlowTimeframe, settings.maSlowPeriod, settings.maSlowMethod, settings.maSlowPrice))
@@ -577,10 +577,10 @@ private:
          else if(trendEligible &&
                  SameMA(settings.trendSellMATimeframe, settings.trendSellMAPeriod, settings.trendSellMAMethod, settings.trendSellMAPrice,
                         settings.trendMATimeframe, settings.trendMAPeriod, settings.trendMAMethod, settings.trendMAPrice))
-            trend2Shared = "Trend M1";
+            trend2Shared = "Trend MA1";
         }
 
-      m_legendOverlay.Update(MALegendText("MA Rapida",
+      m_legendOverlay.Update(MALegendText("MA Rápida",
                                          fastConfigured,
                                          settings.maFastTimeframe,
                                          settings.maFastPeriod,
@@ -593,14 +593,14 @@ private:
                                          slowEligible,
                                          m_showSlowMA,
                                          slowShared),
-                            MALegendText("Trend M1",
+                            MALegendText("Trend MA1",
                                          trendConfigured,
                                          settings.trendMATimeframe,
                                          settings.trendMAPeriod,
                                          trendEligible,
                                          m_showTrendMA,
                                          trendShared),
-                            MALegendText("Trend M2",
+                            MALegendText("Trend MA2",
                                          trend2Configured,
                                          settings.trendSellMATimeframe,
                                          settings.trendSellMAPeriod,
@@ -792,7 +792,7 @@ private:
      {
       if(m_logger == NULL)
          return;
-      string message = IntegerToString(m_count) + " indicador(es) exibido(s) no grafico.";
+      string message = IntegerToString(m_count) + " indicador(es) exibido(s) no gráfico.";
       if(m_skippedTimeframes > 0)
          message += " " + IntegerToString(m_skippedTimeframes) + " omitido(s) por TF diferente.";
       m_logger.Info("VISUAL", message);
@@ -901,10 +901,22 @@ public:
       UpdateLegend(settings);
      }
 
-   void     OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
+   //--- Repassa a zona proibida para a legenda. Quem chama e o nivel que
+   //--- conhece painel e legenda; aqui nao ha referencia ao painel.
+   void     SetPanelExclusion(const bool valid,const int left,const int top,const int right,const int bottom)
      {
-      if(m_legendOverlay.IsCreated())
-         m_legendOverlay.ChartEvent(id, lparam, dparam, sparam);
+      if(!m_legendOverlay.IsCreated())
+         return;
+      m_legendOverlay.SetPanelExclusion(valid, left, top, right, bottom);
+     }
+
+   //--- TRUE quando o gesto foi consumido pela legenda e NAO deve seguir para o
+   //--- painel. Ver o comentario de CIndicatorLegendOverlay::ChartEvent.
+   bool     OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
+     {
+      if(!m_legendOverlay.IsCreated())
+         return false;
+      return m_legendOverlay.ChartEvent(id, lparam, dparam, sparam);
      }
 
    void     Shutdown(const int reason)

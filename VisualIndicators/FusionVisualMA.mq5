@@ -1,11 +1,17 @@
 #property copyright "Copyright 2026, EP Filho"
 #property link      "https://github.com/EPFILHO/Fusion"
-#property version   "1.058"
+#property version   "2.000"
+//--- Aba Comum das Propriedades. Tem de ficar no modulo principal: #property
+//--- description dentro de include nao chega ao dialogo.
+#property description "Indicador exclusivamente visual."
+#property description "Alterações nesta janela afetam somente a exibição no gráfico."
+#property description "Não alteram estratégias, filtros, perfis ou operações do Fusion."
+#property description "O Identificador interno é reservado ao Fusion e não deve ser alterado."
 #property indicator_chart_window
 #property indicator_buffers 4
 #property indicator_plots   4
 
-#property indicator_label1  "MA Rapida"
+#property indicator_label1  "MA Rápida"
 #property indicator_type1   DRAW_LINE
 #property indicator_color1  clrLime
 #property indicator_style1  STYLE_SOLID
@@ -17,43 +23,57 @@
 #property indicator_style2  STYLE_SOLID
 #property indicator_width2  2
 
-#property indicator_label3  "Trend MA"
+#property indicator_label3  "Trend MA1"
 #property indicator_type3   DRAW_LINE
 #property indicator_color3  clrMagenta
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  2
 
-#property indicator_label4  "Trend M2"
+#property indicator_label4  "Trend MA2"
 #property indicator_type4   DRAW_LINE
 #property indicator_color4  clrOrange
 #property indicator_style4  STYLE_SOLID
 #property indicator_width4  2
 
-input string             InpShortName = "Fusion Visual MA";
-input bool               InpFastEnabled = true;
-input color              InpFastColor = clrLime;
-input ENUM_LINE_STYLE    InpFastStyle = STYLE_SOLID;
-input int                InpFastPeriod = 9;
-input ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
-input ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
-input bool               InpSlowEnabled = true;
-input color              InpSlowColor = clrRed;
-input ENUM_LINE_STYLE    InpSlowStyle = STYLE_SOLID;
-input int                InpSlowPeriod = 21;
-input ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
-input ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
-input bool               InpTrendEnabled = false;
-input color              InpTrendColor = clrMagenta;
-input ENUM_LINE_STYLE    InpTrendStyle = STYLE_SOLID;
-input int                InpTrendPeriod = 50;
-input ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
-input ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
-input bool               InpTrend2Enabled = false;
-input color              InpTrend2Color = clrOrange;
-input ENUM_LINE_STYLE    InpTrend2Style = STYLE_SOLID;
-input int                InpTrend2Period = 21;
-input ENUM_MA_METHOD     InpTrend2Method = MODE_SMA;
-input ENUM_APPLIED_PRICE InpTrend2Price = PRICE_CLOSE;
+//--- ⚠ CONTRATO POSICIONAL. O Fusion anexa este indicador por iCustom
+//--- (UI/ChartIndicatorVisualizer.mqh), que passa os 25 argumentos por POSICAO
+//--- e nunca por nome. Ordem, tipo e quantidade sao o contrato; o
+//--- input(name="...") e so o rotulo do dialogo e nao entra nele. Renomear o
+//--- identificador tambem nao quebra o iCustom, mas quebra qualquer .set que
+//--- ja exista — o identificador e a chave la.
+//---
+//--- Os quatro nomes de linha ("MA Rapida", "MA Lenta", "Trend MA1",
+//--- "Trend MA2") sao os MESMOS de tres lugares: o indicator_labelN acima, a
+//--- legenda do grafico e a aba Layout do painel. Nao renomeie em um so.
+input(name="Identificador interno (não alterar)")   string             InpShortName = "Fusion Visual MA";
+
+input(name="Exibir a MA Rápida")          bool               InpFastEnabled = true;
+input(name="Cor da MA Rápida")            color              InpFastColor = clrLime;
+input(name="Estilo da MA Rápida")         ENUM_LINE_STYLE    InpFastStyle = STYLE_SOLID;
+input(name="Período da MA Rápida")        int                InpFastPeriod = 9;
+input(name="Método da MA Rápida")         ENUM_MA_METHOD     InpFastMethod = MODE_EMA;
+input(name="Preço da MA Rápida")          ENUM_APPLIED_PRICE InpFastPrice = PRICE_CLOSE;
+
+input(name="Exibir a MA Lenta")           bool               InpSlowEnabled = true;
+input(name="Cor da MA Lenta")             color              InpSlowColor = clrRed;
+input(name="Estilo da MA Lenta")          ENUM_LINE_STYLE    InpSlowStyle = STYLE_SOLID;
+input(name="Período da MA Lenta")         int                InpSlowPeriod = 21;
+input(name="Método da MA Lenta")          ENUM_MA_METHOD     InpSlowMethod = MODE_EMA;
+input(name="Preço da MA Lenta")           ENUM_APPLIED_PRICE InpSlowPrice = PRICE_CLOSE;
+
+input(name="Exibir a Trend MA1")          bool               InpTrendEnabled = false;
+input(name="Cor da Trend MA1")            color              InpTrendColor = clrMagenta;
+input(name="Estilo da Trend MA1")         ENUM_LINE_STYLE    InpTrendStyle = STYLE_SOLID;
+input(name="Período da Trend MA1")        int                InpTrendPeriod = 50;
+input(name="Método da Trend MA1")         ENUM_MA_METHOD     InpTrendMethod = MODE_SMA;
+input(name="Preço da Trend MA1")          ENUM_APPLIED_PRICE InpTrendPrice = PRICE_CLOSE;
+
+input(name="Exibir a Trend MA2")          bool               InpTrend2Enabled = false;
+input(name="Cor da Trend MA2")            color              InpTrend2Color = clrOrange;
+input(name="Estilo da Trend MA2")         ENUM_LINE_STYLE    InpTrend2Style = STYLE_SOLID;
+input(name="Período da Trend MA2")        int                InpTrend2Period = 21;
+input(name="Método da Trend MA2")         ENUM_MA_METHOD     InpTrend2Method = MODE_SMA;
+input(name="Preço da Trend MA2")          ENUM_APPLIED_PRICE InpTrend2Price = PRICE_CLOSE;
 
 double FastBuffer[];
 double SlowBuffer[];

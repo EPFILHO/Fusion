@@ -123,13 +123,13 @@ public:
          return true;
       if(m_handle == INVALID_HANDLE)
         {
-         reason = "indicador indisponivel";
+         reason = "indicador indisponível";
          return false;
         }
       if(m_slopeDirectionEnabled &&
          (m_slopeLookback < 1 || m_slopeLookback > 100 || m_minSlopePoints < 0))
         {
-         reason = "configuracao de inclinacao invalida";
+         reason = "configuração de inclinação inválida";
          return false;
         }
 
@@ -146,7 +146,7 @@ public:
       double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
       if(point <= 0.0)
         {
-         reason = "point do simbolo invalido";
+         reason = "point do símbolo inválido";
          return false;
         }
 
@@ -155,7 +155,7 @@ public:
          double basis = MathAbs(middle[1]);
          if(basis <= 0.0)
            {
-            reason = "linha media invalida para calculo relativo";
+            reason = "linha média inválida para cálculo relativo";
             return false;
            }
 
@@ -163,7 +163,7 @@ public:
          if(widthPercent < m_minWidthPercent)
            {
             reason = "largura " + DoubleToString(widthPercent, 2) +
-                     "% abaixo do minimo " + DoubleToString(m_minWidthPercent, 2) + "%";
+                     "% abaixo do mínimo " + DoubleToString(m_minWidthPercent, 2) + "%";
             return false;
            }
         }
@@ -173,7 +173,7 @@ public:
          if(widthPoints < (double)m_minWidthPoints)
            {
             reason = "largura " + DoubleToString(widthPoints, 1) +
-                     " pts abaixo do minimo " + IntegerToString(m_minWidthPoints) + " pts";
+                     " pts abaixo do mínimo " + IntegerToString(m_minWidthPoints) + " pts";
             return false;
            }
         }

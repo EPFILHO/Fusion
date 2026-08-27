@@ -10,7 +10,7 @@
          if(positionRestored &&
             m_positionState.positionId == m_closeReconciliationState.positionId)
            {
-            m_logger.Info("CLOSE_SYNC", "Posicao reapareceu durante a reconciliacao; fechamento pendente cancelado.");
+            m_logger.Info("CLOSE_SYNC", "Posição reapareceu durante a reconciliação; fechamento pendente cancelado.");
             ResetCloseReconciliation();
             ClearEntryBlockNotice();
             PersistChartState();
@@ -24,9 +24,73 @@
       SPositionRuntimeState previous = m_positionState;
       m_executionService.SyncPosition(m_positionState);
 
+      //+---------------------------------------------------------------+
+      //| ALTERACAO EXTERNA DE SL/TP — observar, registrar, e mais nada. |
+      //|                                                                |
+      //| ⚠ AQUI, e nao em ManageOpenPosition: esta e a unica fronteira  |
+      //| que ainda tem os DOIS lados. `previous` guarda o que valia na  |
+      //| sincronizacao anterior e `m_positionState` acabou de receber o |
+      //| que o servidor diz agora. Em ManageOpenPosition o trailing ja  |
+      //| sobrescreveu `stopLoss` com o valor novo antes de qualquer     |
+      //| comparacao possivel.                                           |
+      //|                                                                |
+      //| ⚠ NADA aqui restaura, trava ou reenvia SL/TP. A decisao de quem|
+      //| opera vale integralmente; o Fusion so passa a dizer que viu.   |
+      //+---------------------------------------------------------------+
+      //--- ⚠ Consultada UMA vez e reusada: deteccao e formatacao precisam julgar
+      //--- pelo MESMO grid e pelos MESMOS digits. Duas consultas no mesmo evento
+      //--- abririam a chance de a frase descrever criterio diferente do que
+      //--- decidiu.
+      SSymbolSpec spec = SymbolSpec();
+
+      if(FusionProtectionChangeComparable(previous.hasPosition,
+                                          m_positionState.hasPosition,
+                                          previous.positionId,
+                                          m_positionState.positionId))
+        {
+         //--- ⚠ VARIAVEL LOCAL, e nunca `m_protectionChangeEvent` direto. O
+         //--- helper LIMPA a saida antes de qualquer retorno, entao passar o
+         //--- membro apagaria o card na primeira sincronizacao silenciosa —
+         //--- que e justamente a seguinte, quando a baseline ja se igualou.
+         SProtectionChangeEvent candidate;
+         ResetProtectionChangeEvent(candidate);
+
+         if(FusionDetectProtectionChange(previous.stopLoss, previous.takeProfit,
+                                         m_positionState.stopLoss, m_positionState.takeProfit,
+                                         spec,
+                                         m_positionState.positionId,
+                                         candidate))
+           {
+            candidate.at = TimeCurrent();
+            m_protectionChangeEvent = candidate;
+
+            //--- WARN normal, e nao debug: quem opera precisa ver sem ter
+            //--- ligado diagnostico. Uma linha por transicao — a proxima
+            //--- sincronizacao ja compara contra a baseline nova e cala.
+            m_logger.Warn("POSITION",
+                          "Alteração de SL/TP observada fora do último ajuste reconhecido pelo Fusion. " +
+                          FusionProtectionChangeText(candidate, spec.digits) +
+                          " A detecção não restaurou os valores anteriores; o gerenciamento da posição continua ativo.");
+           }
+         //--- Sem alteracao: o card anterior CONTINUA. Nao se republica nem se
+         //--- apaga — ele descreve um fato que segue valendo.
+        }
+
+      //--- ⚠ Posicao DIFERENTE: o evento pertencia a outra, e nao pode migrar.
+      //--- Feito aqui, e nao no fechamento, porque uma posicao nova pode
+      //--- aparecer sem que a anterior tenha passado por reconciliacao.
+      if(m_protectionChangeEvent.detected &&
+         m_positionState.hasPosition &&
+         m_protectionChangeEvent.positionId != m_positionState.positionId)
+         ResetProtectionChangeEvent(m_protectionChangeEvent);
+
       if(m_positionState.hasPosition)
          ClearStreakReleaseNotice();
 
+      //--- ⚠ O card NAO e apagado aqui. A posicao sumiu de UMA leitura e entra
+      //--- em reconciliacao — isso ainda nao e fechamento: ela pode reaparecer
+      //--- com o mesmo positionId, e ai o evento continua sendo dela. Quem
+      //--- apaga e o fechamento confirmado, em TryReconcileClosedPosition.
       if(previous.hasPosition && !m_positionState.hasPosition)
          BeginCloseReconciliation(previous, false);
      }
@@ -35,7 +99,7 @@
      {
       if(closedState.positionId == 0)
         {
-         m_logger.Error("CLOSE_SYNC", "Posicao desapareceu sem identificador para reconciliar o historico.");
+         m_logger.Error("CLOSE_SYNC", "Posição desapareceu sem identificador para reconciliar o histórico.");
          return;
         }
 
@@ -49,11 +113,11 @@
       RecordClosedStrategyBar(closedState.ownerStrategyId);
       // Consume signals accumulated while the position was open; pending reverse is stored separately.
       m_signalManager.PrimeEntryStates();
-      ApplyEntryBlockNotice("Fechamento aguardando confirmacao completa do historico.");
+      ApplyEntryBlockNotice("Fechamento aguardando confirmação completa do histórico.");
       PersistChartState();
 
       if(restored)
-         m_logger.Info("CLOSE_SYNC", "Fechamento pendente restaurado; conferindo o historico.");
+         m_logger.Info("CLOSE_SYNC", "Fechamento pendente restaurado; conferindo o histórico.");
       TryReconcileClosedPosition(true);
      }
 
@@ -78,9 +142,9 @@
          if(!m_closeReconciliationWaitLogged)
            {
             string progress = (summary.entryVolume > 0.0)
-                              ? StringFormat(" Volume de saida %.4f/%.4f.", summary.exitVolume, summary.entryVolume)
+                              ? StringFormat(" Volume de saída %.4f/%.4f.", summary.exitVolume, summary.entryVolume)
                               : "";
-            m_logger.Info("CLOSE_SYNC", "Fechamento detectado; aguardando historico completo." + progress);
+            m_logger.Info("CLOSE_SYNC", "Fechamento detectado; aguardando histórico completo." + progress);
             m_closeReconciliationWaitLogged = true;
            }
          return false;
@@ -94,12 +158,16 @@
       else
         {
          m_pendingReverseExit.Reset();
-         m_logger.Info("CLOSE_SYNC", "Fechamento reconciliado pertence a outro dia operacional; DAY/DD/STREAK atuais nao foram alterados.");
+         m_logger.Info("CLOSE_SYNC", "Fechamento reconciliado pertence a outro dia operacional; DAY/DD/STREAK atuais não foram alterados.");
         }
 
-      m_logger.Trade("CLOSE", "Posicao fechada. P/L bruto: " + DoubleToString(summary.totalProfit, 2));
+      m_logger.Trade("CLOSE", "Posição fechada. P/L bruto: " + DoubleToString(summary.totalProfit, 2));
       ResetCloseReconciliation();
       ResetPositionRuntimeState(m_positionState);
+      //--- ⚠ FECHAMENTO CONFIRMADO: so AQUI o card some. Nao no
+      //--- BeginCloseReconciliation, onde a posicao apenas sumiu de UMA leitura
+      //--- e ainda pode reaparecer com o mesmo positionId.
+      ResetProtectionChangeEvent(m_protectionChangeEvent);
       ClearEntryBlockNotice();
       m_signalManager.PrimeEntryStates();
       PersistChartState();
@@ -125,7 +193,7 @@
          ApplyDailyHistoryAuditBlock();
          if(!m_dailyHistoryAuditWaitLogged)
            {
-            m_logger.Info("HISTORY", "Aguardando conexao para conferir o historico diario.");
+            m_logger.Info("HISTORY", "Aguardando conexão para conferir o histórico diário.");
             m_dailyHistoryAuditWaitLogged = true;
            }
          return false;
@@ -152,7 +220,7 @@
          ApplyDailyHistoryAuditBlock();
          if(!m_dailyHistoryAuditWaitLogged)
            {
-            m_logger.Info("HISTORY", "Historico diario ainda incompleto; nova conferencia sera feita automaticamente.");
+            m_logger.Info("HISTORY", "Histórico diário ainda incompleto; nova conferência será feita automaticamente.");
             m_dailyHistoryAuditWaitLogged = true;
            }
          return false;
@@ -178,7 +246,7 @@
          ApplyDailyHistoryAuditBlock();
          if(!m_dailyHistoryAuditWaitLogged)
            {
-            m_logger.Info("HISTORY", "Historico contradiz o estado salvo; aguardando nova conferencia.");
+            m_logger.Info("HISTORY", "Histórico contradiz o estado salvo; aguardando nova conferência.");
             m_dailyHistoryAuditWaitLogged = true;
            }
          return false;
@@ -212,7 +280,7 @@
       if(changed)
         {
          m_logger.Info("HISTORY",
-                       "Historico diario reconciliado: P/L bruto " +
+                       "Histórico diário reconciliado: P/L bruto " +
                        DoubleToString(previousProfit, 2) + " -> " +
                        DoubleToString(historySummary.closedProfit, 2) +
                        "; trades " + IntegerToString(previousTrades) + " -> " +
@@ -244,13 +312,13 @@
       if(m_executionService.ModifyStops(m_positionState, m_positionState.stopLoss, 0.0))
         {
          int digits = SymbolSpec().digits;
-         m_logger.Trade("RISK", "TP Final Livre ativado apos parcial. TP final removido " + DoubleToString(oldTP, digits) + " -> 0");
+         m_logger.Trade("RISK", "TP Final Livre ativado após parcial. TP final removido " + DoubleToString(oldTP, digits) + " -> 0");
          return true;
         }
 
       if(!m_executionService.LastModifySkippedByFreeze() &&
          !m_executionService.LastModifySkippedByStopsLevel())
-         m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final apos parcial.");
+         m_logger.Warn("RISK", "TP Final Livre: falha ao remover TP final após parcial.");
       return false;
      }
 

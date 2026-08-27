@@ -15,7 +15,7 @@
 
    bool                    IsSessionProtectionNotice(const string notice) const
      {
-      return (notice == "Fora da janela de sessao." || notice == "Sessao encerrada.");
+      return (notice == "Fora da janela de sessão." || notice == "Sessão encerrada.");
      }
 
    bool                    IsNewsProtectionNotice(const string notice) const
@@ -23,13 +23,11 @@
       return (StringFind(notice, "Janela de news ") == 0);
      }
 
+   //--- Delega para a versao livre em Core/SettingsNotices.mqh, que o painel
+   //--- 2.0 tambem le. Duas copias da mesma pergunta responderiam diferente
+   //--- assim que uma delas fosse ajustada.
    bool                    HasEnabledNewsWindow(const SEASettings &settings) const
-     {
-      for(int newsIndex = 0; newsIndex < FUSION_NEWS_WINDOW_COUNT; ++newsIndex)
-         if(settings.newsWindows[newsIndex].enabled)
-            return true;
-      return false;
-     }
+     { return FusionHasEnabledNewsWindow(settings); }
 
    bool                    ProtectionNoticeAllowedBySettings(const string notice,const SEASettings &settings) const
      {
@@ -75,11 +73,11 @@
 
    bool                    IsPersistentDailyProtectionNotice(const string notice) const
      {
-      return (notice == "Limite de drawdown diario atingido." ||
-              notice == "Limite diario de trades atingido." ||
-              notice == "Limite diario de perda atingido." ||
-              notice == "Limite diario de perda projetada atingido." ||
-              notice == "Meta diaria de ganho atingida.");
+      return (notice == "Limite de drawdown diário atingido." ||
+              notice == "Limite diário de trades atingido." ||
+              notice == "Limite diário de perda atingido." ||
+              notice == "Limite diário de perda projetada atingido." ||
+              notice == "Meta diária de ganho atingida.");
      }
 
    int                     ProtectionWarnDayKey(void) const
@@ -175,7 +173,7 @@
      {
       if(IsSessionProtectionNotice(notice))
         {
-         m_logger.Info("PROTECT", "Bloqueio de sessao removido.");
+         m_logger.Info("PROTECT", "Bloqueio de sessão removido.");
          return;
         }
 

@@ -1,0 +1,775 @@
+//+------------------------------------------------------------------+
+//| CanvasRendererInput.mqh                                           |
+//| Fragmento do corpo de CFusionCanvasRenderer — mouse, teclado,     |
+//| arrasto do painel e da rolagem.                                   |
+//|                                                                   |
+//| Todo alvo e testado contra a caixa publicada no desenho, e so     |
+//| aceito se estiver dentro da area visivel: a caixa acompanha a     |
+//| rolagem, mas o que rolou para fora nao pode continuar clicavel.   |
+//+------------------------------------------------------------------+
+
+//--- O que o CAppDialog dava de graca: com o cursor sobre o painel, o
+//--- grafico nao pode rolar no lugar dele.
+void SetChartScroll(const bool on) { ChartSetInteger(m_chart,CHART_MOUSE_SCROLL,on); }
+
+//--- Altura interativa: minimizado, so a barra de titulo responde.
+int PanelInteractiveHeight(void) const { return (m_minimized?FCV_TITLEBAR_H:m_ph); }
+
+bool InsidePanel(const int cx,const int cy)
+  {
+   int h=PanelInteractiveHeight();
+   return (cx>=m_px && cx<m_px+S(FCV_PANEL_W) && cy>=m_py && cy<m_py+S(h));
+  }
+
+bool InContentView(const int ly,const int hgt)
+  { return (ly>=ContentTop() && ly+hgt<=ContentBottom()); }
+
+void GoTo(const int tab,const int sub,const int rail)
+  {
+   if(tab>=0)  m_tab=tab;
+   if(sub>=0)  m_sub[m_tab]=sub;
+   //--- sair da aba abandona a criacao em andamento; voltar mostra a lista
+   //--- Sair do formulario devolve o rascunho ao comprometido pelo mesmo
+   //--- motivo do DESCARTAR: duplicar semeia o rascunho com OUTRO perfil, e
+   //--- trocar de aba nao pode deixar essa configuracao pendente sobre o ativo.
+   if(m_profEdit!=FCV_PROF_VIEW)
+     { m_profEdit=FCV_PROF_VIEW; ReloadDraft(); }
+   //--- Navegar responde ao aviso anterior: ele descrevia o que acabou de
+   //--- acontecer, e a partir daqui o usuario esta em outro assunto.
+   ClearNotice();
+   m_delConfirm=false;
+   //--- A do abandono cai pelo mesmo motivo: navegar e outro assunto, e uma
+   //--- pergunta grave sobreviver a isso a faria reaparecer fora de contexto.
+   m_abandonOp=FCV_ABANDON_NONE; m_abandonTarget="";
+   if(rail>=0 && HasRail()) m_railSel[Sub()]=rail;
+   m_scroll=0;
+   m_comboOpen=-1;
+   m_colorOpen=-1;
+   m_stress=false;
+   Render();
+  }
+
+bool HandleColorClick(const int lx,const int ly)
+  {
+   if(m_colorOpen>=0 && m_colorOpen<m_colorCount)
+     {
+      int x,y,w,h;
+      ColorPopupBox(m_colorOpen,x,y,w,h);
+      if(lx>=x && lx<x+w && ly>=y && ly<y+h)
+        {
+         int c=(lx-x-5)/FCV_SWATCH_CELL;
+         //--- A linha e procurada, nao calculada: com o vao antes da faixa das
+         //--- puras, uma divisao simples cairia na casa errada — e clicar no vao
+         //--- passaria a escolher a cor de cima.
+         int rel=ly-y-5, r=-1;
+         for(int rr=0;rr<FCV_SWATCH_ROWS;++rr)
+           {
+            int cy0=SwatchCellY(rr);
+            if(rel>=cy0 && rel<cy0+FCV_SWATCH_CELL) { r=rr; break; }
+           }
+         int idx=(r>=0) ? r*FCV_SWATCH_COLS+c : -1;
+         if(r>=0 && c>=0 && c<FCV_SWATCH_COLS && idx>=0 && idx<FCV_SWATCH_COUNT)
+           {
+            int fid=m_colorFid[m_colorOpen];
+            if(fid!=FCV_FLD_NONE)
+              {
+               //--- Grava a COR no rascunho, nao a posicao clicada: a pendencia
+               //--- vem da diferenca contra o comprometido, e reescolher a mesma
+               //--- cor nao produz diferenca nenhuma — nao precisa de guarda.
+               FieldSetColor(fid,m_swatches[idx]);
+              }
+            else
+              {
+               //--- Amostra solta (hoje, so a tela de estresse): guarda a
+               //--- escolha e nao cria pendencia — ela nao descreve o perfil.
+               m_stColor[m_colorSlot[m_colorOpen]]=idx;
+              }
+           }
+        }
+      m_colorOpen=-1; Render(); return true;
+     }
+   for(int i=0;i<m_colorCount;++i)
+      if(lx>=m_colorX[i] && lx<m_colorX[i]+m_colorW[i] &&
+         ly>=m_colorY[i] && ly<m_colorY[i]+22 && InContentView(m_colorY[i],22))
+        { m_colorOpen=i; m_comboOpen=-1; Render(); return true; }
+   return false;
+  }
+
+//--- Combos que mudam a aparencia agem no ato da escolha, sem passar por
+//--- SALVAR: sao preferencia de exibicao, nao configuracao do perfil.
+void ApplyComboSideEffect(const int kind,const int value)
+  {
+   if(kind==FCV_COMBO_PALETTE)
+     {
+      m_palette=(ENUM_FUSION_CANVAS_PALETTE)value;
+      ResolveTheme();
+      SaveAppearance();
+      return;
+     }
+   if(kind==FCV_COMBO_THEMEMODE)
+     {
+      m_themeMode=(ENUM_FUSION_CANVAS_THEME)value;
+      m_userTheme=(m_themeMode!=FUSION_CANVAS_THEME_AUTO);
+      ResolveTheme();
+      SaveAppearance();
+      return;
+     }
+   if(kind==FCV_COMBO_SCALE)
+     {
+      //--- A altura e guardada em unidade logica, entao mudar a escala nao a
+      //--- altera — mas o painel pode passar a nao caber, e ai ele encolhe pelo
+      //--- mesmo caminho do reajuste manual.
+      m_scale=FCV_SCALE_MIN+value*FCV_SCALE_STEP;
+      int fit=DecidePanelHeight();
+      if(fit<m_ph) m_ph=fit;
+      m_scroll=0;
+      //--- ⚠ A escala tambem muda os LIMITES da posicao: eles saem de S(), e um
+      //--- painel encostado na borda passa a ultrapassa-la sem ter se movido.
+      //--- Terceiro ponto onde este recorte precisa acontecer, pela terceira vez
+      //--- pelo mesmo motivo — quem muda nao e a posicao, e o limite dela.
+      int cx=m_px, cy=m_py;
+      ClampPanelXY(cx,cy);
+      if(cx!=m_px || cy!=m_py) MoveTo(cx,cy);
+      SaveAppearance();
+      return;
+     }
+  }
+
+//--- Rolagem do popup pela posicao vertical do cursor. Serve ao clique na
+//--- trilha e ao arrasto do polegar com a mesma conta: o topo do polegar
+//--- acompanha o cursor, descontada a metade da sua altura.
+void HandleComboBarDrag(const int ly)
+  {
+   if(m_comboOpen<0 || m_comboOpen>=m_comboCount) return;
+   int x,y,w,h,n;
+   ComboPopupBox(m_comboOpen,x,y,w,h,n);
+   int maxS=ComboMaxScroll(n);
+   if(maxS<=0) return;
+   int vis=ComboVisibleCount(n);
+   int t1=y+5, t2=y+h-5, track=t2-t1;
+   int th=(int)MathMax(20,(double)track*vis/n);
+   int span=track-th;
+   if(span<=0) return;
+   int rel=ly-t1-th/2;
+   if(rel<0) rel=0;
+   if(rel>span) rel=span;
+   int ns=(int)MathRound((double)rel*maxS/span);
+   if(ns!=m_comboScroll) { m_comboScroll=ns; Render(); }
+  }
+
+//--- A barra do popup ocupa a faixa direita dele. A area de clique e mais
+//--- larga que os 4 px desenhados: mirar um fio de 4 px e exigir precisao que
+//--- o desenho nao promete.
+bool InComboBar(const int lx,const int ly)
+  {
+   if(m_comboOpen<0 || m_comboOpen>=m_comboCount) return false;
+   int x,y,w,h,n;
+   ComboPopupBox(m_comboOpen,x,y,w,h,n);
+   if(ComboMaxScroll(n)<=0) return false;          // sem barra, sem alvo
+   int tx=x+w-9;
+   return (lx>=tx-4 && lx<=tx+8 && ly>=y+5 && ly<=y+h-5);
+  }
+
+bool HandleComboClick(const int lx,const int ly)
+  {
+   if(m_comboOpen>=0 && m_comboOpen<m_comboCount)
+     {
+      //--- A barra vem antes da lista: ela fica DENTRO da caixa do popup, e sem
+      //--- este desvio o clique nela caia na faixa de um item — ou, pior, no
+      //--- fechamento. Era por isso que a barra parecia inerte.
+      if(InComboBar(lx,ly))
+        { m_comboBarDrag=true; HandleComboBarDrag(ly); return true; }
+
+      int x,y,w,h,n;
+      ComboPopupBox(m_comboOpen,x,y,w,h,n);
+      if(lx>=x && lx<x+w && ly>=y && ly<y+h)
+        {
+         int idx=m_comboScroll+(ly-y-4)/FCV_COMBO_ITEM_H;
+         if(idx>=0 && idx<n)
+           {
+            int kind=m_comboKind[m_comboOpen];
+            int fid=m_comboFid[m_comboOpen];
+            //--- Ligado a um campo, a escolha vai para o rascunho (que marca a
+            //--- pendencia); solto, para o slot local da tela.
+            if(fid!=FCV_FLD_NONE)
+               FieldSetIndex(fid,idx);
+            else
+              {
+               //--- Solto: ou e preferencia de exibicao, aplicada no ato e
+               //--- gravada em variavel global do terminal, ou e controle
+               //--- sintetico da tela de estresse. Nenhum dos dois pertence ao
+               //--- perfil, entao nenhum cria pendencia.
+               m_stCombo[m_comboSlot[m_comboOpen]]=idx;
+               if(kind==FCV_COMBO_PALETTE || kind==FCV_COMBO_THEMEMODE || kind==FCV_COMBO_SCALE)
+                  ApplyComboSideEffect(kind,idx);
+              }
+           }
+        }
+      m_comboOpen=-1; Render(); return true;
+     }
+   for(int i=0;i<m_comboCount;++i)
+      if(lx>=m_comboX[i] && lx<m_comboX[i]+m_comboW[i] &&
+         ly>=m_comboY[i] && ly<m_comboY[i]+FCV_EDIT_H && InContentView(m_comboY[i],FCV_EDIT_H))
+        {
+         m_comboOpen=i; m_colorOpen=-1;
+         //--- abre mostrando o item selecionado, nao o topo da lista
+         string items[];
+         int n=ComboItems(m_comboKind[i],items);
+         int sel=(m_comboFid[i]!=FCV_FLD_NONE) ? FieldGetIndex(m_comboFid[i])
+                                               : m_stCombo[m_comboSlot[i]];
+         int maxS=ComboMaxScroll(n);
+         m_comboScroll=sel-FCV_COMBO_WINDOW/2;
+         if(m_comboScroll>maxS) m_comboScroll=maxS;
+         if(m_comboScroll<0)    m_comboScroll=0;
+         Render(); return true;
+        }
+   return false;
+  }
+
+//--- Roda do mouse sobre a lista de perfis: rola a lista, nao a pagina.
+//--- Devolve true so quando REALMENTE rolou algo, para que no fim da lista a
+//--- roda volte a rolar a pagina em vez de morrer sobre um limite.
+bool HandleProfileWheel(const int lx,const int ly,const int step)
+  {
+   if(m_tab!=FCV_TAB_PERFIS || m_profEdit!=FCV_PROF_VIEW) return false;
+   if(m_profCount<=FCV_PROF_ROWS) return false;
+
+   int top=ContentTop()-m_scroll+FCV_PROF_TOP_PAD;
+   int listBottom=top+FCV_PROF_ROWS*34;
+   if(ly<top-6 || ly>=listBottom) return false;
+   if(lx<m_fx1-6 || lx>=ProfileNavLeft()+FCV_PROF_NAV_W+6) return false;
+
+   int ns=m_profOffset+step;
+   if(ns<0) ns=0;
+   if(ns>ProfileMaxOffset()) ns=ProfileMaxOffset();
+   if(ns==m_profOffset) return false;
+   m_profOffset=ns;
+   Render();
+   return true;
+  }
+
+//--- Roda do mouse sobre um popup aberto rola a lista, nao o conteudo atras.
+bool HandleComboWheel(const int lx,const int ly,const int step)
+  {
+   if(m_comboOpen<0 || m_comboOpen>=m_comboCount) return false;
+   int x,y,w,h,n;
+   ComboPopupBox(m_comboOpen,x,y,w,h,n);
+   if(lx<x || lx>=x+w || ly<y || ly>=y+h) return false;
+   int maxS=ComboMaxScroll(n);
+   int ns=m_comboScroll+step;
+   if(ns>maxS) ns=maxS;
+   if(ns<0)    ns=0;
+   if(ns==m_comboScroll) return true;
+   m_comboScroll=ns;
+   Render();
+   return true;
+  }
+
+//--- HandleButtonClick mudou para CanvasRendererCommands.mqh na Etapa 2c: os
+//--- botoes deixaram de mover estado de tela e passaram a emitir intencoes.
+
+bool HandleToggleClick(const int lx,const int ly)
+  {
+   for(int t=0;t<m_toggleCount;++t)
+      if(lx>=m_toggleX[t]-6 && lx<m_toggleX[t]+44 &&
+         ly>=m_toggleY[t]-6 && ly<m_toggleY[t]+27 && InContentView(m_toggleY[t],21))
+        {
+         if(m_toggleFid[t]!=FCV_FLD_NONE)
+            FieldToggleBool(m_toggleFid[t]);   // a pendencia vem da diferenca
+         else
+           {
+            //--- Chave solta: hoje so a tela de estresse tem. Nao pertence ao
+            //--- perfil e por isso nao cria pendencia.
+            int slot=m_toggleSlot[t];
+            m_stToggle[slot]=!m_stToggle[slot];
+           }
+         Render();
+         return true;
+        }
+   return false;
+  }
+
+//--- Setas, alcinha e trilho. A alcinha arrasta na direcao da barra; o trilho
+//--- pagina. Sao gestos diferentes do arrasto do conteudo, que vai ao contrario.
+bool HandleScrollbarClick(const int lx,const int ly)
+  {
+   if(m_trackH<=0) return false;
+   int top=ContentTop(), bottom=ContentBottom();
+   if(lx<FCV_SB_X-6 || lx>FCV_SB_X+FCV_SB_W+6) return false;
+
+   if(ly>=top && ly<top+FCV_SB_ARROW)       { if(ScrollBy(-40)) Render(); return true; }
+   if(ly<=bottom && ly>bottom-FCV_SB_ARROW) { if(ScrollBy( 40)) Render(); return true; }
+
+   if(ly>=m_thumbY && ly<m_thumbY+m_thumbH)
+     { m_barDrag=true; m_barDragY=ly; m_barDragBase=m_scroll; return true; }
+
+   int page=(bottom-top);
+   if(ly<m_thumbY)           { if(ScrollBy(-page)) Render(); return true; }
+   if(ly>=m_thumbY+m_thumbH) { if(ScrollBy( page)) Render(); return true; }
+   return true;
+  }
+
+void HandleBarDrag(const int ly)
+  {
+   int viewH=ContentBottom()-ContentTop();
+   int maxS=m_contentH-viewH;
+   int span=m_trackH-m_thumbH;
+   if(maxS<=0 || span<=0) return;
+   int target=m_barDragBase+(int)((double)(ly-m_barDragY)*maxS/span);
+   if(ScrollBy(target-m_scroll)) Render();
+  }
+
+//--- `endedByTerminal` vem de fora e ja chega consumido: quem gasta a marca e a
+//--- borda de descida, no tratador do mouse, para que o clique FORA do painel —
+//--- que nunca chega aqui — tambem a gaste. Ver a nota la.
+void HandlePress(const int cx,const int cy,const bool endedByTerminal)
+  {
+   //--- Segunda fronteira de escala: o clique chega em pixels do grafico e daqui
+   //--- para baixo tudo e unidade logica, igual as caixas publicadas no desenho.
+   int lx=L(cx-m_px), ly=L(cy-m_py);
+
+   if(ly<FCV_TITLEBAR_H)
+     {
+      //--- Clique na barra encerra a edicao em curso. Este caminho saia antes
+      //--- da marcacao de foco, entao ajustar altura, trocar o tema ou arrastar
+      //--- deixavam o foco preso e a roda bloqueada. O arrasto e o pior: um
+      //--- OBJ_EDIT com foco nao acompanha a posicao do objeto, e o editor do
+      //--- terminal ficava parado no ar enquanto o painel se movia.
+      //--- O Render fica atras da condicao porque ReleaseEditFocus destroi o
+      //--- objeto e o tira do registro — sem reconstruir, o arrasto seguinte
+      //--- nao teria o que reposicionar e o campo sumiria.
+      if(m_focusSlot>=0) { ReleaseEditFocus(); Render(); }
+
+      if(lx>=FCV_PANEL_W-40) { m_minimized=!m_minimized; Render(); return; }
+      //--- o alvo so existe quando o icone existe
+      if(!m_minimized && lx>=FCV_PANEL_W-64 && lx<FCV_PANEL_W-40)
+        {
+         m_ph=DecidePanelHeight(); m_scroll=0; Render();
+         Print("Altura reajustada ao gráfico: ",m_ph," (unidade lógica)");
+         return;
+        }
+      if(lx>=FCV_PANEL_W-90 && lx<FCV_PANEL_W-64)
+        {
+         //--- o botao da barra alterna claro/escuro; a paleta continua a mesma
+         m_userTheme=true;
+         m_themeMode=m_dark ? FUSION_CANVAS_THEME_LIGHT : FUSION_CANVAS_THEME_DARK;
+         m_stCombo[FCV_VISUAL_STATE(FCV_VISUAL_SLOT_THEME)]=(int)m_themeMode;
+         ResolveTheme();
+         SaveAppearance();
+         Render(); return;
+        }
+      //--- O arrasto do painel trabalha em pixels do grafico, nao em unidades
+      //--- logicas: e a posicao do objeto que muda, nao o desenho dentro dele.
+      m_dragging=true; m_dragDX=cx-m_px; m_dragDY=cy-m_py; return;
+     }
+   if(m_minimized) return;
+
+   //--- popup aberto consome o clique antes de qualquer outro alvo
+   if(HandleColorClick(lx,ly)) return;
+   if(HandleComboClick(lx,ly)) return;
+
+   //--- Marcar o foco SO depois dos popups. O popup ocupa de proposito a mesma
+   //--- coluna e a mesma largura dos campos de digitacao, entao escolher uma
+   //--- opcao quase sempre cai dentro da caixa de um OBJ_EDIT que esta atras.
+   //--- Marcado antes, esse clique dava foco a um campo que o usuario nunca
+   //--- tocou; como so o ENDEDIT libera, e ele nunca vinha, a roda do mouse
+   //--- ficava bloqueada para o resto da sessao.
+   bool wasPending=HasPending(), wasEditing=EditingNow();
+   NoteEditFocus(lx,ly);
+   //--- Entrar num campo derruba as confirmacoes armadas. Nao e zelo: a primeira
+   //--- coisa que a digitacao faz e limpar o aviso (FieldSetText -> ClearNotice),
+   //--- e a pergunta ficaria viva SEM a frase que a explica — os dois botoes na
+   //--- tela e ninguem dizendo o que o SIM faz. Alem disso o formulario continua
+   //--- editavel durante a confirmacao da copia, entao o nome mostrado na
+   //--- pergunta poderia deixar de ser o que esta no campo.
+   if(m_focusSlot>=0) { CancelDeleteConfirm(); CancelAbandonConfirm(); }
+   //--- Sair do campo confirma o texto, e o texto pode criar a pendencia que
+   //--- HABILITA o SALVAR e o CANCELAR. As caixas de clique deles vem do quadro
+   //--- anterior, quando ainda estavam apagados e nao publicaram nada — sem
+   //--- este redesenho, o primeiro clique em SALVAR so confirmava a digitacao.
+   //--- Tambem redesenha ao ENTRAR num campo: e o que acende SALVAR e CANCELAR
+   //--- no instante em que a edicao comeca, sem esperar o texto que o terminal
+   //--- so publica no fim.
+   if(HasPending()!=wasPending || EditingNow()!=wasEditing) Render();
+
+   //--- Todo botao, do cabecalho ou de conteudo, e resolvido pelo registro
+   //--- publicado no desenho. Antes o cabecalho tinha a propria aritmetica de
+   //--- retangulo aqui, repetindo a conta que o desenho ja fazia.
+   //--- ⚠ O registro pode ter acabado de mudar POR CAUSA deste clique, e por DOIS
+   //--- caminhos: o repinte logo acima (quando e a saida do campo que encerra a
+   //--- edicao) e o repinte do ENDEDIT, que o terminal manda ANTES desta borda de
+   //--- mouse. Os dois reacendem os quatro botoes de perfil no mesmo gesto, e sem
+   //--- avisar o HandleButtonClick um deles executaria estando visivelmente
+   //--- apagado. O segundo caminho e o que o log do usuario mediu — ver a nota no
+   //--- tratamento do ENDEDIT. Ver tambem a guarda la dentro.
+   if(HandleButtonClick(lx,ly,(wasEditing && !EditingNow()) || endedByTerminal)) return;
+
+   if(ly>=FCV_HEADER_BOTTOM && ly<FCV_F1_BOTTOM)
+     {
+      for(int i=0;i<FCV_TAB_COUNT;++i)
+         if(lx>=m_tabX[i] && lx<m_tabX[i]+m_tabW[i])
+           { if(m_tab!=i) GoTo(i,-1,-1); return; }
+      return;
+     }
+
+   if(HasLevel2(m_tab))
+     {
+      int f2y=F2Top();
+      if(ly>=f2y && ly<f2y+FCV_F2_H)
+        {
+         for(int i=0;i<Level2Count(m_tab);++i)
+            if(lx>=m_cfgX[i] && lx<m_cfgX[i]+m_cfgW[i])
+              { if(Sub()!=i) GoTo(-1,i,-1); return; }
+         return;
+        }
+     }
+
+   if(HandleScrollbarClick(lx,ly)) return;
+
+   if(HasRail() && lx<FCV_PAD+FCV_RAIL_W)
+     {
+      for(int i=0;i<m_railCount;++i)
+         if(ly>=m_railY[i] && ly<m_railY[i]+FCV_RAIL_ROW)
+           { if(RailIdx()!=i) GoTo(-1,-1,i); return; }
+      return;
+     }
+
+   if(HandleToggleClick(lx,ly)) return;
+
+   if(m_tab==FCV_TAB_PERFIS && m_profEdit==FCV_PROF_VIEW)
+     {
+      //--- durante a edicao a lista nao aceita clique: trocar de selecao no
+      //--- meio de criar um perfil deixaria a tela contradizendo o cartao
+      //--- So as linhas REALMENTE desenhadas aceitam clique. Com o laco fixo em
+      //--- seis, clicar no vazio abaixo de uma lista curta selecionava um perfil
+      //--- que nao existe — e as acoes passavam a mirar nele.
+      //--- A linha clicada (r) vira o indice real somando o deslocamento: sem
+      //--- isso, com a lista rolada, clicar na primeira linha selecionaria o
+      //--- primeiro perfil da lista inteira, e nao o que esta sob o cursor.
+      //--- Mesmo respiro de topo que o desenho aplica: alvo e pintura tem de
+      //--- partir da MESMA origem.
+      int y=ContentTop()-m_scroll+FCV_PROF_TOP_PAD;
+      int rows=m_profCount-m_profOffset;
+      if(rows>FCV_PROF_ROWS) rows=FCV_PROF_ROWS;
+      for(int r=0;r<rows;++r)
+         if(ly>=y+r*34 && ly<y+r*34+30 && lx<ProfileListRight() &&
+            InContentView(y+r*34,30))
+           {
+            int i=m_profOffset+r;
+            //--- Trocou a selecao: reconsulta os registros do terminal. E aqui
+            //--- e no SetProfiles que isso acontece — nunca por quadro.
+            //--- E desarma a exclusao: armada, ela passaria a mirar o perfil
+            //--- recem-selecionado, e o clique seguinte apagaria o errado.
+            if(m_profSel!=i)
+              { m_profSel=i; CancelDeleteConfirm(); CancelAbandonConfirm();
+                RefreshSelectedProfileLocks(); Render(); }
+            return;
+           }
+     }
+
+   if(ly>=ContentTop() && ly<=ContentBottom() && lx<FCV_PANEL_W-16)
+     { m_scrollDrag=true; m_scrollDragY=ly; m_scrollDragBase=m_scroll; }
+  }
+
+//--- Recebe a coordenada ja em unidade logica, como a que foi guardada ao
+//--- iniciar o arrasto: a rolagem e medida no conteudo, nao na tela.
+void HandleScrollDrag(const int ly)
+  {
+   int target=m_scrollDragBase+(m_scrollDragY-ly);
+   if(ScrollBy(target-m_scroll)) Render();
+  }
+
+//+------------------------------------------------------------------+
+//| A posicao do painel, limitada ao grafico.                         |
+//|                                                                   |
+//| ⚠ A regra existia pela METADE: o arrasto ja impedia sair por cima |
+//| e pela esquerda (`if(nx<0) nx=0`), e nao impedia nada a direita   |
+//| nem embaixo. Dava para arrastar o painel para fora da tela — e    |
+//| dali nao havia volta pela propria interface, porque a alca de     |
+//| arrasto e a barra de titulo, que sumia junto. A unica saida era   |
+//| remover e reanexar o EA, que devolve a posicao inicial; ninguem   |
+//| adivinha isso, e reinicializa o EA por um problema de janela.     |
+//|                                                                   |
+//| O que se garante e o MINIMO ALCANCAVEL, nao o painel inteiro      |
+//| dentro: parquear o painel meio para fora e uso legitimo — foi     |
+//| justamente o que o usuario estava fazendo para ver o grafico.     |
+//|                                                                   |
+//| Vertical: a barra de titulo inteira. Ela e a alca; garantir que   |
+//| ela cabe e garantir que da para trazer o painel de volta. Vale    |
+//| tambem minimizado, porque o minimo e a barra, nao a altura.       |
+//| Horizontal: FCV_PANEL_MIN_VIS_W da borda esquerda (ver a nota da  |
+//| constante — sobrar so os botoes nao serve).                       |
+//|                                                                   |
+//| O teto e aplicado ANTES do piso: num grafico menor que o minimo o |
+//| resultado tem de ser o canto superior esquerdo, nao um valor      |
+//| negativo vindo de `chartW - minimo`.                              |
+//+------------------------------------------------------------------+
+void ClampPanelXY(int &x,int &y)
+  {
+   int maxX=(int)ChartGetInteger(m_chart,CHART_WIDTH_IN_PIXELS) -S(FCV_PANEL_MIN_VIS_W);
+   int maxY=(int)ChartGetInteger(m_chart,CHART_HEIGHT_IN_PIXELS)-S(FCV_TITLEBAR_H);
+   if(x>maxX) x=maxX;
+   if(y>maxY) y=maxY;
+   if(x<0) x=0;
+   if(y<0) y=0;
+  }
+
+void HandleDrag(const int cx,const int cy)
+  {
+   int nx=cx-m_dragDX, ny=cy-m_dragDY;
+   //--- Recortado ANTES do MoveTo, e nao depois: mover para o lugar errado e
+   //--- corrigir em seguida reposicionaria o bitmap e todos os campos nativos
+   //--- duas vezes por evento de mouse, no caminho de maior frequencia do
+   //--- painel.
+   ClampPanelXY(nx,ny);
+   if(nx==m_px && ny==m_py) return;
+   //--- move sem repintar: o conteudo do quadro nao depende da posicao
+   MoveTo(nx,ny);
+  }
+
+//+------------------------------------------------------------------+
+public:
+//--- O MESMO retangulo que o InsidePanel usa, exposto para quem precisa
+//--- desviar dele. Sai daqui, e nao de constantes copiadas, justamente para
+//--- nao existir uma segunda formula de "onde o painel esta" — no dia em que a
+//--- escala ou a barra de titulo mudarem, as duas mudam juntas.
+void PanelInteractiveRect(int &left,int &top,int &right,int &bottom) const
+  {
+   left   = m_px;
+   top    = m_py;
+   right  = m_px + S(FCV_PANEL_W);
+   bottom = m_py + S(PanelInteractiveHeight());
+  }
+
+void ChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
+  {
+   if(id==CHARTEVENT_CHART_CHANGE)
+     {
+      //--- ⚠ A posicao e recortada AQUI tambem, e nao so no arrasto: o painel
+      //--- pode ficar fora sem ninguem ter arrastado nada — basta encolher a
+      //--- janela do MT5, ou o gráfico, com ele na parte de baixo ou da
+      //--- direita. Mesma licao do ClampScroll: recortar no evento que muda os
+      //--- LIMITES, e nao apenas no evento de entrada que muda o valor.
+      int nx=m_px, ny=m_py;
+      ClampPanelXY(nx,ny);
+      if(nx!=m_px || ny!=m_py) MoveTo(nx,ny);
+
+      //--- so encolhe para nao ficar cortado; nunca cresce sozinho
+      int fit=L((int)ChartGetInteger(m_chart,CHART_HEIGHT_IN_PIXELS)-m_py-16);
+      if(fit<m_ph && fit>=FCV_PANEL_H_MIN) { m_ph=fit; Render(); }
+      if(m_themeMode==FUSION_CANVAS_THEME_AUTO && !m_userTheme)
+        {
+         bool was=m_dark;
+         ResolveTheme();
+         if(was!=m_dark) Render();
+        }
+      return;
+     }
+
+   if(id==CHARTEVENT_MOUSE_WHEEL)
+     {
+      int cx=(int)(short)(lparam & 0xFFFF), cy=(int)(short)((lparam>>16)&0xFFFF);
+      if(m_minimized || !InsidePanel(cx,cy)) return;
+      if(HandleComboWheel(L(cx-m_px),L(cy-m_py),(dparam>0)?-1:1)) return;
+      //--- Roda sobre a lista de perfis rola a LISTA, nao a pagina.
+      //---
+      //--- E vem ANTES da trava de campo em edicao de proposito: rolar a lista
+      //--- por dentro nao move nenhum objeto nativo — as linhas sao desenhadas
+      //--- no canvas e a altura da janela e fixa, entao o campo Magic abaixo
+      //--- fica onde esta. A trava existe para a rolagem da PAGINA, que desloca
+      //--- os OBJ_EDIT e deixa o controle de edicao solto sobre o painel.
+      if(HandleProfileWheel(L(cx-m_px),L(cy-m_py),(dparam>0)?-1:1)) return;
+      //--- Com um campo em edicao a roda nao rola o conteudo: o controle de
+      //--- edicao do terminal nao acompanha o objeto e ficaria solto sobre o
+      //--- painel. Barra, setinhas, teclado e arrasto continuam disponiveis,
+      //--- e confirmar o campo (Enter) devolve a roda no ato.
+      if(EditHasFocus()) return;
+      if(ScrollBy((dparam>0)?-40:40)) Render();
+      return;
+     }
+
+   if(id==CHARTEVENT_KEYDOWN)
+     {
+      //--- ESC fecha o que estiver aberto, antes de qualquer outra leitura.
+      if((int)lparam==FCV_VK_ESC && (m_comboOpen>=0 || m_colorOpen>=0))
+        { m_comboOpen=-1; m_colorOpen=-1; Render(); return; }
+
+      //--- Com um popup aberto, as setas rolam A LISTA, nao o conteudo atras.
+      //--- Sem isto a roda era o unico jeito de alcancar um item fora da
+      //--- janela de 10 — e desligar a roda deixaria a lista inacessivel.
+      if(m_comboOpen>=0 && m_comboOpen<m_comboCount)
+        {
+         int px,py,pw,ph,n;
+         ComboPopupBox(m_comboOpen,px,py,pw,ph,n);
+         int vis=ComboVisibleCount(n), maxS=ComboMaxScroll(n), st=0;
+         switch((int)lparam)
+           {
+            case FCV_VK_UP:    st=-1;   break;
+            case FCV_VK_DOWN:  st= 1;   break;
+            case FCV_VK_PRIOR: st=-vis; break;
+            case FCV_VK_NEXT:  st= vis; break;
+            case FCV_VK_HOME:  st=-n;   break;
+            case FCV_VK_END:   st= n;   break;
+            default: return;   // demais teclas nao vazam para o conteudo
+           }
+         int ns=m_comboScroll+st;
+         if(ns<0)    ns=0;
+         if(ns>maxS) ns=maxS;
+         if(ns!=m_comboScroll) { m_comboScroll=ns; Render(); }
+         return;
+        }
+
+      //+---------------------------------------------------------------+
+      //| NENHUMA tecla de diagnostico chega aqui, e nao deve voltar a   |
+      //| chegar. Foram tres, e as tres sairam pelo mesmo motivo: ate a  |
+      //| Fase 3 o renderizador so era alcancado pelo harness, e desde   |
+      //| entao ele responde num grafico com dinheiro.                   |
+      //|   S — punha a tela sintetica de estresse SOBRE o painel real;  |
+      //|   B — fingia perfil bloqueado, e um toque acidental exibiria   |
+      //|       um bloqueio que nao existe, indistinguivel de defeito;   |
+      //|   M — rodava a suite de medicao, que redesenha o painel varias |
+      //|       vezes e segura o thread da UI durante a medicao.         |
+      //|                                                                |
+      //| M sobreviveu a Fase 3 com o argumento de que "so LE e devolve  |
+      //| a tela ao estado anterior". O argumento e verdadeiro e mesmo   |
+      //| assim insuficiente: o painel de producao nao deve ter caminho  |
+      //| de diagnostico acionavel por engano, por mais benigno que o    |
+      //| efeito seja. Uma tecla so precisa ser tocada uma vez.          |
+      //|                                                                |
+      //| RunPerfSuite() e a tela de estresse continuam no codigo, para  |
+      //| desenvolvimento; o que saiu foi o gatilho de teclado.          |
+      //+---------------------------------------------------------------+
+      if(m_minimized || !m_overPanel) return;
+      int viewH=ContentBottom()-ContentTop(), step=0;
+      switch((int)lparam)
+        {
+         case FCV_VK_UP:    step=-40;         break;
+         case FCV_VK_DOWN:  step= 40;         break;
+         case FCV_VK_PRIOR: step=-viewH;      break;
+         case FCV_VK_NEXT:  step= viewH;      break;
+         case FCV_VK_HOME:  step=-m_contentH; break;
+         case FCV_VK_END:   step= m_contentH; break;
+         default: return;
+        }
+      if(ScrollBy(step)) Render();
+      return;
+     }
+
+   if(id==CHARTEVENT_MOUSE_MOVE)
+     {
+      int cx=(int)lparam, cy=(int)dparam;
+      bool down=(StringToInteger(sparam)&1)!=0;
+      bool over=InsidePanel(cx,cy);
+      if(over!=m_overPanel) { SetChartScroll(over?false:m_origScroll); m_overPanel=over; }
+
+      //--- m_mouseDown e a POSICAO sao atualizados ANTES do despacho: o
+      //--- BuildEdits disparado de dentro do clique precisa saber que o botao
+      //--- esta apertado E onde o cursor esta, para nao criar campo nativo
+      //--- debaixo dele. Guardados juntos porque a guarda usa os dois.
+      m_mouseX=cx; m_mouseY=cy;
+      bool press=(down && !m_mouseDown && over);
+      //--- Clique FORA do painel tambem encerra a edicao. Sem isto o foco ficava
+      //--- preso: o painel nunca via esse clique, continuava se achando em
+      //--- edicao, e a roda seguia bloqueada ate um novo clique dentro dele.
+      //--- Decidido ANTES de atualizar m_mouseDown, que e quem marca a borda.
+      bool pressOut=(down && !m_mouseDown && !over);
+      m_mouseDown=down;
+
+      //+---------------------------------------------------------------+
+      //| A marca do ENDEDIT e gasta AQUI, em qualquer borda de descida — |
+      //| dentro OU fora do painel.                                       |
+      //|                                                                |
+      //| Estava so na entrada do HandlePress, que o clique de fora nao   |
+      //| alcanca: ele sai pelo `pressOut` e retorna antes. A marca       |
+      //| sobrevivia e o proximo clique legitimo em NOVO ou DUPLICAR era  |
+      //| engolido — o usuario encontrou exatamente assim, precisando     |
+      //| clicar duas vezes depois de encerrar a edicao com ENTER ou TAB. |
+      //|                                                                |
+      //| ⚠ E O PRAZO, que a borda sozinha nao resolve: o ENDEDIT do      |
+      //| TECLADO nao vem seguido de clique nenhum, entao a marca ficaria |
+      //| esperando o proximo — que pode ser legitimo e chegar minutos    |
+      //| depois. O prazo existe para ela nao atravessar o gesto que a    |
+      //| originou.                                                       |
+      //|                                                                |
+      //| O numero saiu da MEDICAO, e nao de palpite: no log do usuario o |
+      //| ENDEDIT precede o clique em 31 ms (duas unidades do             |
+      //| GetTickCount). FCV_ENDEDIT_CLICK_MS da folga de seis vezes sobre |
+      //| isso e continua muito abaixo do minimo humano para soltar o     |
+      //| ENTER, levar a mao ao mouse e clicar.                           |
+      //|                                                                |
+      //| Falha para o lado seguro nos dois extremos: expirando cedo      |
+      //| demais, volta o clique que executa apagado (visivel, e o H6.4   |
+      //| pega); tarde demais, custa um clique a mais. Nenhum dos dois    |
+      //| perde dado.                                                     |
+      //+---------------------------------------------------------------+
+      bool endedByTerminal=false;
+      if(press || pressOut)
+        {
+         endedByTerminal=(m_editEndedPending &&
+                          (GetTickCount()-m_editEndedAt)<=FCV_ENDEDIT_CLICK_MS);
+         m_editEndedPending=false;
+        }
+
+      if(pressOut && m_focusSlot>=0) { ReleaseEditFocus(); Render(); }
+
+      if(press)                          HandlePress(cx,cy,endedByTerminal);
+      else if(down && m_dragging)        HandleDrag(cx,cy);
+      else if(down && m_barDrag)         HandleBarDrag(L(cy-m_py));
+      else if(down && m_scrollDrag)      HandleScrollDrag(L(cy-m_py));
+      else if(down && m_comboBarDrag)    HandleComboBarDrag(L(cy-m_py));
+
+      if(!down)
+        {
+         m_dragging=false; m_scrollDrag=false; m_barDrag=false; m_comboBarDrag=false;
+         //--- Botao solto: agora os campos adiados podem nascer em paz.
+         if(m_editsPending) { m_editsPending=false; Render(); }
+        }
+      return;
+     }
+
+   if(id==CHARTEVENT_OBJECT_ENDEDIT && StringFind(sparam,m_prefix+"edit_")==0)
+     {
+      //--- So limpa o foco se quem terminou foi o campo que o detem. Indo
+      //--- direto de um campo para outro, o aviso de encerramento do primeiro
+      //--- pode chegar quando m_focusSlot ja aponta para o segundo — limpar sem
+      //--- conferir apagaria SALVAR/CANCELAR e liberaria a roda com o segundo
+      //--- campo ainda em edicao.
+      int endedSlot=(int)StringToInteger(StringSubstr(sparam,StringLen(m_prefix+"edit_")));
+      //+---------------------------------------------------------------+
+      //| ⚠ ESTE EVENTO CHEGA ANTES DA BORDA DO MOUSE — medido, nao      |
+      //| suposto. Log do usuario, 2026-08-15:                            |
+      //|                                                                |
+      //|   [3] t=...719765  ENDEDIT  slot=440 focusAntes=440             |
+      //|   [4] t=...719796  PRESS    focus=-1 wasEditing=N               |
+      //|   [5] t=...719796  BOTAO    id=2 editJustEnded=N                |
+      //|                                                                |
+      //| 31 ms separam os dois, e sao o MESMO clique. Ao encerrar aqui,  |
+      //| o foco cai e o Render logo abaixo reacende os quatro botoes de  |
+      //| perfil; quando o clique enfim chega, `wasEditing` ja nasce      |
+      //| falso e a guarda do HandleButtonClick nao dispara — NOVO e      |
+      //| DUPLICAR executavam estando visivelmente apagados.              |
+      //|                                                                |
+      //| Por isso a marca: quem limpou o foco fui EU, neste evento, por  |
+      //| causa de um clique que ainda vai chegar. A proxima borda de     |
+      //| mouse precisa saber disso.                                      |
+      //|                                                                |
+      //| ⚠ E o comentario do ReleaseEditFocus dizia o contrario — "sair  |
+      //| clicando num botao nao gera esse aviso". Falso neste terminal.  |
+      //| Corrigido la, com a mesma evidencia.                            |
+      //+---------------------------------------------------------------+
+      if(m_focusSlot==endedSlot)
+        {
+         m_focusSlot=-1;
+         m_editEndedPending=true;
+         //--- O INSTANTE viaja junto: este evento tanto pode ser a metade de um
+         //--- clique quanto o efeito de um ENTER ou TAB, e so o teclado deixa a
+         //--- marca sem clique nenhum atras dela. Ver o prazo no tratador do
+         //--- mouse — e por ele que a marca do teclado nao atravessa o gesto.
+         m_editEndedAt=GetTickCount();
+        }
+      StoreEditText(sparam);
+      Render();
+      return;
+     }
+  }
+private:

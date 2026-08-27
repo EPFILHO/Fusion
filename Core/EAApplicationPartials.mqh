@@ -95,7 +95,7 @@
          if(applyDailyDelta && summary.lastExitTime > 0 && exitDayKey == currentDayKey)
             m_protectionManager.OnPartialRealized(realizedDelta);
          else if(applyDailyDelta && summary.lastExitTime > 0 && exitDayKey != currentDayKey)
-            m_logger.Info("PARTIAL", "Parcial reconciliada pertence a outro dia operacional; DAY/DD atuais nao foram alterados.");
+            m_logger.Info("PARTIAL", "Parcial reconciliada pertence a outro dia operacional; DAY/DD atuais não foram alterados.");
 
          m_logger.Info("PARTIAL", "P/L bruto realizado de parciais reconciliado: " +
                        DoubleToString(previousRealized, 2) + " -> " +
@@ -114,7 +114,7 @@
               {
                m_positionState.pendingPartialOrderTicket = recoveredOrder;
                changed = true;
-               m_logger.Info("PARTIAL", "Ordem parcial ativa recuperada apos restauracao do estado.");
+               m_logger.Info("PARTIAL", "Ordem parcial ativa recuperada após restauração do estado.");
               }
            }
          bool orderActive = m_executionService.IsOrderActive(m_positionState.pendingPartialOrderTicket);
@@ -132,7 +132,7 @@
             ClearPendingPartialClose(m_positionState);
             changed = true;
             m_logger.Trade("PARTIAL", PartialLevelName(level) +
-                           " confirmado pelo historico. Volume executado: " +
+                           " confirmado pelo histórico. Volume executado: " +
                            DoubleToString(newExitVolume, 8) + "/" +
                            DoubleToString(requestedVolume, 8) + ".");
             TryRemoveFreeFinalTakeProfit();
@@ -186,7 +186,7 @@
                ClearPendingPartialClose(m_positionState);
                changed = true;
                m_logger.Warn("PARTIAL", levelName +
-                             " terminou sem deal confirmado; nova tentativa sera permitida.");
+                             " terminou sem deal confirmado; nova tentativa será permitida.");
               }
            }
         }
@@ -209,7 +209,7 @@
            {
             m_lastPartialBaselineWarning = now;
             m_logger.Warn("PARTIAL", PartialLevelName(level) +
-                          " adiado: historico da posicao indisponivel para criar uma linha de base segura.");
+                          " adiado: histórico da posição indisponível para criar uma linha de base segura.");
            }
          return false;
         }
@@ -233,7 +233,7 @@
         {
          ClearPendingPartialClose(m_positionState);
          m_logger.Error("PARTIAL", PartialLevelName(level) +
-                        " nao foi enviado porque a intencao nao pode ser persistida com seguranca.");
+                        " não foi enviado porque a intenção não pode ser persistida com segurança.");
          return false;
         }
 
@@ -272,7 +272,7 @@
 
    string                  DailyHistoryAuditNotice(void) const
      {
-      return "Aguardando conferencia do historico diario.";
+      return "Aguardando conferência do histórico diário.";
      }
 
    void                    ApplyDailyHistoryAuditBlock(void)

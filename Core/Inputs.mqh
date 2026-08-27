@@ -70,7 +70,9 @@ input bool   inp_EnableDebugLogs           = false;     // Ativar logs detalhado
 input group " "
 //--- Painel, perfil e restauracao de estado do grafico
 input group "========== 002 - PAINEL E PERFIL =========="
-input bool   inp_ShowPanel                 = true;      // Mostrar GUI do Fusion no grafico
+//--- Rotulo diz onde vale, porque no grafico ele NAO vale: la o painel sempre
+//--- aparece, e quem quer espaco minimiza. Ver ShouldShowPanel.
+input bool   inp_ShowPanel                 = true;      // Mostrar GUI no Strategy Tester (no grafico ela sempre aparece)
 input string inp_DefaultProfileName        = "default"; // Perfil carregado/criado na inicializacao
 
 input group " "
@@ -155,11 +157,19 @@ input int    inp_FixedSLPoints             = 200;       // Stop loss fixo em pon
 input int    inp_FixedTPPoints             = 400;       // Take profit fixo em pontos; 0 desliga
 input bool   inp_CompensateSLSpread        = false;     // Compensar spread no SL
 input bool   inp_CompensateTPSpread        = false;     // Compensar spread no TP
+//--- ⚠ O modo vale para TP1 e TP2 AO MESMO TEMPO, como na tela e no perfil.
+//--- Percentual e volume convivem no arquivo: o par do modo que nao vale fica
+//--- DORMENTE e nao e cobrado. Por isso os volumes nascem em 0.0 — um preset
+//--- antigo, sem estas tres chaves, cai no comportamento historico percentual
+//--- e nunca migra sozinho para Volume.
 input bool   inp_EnableTP1                 = false;     // Ativar TP1
-input double inp_TP1Percent                = 50.0;      // Percentual de volume do TP1
+input ENUM_PARTIAL_SIZE_MODE inp_PartialSizeMode = PARTIAL_SIZE_PERCENT; // Modo do tamanho do TP Parcial
+input double inp_TP1Percent                = 50.0;      // Percentual de volume do TP1, no modo Percentual
+input double inp_TP1Volume                 = 0.0;       // Volume fixo do TP1, no modo Volume
 input int    inp_TP1DistancePoints         = 150;       // Distancia do TP1 em pontos
 input bool   inp_EnableTP2                 = false;     // Ativar TP2
-input double inp_TP2Percent                = 25.0;      // Percentual de volume do TP2
+input double inp_TP2Percent                = 25.0;      // Percentual de volume do TP2, no modo Percentual
+input double inp_TP2Volume                 = 0.0;       // Volume fixo do TP2, no modo Volume
 input int    inp_TP2DistancePoints         = 300;       // Distancia do TP2 em pontos
 input bool   inp_FreeFinalTP               = false;     // TP final livre apos parcial; requer trailing ativo
 input bool   inp_UseTrailing               = false;     // Ativar trailing stop
@@ -312,11 +322,14 @@ void FillSettingsFromInputs(SEASettings &settings)
    settings.fixedTPPoints          = inp_FixedTPPoints;
    settings.compensateSLSpread     = inp_CompensateSLSpread;
    settings.compensateTPSpread     = inp_CompensateTPSpread;
+   settings.partialSizeMode        = inp_PartialSizeMode;
    settings.tp1.enabled            = inp_EnableTP1;
    settings.tp1.percent            = inp_TP1Percent;
+   settings.tp1.volume             = inp_TP1Volume;
    settings.tp1.distancePoints     = inp_TP1DistancePoints;
    settings.tp2.enabled            = inp_EnableTP2;
    settings.tp2.percent            = inp_TP2Percent;
+   settings.tp2.volume             = inp_TP2Volume;
    settings.tp2.distancePoints     = inp_TP2DistancePoints;
    settings.freeFinalTP            = inp_FreeFinalTP;
    if(!settings.tp1.enabled)

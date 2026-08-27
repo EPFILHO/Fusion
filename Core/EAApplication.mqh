@@ -2,6 +2,7 @@
 #define __FUSION_APPLICATION_MQH__
 
 #include "Inputs.mqh"
+#include "SettingsNotices.mqh"
 #include "Logger.mqh"
 #include "TradePermissionGuard.mqh"
 #include "PendingReverseExit.mqh"
@@ -21,7 +22,29 @@
 #include "../Normalization/SymbolNormalizer.mqh"
 #include "../Execution/ExecutionService.mqh"
 #include "../Persistence/SettingsStore.mqh"
-#include "../UI/UIPanel.mqh"
+//+------------------------------------------------------------------+
+//| FASE 4 — o painel em canvas e o unico que existe.                 |
+//|                                                                   |
+//| Ate a Fase 3 este ponto era um #ifdef FUSION_USE_CANVAS_PANEL     |
+//| escolhendo entre CFusionCanvasPanel e o CFusionPanel classico, e  |
+//| havia dois .ex5 do mesmo EA para compara-los lado a lado. O       |
+//| painel classico foi REMOVIDO; com uma implementacao so, o         |
+//| interruptor nao tem mais o que escolher e some junto — que era    |
+//| exatamente o combinado ao adotar troca em tempo de compilacao,    |
+//| em vez de uma indirecao que sobreviveria a transicao sem uso.     |
+//|                                                                   |
+//| A fronteira de 8 metodos (secao 5 do plano) continua valendo: e   |
+//| tudo o que o EA usa do painel, e e o que manteria o custo de      |
+//| trocar de implementacao baixo, se um dia for preciso de novo.     |
+//|                                                                   |
+//| Reverter para o painel classico deixou de ser trocar o EA do      |
+//| grafico e passou a ser operacao de Git: a branch gui-2.0 tem o    |
+//| checkpoint 5f9524a publicado em origin, o ultimo commit em que    |
+//| os dois paineis coexistem.                                        |
+//+------------------------------------------------------------------+
+#include "../UI/Canvas/CanvasPanel.mqh"
+#define FUSION_PANEL_CLASS CFusionCanvasPanel
+#define FUSION_PANEL_BUILD_NAME "canvas (GUI 2.0)"
 #include "../UI/ChartIndicatorVisualizer.mqh"
 
 class CFusionApplication
@@ -48,7 +71,7 @@ private:
    CTradePermissionGuard   m_tradePermissionGuard;
    CPendingReverseExit     m_pendingReverseExit;
    CChartIndicatorVisualizer m_chartIndicators;
-   CFusionPanel            m_panel;
+   FUSION_PANEL_CLASS      m_panel;
    SPositionRuntimeState   m_positionState;
    SChartStateContext      m_chartContext;
    string                  m_activeProfileName;
@@ -62,6 +85,15 @@ private:
    string                  m_startBlockedReason;
    string                  m_activeProfileBlockedReason;
    string                  m_runtimeNotice;
+   //--- Propriedade EXCLUSIVA do aviso de handoff: guarda o texto que ESTA
+   //--- publicado por ele, para que a limpeza saiba distinguir "ainda e o meu
+   //--- aviso" de "outro aviso mais importante ja tomou a tela".
+   string                  m_handoffNoticeText;
+   //--- Ultima alteracao de SL/TP observada fora do ultimo ajuste reconhecido
+   //--- pelo Fusion. SOMENTE runtime: nao vai para o chart state, entao o card
+   //--- se perde numa troca de timeframe ou reinicio. O LOG permanece — e ele
+   //--- que e a prova.
+   SProtectionChangeEvent  m_protectionChangeEvent;
    bool                    m_protectionNoticeActive;
    string                  m_protectionNoticeReason;
    bool                    m_entryBlockNoticeActive;
@@ -178,6 +210,20 @@ private:
       ResetDailyLimitsRuntimeState(restoredDailyState);
       ResetDrawdownRuntimeState(restoredDrawdownState);
       string chartStateLoadError = "";
+      //--- Canal proprio: um bloco `entry.*` estragado nao derruba o runtime.
+      SEntryStateSnapshot restoredEntryState;
+      ResetEntryStateSnapshot(restoredEntryState);
+      string entryStateError = "";
+      //--- Settings que PRODUZIRAM o estado, guardadas antes de o perfil
+      //--- canonico poder substitui-las. A comparacao de compatibilidade da
+      //--- etapa 2 e "origem do estado" contra "operacional final"; sem esta
+      //--- copia, os dois lados seriam o mesmo objeto e a comparacao mentiria.
+      SEASettings entryOriginSettings;
+      bool entryOriginSettingsKnown = false;
+      //--- ⚠ Comparado direto entre o contexto SALVO e o simbolo do grafico
+      //--- atual, antes de m_chartContext ser sobrescrito. Depois disso os dois
+      //--- passam a ser o mesmo valor e a comparacao sempre daria verdadeira.
+      bool entrySameSymbol = false;
 
       if(m_settingsStore.LoadChartState(m_chartContext.chartId,
                                         restoredContext,
@@ -188,6 +234,8 @@ private:
                                         restoredStreakState,
                                         restoredDailyState,
                                         restoredDrawdownState,
+                                        restoredEntryState,
+                                        entryStateError,
                                         chartStateLoadError))
         {
          if(!ShouldRestoreSavedState(restoredContext))
@@ -197,10 +245,31 @@ private:
            {
             restoredStateApplied = true;
             restoredSettings.isTester = m_settings.isTester;
+            //--- Mesma razao do isTester acima: diagnostico e da sessao. Com
+            //--- posicao aberta ou DD travado o perfil canonico nao e
+            //--- recarregado, entao sem esta linha o valor viria do estado
+            //--- gravado — que ja nao guarda debugLogs — e cairia no default.
+            restoredSettings.debugLogs = inp_EnableDebugLogs;
+            //--- Idem para o painel. Com posicao aberta ou DD travado este
+            //--- caminho nao recarrega o perfil canonico, e sem a linha o valor
+            //--- viria do estado gravado. No grafico isso ja nao mudaria nada
+            //--- — o painel aparece de qualquer forma —, mas mantem o estado
+            //--- coerente com o input, que e quem decide no tester.
+            restoredSettings.panelEnabled = inp_ShowPanel;
             ENUM_TIMEFRAMES restoreFallback = (restoredContext.periodValue > 0)
                                               ? (ENUM_TIMEFRAMES)restoredContext.periodValue
                                               : OperationalFallbackTimeframe();
             ResolveOperationalTimeframes(restoredSettings, restoreFallback);
+
+            //--- ⚠ AQUI, e nao antes nem depois. Antes, os timeframes salvos
+            //--- ainda nao estao normalizados e a comparacao acusaria diferenca
+            //--- que nao existe; depois, `restoredSettings` pode ja ter virado o
+            //--- perfil canonico e a copia deixaria de ser a origem do estado.
+            //--- Esta e a configuracao que de fato PRODUZIU o bloco `entry.*`.
+            entryOriginSettings = restoredSettings;
+            entryOriginSettingsKnown = true;
+            entrySameSymbol = (restoredContext.symbol == _Symbol);
+
             string restoredActiveProfile = (restoredProfile == "") ? restoredSettings.defaultProfileName : restoredProfile;
             bool restoredDrawdownLocked = (restoredDrawdownState.dayKey == FusionProtectionCurrentDayKey() &&
                                            (restoredDrawdownState.protectionActive || restoredDrawdownState.limitReached));
@@ -223,7 +292,7 @@ private:
 
             if(restoredContext.symbol != "" && restoredContext.symbol != _Symbol)
               {
-               ApplyRuntimeBlock("Ativo do grafico mudou. Volte para " + restoredContext.symbol + ". Nao troque o ativo com o EA anexado. Isso pode causar prejuizo financeiro.");
+               ApplyRuntimeBlock("Ativo do gráfico mudou. Volte para " + restoredContext.symbol + ". Não troque o ativo com o EA anexado. Isso pode causar prejuízo financeiro.");
               }
             else
               {
@@ -237,19 +306,19 @@ private:
          }
       else if(chartStateLoadError != "" && !m_settings.isTester)
          ApplyRuntimeNotice("Estado operacional salvo rejeitado: " + chartStateLoadError +
-                            ". O Fusion manteve o boot seguro e vai ressincronizar posicao e historico.");
+                            ". O Fusion manteve o boot seguro e vai ressincronizar posição e histórico.");
 
       if(restoredStateApplied &&
          restoredContext.deinitReason == REASON_CHARTCHANGE &&
          restoredContext.discardedUnsavedDraft)
-         ApplyRuntimeNotice("Alteracoes nao salvas foram descartadas na troca de timeframe.");
+         ApplyRuntimeNotice("Alterações não salvas foram descartadas na troca de timeframe.");
 
       if(!restoredStateApplied && !defaultProfileLoaded && !m_settings.isTester && !m_runtimeBlocked && m_runtimeNotice == "")
         {
          string profileIssue = m_settingsStore.ProfileExists(m_settings.defaultProfileName)
-                               ? "esta invalido ou incompleto"
-                               : "nao foi encontrado";
-         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais ate voce carregar ou salvar um perfil.");
+                               ? "está inválido ou incompleto"
+                               : "não foi encontrado";
+         ApplyRuntimeNotice("Perfil " + m_settings.defaultProfileName + " " + profileIssue + ". O Fusion manteve os inputs atuais até você carregar ou salvar um perfil.");
         }
 
       // O estado de runtime pode ser descartado com seguranca, mas a identidade do
@@ -273,7 +342,7 @@ private:
             // O aviso do painel corta em 174 caracteres. A instrucao acionavel
             // vem primeiro; o porque completo esta em docs/DECISIONS.md (20).
             ApplyRuntimeBlock("Perfil " + restoredProfile +
-                              " do grafico nao pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operacao. Assumir outro mudaria lote e Magic.");
+                              " do gráfico não pode ser carregado. Carregue um perfil na aba PERFIS para liberar a operação. Assumir outro mudaria lote e Magic.");
             m_runtimeBlockedByChartProfile = true;
            }
         }
@@ -291,10 +360,10 @@ private:
                            IntegerToString(restoredContext.deinitReason) + ")";
 
          if(restoredStateApplied)
-            profileResolution = "Perfil restaurado do estado do grafico. " + activeNow;
+            profileResolution = "Perfil restaurado do estado do gráfico. " + activeNow;
          else if(m_runtimeBlocked && restoredProfile != "")
            {
-            profileResolution = "Perfil " + restoredProfile + " do grafico nao pode ser carregado; " +
+            profileResolution = "Perfil " + restoredProfile + " do gráfico não pode ser carregado; " +
                                 discardCause + ". EA bloqueado sem assumir outro perfil.";
             profileResolutionIsWarning = true;
            }
@@ -303,16 +372,16 @@ private:
             // O runtime foi descartado, mas a identidade do perfil sobreviveu: o EA
             // segue no perfil do grafico, com o lote e o Magic corretos.
             profileResolution = "Runtime descartado (" + discardCause +
-                                "), perfil do grafico preservado. " + activeNow;
+                                "), perfil do gráfico preservado. " + activeNow;
             profileResolutionIsWarning = true;
            }
          else if(discardCause != "")
            {
-            profileResolution = "Estado do grafico nao aplicado: " + discardCause + ". " + activeNow;
+            profileResolution = "Estado do gráfico não aplicado: " + discardCause + ". " + activeNow;
             profileResolutionIsWarning = true;
            }
          else if(defaultProfileLoaded)
-            profileResolution = "Sem estado salvo para este grafico. " + activeNow;
+            profileResolution = "Sem estado salvo para este gráfico. " + activeNow;
          else
            {
             profileResolution = "Nenhum perfil carregado do disco; operando com os inputs. " + activeNow;
@@ -358,21 +427,40 @@ private:
          SPositionRuntimeState stateBeforeSync = m_positionState;
          bool positionSynced = m_executionService.SyncPosition(m_positionState);
          if(positionSynced && m_positionState.hasPosition)
-            m_logger.Info("SYNC", "Posicao aberta detectada e ressincronizada.");
+            m_logger.Info("SYNC", "Posição aberta detectada e ressincronizada.");
          else if(stateBeforeSync.hasPosition)
             BeginCloseReconciliation(stateBeforeSync, true);
          if(!m_closeReconciliationPending)
             TryAuditDailyHistory(true);
         }
 
-      if(restoredRunningAfterChartChange && !HasManagedOrPendingPosition())
-        {
-         m_signalManager.PrimeEntryStates();
-         m_logger.Info("SIGNAL", "Sinais existentes descartados apos troca de timeframe; aguardando novo sinal.");
-        }
-
+      //--- ⚠ A permissao e atualizada ANTES de montar o contexto do handoff. O
+      //--- guard nasce DESBLOQUEADO e so vira verdade depois do primeiro
+      //--- Refresh(): ler o valor inicial diria "pode operar" mesmo com o
+      //--- AutoTrading desligado, e um estado seria importado atraves de um
+      //--- bloqueio.
       if(!m_runtimeBlocked)
          RefreshTradePermissionState();
+
+      //--- Handoff do estado de entrada. Roda DEPOIS de: handles criados
+      //--- (m_signalManager.Initialize), protecoes importadas, posicao e
+      //--- fechamento pendente sincronizados, e permissao ja consultada de
+      //--- verdade. E ANTES de qualquer avaliacao de entrada — o primeiro tick
+      //--- so vem depois de Initialize() retornar.
+      //---
+      //--- ⚠ SOMENTE na troca de timeframe. Chamado em todo boot, ele fazia
+      //--- reanexo, recompilacao e inicializacao normal armarem a barreira do
+      //--- intervalo cego — mudando a semantica de inicializacao fora do escopo
+      //--- desta tarefa. O predicado puro continua cobrindo NOT_CHART_CHANGE
+      //--- para teste defensivo, mas o caminho real nao transforma todo boot
+      //--- numa falsa troca visual.
+      if(restoredRunningAfterChartChange)
+         RestoreEntryStateAfterChartChange(restoredEntryState,
+                                           entryStateError,
+                                           entryOriginSettings,
+                                           entryOriginSettingsKnown,
+                                           entrySameSymbol,
+                                           restoredStarted);
 
       if(m_runtimeBlocked)
          m_logger.Warn("CONTEXT", m_runtimeBlockReason);
@@ -386,15 +474,21 @@ private:
 
       if(ShouldShowPanel())
         {
-         int x1 = FUSION_PANEL_LEFT;
+         // Qual painel este binario tem dentro. Info, e nao Debug, de proposito.
+         // Nasceu na Fase 3, quando havia dois .ex5 e testar o errado era risco
+         // real; com a Fase 4 sobrou um so, mas a licao 4 da secao 8 do plano
+         // ("conferir o binario deployado antes de interpretar um teste")
+         // continua valendo por si - um .ex5 desatualizado ja invalidou uma
+         // rodada inteira. Uma linha por inicializacao responde que build esta
+         // no ar sem precisar abrir o log de debug.
+         m_logger.Info("UI", "Painel: " + FUSION_PANEL_BUILD_NAME);
 
+         //--- So a POSICAO inicial: o painel decide a propria largura e altura
+         //--- (FCV_PANEL_W e DecidePanelHeight), e depois do primeiro arrasto
+         //--- quem manda aqui e o estado salvo do grafico.
          if(!m_panel.CreatePanel(ChartID(),
-                                  FusionDialogProgramName(),
-                                  0,
-                                 x1,
-                                 FUSION_PANEL_TOP,
-                                 x1 + FUSION_PANEL_WIDTH,
-                                 FUSION_PANEL_TOP + FUSION_PANEL_HEIGHT,
+                                 FCV_PANEL_X,
+                                 FCV_PANEL_Y,
                                  BuildPanelSnapshot()))
            {
            m_logger.Error("UI", "Failed to create Fusion panel");
@@ -457,6 +551,7 @@ private:
       if(m_positionState.hasPosition)
         {
          ClearProtectionNotice();
+         ClearHandoffNotice();
          ManageOpenPosition();
          UpdateLivePanelIfDue();
          return;
@@ -538,19 +633,51 @@ private:
 
       UpdatePanelIfVisible();
       m_chartIndicators.Sync(m_settings);
+      //--- A legenda e criada aqui dentro, quando os indicadores ligam. Este e
+      //--- o ponto que entrega a zona proibida a uma legenda recem-nascida, sem
+      //--- depender de o usuario mexer o mouse antes.
+      SyncLegendExclusion();
      }
 
    void              OnChartEvent(const int id,const long &lparam,const double &dparam,const string &sparam)
      {
-      m_chartIndicators.OnChartEvent(id, lparam, dparam, sparam);
+      //--- Este e o unico nivel que enxerga painel e legenda ao mesmo tempo, e
+      //--- por isso a coordenacao mora aqui. Publicada ANTES do teste de
+      //--- pressao: a legenda precisa saber onde o painel esta agora, nao onde
+      //--- estava no evento anterior.
+      SyncLegendExclusion();
+
+      //--- ⚠ O gesto tem UM dono. A legenda dos indicadores faz hit-test manual
+      //--- por coordenada, entao ZORDER nao separa nada: sem este consumo, o
+      //--- mesmo CHARTEVENT_MOUSE_MOVE chegava a ela E ao painel, e com a
+      //--- legenda parada sobre o painel os dois se moviam juntos. Tambem e o
+      //--- que evita os dois disputarem CHART_MOUSE_SCROLL.
+      //---
+      //--- Nao ha decisao operacional aqui: e despacho de evento de interface.
+      if(m_chartIndicators.OnChartEvent(id, lparam, dparam, sparam))
+         return;
+
       if(!ShouldShowPanel())
          return;
 
       m_panel.ChartEvent(id, lparam, dparam, sparam);
 
+      //--- De novo depois do painel: o evento pode te-lo movido, minimizado,
+      //--- restaurado ou fechado.
+      SyncLegendExclusion();
+
       SUICommand command;
       while(m_panel.ConsumeCommand(command))
          HandleUICommand(command);
+     }
+
+   //--- Retangulo interativo do painel -> legenda. Somente interface.
+   void              SyncLegendExclusion(void)
+     {
+      int left = 0, top = 0, right = 0, bottom = 0;
+      bool valid = (ShouldShowPanel() &&
+                    m_panel.GetInteractiveRect(left, top, right, bottom));
+      m_chartIndicators.SetPanelExclusion(valid, left, top, right, bottom);
      }
 
    void              OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result)

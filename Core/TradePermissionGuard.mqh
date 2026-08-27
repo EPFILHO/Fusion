@@ -15,13 +15,13 @@ private:
 
    bool              IsConnectionReason(const string reason) const
      {
-      return (reason == "Conexao com servidor perdida.");
+      return (reason == "Conexão com servidor perdida.");
      }
 
    bool              IsAccountPermissionReason(const string reason) const
      {
-      return (reason == "Conta nao permite negociacao." ||
-              reason == "Conta nao permite negociacao automatica por EA.");
+      return (reason == "Conta não permite negociação." ||
+              reason == "Conta não permite negociação automática por EA.");
      }
 
    void              RefreshConnectionState(const bool connected)
@@ -34,7 +34,7 @@ private:
          m_connectionKnown = true;
          m_connected = connected;
          if(!connected && m_logger != NULL)
-            m_logger.Warn("CONNECTION", "Conexao com servidor perdida. Entradas bloqueadas.");
+            m_logger.Warn("CONNECTION", "Conexão com servidor perdida. Entradas bloqueadas.");
          return;
         }
 
@@ -46,9 +46,9 @@ private:
          return;
 
       if(connected)
-         m_logger.Info("CONNECTION", "Conexao com servidor restaurada. Verificando permissoes de trading.");
+         m_logger.Info("CONNECTION", "Conexão com servidor restaurada. Verificando permissões de trading.");
       else
-         m_logger.Warn("CONNECTION", "Conexao com servidor perdida. Entradas bloqueadas.");
+         m_logger.Warn("CONNECTION", "Conexão com servidor perdida. Entradas bloqueadas.");
      }
 
    bool              PermissionsAllowed(string &reason)
@@ -61,7 +61,7 @@ private:
       RefreshConnectionState(connected);
       if(!connected)
         {
-         reason = "Conexao com servidor perdida.";
+         reason = "Conexão com servidor perdida.";
          return false;
         }
 
@@ -73,19 +73,19 @@ private:
 
       if(!MQLInfoInteger(MQL_TRADE_ALLOWED))
         {
-         reason = "Permissao de trade do EA desabilitada.";
+         reason = "Permissão de trade do EA desabilitada.";
          return false;
         }
 
       if(!AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
         {
-         reason = "Conta nao permite negociacao.";
+         reason = "Conta não permite negociação.";
          return false;
         }
 
       if(!AccountInfoInteger(ACCOUNT_TRADE_EXPERT))
         {
-         reason = "Conta nao permite negociacao automatica por EA.";
+         reason = "Conta não permite negociação automática por EA.";
          return false;
         }
 
@@ -97,19 +97,32 @@ private:
       if(IsConnectionReason(reason))
         {
          if(hasPosition)
-            return "Conexao perdida. Gerenciamento da posicao interrompido; aguardando MT5/corretora.";
-         return "Conexao perdida. Aguardando MT5/corretora.";
+            return "Conexão perdida. Gerenciamento da posição interrompido; aguardando MT5/corretora.";
+         return "Conexão perdida. Aguardando MT5/corretora.";
         }
 
       if(IsAccountPermissionReason(reason))
         {
          if(hasPosition)
-            return reason + " Gerenciamento da posicao interrompido. Aguardando MT5/corretora liberar.";
-         return "Trading temporariamente indisponivel: " + reason + " Aguardando MT5/corretora liberar.";
+            return reason + " Gerenciamento da posição interrompido. Aguardando MT5/corretora liberar.";
+         //--- Sem o prefixo "Trading temporariamente indisponivel: ", que ficou
+         //--- redundante e custava caro. Redundante porque o painel ja anuncia
+         //--- o estado ao lado — distintivo IMPEDIDO e titulo TRADING
+         //--- INDISPONIVEL na aba Status. Caro porque esta e a unica das seis
+         //--- formas que estoura a faixa de uma linha do cabecalho da 2.0 (~556
+         //--- unidades): com o prefixo o texto era cortado com reticencias
+         //--- justamente antes de "Aguardando MT5/corretora liberar", que e o
+         //--- que diz o que esperar.
+         //---
+         //--- Seguro para os dois paineis: a classificacao (IsConnectionReason,
+         //--- IsAccountPermissionReason) compara o `reason`, nunca este texto
+         //--- formatado, e quem o consome so o exibe ou o compara consigo mesmo
+         //--- para detectar mudanca.
+         return reason + " Aguardando MT5/corretora liberar.";
         }
 
       if(hasPosition)
-         return reason + " Gerenciamento da posicao interrompido. Habilite imediatamente.";
+         return reason + " Gerenciamento da posição interrompido. Habilite imediatamente.";
       return reason + " Habilite para iniciar.";
      }
 
@@ -155,8 +168,12 @@ public:
       bool wasBlocked = m_blocked;
       if(PermissionsAllowed(reason))
         {
+         //--- Nao diz mais "EA pronto para operar": desde a quarentena de candle
+         //--- (RefreshTradePermissionState -> SuspendEntriesUntilFreshCandle) a
+         //--- permissao voltar NAO significa que a proxima entrada passa. O guard
+         //--- so afirma o que ele mesmo sabe - a permissao - e anuncia a espera.
          if(wasBlocked && m_logger != NULL)
-            m_logger.Info("AUTOTRADE", "Trading habilitado novamente. EA pronto para operar.");
+            m_logger.Info("AUTOTRADE", "Trading habilitado novamente. Aguardando sinal formado após a liberação.");
          Reset();
          return true;
         }

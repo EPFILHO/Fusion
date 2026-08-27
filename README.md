@@ -11,7 +11,7 @@ O projeto nasceu como uma implementacao clean-room inspirada em boas ideias do M
 - Permite multiplas instancias em graficos diferentes, desde que cada grafico use perfil e Magic Number livres.
 - Mantem uma posicao liquida por EA.
 - Usa arquitetura multi-estrategia e multi-filtro.
-- O Trend Filter possui M1 longa e M2 curta independentes; cada MA ativa exige BUY acima dela e SELL abaixo dela, usando preco e valor da media atuais.
+- O Trend Filter possui MA1 longa e MA2 curta independentes; cada MA ativa exige BUY acima dela e SELL abaixo dela, usando preco e valor da media atuais.
 - O Bollinger Filter pode, opcionalmente, bloquear sinais contra a inclinacao da linha central em candles fechados.
 - Usa resolvedores de conflito plugaveis para sinais simultaneos.
 - A estrategia que abriu a posicao e responsavel pela saida por sinal.
@@ -46,25 +46,28 @@ A GUI e parte central do projeto porque concentra operacao visual, perfis e vali
 
 Hoje ela permite:
 
-- iniciar ou pausar o EA quando nao ha posicao aberta;
-- bloquear edicao enquanto o EA esta rodando ou gerenciando posicao;
+- pausar o EA quando nao ha posicao aberta nem reconciliacao pendente;
+- **iniciar tambem com posicao aberta**, para rearmar novas entradas sem esperar a operacao fechar — armar o EA nao altera configuracao, entao nao depende da trava de edicao;
+- bloquear edicao enquanto o EA esta rodando ou gerenciando posicao, exceto a aparencia do painel em `Layout`, que nao pertence ao perfil;
 - salvar e carregar perfis;
 - criar perfis novos;
 - duplicar perfis com fluxo seguro, exigindo Magic Number unico antes de salvar;
 - validar risco, protecoes, estrategias, filtros e Magic com feedback visual e marcadores vermelhos nas abas;
-- configurar os timeframes operacionais dos modulos em `STRATS` e `FILTERS` com `ComboBox`;
-- manter avisos operacionais persistentes na aba `STATUS`.
-- refletir bloqueios de protecao ativos na `STATUS`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
+- configurar os timeframes operacionais dos modulos em `Estrategias` e `Filtros` com combo;
+- manter avisos operacionais persistentes na aba `Status`;
+- refletir bloqueios de protecao ativos no `Status`, sem depender de logs ou eventos de mouse para o usuario perceber o motivo.
+
+**A GUI do EA e a 2.0, desenhada em `CCanvas`.** O painel classico da linha 1.x, baseado na biblioteca `Controls`, nao existe mais. O nivel 1 da navegacao e `Status · Resultados · Estrategias · Filtros · Gestao · Perfis · Layout`: Risco e Protecao ficam em `Gestao`, indicadores e aparencia em `Layout`, `Magic Number` em `Perfis` e `Resolver Conflito` em `Estrategias > Geral`. O raciocinio de cada mudanca de organizacao esta na secao 6 de [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md).
 
 ## Manual do Usuario
 
-O [Manual do Usuario](docs/USER_MANUAL.md) descreve instalacao, primeiro uso, todas as abas da GUI, estrategias, filtros, risco, protecoes, perfis, indicadores visuais e a referencia completa dos `input` do Strategy Tester.
+O [Manual do Usuario 2.000](docs/USER_MANUAL.md) descreve instalacao, primeiro uso, todas as abas da GUI 2.0, estrategias, filtros, risco, protecoes, perfis, indicadores visuais e a referencia completa dos `input`.
 
-O manual documenta somente o comportamento efetivamente presente na versao 1.057. Planos, checkpoints e handoffs com numero de versao permanecem no repositorio como historico tecnico e nao devem ser interpretados como funcionalidades atuais ou instrucoes de uso.
+O manual documenta somente o comportamento efetivamente presente na versao 2.000. Planos, checkpoints e handoffs com numero de versao permanecem no repositorio como historico tecnico e nao devem ser interpretados como funcionalidades atuais ou instrucoes de uso.
 
 ## Documentacao Tecnica
 
-- [Manual do Usuario 1.057](docs/USER_MANUAL.md)
+- [Manual do Usuario 2.000](docs/USER_MANUAL.md)
 - [Indice da Documentacao](docs/README.md)
 - [Auditoria da Documentacao 1.057](docs/DOCUMENTATION_AUDIT_1057.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
@@ -74,14 +77,22 @@ O manual documenta somente o comportamento efetivamente presente na versao 1.057
 
 ## Compilacao
 
-O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia dos quatro EX5.
+O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia de cada EX5.
 
 Ordem usada pelo script:
 
 1. `VisualIndicators/FusionVisualMA.mq5`;
 2. `VisualIndicators/FusionVisualBands.mq5`;
 3. `VisualIndicators/FusionVisualRSI.mq5`;
-4. `Fusion.mq5`.
+4. `Fusion.mq5` — o EA. **E o unico alvo de producao, e o unico EA do projeto.**
+
+Os indicadores vem antes porque o EA os embute por `#resource`: compilados depois, o `Fusion.ex5` carregaria a versao anterior deles.
+
+Durante a migracao da GUI havia mais dois alvos, e a Fase 4 os removeu: `Prototype/FusionCanvasPhase1.mq5`, harness que compilava os modulos de `UI/Canvas/` fora do EA, e `FusionCanvas.mq5`, o **mesmo** EA construido com o painel novo no lugar do classico, para os dois rodarem lado a lado em graficos diferentes. Com o painel classico removido nao ha mais o que comparar: o `Fusion.mq5` voltou a ser o unico EA, ja com a GUI 2.0 dentro. Os handlers do terminal continuam em `Core/EAEntryPoints.mqh`, extraidos quando havia dois `.mq5` para nao existirem duas copias capazes de divergir em silencio.
+
+Qual painel um `.ex5` tem dentro se le no log do terminal, na inicializacao: `Painel: canvas (GUI 2.0)`.
+
+O plano da migracao esta em [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md); o roteiro de aceite do painel novo, em [docs/GUI_2000_FASE3_TESTES.md](docs/GUI_2000_FASE3_TESTES.md); o fechamento da remocao, em [docs/GUI_2000_FASE4.md](docs/GUI_2000_FASE4.md).
 
 ### Projeto fora da pasta MQL5
 
@@ -90,34 +101,31 @@ A partir do MetaEditor `5.0.0.6061`, o compilador exige que os arquivos declarad
 Use `build-linked.ps1` nesse caso. Ele cria um vinculo de diretorio em `MQL5\Experts\FusionBuild\<nome-da-pasta>`, chama o `build.ps1` por esse caminho e remove o vinculo ao final. Os EX5 continuam sendo gravados na pasta do projeto, e o repositorio permanece onde esta.
 
 ```powershell
-.\build-linked.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+.\build-linked.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
 
-Ambos os parametros sao obrigatorios aqui. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
+`-Mql5` **nao precisa ser informado**: a raiz e derivada do proprio MetaEditor, casando por `origin.txt` — o mesmo vinculo instalacao/pasta-de-dados que o MetaEditor usa. Informe-a apenas para forcar outra. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
+
+> **A raiz precisa ser a do MetaEditor escolhido, e nao uma qualquer.** Sem `/inc` (ver abaixo), os `#resource` iniciados por `\` resolvem contra a pasta de dados **do editor**. Apontar para outra faz os tres `#resource` dos indicadores falharem com `invalid resource path` — o arquivo existe, mas nao na arvore que o compilador considera sua. Com dezenas de pastas de dados na maquina, todas com cara de validas, errar era facil e o erro acusava o projeto em vez do argumento.
 
 Se o clone ja estiver dentro de `MQL5`, o `build.ps1` sozinho basta.
 
 ### Uso com caminhos explicitos
 
-Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5:
+Este e o modo mais seguro quando existem varias instalacoes do MetaTrader 5 — basta dizer **qual editor**, e a raiz `MQL5` vem pareada com ele:
 
 ```powershell
-.\build.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+.\build.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
-
-`-Mql5` recebe a raiz `MQL5`, e nao apenas a subpasta `Include`.
 
 Se a politica de execucao do PowerShell bloquear scripts:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1 `
-  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' `
-  -Mql5 'C:\Users\SEU_USUARIO\AppData\Roaming\MetaQuotes\Terminal\SEU_HASH\MQL5'
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
 ```
+
+`-Mql5` continua existindo como forcador manual e recebe a raiz `MQL5`, nao apenas a subpasta `Include`. Prefira omiti-lo: informar uma raiz que nao seja a do editor escolhido quebra os `#resource`.
 
 ### Autodeteccao
 
@@ -127,7 +135,18 @@ Tambem e possivel executar:
 .\build.ps1
 ```
 
-O script usa autodeteccao somente quando encontra exatamente um `MetaEditor64.exe` e uma unica raiz MQL5 contendo `Include/Controls/Dialog.mqh`. Se houver varias instalacoes, ele lista as opcoes e encerra sem escolher silenciosamente; execute novamente informando `-MetaEditor` e `-Mql5`.
+O script autodetecta o `MetaEditor64.exe` somente quando encontra exatamente um. Havendo varias instalacoes, ele lista as opcoes e encerra sem escolher silenciosamente; execute novamente informando `-MetaEditor`.
+
+A raiz `MQL5`, essa, nunca precisa ser informada: ela e **derivada do MetaEditor** por `origin.txt` (`build-paths.ps1`). A versao anterior aceitava qualquer pasta contendo `Include/Controls/Dialog.mqh` e desistia diante de varias — o que empurrava para informar `-Mql5` a mao, e informar a errada quebrava os `#resource`.
+
+### O compilador e o `/inc`
+
+**O `build.ps1` nao passa `/inc` ao MetaEditor, e nao deve voltar a passar.** A partir do `5.0.0.6090` esse argumento quebra a compilacao em dois lugares, ambos dentro de arquivos da propria MetaQuotes — o que faz o defeito parecer do ambiente:
+
+- `Include\Canvas\Canvas.mqh` acusa 6 erros dentro do proprio arquivo (`cannot convert parameter 'int' to 'uint&'`, `wrong parameters count` em `TextOut`, com o aviso *"due to new rules of method hiding"*);
+- todo `#resource` e recusado com `invalid resource path`, inclusive os `res\*.bmp` que `Include\Controls` declara e que existem em disco.
+
+Sem `/inc`, os mesmos arquivos compilam `0 errors, 0 warnings`. Nesse modo o compilador deduz a raiz `MQL5` pela localizacao do fonte — que e exatamente o que o `build-linked.ps1` garante ao expor o projeto dentro de `Experts`.
 
 O `ExitCode` do MetaEditor nao e usado para julgar sucesso, pois pode ser diferente de zero mesmo em compilacoes validas. A autoridade e `Result: 0 errors, 0 warnings` no log e a existencia do EX5 correspondente.
 
@@ -138,6 +157,8 @@ Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o te
 ## Distribuicao
 
 Para o usuario final, distribua somente o `Fusion.ex5` produzido ao final do build. Os tres indicadores visuais ja ficam incorporados nele e nao precisam ser instalados separadamente. O arquivo deve ser copiado para `MQL5/Experts`; depois, atualize o Navegador ou reinicie o terminal.
+
+O build produz um `.ex5` de EA e mais nenhum. Ate a Fase 3 havia tres, e dois deles nao podiam ser distribuidos: `FusionCanvas.ex5`, o mesmo EA com o painel em avaliacao, e `FusionCanvasPhase1.ex5`, um harness de desenho que nem operava. Os dois sairam com a Fase 4.
 
 Para desenvolvimento ou validacao de compilacao, distribua o repositorio completo e use `build.ps1`.
 
