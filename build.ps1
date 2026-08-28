@@ -4,7 +4,13 @@ param(
     [string]$MetaEditor,
 
     [Parameter(Mandatory = $false)]
-    [string]$Mql5
+    [string]$Mql5,
+
+    # Nao encadear automaticamente quando o projeto estiver fora da arvore
+    # MQL5. O build-linked.ps1 passa este switch ao chamar este script de
+    # dentro do vinculo: la o projeto JA esta na arvore, e a guarda so existe
+    # para que um encadeamento em laco seja impossivel por construcao.
+    [switch]$NoDelegate
 )
 
 Set-StrictMode -Version Latest
@@ -42,6 +48,28 @@ function Resolve-RequiredDirectory {
     }
 
     return (Resolve-Path -LiteralPath $Path).Path
+}
+
+# Comparacao por PREFIXO DE PASTA, e nao por texto cru: sem a barra final,
+# 'C:\MQL5x' passaria por filho de 'C:\MQL5'.
+#
+# Nao resolve reparse points de proposito. Compilando pelo vinculo que o
+# build-linked.ps1 cria, $PSScriptRoot devolve o caminho DO VINCULO — verificado
+# em juncao real, nao suposto — e e justamente esse caminho, dentro de Experts,
+# que precisa contar como "dentro da arvore". Resolver o alvo devolveria a pasta
+# original, fora dela, e o script se encadearia de novo a cada chamada.
+function Test-PathUnderRoot {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Child,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Root
+    )
+
+    $childFull = [IO.Path]::GetFullPath($Child).TrimEnd('\') + '\'
+    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\') + '\'
+    return $childFull.StartsWith($rootFull, [StringComparison]::OrdinalIgnoreCase)
 }
 
 # Find-MetaEditor e Find-Mql5RootForEditor moraram aqui ate a Etapa 2b.
@@ -153,6 +181,44 @@ else {
 # inclui, e sem ele nenhum alvo do EA compila.
 $requiredInclude = Join-Path $mql5Root 'Include\Canvas\Canvas.mqh'
 Resolve-RequiredFile -Path $requiredInclude -Description 'Include padrao do MT5' | Out-Null
+
+# O projeto pode estar FORA da arvore MQL5 — e o caso normal aqui, uma pasta por
+# versao. Sem /inc (ver Invoke-MetaEditorCompile) o MetaEditor deduz a raiz dos
+# includes a partir da PASTA DO FONTE, entao compilar de fora faz o unico include
+# de biblioteca padrao do projeto — <Canvas\Canvas.mqh>, em
+# UI/Canvas/CanvasRenderer.mqh — nao resolver.
+#
+# O sintoma engana quem nao conhece o projeto: os tres VisualIndicators passam
+# 0/0, porque nenhum deles inclui a biblioteca padrao, e so os dois EAs falham,
+# com erros que apontam para arquivos da MetaQuotes. Foi assim que o defeito
+# chegou de fora: "o Fusion nao compila".
+#
+# A checagem do Include logo acima NAO cobre isto: ela confirma que a raiz MQL5
+# tem a biblioteca, e nao que o projeto enxerga essa raiz. As duas eram
+# confundiveis, e o script chegava a anunciar a raiz certa antes de mandar
+# compilar de um lugar de onde ela nao e vista.
+if (-not (Test-PathUnderRoot -Child $projectRoot -Root $mql5Root)) {
+    if ($NoDelegate) {
+        throw ("O projeto esta fora da arvore MQL5 e -NoDelegate foi informado.`n" +
+               "  Projeto: $projectRoot`n" +
+               "  MQL5:    $mql5Root`n" +
+               'Rode build-linked.ps1 para compilar por um vinculo dentro de Experts.')
+    }
+
+    $linkedScript = Resolve-RequiredFile -Path (Join-Path $projectRoot 'build-linked.ps1') -Description 'build-linked.ps1'
+
+    Write-Host 'Fusion - build completo' -ForegroundColor White
+    Write-Host ("Projeto:    {0}" -f $projectRoot)
+    Write-Host ("MQL5:       {0}" -f $mql5Root)
+    Write-Host 'O projeto esta fora da arvore MQL5; encadeando por build-linked.ps1.' -ForegroundColor Yellow
+    Write-Host ''
+
+    # MetaEditor e raiz vao RESOLVIDOS: redescobrir do zero poderia parar em
+    # "mais de um MetaEditor encontrado" mesmo depois de este script ja ter
+    # decidido qual usar.
+    & $linkedScript -MetaEditor $editorPath -Mql5 $mql5Root
+    return
+}
 
 $editorItem = Get-Item -LiteralPath $editorPath
 Write-Host 'Fusion - build completo' -ForegroundColor White

@@ -77,16 +77,24 @@ O manual documenta somente o comportamento efetivamente presente na versao 2.000
 
 ## Compilacao
 
-O `Fusion.ex5` incorpora tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois o EA. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia de cada EX5.
+Os dois EAs incorporam tres indicadores visuais como recursos. Em um clone novo, compile primeiro esses indicadores e somente depois os EAs. O script `build.ps1` executa toda a sequencia, valida a linha `Result:` de cada log e confirma a existencia de cada EX5.
 
-Ordem usada pelo script:
+Ordem usada pelo script — **cinco alvos**:
 
 1. `VisualIndicators/FusionVisualMA.mq5`;
 2. `VisualIndicators/FusionVisualBands.mq5`;
 3. `VisualIndicators/FusionVisualRSI.mq5`;
-4. `Fusion.mq5` — o EA. **E o unico alvo de producao, e o unico EA do projeto.**
+4. `Fusion.mq5` — a versao completa;
+5. `FusionDemo.mq5` — o **mesmo** EA compilado com `FUSION_DEMO_ONLY`, que so roda em conta demo e no Strategy Tester. Nao e uma copia do fonte: e um `.mq5` que define o simbolo e inclui o mesmo `Core/EAEntryPoints.mqh`, entao nenhum fonte precisa ser editado entre as duas compilacoes.
 
-Os indicadores vem antes porque o EA os embute por `#resource`: compilados depois, o `Fusion.ex5` carregaria a versao anterior deles.
+Os indicadores vem antes porque **os dois EAs** os embutem por `#resource`: compilados depois, os EX5 dos EAs carregariam a versao anterior deles.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1 `
+  -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
+```
+
+Esse e o comando normal **dentro ou fora** da arvore `MQL5` — ver a secao seguinte. O build **nao instala nada**: os EX5 nascem na pasta do projeto, ao lado de cada fonte, e levar binario para o terminal e passo manual e deliberado.
 
 Durante a migracao da GUI havia mais dois alvos, e a Fase 4 os removeu: `Prototype/FusionCanvasPhase1.mq5`, harness que compilava os modulos de `UI/Canvas/` fora do EA, e `FusionCanvas.mq5`, o **mesmo** EA construido com o painel novo no lugar do classico, para os dois rodarem lado a lado em graficos diferentes. Com o painel classico removido nao ha mais o que comparar: o `Fusion.mq5` voltou a ser o unico EA, ja com a GUI 2.0 dentro. Os handlers do terminal continuam em `Core/EAEntryPoints.mqh`, extraidos quando havia dois `.mq5` para nao existirem duas copias capazes de divergir em silencio.
 
@@ -96,19 +104,27 @@ O plano da migracao esta em [docs/GUI_2000_PLANO.md](docs/GUI_2000_PLANO.md); o 
 
 ### Projeto fora da pasta MQL5
 
-A partir do MetaEditor `5.0.0.6061`, o compilador exige que os arquivos declarados em `#resource` resolvam dentro da arvore `MQL5`. Um clone mantido fora dela falha com `error 313: invalid resource path` nos tres indicadores, mesmo com o codigo correto.
+A partir do MetaEditor `5.0.0.6061`, o compilador exige que os arquivos declarados em `#resource` resolvam dentro da arvore `MQL5`. E, sem `/inc` (ver abaixo), o compilador deduz a raiz dos includes pela **localizacao do fonte** — de fora da arvore, `<Canvas\Canvas.mqh>` nao resolve, e ele e o unico include de biblioteca padrao do projeto, em `UI/Canvas/CanvasRenderer.mqh`.
 
-Use `build-linked.ps1` nesse caso. Ele cria um vinculo de diretorio em `MQL5\Experts\FusionBuild\<nome-da-pasta>`, chama o `build.ps1` por esse caminho e remove o vinculo ao final. Os EX5 continuam sendo gravados na pasta do projeto, e o repositorio permanece onde esta.
+**Nao ha nada a fazer a respeito: o `build.ps1` cuida disso sozinho.** Ele compara a pasta do projeto com a raiz `MQL5` resolvida e, estando fora, delega ao `build-linked.ps1` anunciando o que fez. Baixar o repositorio pelo botao **Code -> Download ZIP**, extrair em qualquer lugar e rodar o `build.ps1` funciona.
+
+O `build-linked.ps1` cria um vinculo de diretorio em `MQL5\Experts\FusionBuild\<nome-da-pasta>`, chama o `build.ps1` por esse caminho e remove o vinculo ao final. Os EX5 continuam sendo gravados na pasta do projeto, e o repositorio permanece onde esta. Ele continua disponivel para uso direto, principalmente por causa do `-KeepLink`:
 
 ```powershell
-.\build-linked.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe'
+.\build-linked.ps1 -MetaEditor 'C:\Program Files\MetaTrader 5\MetaEditor64.exe' -KeepLink
 ```
+
+> Ate esta correcao, chamar o `build-linked.ps1` a mao era **obrigatorio** fora da arvore. Quem nao sabia disso via os tres indicadores compilarem `0 errors, 0 warnings` — nenhum deles inclui a biblioteca padrao — e so os dois EAs falharem, com erros apontando para arquivos da MetaQuotes. O sintoma escondia a causa.
+
+O `-NoDelegate` desliga a delegacao: e guarda interna, usada pelo proprio `build-linked.ps1` ao chamar o `build.ps1` de dentro do vinculo, para que um encadeamento em laco seja impossivel por construcao. Fora da arvore, `-NoDelegate` produz um erro explicito em vez de compilar — serve para diagnostico, nao para uso normal.
+
+A remocao do vinculo passa por uma funcao unica que **se recusa a apagar o que nao for vinculo**: um diretorio comum com o nome da versao faz o script parar e dizer qual e o caminho, em vez de destruir arquivos. A remocao nunca e recursiva e nunca atravessa para o diretorio-alvo.
 
 `-Mql5` **nao precisa ser informado**: a raiz e derivada do proprio MetaEditor, casando por `origin.txt` — o mesmo vinculo instalacao/pasta-de-dados que o MetaEditor usa. Informe-a apenas para forcar outra. Use `-KeepLink` para manter o vinculo e abrir o projeto no MetaEditor por um caminho que o compilador aceita.
 
 > **A raiz precisa ser a do MetaEditor escolhido, e nao uma qualquer.** Sem `/inc` (ver abaixo), os `#resource` iniciados por `\` resolvem contra a pasta de dados **do editor**. Apontar para outra faz os tres `#resource` dos indicadores falharem com `invalid resource path` — o arquivo existe, mas nao na arvore que o compilador considera sua. Com dezenas de pastas de dados na maquina, todas com cara de validas, errar era facil e o erro acusava o projeto em vez do argumento.
 
-Se o clone ja estiver dentro de `MQL5`, o `build.ps1` sozinho basta.
+Se o clone ja estiver dentro de `MQL5`, nao ha delegacao nenhuma: o `build.ps1` compila no lugar.
 
 ### Uso com caminhos explicitos
 
@@ -152,13 +168,22 @@ O `ExitCode` do MetaEditor nao e usado para julgar sucesso, pois pode ser difere
 
 Os logs `compile_build_*.log` sao gerados na raiz do projeto, e cada `*.ex5` fica ao lado de seu respectivo fonte. Todos permanecem ignorados pelo Git.
 
-Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o terminal FOT apresentou erros 313 de recursos inclusive em versoes antes funcionais. O MetaEditor padrao build 5833 compilou os quatro alvos com `0 errors, 0 warnings`. Se ocorrerem erros 313, informe explicitamente outro MetaEditor conhecido como funcional.
+Em um ambiente validado do projeto, o MetaEditor build 6061 distribuido com o terminal FOT apresentou erros 313 de recursos inclusive em versoes antes funcionais. O MetaEditor padrao build 5833 compilou todos os alvos com `0 errors, 0 warnings`. Se ocorrerem erros 313, informe explicitamente outro MetaEditor conhecido como funcional.
+
+O tamanho dos EX5 varia entre compilacoes do mesmo fonte — o MetaEditor nao produz binario reproduzivel byte a byte. A autoridade continua sendo o fonte, o `Result: 0 errors, 0 warnings` e o teste; tamanho nao mede equivalencia de build.
 
 ## Distribuicao
 
-Para o usuario final, distribua somente o `Fusion.ex5` produzido ao final do build. Os tres indicadores visuais ja ficam incorporados nele e nao precisam ser instalados separadamente. O arquivo deve ser copiado para `MQL5/Experts`; depois, atualize o Navegador ou reinicie o terminal.
+O build produz **dois** EX5 distribuiveis:
 
-O build produz um `.ex5` de EA e mais nenhum. Ate a Fase 3 havia tres, e dois deles nao podiam ser distribuidos: `FusionCanvas.ex5`, o mesmo EA com o painel em avaliacao, e `FusionCanvasPhase1.ex5`, um harness de desenho que nem operava. Os dois sairam com a Fase 4.
+- `Fusion.ex5` — a versao completa; roda em conta demo, de contest, real e no Strategy Tester;
+- `FusionDemo.ex5` — a versao de demonstracao; **nao opera em conta real**.
+
+Os tres EX5 dos indicadores visuais **nao sao distribuidos separadamente**: eles ficam incorporados nos dois EAs por `#resource` e sao carregados por `iCustom` com o prefixo `::`. Instala-los a parte nao adiciona nada e cria uma segunda copia para ficar defasada.
+
+A instalacao e manual e deliberada — **o build nao copia nada para o terminal**. Copie o EX5 escolhido para `MQL5/Experts` e depois atualize o Navegador ou reinicie o terminal. Com varias instalacoes do MetaTrader na maquina, essa e a etapa em que se escolhe qual terminal recebe a versao nova; um build que instalasse sozinho decidiria isso por conta propria, possivelmente sobre um EA em uso.
+
+Ate a Fase 3 havia tres EX5 de EA, e dois nao podiam ser distribuidos: `FusionCanvas.ex5`, o mesmo EA com o painel em avaliacao, e `FusionCanvasPhase1.ex5`, um harness de desenho que nem operava. Os dois sairam com a Fase 4; o `FusionDemo.mq5` entrou depois, pela separacao entre versao completa e de demonstracao.
 
 Para desenvolvimento ou validacao de compilacao, distribua o repositorio completo e use `build.ps1`.
 

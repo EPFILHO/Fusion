@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `build.ps1` passou a delegar automaticamente para o build vinculado quando um clone esta fora da arvore MQL5, permitindo compilar diretamente apos baixar o repositorio; nenhum binario e instalado automaticamente.
+
 ## 2.000 - 2026-08-20
 
 ### A GUI 2.0 substitui o painel classico
