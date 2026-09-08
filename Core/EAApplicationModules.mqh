@@ -66,6 +66,9 @@
       m_signalManager.AddFilter(&m_trendFilter);
       m_signalManager.AddFilter(&m_rsiFilter);
       m_signalManager.AddFilter(&m_bbFilter);
+#ifdef FUSION_RESEARCH_VOLATILITY_GATE
+      m_signalManager.AddFilter(&m_volatilityGateFilter);
+#endif
       m_modulesRegistered = true;
      }
 

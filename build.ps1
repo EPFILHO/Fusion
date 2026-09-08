@@ -180,7 +180,9 @@ $targets = @(
     'VisualIndicators\FusionVisualBands.mq5',
     'VisualIndicators\FusionVisualRSI.mq5',
     'Fusion.mq5',
-    'FusionDemo.mq5'
+    'FusionDemo.mq5',
+    'FusionResearchVolatility.mq5',
+    'Research\Tests\VolatilityGateFormulaTest.mq5'
 )
 
 $results = foreach ($target in $targets) {

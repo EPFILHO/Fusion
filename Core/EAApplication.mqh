@@ -17,6 +17,12 @@
 #include "../Filters/Implementations/TrendFilter.mqh"
 #include "../Filters/Implementations/RSIFilter.mqh"
 #include "../Filters/Implementations/BollingerFilter.mqh"
+//--- DEV-010B.2 -- so entra na compilacao do alvo isolado de pesquisa
+//--- (FusionResearchVolatility.mq5), sob a MESMA condicao da porta, e nao
+//--- acima dela; mesmo precedente de FUSION_DEMO_ONLY em EAEntryPoints.mqh.
+#ifdef FUSION_RESEARCH_VOLATILITY_GATE
+#include "../Filters/Implementations/VolatilityGateFilter.mqh"
+#endif
 #include "../Risk/RiskManager.mqh"
 #include "../Protection/ProtectionManager.mqh"
 #include "../Normalization/SymbolNormalizer.mqh"
@@ -61,6 +67,9 @@ private:
    CTrendFilter            m_trendFilter;
    CRSIFilter              m_rsiFilter;
    CBollingerFilter        m_bbFilter;
+#ifdef FUSION_RESEARCH_VOLATILITY_GATE
+   CVolatilityGateFilter   m_volatilityGateFilter;
+#endif
    CRiskManager            m_riskManager;
    CProtectionManager      m_protectionManager;
    CSymbolNormalizer       m_normalizer;
@@ -522,6 +531,11 @@ private:
       m_activeProfileRegistry.Unregister();
       m_chartIndicators.Shutdown(reason);
       m_panel.Destroy(reason);
+#ifdef FUSION_RESEARCH_VOLATILITY_GATE
+      //--- DEV-010B.2 -- grava a instrumentacao antes do SignalManager liberar
+      //--- os filtros; unica escrita, sempre no encerramento.
+      m_volatilityGateFilter.WriteInstrumentation();
+#endif
       m_signalManager.Shutdown();
      }
 

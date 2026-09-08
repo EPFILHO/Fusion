@@ -63,14 +63,18 @@ if (-not (Test-Path -LiteralPath $stageRoot -PathType Container)) {
     New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
 }
 
-# Um vinculo remanescente de uma execucao interrompida apontaria para a pasta
-# errada; sempre recriamos.
+# Um vinculo remanescente de uma execucao interrompida so pode ser removido se
+# for de fato uma junction dentro do stageRoot e apontar para este projeto.
 if (Test-Path -LiteralPath $linkPath) {
-    cmd /c rmdir "$linkPath" | Out-Null
+    $existing = Get-Item -LiteralPath $linkPath -Force
+    if ($existing.LinkType -ne 'Junction' -or $existing.Target -notcontains $projectRoot) {
+        throw "Destino existente nao e a junction esperada; remocao recusada: $linkPath"
+    }
+    Remove-Item -LiteralPath $linkPath -Force
 }
 
 Write-Host ("Vinculando {0} -> {1}" -f $versionName, $linkPath) -ForegroundColor Cyan
-cmd /c mklink /J "$linkPath" "$projectRoot" | Out-Null
+New-Item -ItemType Junction -Path $linkPath -Target $projectRoot | Out-Null
 if (-not (Test-Path -LiteralPath $linkPath)) {
     throw "Nao foi possivel criar o vinculo em $linkPath"
 }
@@ -83,8 +87,12 @@ finally {
         Write-Host ("Vinculo mantido: {0}" -f $linkPath) -ForegroundColor Yellow
     }
     else {
-        cmd /c rmdir "$linkPath" | Out-Null
-        # rmdir em junction remove apenas o vinculo; o projeto permanece.
+        $created = Get-Item -LiteralPath $linkPath -Force
+        if ($created.LinkType -ne 'Junction' -or $created.Target -notcontains $projectRoot) {
+            throw "Junction criada mudou de destino; remocao recusada: $linkPath"
+        }
+        Remove-Item -LiteralPath $linkPath -Force
+        # Remove-Item em junction remove apenas o vinculo; o projeto permanece.
         Write-Host 'Vinculo removido.' -ForegroundColor DarkGray
     }
 }
